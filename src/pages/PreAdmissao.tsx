@@ -11,7 +11,9 @@ import { converterHeicParaJpeg } from "@/lib/storage/heic";
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, Camera, CheckCircle2, ChevronDown, Loader2, Send } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, Check, CheckCircle2, ChevronDown, ChevronsUpDown, Loader2, Send, Sparkles } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -48,7 +50,54 @@ type Campo = {
   somenteLeitura?: boolean;
   /** Só aparece quando a condição sobre o que já foi preenchido vale. */
   quando?: (f: Record<string, string>) => boolean;
+  /** Só para quem tem a carteira de trabalho física (a digital usa o CPF). */
+  ctpsFisica?: boolean;
+  /** Reservista: não se pede de quem informou sexo feminino. */
+  soHomem?: boolean;
 };
+
+type Banco = { slug: string; name: string; logo_url?: string | null; domain?: string | null };
+
+/** Lista de bancos do financeiro, com busca, para o candidato sem login. */
+function BancoPicker({ bancos, nome, onChange }: {
+  bancos: Banco[];
+  nome: string;
+  onChange: (slug: string | null, nome: string) => void;
+}) {
+  const [aberto, setAberto] = useState(false);
+  return (
+    <Popover open={aberto} onOpenChange={setAberto}>
+      <PopoverTrigger asChild>
+        <Button id="campo-banco_nome" type="button" variant="outline" role="combobox" aria-expanded={aberto}
+          className="h-11 w-full justify-between font-normal">
+          <span className="truncate">{nome || "Buscar banco"}</span>
+          <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Digite o nome do banco..." />
+          <CommandList>
+            <CommandEmpty>Nenhum banco encontrado.</CommandEmpty>
+            <CommandGroup>
+              {bancos.map((b) => (
+                <CommandItem key={b.slug} value={b.name}
+                  onSelect={() => { onChange(b.slug, b.name.toLocaleUpperCase("pt-BR")); setAberto(false); }}>
+                  <Check className={`mr-2 h-4 w-4 ${nome === b.name.toLocaleUpperCase("pt-BR") ? "opacity-100" : "opacity-0"}`} />
+                  {b.name}
+                </CommandItem>
+              ))}
+              <CommandItem value="outro não listado"
+                onSelect={() => { onChange(null, ""); setAberto(false); }}>
+                Outro / não listado (digite abaixo)
+              </CommandItem>
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 const RACA_COR: Opcao[] = [
   { value: "branca", label: "Branca" },
@@ -70,10 +119,11 @@ const DEFICIENCIA: Opcao[] = [
   { value: "reabilitado", label: "Reabilitado(a) pelo INSS" },
 ];
 
-const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[]; endereco?: boolean }> = [
+const ETAPAS: Array<{ titulo: string; ajuda: string; campos: Campo[]; endereco?: boolean; leitura?: string[] }> = [
   {
     titulo: "Seus Dados",
-    ajuda: "Escreva como está no seu documento.",
+    ajuda: "Envie a foto do RG ou da CNH e nós preenchemos o que der para você conferir. O resto é rápido.",
+    leitura: ["identidade"],
     campos: [
       { nome: "nome", rotulo: "Nome completo", upper: true, autoComplete: "name", somenteLeitura: true },
       { nome: "cpf", rotulo: "CPF", inputMode: "numeric", mask: "cpf", somenteLeitura: true },
