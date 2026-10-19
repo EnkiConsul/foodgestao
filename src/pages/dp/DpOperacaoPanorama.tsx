@@ -85,6 +85,7 @@ import { DpTabsBar } from "@/components/dp/DpTabsBar";
 import { DiasEmLista } from "@/components/dp/DiasEmLista";
 import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Lock, MoreHorizontal } from "lucide-react";
 import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import { Label } from "@/components/ui/label";
 
@@ -557,10 +558,11 @@ function DetalheDiaOperacao({
       {[...contagemPeriodos].map(([per, quantidade]) => {
         const fora = foraDaOperacao.filter((p) => periodoPessoa(p) === per);
         const Icon = per === "dia" ? Sun : Moon;
-        return <Button key={per} variant="ghost" aria-label={`Ver detalhes do turno ${per === "dia" ? "Dia" : per === "noite" ? "Noite" : "Madrugada"}`} onClick={() => onAbrirDetalhe?.(per)} className="h-auto min-h-16 w-full flex-wrap justify-start gap-2 overflow-hidden rounded-xl border border-calendar-header bg-calendar-header px-3 py-3 text-left text-calendar-header-foreground hover:bg-calendar-header/90 hover:text-calendar-header-foreground">
+        return <Button key={per} variant="ghost" aria-label={`Ver detalhes do turno ${per === "dia" ? "Dia" : per === "noite" ? "Noite" : "Madrugada"}`} onClick={() => onAbrirDetalhe?.(per)} className="h-11 w-full justify-start gap-2 overflow-hidden rounded-xl border bg-muted/20 px-3 text-left text-foreground hover:bg-muted/60">
           <Icon className="h-4 w-4 shrink-0" />
-          <span className="min-w-0 flex-1 whitespace-normal text-sm font-bold">{per === "dia" ? "Dia" : per === "noite" ? "Noite" : "Madrugada"}</span><ChevronRight className="h-4 w-4 shrink-0" />
-          <span className="flex w-full flex-wrap items-center gap-2 text-[11px] font-normal"><Users className="h-3 w-3" /><strong>{quantidade}</strong> trabalhando<span className="ml-auto"><strong>{fora.length}</strong> fora da operação</span></span>
+          <span className="min-w-0 flex-1 text-xs font-semibold">{per === "dia" ? "Dia" : per === "noite" ? "Noite" : "Madrugada"}</span>
+          <span className="inline-flex items-center gap-1 text-xs tabular-nums text-primary" title="Trabalhando"><Users className="h-3.5 w-3.5" /><strong>{quantidade}</strong></span>
+          <span className="inline-flex items-center gap-1 text-xs tabular-nums text-muted-foreground" title="Fora da operação"><UserX className="h-3.5 w-3.5" />{fora.length}</span><ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
         </Button>;
       })}
       {!blocos.length && <p className="text-xs text-muted-foreground">Nenhuma pessoa prevista para trabalhar.</p>}
@@ -1021,6 +1023,7 @@ export default function DpOperacaoPanorama({
   const [detalheAvulso, setDetalheAvulso] = useState<"avulso_teste" | "avulso_folguista" | null>(null);
   /** Dia aberto em janela a partir do calendário do mês. */
   const [dataPopout, setDataPopout] = useState<string | null>(inicioEmLinha ? null : detalheInicial?.data ?? null);
+  const [acoesInicioOpen, setAcoesInicioOpen] = useState(false);
   useEffect(() => {
     if (embutido && dataPopout) setData(dataPopout);
   }, [embutido, dataPopout]);
@@ -1934,16 +1937,23 @@ export default function DpOperacaoPanorama({
       </Tabs>
       </>}
 
-      {inicioEmLinha && <section className="space-y-3" aria-label="Visão oficial do dia">
+      {inicioEmLinha && <section className="space-y-2" aria-label="Visão oficial do dia">
         {dia && <>
-          <div className="flex flex-wrap items-center gap-2 rounded-xl bg-calendar-header px-3 py-3 text-xs text-calendar-header-foreground"><CalendarDays className="h-4 w-4" /><span>{dia.trabalhando} trabalhando</span>{dia.aguardando > 0 && <span>· {dia.aguardando} aguardando resposta</span>}{dia.feriado_nome && <span>🎉 {dia.feriado_nome}</span>}</div>
-          {companyIdCal && <BloqueioDoDiaCabecalho companyId={companyIdCal} unidadeId={unidadeId} data={data} podeEditar={podeRegistrar} />}
-          {podeRegistrar && <div className="grid grid-cols-2 gap-1.5">
-            <Button variant="outline" className="h-auto min-h-11 gap-1 whitespace-normal px-1.5 text-xs text-calendar-falta" onClick={() => { setAusenciaData(data); setAusenciaMotivo(undefined); setAusenciaOpen(true); }}><Plus className="h-4 w-4 shrink-0" />Registrar Ausência</Button>
-            <Button variant="outline" className="h-auto min-h-11 gap-1 whitespace-normal px-1.5 text-xs text-primary" onClick={() => abrirNovaAvulsa(data)}><UserPlus className="h-4 w-4 shrink-0" />Mão de Obra Extra</Button>
-          </div>}
+          <div className="flex items-center justify-between gap-2 text-xs">
+            <span className="inline-flex min-w-0 flex-wrap items-center gap-1.5 text-muted-foreground"><Users className="h-3.5 w-3.5 text-primary" /><strong className="text-foreground">{dia.trabalhando}</strong> trabalhando{dia.aguardando > 0 && <span>· {dia.aguardando} aguardando</span>}{dia.feriado_nome && <span>🎉 {dia.feriado_nome}</span>}</span>
+            <Popover open={acoesInicioOpen} onOpenChange={setAcoesInicioOpen}><PopoverTrigger asChild><Button variant="outline" size="sm" className="h-8 shrink-0 gap-1.5 rounded-full px-3 text-xs" aria-label="Ações do calendário"><MoreHorizontal className="h-4 w-4" />Ações</Button></PopoverTrigger>
+              <PopoverContent align="end" className="w-80 max-w-[calc(100vw-2rem)] space-y-1 rounded-xl p-2">
+                {podeRegistrar && <>
+                  <Button variant="ghost" className="h-10 w-full justify-start gap-2 text-xs" onClick={() => { setAcoesInicioOpen(false); setAusenciaData(data); setAusenciaMotivo(undefined); setAusenciaOpen(true); }}><Plus className="h-4 w-4 text-calendar-falta" />Registrar Ausência</Button>
+                  <Button variant="ghost" className="h-10 w-full justify-start gap-2 text-xs" onClick={() => { setAcoesInicioOpen(false); abrirNovaAvulsa(data); }}><UserPlus className="h-4 w-4 text-primary" />Mão de Obra Extra</Button>
+                </>}
+                <Button variant="ghost" className="h-10 w-full justify-start gap-2 text-xs" onClick={() => { setAcoesInicioOpen(false); setPeriodoPopout("todos"); setDataPopout(data); }}><Eye className="h-4 w-4" />Detalhes e demais ações</Button>
+                {companyIdCal && <div className="border-t px-1 pb-1 pt-2"><span className="inline-flex items-center gap-1.5 text-xs font-semibold"><Lock className="h-3.5 w-3.5" />Folgas deste dia</span><BloqueioDoDiaCabecalho companyId={companyIdCal} unidadeId={unidadeId} data={data} podeEditar={podeRegistrar} /></div>}
+              </PopoverContent>
+            </Popover>
+          </div>
           {conteudoDia(data, dia, true)}
-          <AniversariantesCard competencia={data.slice(0, 7)} dataDia={data} unidadeId={unidadeId} />
+          <AniversariantesCard compacto competencia={data.slice(0, 7)} dataDia={data} unidadeId={unidadeId} />
         </>}
         {!dia && <p className="text-xs text-muted-foreground">Sem dados para este dia.</p>}
       </section>}
