@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Cake, ChevronRight, Clock, MessageCircle, MessageSquare } from "lucide-react";
+import { Cake, Clock, MessageCircle, MessageSquare, X } from "lucide-react";
 import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { useDpAniversariantes30d, type AnivItem } from "@/hooks/useDpAniversariantes30d";
 import { WhatsappComposerDialog } from "@/components/dp/WhatsappComposerDialog";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { toUpperCadastro } from "@/lib/text/upperCadastro";
 import { filtrarAniversariantesPortal } from "@/lib/dp/aniversariantes-portal";
