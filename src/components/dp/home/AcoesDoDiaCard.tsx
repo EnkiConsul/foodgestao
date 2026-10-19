@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, ChevronRight, ListChecks, Loader2, X } from "lucide-react";
+import { CheckCircle2, ChevronRight, Info, ListChecks, Loader2, RefreshCw, X } from "lucide-react";
 import { useDpPendencias } from "@/hooks/useDpPendencias";
 import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
 import { useDpPendenciasDecisoes } from "@/hooks/useDpPendenciasDecisoes";
@@ -53,10 +53,22 @@ export function AcoesDoDiaCard({ emFaixa = false }: { emFaixa?: boolean }) {
 
   const conteudo = (
     <div className="space-y-3">
-      {falhou && (
+      {falhou && stable.ready && (
+        <div role="status" className="flex min-w-0 items-start gap-2 rounded-lg border border-border bg-muted/40 p-3 text-muted-foreground">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <div className="min-w-0 flex-1 space-y-1">
+            <p className="text-xs leading-relaxed">Não foi possível atualizar. Exibindo a última consulta confirmada.</p>
+            <Button variant="ghost" size="sm" className="h-9 px-2 text-xs" disabled={isFetching} onClick={() => void refetch()}>
+              <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", isFetching && "animate-spin")} aria-hidden="true" />
+              {isFetching ? "Tentando atualizar…" : "Tentar novamente"}
+            </Button>
+          </div>
+        </div>
+      )}
+      {falhou && !stable.ready && (
         <DpErrorState
-          message={stable.ready ? "A lista abaixo é da última consulta confirmada. Tente novamente." : "Não foi possível carregar as ações. Tente novamente."}
-          onRetry={() => void refetch()}
+          message="Não foi possível carregar as ações. Verifique sua conexão e tente novamente."
+          onRetry={isFetching ? undefined : () => void refetch()}
         />
       )}
       {carregando && (
@@ -132,7 +144,7 @@ export function AcoesDoDiaCard({ emFaixa = false }: { emFaixa?: boolean }) {
         {!carregando && abertas.length > 0 && (
           <span className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold tabular-nums text-primary-foreground">{abertas.length}</span>
         )}
-        {emFaixa && (carregando || falhou) && <span className="text-xs text-muted-foreground" title={resumo}>{carregando ? "…" : "!"}</span>}
+        {emFaixa && (carregando || (falhou && !stable.ready)) && <span className="text-xs text-muted-foreground" title={resumo}>{carregando ? "…" : "!"}</span>}
         {!emFaixa && <ChevronRight className="hidden h-4 w-4 shrink-0 text-muted-foreground sm:block" aria-hidden="true" />}
       </Button>
 
