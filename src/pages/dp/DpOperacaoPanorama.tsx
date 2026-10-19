@@ -415,6 +415,8 @@ interface DetalheDiaProps {
   onExcluirAvulsa: (registro: PessoaAvulsaPanorama) => void;
   /** Detalhe aberto pelo calendário do mês: sem cartões e sem seção separada de extras. */
   compacto?: boolean;
+  resumoInicio?: boolean;
+  onAbrirDetalhe?: (periodo?: "todos" | "dia" | "noite" | "madrugada") => void;
   regimes?: Map<string, string>;
   periodosHabituais?: Map<string, "dia" | "noite" | "madrugada">;
   onContagemTurno?: (c: { n: number; turno: string } | null) => void;
@@ -458,6 +460,8 @@ function DetalheDiaOperacao({
   onEditarAvulsa,
   onExcluirAvulsa,
   compacto = false,
+  resumoInicio = false,
+  onAbrirDetalhe,
   regimes,
   periodosHabituais,
   onContagemTurno,
@@ -545,6 +549,25 @@ function DetalheDiaOperacao({
           </p>
         </Secao>
       );
+
+  if (resumoInicio) return (
+    <div className="space-y-2">
+      {diaEhPico(data, dia.feriado_nome) && <span className="inline-flex items-center gap-1 text-xs font-semibold text-warning-foreground"><Flame className="h-3.5 w-3.5 fill-warning text-warning" />Pico de operação</span>}
+      {blocos.map((bloco) => {
+        const per = periodoBloco(bloco);
+        const fora = foraDaOperacao.filter((p) => periodoPessoa(p) === per);
+        const Icon = per === "dia" ? Sun : Moon;
+        return <Button key={bloco.key} variant="ghost" onClick={() => onAbrirDetalhe?.(per)} className={cn("h-auto min-h-11 w-full flex-wrap justify-start gap-2 overflow-hidden border px-3 py-2 text-left", per === "dia" ? "bg-primary/10" : "bg-calendar-noite text-calendar-noite-foreground")}>
+          <Icon className="h-4 w-4 shrink-0" />
+          <span className="min-w-0 flex-1"><span className="block whitespace-normal text-xs font-bold">{bloco.titulo}</span><span className="block text-[10px] font-normal opacity-80">{bloco.horario}</span></span>
+          <span className="flex w-full items-center gap-2 text-[11px] font-normal"><Users className="h-3 w-3" /><strong>{bloco.pessoas.length}</strong> trabalhando<span className="ml-auto"><strong>{fora.length}</strong> fora da operação</span><ChevronRight className="h-3 w-3" /></span>
+        </Button>;
+      })}
+      {!blocos.length && <p className="text-xs text-muted-foreground">Nenhuma pessoa prevista para trabalhar.</p>}
+      <Button variant="outline" className="h-auto min-h-11 w-full justify-between gap-2 text-xs" onClick={() => onAbrirDetalhe?.("todos")}><span>Fora da Operação · {foraDaOperacao.length}</span><ChevronRight className="h-4 w-4" /></Button>
+      {dia.alerta && <Button variant="ghost" className="h-auto min-h-11 w-full gap-2 whitespace-normal bg-destructive/10 text-left text-xs text-destructive" onClick={() => onAbrirDetalhe?.("todos")}><AlertTriangle className="h-4 w-4 shrink-0" />{mensagemAlerta(dia, dia.avaliacao, nomeUnidade)}</Button>}
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -980,7 +1003,8 @@ export default function DpOperacaoPanorama({
   topo,
   detalheInicial,
   onFecharDetalhe,
-}: { modo?: "operacao" | "calendario"; topo?: ReactNode; detalheInicial?: { data: string; unidadeId: string }; onFecharDetalhe?: () => void } = {}) {
+  inicioEmLinha = false,
+}: { modo?: "operacao" | "calendario"; topo?: ReactNode; detalheInicial?: { data: string; unidadeId: string }; onFecharDetalhe?: () => void; inicioEmLinha?: boolean } = {}) {
   const calendario = modo === "calendario";
   const embutido = Boolean(detalheInicial);
   const isMobile = useIsMobile();
@@ -996,7 +1020,7 @@ export default function DpOperacaoPanorama({
   const [detalheCategoria, setDetalheCategoria] = useState<CategoriaDia | null>(null);
   const [detalheAvulso, setDetalheAvulso] = useState<"avulso_teste" | "avulso_folguista" | null>(null);
   /** Dia aberto em janela a partir do calendário do mês. */
-  const [dataPopout, setDataPopout] = useState<string | null>(detalheInicial?.data ?? null);
+  const [dataPopout, setDataPopout] = useState<string | null>(inicioEmLinha ? null : detalheInicial?.data ?? null);
   useEffect(() => {
     if (embutido && dataPopout) setData(dataPopout);
   }, [embutido, dataPopout]);
@@ -1376,6 +1400,45 @@ export default function DpOperacaoPanorama({
   const tagSocio = (p: PessoaPanorama) =>
     p.socio && ["folga_padrao", "folga_extra", "ferias"].includes(p.categoria) && !p.socio_integrado;
 
+
+  const conteudoDia = (dataDoDetalhe: string, diaDoDetalhe: DiaPanorama, resumir = false) => (
+<DetalheDiaOperacao
+                periodoInicial={calendario ? periodoPopout : undefined}
+                compacto={calendario}
+                resumoInicio={resumir}
+                onAbrirDetalhe={(periodo = "todos") => { setPeriodoPopout(periodo); setDataPopout(dataDoDetalhe); }}
+                data={dataDoDetalhe}
+                dia={diaDoDetalhe}
+                blocos={blocosDe(dataDoDetalhe, diaDoDetalhe)}
+                sociosAusentes={sociosDe(diaDoDetalhe)}
+                ausenciasRegistradas={panorama.ausenciasRegistradas ?? []}
+                nomesColaboradores={nomesColaboradores}
+                unidadeId={unidadeId}
+                nomeUnidade={nomeUnidade}
+                ordemCards={ordemDia}
+                onReordenarCards={(next) => salvarOrdem("dia", next)}
+                mostrarZerados={mostrarZerados}
+                onAlternarZerados={alternarZerados}
+                onVerCategoria={setDetalheCategoria}
+                onVerSocios={() => setVerSocios(true)}
+                onDispensar={dispensar}
+                onReativar={reativar}
+                {...propsAvulsas}
+              {...propsSetor}
+                regimes={regimesColab}
+                periodosHabituais={periodosHab}
+                onContagemTurno={setContagemTurno}
+                acoesFolga={calendario && companyIdCal ? (id, fixa) => (
+                  <FolgasDoDiaPainel
+                    companyId={companyIdCal}
+                    data={dataDoDetalhe}
+                    colaboradorId={id}
+                    folgaFixa={fixa}
+                    nomes={new Map(diaDoDetalhe.pessoas.filter((p) => !p.avulso_id).map((p) => [p.colaborador_id, p.nome]))}
+                  />
+                ) : undefined}
+              />
+  );
 
   const Container = embutido ? Fragment : DpPage;
   const fecharDia = () => { setDataPopout(null); onFecharDetalhe?.(); };
@@ -1871,6 +1934,19 @@ export default function DpOperacaoPanorama({
       </Tabs>
       </>}
 
+      {inicioEmLinha && <section className="space-y-3" aria-label="Visão oficial do dia">
+        {dia && <>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><span>{dia.trabalhando} trabalhando</span>{dia.aguardando > 0 && <span>· {dia.aguardando} aguardando resposta</span>}{dia.feriado_nome && <Badge variant="outline">🎉 {dia.feriado_nome}</Badge>}</div>
+          {companyIdCal && <BloqueioDoDiaCabecalho companyId={companyIdCal} unidadeId={unidadeId} data={data} podeEditar={podeRegistrar} />}
+          {podeRegistrar && <div className="grid grid-cols-2 gap-1.5">
+            <Button variant="outline" className="h-auto min-h-11 gap-1 whitespace-normal px-1.5 text-xs text-calendar-falta" onClick={() => { setAusenciaData(data); setAusenciaMotivo(undefined); setAusenciaOpen(true); }}><Plus className="h-4 w-4 shrink-0" />Registrar Ausência</Button>
+            <Button variant="outline" className="h-auto min-h-11 gap-1 whitespace-normal px-1.5 text-xs text-primary" onClick={() => abrirNovaAvulsa(data)}><UserPlus className="h-4 w-4 shrink-0" />Mão de Obra Extra</Button>
+          </div>}
+          {conteudoDia(data, dia, isMobile)}
+        </>}
+        {!dia && <p className="text-xs text-muted-foreground">Sem dados para este dia.</p>}
+      </section>}
+
       <Dialog open={!!dataPopout} onOpenChange={(o) => !o && fecharDia()}>
         <DialogContent {...swipeDia} data-swipe-proprio="" className={cn("flex max-h-[92dvh] max-w-3xl flex-col gap-3 overflow-hidden p-4 sm:p-6", embutido && "[&_button]:min-h-11", embutido && isMobile && "inset-x-0 bottom-0 top-auto w-full translate-x-0 translate-y-0 rounded-b-none")}>
           <DialogHeader className="shrink-0">
@@ -1925,42 +2001,7 @@ export default function DpOperacaoPanorama({
             )}
           </DialogHeader>
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
-            {dataPopout && diaPopout ? (
-              <DetalheDiaOperacao
-                periodoInicial={calendario ? periodoPopout : undefined}
-                compacto={calendario}
-                data={dataPopout}
-                dia={diaPopout}
-                blocos={blocosDe(dataPopout, diaPopout)}
-                sociosAusentes={sociosDe(diaPopout)}
-                ausenciasRegistradas={panorama.ausenciasRegistradas ?? []}
-                nomesColaboradores={nomesColaboradores}
-                unidadeId={unidadeId}
-                nomeUnidade={nomeUnidade}
-                ordemCards={ordemDia}
-                onReordenarCards={(next) => salvarOrdem("dia", next)}
-                mostrarZerados={mostrarZerados}
-                onAlternarZerados={alternarZerados}
-                onVerCategoria={setDetalheCategoria}
-                onVerSocios={() => setVerSocios(true)}
-                onDispensar={dispensar}
-                onReativar={reativar}
-                {...propsAvulsas}
-              {...propsSetor}
-                regimes={regimesColab}
-                periodosHabituais={periodosHab}
-                onContagemTurno={setContagemTurno}
-                acoesFolga={calendario && companyIdCal ? (id, fixa) => (
-                  <FolgasDoDiaPainel
-                    companyId={companyIdCal}
-                    data={dataPopout}
-                    colaboradorId={id}
-                    folgaFixa={fixa}
-                    nomes={new Map(diaPopout.pessoas.filter((p) => !p.avulso_id).map((p) => [p.colaborador_id, p.nome]))}
-                  />
-                ) : undefined}
-              />
-            ) : (
+            {dataPopout && diaPopout ? conteudoDia(dataPopout, diaPopout) : (
               <p className="text-sm text-muted-foreground">Sem dados para este dia.</p>
             )}
             {calendario && dataPopout && diaPopout && (

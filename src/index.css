@@ -61,6 +61,9 @@
     --calendar-ferias: 200 90% 35%;
     --calendar-atestado: 263 70% 45%;
     --calendar-falta: 347 77% 45%;
+    --calendar-dominical: 38 92% 40%;
+    --calendar-noite: 222 47% 11%;
+    --calendar-noite-foreground: 210 40% 98%;
     --dp-pending-bg: 38 90% 96%;
     --dp-pending-border: 38 85% 82%;
     --dp-birthday-bg: 150 40% 97%;
@@ -144,6 +147,9 @@
     --calendar-ferias: 200 90% 70%;
     --calendar-atestado: 263 85% 78%;
     --calendar-falta: 347 85% 72%;
+    --calendar-dominical: 38 92% 70%;
+    --calendar-noite: 224 71% 4%;
+    --calendar-noite-foreground: 210 40% 98%;
     --dp-pending-bg: 38 40% 14%;
     --dp-pending-border: 38 40% 26%;
     --dp-birthday-bg: 155 20% 12%;

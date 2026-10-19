@@ -1,5 +1,7 @@
 # Melhorias da admissão
 ## Calendário minimalista no Início
+- [x] Reutilizar o corpo oficial do dia no Início, com quantidades por turno no celular e ações oficiais.
+- [x] Compartilhar a faixa semanal original e conferir Hoje/Mês no celular e computador: abertura do dia, formulário de ausência e navegação verificados com dados reais, sem erros nem rolagem lateral; 28 testes passaram, sem gravações ou publicação.
 - [x] Revisar Mês: contagens com ícones/legenda, colunas de pico e alertas destacados; detalhes e formulário oficiais conferidos no celular (407×748) e computador, 28 testes passaram e build OK. Sem gravação ou publicação.
 - [x] Aproximar o Início do calendário oficial: nomes por turno, ausências e mesmas ações em janela adaptada ao celular.
 - [x] Conferir detalhes e navegação com dados reais no celular e computador: 70 testes passaram; janela oficial e formulário de ausência abriram sem sair do Início. Nenhuma gravação ou publicação realizada.
