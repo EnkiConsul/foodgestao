@@ -178,3 +178,8 @@
 - [x] Organizar cartões, prazos e ações rápidas; convite e revisão confortáveis no celular.
 - [x] Oferecer WhatsApp, Business e compartilhamento com alternativas seguras (abertura dos aplicativos depende do aparelho).
 - [x] Testar filtros e revisão com dados reais, sem publicar (3 fichas; celular e computador; 2 testes de links).
+
+## Pré-admissão — ficha com leitura de documentos
+- [x] Escolaridade com orientação, selfie como alternativa à 3x4, carteira digital padrão, reservista só para homens, bancos do financeiro com busca e Pix reaproveitando CPF/celular/e-mail.
+- [x] Leitura automática de RG/CNH, comprovante de endereço, carteira de trabalho, título e reservista: preenche só campos vazios, marca "lido do documento" e mantém digitação manual.
+- [ ] Comprovante bancário: não existe como documento pedido na ficha; incluir se a empresa quiser.
