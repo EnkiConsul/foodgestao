@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { Bell, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { AcoesDoDiaCard } from "@/components/dp/home/AcoesDoDiaCard";
+import { ImportarDocumentoAtalho } from "@/components/dp/home/ImportarDocumentoAtalho";
 import { AniversariantesCard } from "@/components/dp/home/AniversariantesCard";
 import { AtalhosFavoritos } from "@/components/dp/home/AtalhosFavoritos";
 import { KpiCards } from "@/components/dp/home/KpiCards";
@@ -49,7 +50,10 @@ export default function DpHome() {
       <KpiCards />
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 min-w-0 items-start">
-        <AcoesDoDiaCard />
+        <div className="flex min-w-0 flex-col gap-3">
+          <AcoesDoDiaCard />
+          <ImportarDocumentoAtalho />
+        </div>
         <AniversariantesCard />
       </div>
 
