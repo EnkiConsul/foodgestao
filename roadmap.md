@@ -1,5 +1,6 @@
 # Melhorias da admissão
 ## Calendário minimalista no Início
+- [ ] Revisar Mês: contagens identificáveis, colunas de pico e alertas destacados; conferir abertura do dia e recuperação de carregamento.
 - [x] Aproximar o Início do calendário oficial: nomes por turno, ausências e mesmas ações em janela adaptada ao celular.
 - [x] Conferir detalhes e navegação com dados reais no celular e computador: 70 testes passaram; janela oficial e formulário de ausência abriram sem sair do Início. Nenhuma gravação ou publicação realizada.
 - [x] Manter Hoje/Mês com navegação por setas e preservar o dia ao trocar o mês.
