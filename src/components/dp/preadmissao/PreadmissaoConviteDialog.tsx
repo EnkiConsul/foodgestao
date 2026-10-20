@@ -37,6 +37,20 @@ import {
   type CamposRascunhoConvite,
 } from "@/lib/dp/admissao-rascunho";
 
+/**
+ * Orientação exibida sob o seletor de vínculo: o que muda na ficha e no
+ * documento gerado para cada natureza de contratação.
+ */
+const ORIENTACAO_VINCULO: Record<string, string> = {
+  clt: "Ficha completa com CTPS, PIS e título de eleitor. Exige exame admissional (ASO) antes do registro.",
+  intermitente: "Ficha completa com CTPS e ASO. Depois de efetivado, as convocações são por dia e turno.",
+  estagio: "Não pede CTPS, PIS ou título de eleitor e não exige ASO. O documento sai como Ficha de Estagiário.",
+  temporario: "Não pede dados de carteira e não exige ASO. O documento sai como Ficha de Trabalhador Temporário.",
+  pj: "Cadastro empresarial: sem CTPS, PIS, título ou reservista e sem ASO. O documento sai como Cadastro de Prestador PJ.",
+  mei: "Cadastro empresarial: sem CTPS, PIS, título ou reservista e sem ASO. O documento sai como Cadastro de Prestador PJ.",
+  freelancer: "Cadastro operacional completo (endereço, emergência e pagamento), sem dados de carteira e sem ASO. O documento sai como Ficha de Profissional Eventual.",
+};
+
 /** Dados já conhecidos da pessoa (promoção de folguista / pessoa em teste). */
 export interface ConviteInicial {
   nome?: string | null;
@@ -381,7 +395,7 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Define quais dados e documentos a ficha vai pedir ao candidato.
+                {ORIENTACAO_VINCULO[regime] ?? "Define quais dados e documentos a ficha vai pedir ao candidato."}
               </p>
             </div>
             <div className="space-y-1">

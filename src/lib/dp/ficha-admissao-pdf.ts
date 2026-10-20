@@ -64,6 +64,11 @@ export async function gerarFichaAdmissaoPdf(opts: {
   empresa?: string;
   cnpj?: string;
   protocolo?: string;
+  /**
+   * Natureza do documento conforme o vínculo (ex.: "Ficha de Admissão",
+   * "Cadastro de Prestador PJ"). Padrão: "Ficha de Admissão".
+   */
+  documento?: string;
   /** Ficha ainda sem aprovação/ASO: sai com tarja de prévia. */
   previa?: boolean;
   foto?: { blob: Blob; mime: string } | null;
@@ -87,8 +92,9 @@ export async function gerarFichaAdmissaoPdf(opts: {
   const topoH = 118;
   page.drawRectangle({ x: 0, y: H - topoH, width: W, height: topoH, color: VERDE });
   page.drawRectangle({ x: 0, y: H - topoH - 4, width: W, height: 4, color: VERDE_VIVO });
+  const documento = limpar((opts.documento ?? "Ficha de Admissão").toUpperCase());
   marca(page, M, H - 34, 14, true);
-  page.drawText("PESSOAS 360° - DOSSIÊ DE ADMISSÃO", { x: M, y: H - 50, size: 8, font: f, color: rgb(0.85, 0.95, 0.88) });
+  page.drawText(`PESSOAS 360° - ${documento}`, { x: M, y: H - 50, size: 8, font: f, color: rgb(0.85, 0.95, 0.88) });
 
   const fotoW = 74, fotoH = 92;
   const textoMax = W - 2 * M - (opts.foto ? fotoW + 16 : 0);
@@ -122,7 +128,7 @@ export async function gerarFichaAdmissaoPdf(opts: {
   // Faixa de protocolo / situação
   let y = H - topoH - 4;
   page.drawRectangle({ x: 0, y: y - 26, width: W, height: 26, color: opts.previa ? rgb(1, 0.97, 0.9) : FUNDO });
-  const situacao = opts.previa ? "PRÉVIA DE ADMISSÃO - EM REVISÃO INTERNA" : "DOSSIÊ OFICIAL PARA REGISTRO";
+  const situacao = opts.previa ? `PRÉVIA - ${documento} - EM REVISÃO INTERNA` : `${documento} - DOCUMENTO OFICIAL`;
   page.drawText(limpar(situacao), { x: M, y: y - 17, size: 9, font: fb, color: opts.previa ? AMBAR : VERDE });
   const prot = limpar(`${opts.protocolo ? `Protocolo ${opts.protocolo}  |  ` : ""}Gerado em ${geradoEm}`);
   page.drawText(prot, { x: W - M - f.widthOfTextAtSize(prot, 8), y: y - 17, size: 8, font: f, color: CINZA });

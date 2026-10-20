@@ -36,6 +36,13 @@ import {
   montarChecklist,
   pendenciasDocumentais,
 } from "../_shared/preadmissao-checklist.ts";
+import { regimeEhEmprego } from "../_shared/vinculo-documento.ts";
+
+/** Vínculo vigente da ficha: o ajuste do gestor na revisão prevalece sobre o convite. */
+function regimeDaFicha(pa: Pick<Preadmissao, "regime_previsto">, adminDados?: Record<string, unknown> | null): string {
+  const ajustado = String(adminDados?.regime_trabalho ?? "").trim();
+  return ajustado || String(pa.regime_previsto ?? "clt");
+}
 
 /**
  * Única situação em que a ficha pode seguir para a contabilidade. Correção
@@ -594,6 +601,11 @@ Deno.serve(async (req) => {
       const modo = t("modo");
       const { data: fresca } = await admin.from("dp_preadmissoes").select("admin_dados").eq("id", pa.id).maybeSingle();
       const adm = ((fresca?.admin_dados ?? {}) as Record<string, unknown>);
+      // ASO (NR-7 / art. 168 CLT) só existe para vínculo de emprego: PJ, MEI,
+      // freelancer, estágio e temporário não passam por exame admissional.
+      if (!regimeEhEmprego(regimeDaFicha(pa, adm))) {
+        return jsonResponse(req, 409, { error: "Exame admissional só se aplica a vínculos CLT ou intermitente." });
+      }
       const anterior = ((adm.aso ?? {}) as Record<string, unknown>);
       let aso: Record<string, unknown>;
       if (modo === "agendado") {
@@ -646,10 +658,14 @@ Deno.serve(async (req) => {
         });
       }
       if (novo === "enviado_contabilidade") {
-        const aso = (((pa as unknown as { admin_dados?: Record<string, unknown> }).admin_dados ?? {}).aso ?? {}) as Record<string, unknown>;
-        const ok = aso.modo === "dispensado" || (aso.modo === "realizado" && aso.parecer === "apto" && !!aso.arquivo_path);
-        if (!ok) {
-          return jsonResponse(req, 409, { error: "Anexe o ASO com resultado Apto ou registre a dispensa do exame antes de enviar à contabilidade." });
+        const admDados = ((pa as unknown as { admin_dados?: Record<string, unknown> }).admin_dados ?? {});
+        // Sem vínculo de emprego não há ASO: a liberação não pode ser barrada.
+        if (regimeEhEmprego(regimeDaFicha(pa, admDados))) {
+          const aso = (admDados.aso ?? {}) as Record<string, unknown>;
+          const ok = aso.modo === "dispensado" || (aso.modo === "realizado" && aso.parecer === "apto" && !!aso.arquivo_path);
+          if (!ok) {
+            return jsonResponse(req, 409, { error: "Anexe o ASO com resultado Apto ou registre a dispensa do exame antes de enviar à contabilidade." });
+          }
         }
       }
       const t = await transicionar(admin, pa.id, [pa.status], novo, {
