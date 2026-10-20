@@ -25,7 +25,7 @@ export default function CandidatoAvaliacao() {
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
-  const [resta, setResta] = useState(0);
+  const [resta, setResta] = useState<number | null>(null);
   const desvio = useRef(0);
 
   useEffect(() => { supabase.auth.getUser().then(({ data }) => setSessao(data.user ? "com" : "sem")); }, []);
@@ -37,7 +37,7 @@ export default function CandidatoAvaliacao() {
       // desvio entre o relógio do aparelho e o do servidor
       desvio.current = new Date(r.prazo_em).getTime() - r.segundos_restantes * 1000 - (t0 + Date.now()) / 2;
     }
-    setEscolha(null); setP(r);
+    setEscolha(null); setResta(null); setP(r);
     if (!r.em_andamento) setStatus(await avalStatus());
   }, []);
 
@@ -125,8 +125,8 @@ export default function CandidatoAvaliacao() {
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Pergunta {p.ordem} de {p.total}</span>
-                <span className={`flex items-center gap-1 font-medium tabular-nums ${resta <= 10 ? "text-destructive" : ""}`} aria-live="polite">
-                  <Timer className="h-4 w-4" /> {resta}s
+                <span className={`flex items-center gap-1 font-medium tabular-nums ${resta !== null && resta <= 10 ? "text-destructive" : ""}`} aria-live="polite">
+                  <Timer className="h-4 w-4" /> {resta ?? "–"}s
                 </span>
               </div>
               <Progress value={pct} aria-label="Progresso da avaliação" />
@@ -160,7 +160,7 @@ export default function CandidatoAvaliacao() {
           <>
             {status.valida && !faltaArea ? (
               <Card><CardContent className="p-5 space-y-3">
-                <p className="flex items-center gap-2 font-semibold"><CheckCircle2 className="h-5 w-5 text-primary" /> Avaliação concluída</p>
+                <h1 className="flex items-center gap-2 text-lg font-semibold"><CheckCircle2 className="h-5 w-5 text-primary" /> Avaliação concluída</h1>
                 {status.faixa && <>
                   <p className="text-sm font-medium">{FAIXA_ROTULO[status.faixa].titulo}</p>
                   <p className="text-sm text-muted-foreground">{FAIXA_ROTULO[status.faixa].texto}</p>
