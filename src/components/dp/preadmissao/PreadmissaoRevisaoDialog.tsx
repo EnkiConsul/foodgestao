@@ -35,6 +35,7 @@ import { notifyError } from "@/lib/notifyError";
 import { gerarFichaAdmissaoPdf } from "@/lib/dp/ficha-admissao-pdf";
 import { AsoAdmissionalCard } from "./AsoAdmissionalCard";
 import { asoLiberaContabilidade, BASES_LEGAIS_DISPENSA, type AsoDados } from "@/lib/dp/aso-admissional";
+import { documentoPorVinculo } from "@/lib/dp/vinculo-documento";
 import { abrirAsoPreadmissao } from "@/hooks/dp/useDpPreadmissoes";
 
 /** Ordem da conferência guiada do gestor (abas da ficha). */
@@ -635,12 +636,16 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     const empresa = companies.find((c) => c.id === data.preadmissao.company_id) as { name?: string; cnpj?: string | null } | undefined;
     const protocolo = `PA-${new Date(data.preadmissao.created_at ?? Date.now()).getFullYear()}-${data.preadmissao.id.replace(/-/g, "").slice(0, 5).toUpperCase()}`;
 
+    // Cada vínculo gera o documento com a natureza jurídica correta: um
+    // prestador PJ nunca recebe um PDF intitulado "Ficha de Admissão".
+    const docVinculo = documentoPorVinculo(regimeAtual);
     const { bytes, falhas } = await gerarFichaAdmissaoPdf({
       titulo: ficha.nome || data.preadmissao.candidato_nome,
       subtitulo: vaga ? `Vaga: ${vaga}` : undefined,
       empresa: empresa?.name ?? "",
       cnpj: empresa?.cnpj ?? "",
       protocolo,
+      documento: docVinculo.titulo,
       previa: !oficial,
       foto: foto ? { blob: foto.blob, mime: foto.mime } : null,
       secoes: [
@@ -648,7 +653,8 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
         { titulo: "Contatos de Emergência", linhas: linhaEmergencia },
         { titulo: "Informações Administrativas", linhas: linhaAdmin },
         { titulo: "Dependentes e Familiares", linhas: listaPessoas },
-        { titulo: "Saúde Ocupacional (ASO)", linhas: linhasAso },
+        // ASO (NR-7 / art. 168 CLT) só existe para vínculo de emprego.
+        ...(docVinculo.aso ? [{ titulo: "Saúde Ocupacional (ASO)", linhas: linhasAso }] : []),
         { titulo: "Documentos Anexados", linhas: linhasDocs },
       ],
       anexos,
