@@ -94,7 +94,7 @@ function sumOtherRoots(nodes: DreGerencialNode[], v: (c: string) => number): num
   for (const n of nodes) {
     if (n.level !== 2 || known.has(n.code)) continue;
     const root = rootOf(n.code);
-    if (!["4", "5", "6", "7", "8"].includes(root)) continue;
+    if (!["4", "5", "6", "8"].includes(root)) continue; // grupo 7 já entra inteiro no financeiro
     // Receitas extras reduzem "outras despesas"; gastos extras somam.
     total += root === "4" ? -Number(n.saldo_consolidado || 0) : v(n.code);
   }
