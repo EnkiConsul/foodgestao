@@ -168,7 +168,8 @@ export default function Hub() {
         {permittedModules.map((def) => (
           <ModuleCard key={def.slug} def={def} bloqueio={bloqueioDe(def.slug)} />
         ))}
-        {recAcesso.data === true && <ModuleCard key="recrutamento" def={recDef} />}
+        {/* Recrutamento 360 oculto do Hub (separação em projeto próprio); rota preservada. */}
+        {false && recAcesso.data === true && <ModuleCard key="recrutamento" def={recDef} />}
       </div>
       {permittedModules.length === 0 && (
         <p className="text-sm text-muted-foreground">Nenhum módulo disponível no momento.</p>
