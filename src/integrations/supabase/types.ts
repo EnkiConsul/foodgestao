@@ -15757,6 +15757,123 @@ export type Database = {
         }
         Relationships: []
       }
+      recrutamento_auth_desafios: {
+        Row: {
+          code_hash: string
+          cpf: string | null
+          cpf_hash: string | null
+          created_at: string
+          data_nascimento: string | null
+          expires_at: string
+          finalidade: string
+          id: string
+          nome: string | null
+          telefone: string
+          tentativas: number
+          usado_em: string | null
+          user_id: string | null
+        }
+        Insert: {
+          code_hash: string
+          cpf?: string | null
+          cpf_hash?: string | null
+          created_at?: string
+          data_nascimento?: string | null
+          expires_at: string
+          finalidade: string
+          id?: string
+          nome?: string | null
+          telefone: string
+          tentativas?: number
+          usado_em?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          code_hash?: string
+          cpf?: string | null
+          cpf_hash?: string | null
+          created_at?: string
+          data_nascimento?: string | null
+          expires_at?: string
+          finalidade?: string
+          id?: string
+          nome?: string | null
+          telefone?: string
+          tentativas?: number
+          usado_em?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      recrutamento_candidatos: {
+        Row: {
+          areas: string[]
+          bairro: string | null
+          cidade: string | null
+          consentimento_em: string
+          conta_reutilizada: boolean
+          cpf: string
+          cpf_hash: string
+          created_at: string
+          data_nascimento: string
+          declaracao_veracidade_em: string
+          escolaridade: string | null
+          experiencias: Json
+          fins_de_semana: boolean | null
+          id: string
+          nome: string
+          turnos: string[]
+          updated_at: string
+          user_id: string
+          whatsapp: string
+          whatsapp_verificado_em: string
+        }
+        Insert: {
+          areas?: string[]
+          bairro?: string | null
+          cidade?: string | null
+          consentimento_em: string
+          conta_reutilizada?: boolean
+          cpf: string
+          cpf_hash: string
+          created_at?: string
+          data_nascimento: string
+          declaracao_veracidade_em: string
+          escolaridade?: string | null
+          experiencias?: Json
+          fins_de_semana?: boolean | null
+          id?: string
+          nome: string
+          turnos?: string[]
+          updated_at?: string
+          user_id: string
+          whatsapp: string
+          whatsapp_verificado_em: string
+        }
+        Update: {
+          areas?: string[]
+          bairro?: string | null
+          cidade?: string | null
+          consentimento_em?: string
+          conta_reutilizada?: boolean
+          cpf?: string
+          cpf_hash?: string
+          created_at?: string
+          data_nascimento?: string
+          declaracao_veracidade_em?: string
+          escolaridade?: string | null
+          experiencias?: Json
+          fins_de_semana?: boolean | null
+          id?: string
+          nome?: string
+          turnos?: string[]
+          updated_at?: string
+          user_id?: string
+          whatsapp?: string
+          whatsapp_verificado_em?: string
+        }
+        Relationships: []
+      }
       recrutamento_liberacoes: {
         Row: {
           company_id: string

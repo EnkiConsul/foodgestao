@@ -89,6 +89,8 @@ const DpPreadmissoes = lazyWithRetry(() => import("./pages/dp/DpPreadmissoes"));
 const PreAdmissao = lazyWithRetry(() => import("./pages/PreAdmissao"));
 const VagaPublica = lazyWithRetry(() => import("./pages/VagaPublica"));
 const RecrutamentoVagas = lazyWithRetry(() => import("./pages/recrutamento/RecrutamentoVagas"));
+const CandidatoAcesso = lazyWithRetry(() => import("./pages/recrutamento/CandidatoAcesso"));
+const CandidatoPerfil = lazyWithRetry(() => import("./pages/recrutamento/CandidatoPerfil"));
 
 const DpDocumentosGestao = lazyWithRetry(() => import("./pages/dp/DpDocumentosGestao"));
 const DpFerias = lazyWithRetry(() => import("./pages/dp/DpFeriasHub"));
@@ -521,6 +523,8 @@ const AppRoutes = () => (
       </Route>
       <Route path="/pre-admissao" element={<PreAdmissao />} />
       <Route path="/vagas/:codigo" element={<VagaPublica />} />
+      <Route path="/candidato" element={<CandidatoPerfil />} />
+      <Route path="/candidato/entrar" element={<CandidatoAcesso />} />
       <Route path="/recibo/:token" element={<ReciboPublico />} />
       <Route path="/ata/:token" element={<AtaPublica />} />
       <Route

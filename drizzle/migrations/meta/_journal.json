@@ -736,6 +736,13 @@
       "when": 1792511229984,
       "tag": "0104_recrutamento_entrega1",
       "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1792512498907,
+      "tag": "0105_recrutamento_candidatos_etapa_a",
+      "breakpoints": true
     }
   ]
 }
