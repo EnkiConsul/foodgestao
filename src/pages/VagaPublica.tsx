@@ -86,13 +86,13 @@ export default function VagaPublica() {
               </Card>
             )}
 
-            <Card>
+            {(v.atividades || v.requisitos || v.beneficios) && <Card>
               <CardContent className="p-5 space-y-4">
                 <Bloco titulo="Atividades" texto={v.atividades} />
                 <Bloco titulo="Requisitos" texto={v.requisitos} />
                 <Bloco titulo="Benefícios" texto={v.beneficios} />
               </CardContent>
-            </Card>
+            </Card>}
 
             {v.estado === "ativa" && (
               <div className="sticky bottom-0 -mx-4 px-4 py-3 bg-background/95 border-t space-y-1">
