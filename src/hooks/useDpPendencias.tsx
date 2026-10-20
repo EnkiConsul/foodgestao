@@ -1,3 +1,4 @@
+import { tratativaPendente } from "@/lib/dp/ocorrencias";
 import { prazoLegalRescisao, prazoPagamentoRescisao } from "@/lib/dp/desligamento";
 import { datasDeFeriados, faltaFeriadoLocal } from "@/lib/dp/feriados";
 import { useQuery } from "@tanstack/react-query";
@@ -217,7 +218,7 @@ export function useDpPendencias() {
         const { data: ocs } = await supabase
           .from("dp_ocorrencias")
           .select(
-            "id, tipo, estado, analise_status, tratativa_status, tratativa_ponto, data_operacional, created_at, assiduidade_risco, assiduidade_decidido_em, colaborador:colaborador_id(nome)",
+            "id, tipo, estado, origem, impacta_assiduidade, analise_status, tratativa_status, tratativa_ponto, data_operacional, created_at, assiduidade_risco, assiduidade_decidido_em, colaborador:colaborador_id(nome)",
           ).abortSignal(signal).throwOnError()
           .eq("company_id", selectedCompanyId!)
           .neq("estado", "cancelada")
@@ -228,7 +229,7 @@ export function useDpPendencias() {
             (o: any) =>
               o.estado === "aguardando_confirmacao" ||
               o.analise_status === "pendente" ||
-              (o.tratativa_ponto && o.tratativa_status === "pendente") ||
+              tratativaPendente(o) ||
               (o.assiduidade_risco && !o.assiduidade_decidido_em),
           )
           .forEach((o: any) => {
