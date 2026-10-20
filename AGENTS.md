@@ -28,3 +28,4 @@
 <!-- LOVABLE:END -->
 
 - Recrutamento 360 isolado em `recrutamento_*`: acesso = `recrutamento_liberacoes` + dono/admin (`recrutamento_pode_gerir`); status/prazo só via `recrutamento_vaga_acao` (lock, 3 ativas, 30 dias); público só `recrutamento_vaga_publica` — nunca tocar Financeiro/Pessoas.
+- Candidato: conta/perfil só por `recrutamento-candidato-auth` (e-mail técnico `cand-<uuid>@portal.360food.local`, fora do teste grátis, sem CPF); conta existente só vira candidato após login; recuperação só de conta criada aqui — login do Pessoas fica intocado.
