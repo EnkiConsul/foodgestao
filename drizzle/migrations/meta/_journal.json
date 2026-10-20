@@ -729,6 +729,13 @@
       "when": 1792431845471,
       "tag": "0103_preadmissao_foto_vira_foto_perfil",
       "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1792511229984,
+      "tag": "0104_recrutamento_entrega1",
+      "breakpoints": true
     }
   ]
 }
