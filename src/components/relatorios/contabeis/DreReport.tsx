@@ -7,6 +7,7 @@ import type { ReportNode, Regime } from "@/hooks/useContabeisReport";
 import { AccountTreeTable } from "./AccountTreeTable";
 import { brlAcc, pct, signClass, dreSign } from "@/lib/format-contabil";
 import { computeDreTotais } from "@/lib/relatorios/dre";
+import { computeDreGerencial } from "@/lib/relatorios/dreGerencial";
 import { cn } from "@/lib/utils";
 import { escapeHtml, imprimirHtmlEmQuadro } from "@/lib/print/imprimirHtml";
 
@@ -21,6 +22,29 @@ interface Props {
 
 export function DreReport({ nodes, onSelectAnalytic, from, to, regime, contextLabel }: Props) {
   const totais = useMemo(() => computeDreTotais(nodes), [nodes]);
+  const g = useMemo(() => computeDreGerencial(nodes), [nodes]);
+  const linhas: { label: string; value: number; kind?: "sub" | "total" | "final" }[] = [
+    { label: "Receita Bruta", value: g.receitaBruta, kind: "total" },
+    { label: "(−) Deduções da Receita (descontos, cancelamentos e tributos sobre faturamento)", value: -g.deducoes, kind: "sub" },
+    { label: "= Receita Líquida", value: g.receitaLiquida, kind: "total" },
+    { label: "(−) CMV", value: -g.cmv, kind: "sub" },
+    { label: "= Lucro Bruto", value: g.lucroBruto, kind: "total" },
+    { label: "(−) Mão de Obra Direta", value: -g.maoObraDireta, kind: "sub" },
+    { label: "= Margem após Mão de Obra (Prime Cost " + brlAcc(g.primeCost) + ")", value: g.margemAposMaoObra, kind: "total" },
+    { label: "(−) Despesas Variáveis de Venda", value: -g.despesasVariaveis, kind: "sub" },
+    { label: "= Margem de Contribuição", value: g.margemContribuicao, kind: "total" },
+    { label: "(−) Estrutura e Operação", value: -g.estrutura, kind: "sub" },
+    { label: "(−) Administração e Comercial", value: -g.administracao, kind: "sub" },
+    { label: "(−) Pessoal Administrativo", value: -g.pessoalAdministrativo, kind: "sub" },
+    { label: "(−) Pró-Labore", value: -g.proLabore, kind: "sub" },
+    { label: "(−) Taxas, Multas e Outras Despesas Operacionais", value: -g.outrasOperacionais, kind: "sub" },
+    { label: "(+) Outras Receitas", value: g.outrasReceitas, kind: "sub" },
+    { label: "= EBITDA", value: g.ebitda, kind: "total" },
+    { label: "(±) Resultado Financeiro", value: g.resultadoFinanceiro, kind: "sub" },
+    { label: "= Resultado antes do IRPJ/CSLL", value: g.resultadoAntesIr, kind: "total" },
+    { label: "(−) IRPJ e CSLL", value: -g.irpjCsll, kind: "sub" },
+    { label: "= Resultado Líquido", value: g.resultadoLiquido, kind: "final" },
+  ];
 
 
   // Filtra roots que entram na DRE (in_dre = true) → 4,5,6,7,8
@@ -90,15 +114,7 @@ export function DreReport({ nodes, onSelectAnalytic, from, to, regime, contextLa
       <h2>Demonstração de Resultado</h2>
       <table>
         <tbody>
-          <tr><td>Receita Bruta</td><td class="num">${fmt(totais.receita)}</td></tr>
-          <tr class="muted"><td>(−) Impostos sobre Vendas</td><td class="num">${fmt(-totais.impostos)}</td></tr>
-          <tr class="bold"><td>= Receita Líquida</td><td class="num">${fmt(totais.receita_liquida)}</td></tr>
-          <tr class="muted"><td>(−) Custos</td><td class="num">${fmt(-totais.custos)}</td></tr>
-          <tr class="bold"><td>= Lucro Bruto (Margem ${pct(totais.mBruta)})</td><td class="num">${fmt(totais.lucro_bruto)}</td></tr>
-          <tr class="muted"><td>(−) Despesas Operacionais</td><td class="num">${fmt(-totais.despOp)}</td></tr>
-          <tr class="bold"><td>= EBITDA / Operacional</td><td class="num">${fmt(totais.ebitda)}</td></tr>
-          <tr class="muted"><td>(−) Despesas Financeiras</td><td class="num">${fmt(-totais.despFin)}</td></tr>
-          <tr class="bold highlight"><td>= Resultado Líquido (Margem ${pct(totais.mLiquida)})</td><td class="num">${fmt(totais.resultado)}</td></tr>
+          ${linhas.map((l) => `<tr class="${l.kind === "sub" ? "muted" : l.kind === "final" ? "bold highlight" : "bold"}"><td>${escapeHtml(l.label)}</td><td class="num">${fmt(l.value)}</td></tr>`).join("")}
         </tbody>
       </table>
 
@@ -135,21 +151,19 @@ export function DreReport({ nodes, onSelectAnalytic, from, to, regime, contextLa
           <CardTitle className="text-base">Demonstração de Resultado (DRE)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-1 text-sm">
-          <SummaryRow label="Receita Bruta" value={totais.receita} />
-          <SummaryRow label="(−) Impostos sobre Vendas" value={-totais.impostos} muted />
-          <SummaryRow label="= Receita Líquida" value={totais.receita_liquida} bold />
-          <SummaryRow label="(−) Custos" value={-totais.custos} muted />
-          <SummaryRow label="= Lucro Bruto" value={totais.lucro_bruto} bold hint={`Margem ${pct(totais.mBruta)}`} />
-          <SummaryRow label="(−) Despesas Operacionais" value={-totais.despOp} muted />
-          <SummaryRow label="= EBITDA / Operacional" value={totais.ebitda} bold />
-          <SummaryRow label="(−) Despesas Financeiras" value={-totais.despFin} muted />
-          <SummaryRow
-            label="= Resultado Líquido"
-            value={totais.resultado}
-            bold
-            highlight
-            hint={`Margem ${pct(totais.mLiquida)}`}
-          />
+          {linhas.map((l) => (
+            <SummaryRow
+              key={l.label}
+              label={l.label}
+              value={l.value}
+              muted={l.kind === "sub"}
+              bold={l.kind !== "sub"}
+              highlight={l.kind === "final"}
+            />
+          ))}
+          <p className="pt-2 text-xs text-muted-foreground">
+            Gorjetas e taxa de serviço não entram no DRE: pertencem à equipe e ficam como valor a repassar.
+          </p>
         </CardContent>
       </Card>
 
