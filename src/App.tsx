@@ -91,6 +91,12 @@ const VagaPublica = lazyWithRetry(() => import("./pages/VagaPublica"));
 const RecrutamentoVagas = lazyWithRetry(() => import("./pages/recrutamento/RecrutamentoVagas"));
 const CandidatoAcesso = lazyWithRetry(() => import("./pages/recrutamento/CandidatoAcesso"));
 const CandidatoPerfil = lazyWithRetry(() => import("./pages/recrutamento/CandidatoPerfil"));
+const CandidatoAvaliacao = lazyWithRetry(() => import("./pages/recrutamento/CandidatoAvaliacao"));
+/** Rota antiga do acesso do candidato: redireciona para a oficial preservando ?voltar=. */
+function CandidatoEntrarLegado() {
+  const { search } = useLocation();
+  return <Navigate to={`/candidato/acesso${search}`} replace />;
+}
 
 const DpDocumentosGestao = lazyWithRetry(() => import("./pages/dp/DpDocumentosGestao"));
 const DpFerias = lazyWithRetry(() => import("./pages/dp/DpFeriasHub"));
@@ -524,7 +530,9 @@ const AppRoutes = () => (
       <Route path="/pre-admissao" element={<PreAdmissao />} />
       <Route path="/vagas/:codigo" element={<VagaPublica />} />
       <Route path="/candidato" element={<CandidatoPerfil />} />
-      <Route path="/candidato/entrar" element={<CandidatoAcesso />} />
+      <Route path="/candidato/acesso" element={<CandidatoAcesso />} />
+      <Route path="/candidato/avaliacao" element={<CandidatoAvaliacao />} />
+      <Route path="/candidato/entrar" element={<CandidatoEntrarLegado />} />
       <Route path="/recibo/:token" element={<ReciboPublico />} />
       <Route path="/ata/:token" element={<AtaPublica />} />
       <Route

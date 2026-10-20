@@ -15805,6 +15805,174 @@ export type Database = {
         }
         Relationships: []
       }
+      recrutamento_aval_config: {
+        Row: {
+          id: boolean
+          reaplicar_dias: number
+          segundos_por_pergunta: number
+          tolerancia_segundos: number
+          updated_at: string
+          validade_meses: number
+          versao_banco: number
+        }
+        Insert: {
+          id?: boolean
+          reaplicar_dias?: number
+          segundos_por_pergunta?: number
+          tolerancia_segundos?: number
+          updated_at?: string
+          validade_meses?: number
+          versao_banco?: number
+        }
+        Update: {
+          id?: boolean
+          reaplicar_dias?: number
+          segundos_por_pergunta?: number
+          tolerancia_segundos?: number
+          updated_at?: string
+          validade_meses?: number
+          versao_banco?: number
+        }
+        Relationships: []
+      }
+      recrutamento_avaliacao_itens: {
+        Row: {
+          area: string
+          avaliacao_id: string
+          expirada: boolean
+          id: string
+          liberada_em: string | null
+          ordem: number
+          ordem_opcoes: string[]
+          pontos: number | null
+          prazo_em: string | null
+          questao_id: string
+          respondida_em: string | null
+          resposta: string | null
+        }
+        Insert: {
+          area: string
+          avaliacao_id: string
+          expirada?: boolean
+          id?: string
+          liberada_em?: string | null
+          ordem: number
+          ordem_opcoes: string[]
+          pontos?: number | null
+          prazo_em?: string | null
+          questao_id: string
+          respondida_em?: string | null
+          resposta?: string | null
+        }
+        Update: {
+          area?: string
+          avaliacao_id?: string
+          expirada?: boolean
+          id?: string
+          liberada_em?: string | null
+          ordem?: number
+          ordem_opcoes?: string[]
+          pontos?: number | null
+          prazo_em?: string | null
+          questao_id?: string
+          respondida_em?: string | null
+          resposta?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recrutamento_avaliacao_itens_avaliacao_id_fkey"
+            columns: ["avaliacao_id"]
+            isOneToOne: false
+            referencedRelation: "recrutamento_avaliacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recrutamento_avaliacao_itens_questao_id_fkey"
+            columns: ["questao_id"]
+            isOneToOne: false
+            referencedRelation: "recrutamento_questoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recrutamento_avaliacoes: {
+        Row: {
+          areas: string[]
+          base_id: string | null
+          candidato_id: string
+          concluida_em: string | null
+          faixa: string | null
+          id: string
+          iniciada_em: string
+          max_especificos: number | null
+          max_gerais: number | null
+          pontos: number | null
+          pontos_especificos: number | null
+          pontos_gerais: number | null
+          pontos_max: number | null
+          segundos_por_pergunta: number
+          status: string
+          tipo: string
+          valida_ate: string | null
+          versao_banco: number
+        }
+        Insert: {
+          areas?: string[]
+          base_id?: string | null
+          candidato_id: string
+          concluida_em?: string | null
+          faixa?: string | null
+          id?: string
+          iniciada_em?: string
+          max_especificos?: number | null
+          max_gerais?: number | null
+          pontos?: number | null
+          pontos_especificos?: number | null
+          pontos_gerais?: number | null
+          pontos_max?: number | null
+          segundos_por_pergunta: number
+          status?: string
+          tipo: string
+          valida_ate?: string | null
+          versao_banco: number
+        }
+        Update: {
+          areas?: string[]
+          base_id?: string | null
+          candidato_id?: string
+          concluida_em?: string | null
+          faixa?: string | null
+          id?: string
+          iniciada_em?: string
+          max_especificos?: number | null
+          max_gerais?: number | null
+          pontos?: number | null
+          pontos_especificos?: number | null
+          pontos_gerais?: number | null
+          pontos_max?: number | null
+          segundos_por_pergunta?: number
+          status?: string
+          tipo?: string
+          valida_ate?: string | null
+          versao_banco?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recrutamento_avaliacoes_base_id_fkey"
+            columns: ["base_id"]
+            isOneToOne: false
+            referencedRelation: "recrutamento_avaliacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recrutamento_avaliacoes_candidato_id_fkey"
+            columns: ["candidato_id"]
+            isOneToOne: false
+            referencedRelation: "recrutamento_candidatos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recrutamento_candidatos: {
         Row: {
           areas: string[]
@@ -15825,6 +15993,7 @@ export type Database = {
           turnos: string[]
           updated_at: string
           user_id: string
+          visivel_empresas: boolean
           whatsapp: string
           whatsapp_verificado_em: string
         }
@@ -15847,6 +16016,7 @@ export type Database = {
           turnos?: string[]
           updated_at?: string
           user_id: string
+          visivel_empresas?: boolean
           whatsapp: string
           whatsapp_verificado_em: string
         }
@@ -15869,6 +16039,7 @@ export type Database = {
           turnos?: string[]
           updated_at?: string
           user_id?: string
+          visivel_empresas?: boolean
           whatsapp?: string
           whatsapp_verificado_em?: string
         }
@@ -15899,6 +16070,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      recrutamento_questoes: {
+        Row: {
+          area: string
+          ativa: boolean
+          codigo: string
+          competencia: string
+          created_at: string
+          enunciado: string
+          id: string
+          justificativa: string | null
+          opcoes: Json
+          revisada_em: string | null
+          versao: number
+        }
+        Insert: {
+          area: string
+          ativa?: boolean
+          codigo: string
+          competencia: string
+          created_at?: string
+          enunciado: string
+          id?: string
+          justificativa?: string | null
+          opcoes: Json
+          revisada_em?: string | null
+          versao?: number
+        }
+        Update: {
+          area?: string
+          ativa?: boolean
+          codigo?: string
+          competencia?: string
+          created_at?: string
+          enunciado?: string
+          id?: string
+          justificativa?: string | null
+          opcoes?: Json
+          revisada_em?: string | null
+          versao?: number
+        }
+        Relationships: []
       }
       recrutamento_vagas: {
         Row: {
@@ -17411,6 +17624,14 @@ export type Database = {
         Args: { _company_id: string; _module: string }
         Returns: Json
       }
+      _rec_aval_afins: { Args: { _a: string }; Returns: string[] }
+      _rec_aval_areas_cobertas: { Args: { _cand: string }; Returns: string[] }
+      _rec_aval_criar_itens: {
+        Args: { _areas: string[]; _aval: string; _com_gerais: boolean }
+        Returns: undefined
+      }
+      _rec_aval_finalizar: { Args: { _aval: string }; Returns: undefined }
+      _rec_cand_atual: { Args: never; Returns: string }
       access_model_mode: { Args: never; Returns: string }
       access_model_set_mode: { Args: { _mode: string }; Returns: string }
       access_v2_compare_all: {
@@ -21502,6 +21723,13 @@ export type Database = {
           retry_after_seconds: number
         }[]
       }
+      recrutamento_aval_atual: { Args: never; Returns: Json }
+      recrutamento_aval_iniciar: { Args: { p_area?: string }; Returns: Json }
+      recrutamento_aval_responder: {
+        Args: { p_item: string; p_opcao: string }
+        Returns: Json
+      }
+      recrutamento_aval_status: { Args: never; Returns: Json }
       recrutamento_minhas_empresas: { Args: never; Returns: string[] }
       recrutamento_pode_gerir: {
         Args: { _company_id: string }
