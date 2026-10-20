@@ -32,3 +32,5 @@
 - Home calendar details reuse the official operation controller via lazyWithRetry; semantic calendar tokens preserve themed absence colors and deploy recovery.
 - Document management hosts import and history in a modal; confirmed session completion refreshes the unified list without scrolling the page.
 <!-- LOVABLE:END -->
+
+- Recrutamento 360 é isolado em `recrutamento_*`: acesso = empresa em `recrutamento_liberacoes` (mecanismo administrativo) + dono/admin ativo (`recrutamento_pode_gerir`); status e prazo das vagas só mudam por `recrutamento_vaga_acao` (lock por empresa, limite de 3 ativas não expiradas, 30 dias); página pública lê só `recrutamento_vaga_publica` — nunca tocar Financeiro/Pessoas.
