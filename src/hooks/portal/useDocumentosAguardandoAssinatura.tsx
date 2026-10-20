@@ -61,6 +61,8 @@ export function selecionarPendentesAssinatura(
         !d.assinatura_fisica &&
         !SO_ASSINATURA_FISICA.has(String(d.tipo ?? "")) &&
         (d.aprovacao_status ?? "aprovado") === "aprovado" &&
+        !d.arquivado_em &&
+        (d.ciclo_status ?? "ativo") === "ativo" &&
         !aceitos.has(d.id),
     )
     .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))
@@ -115,7 +117,7 @@ export function useDocumentosAguardandoAssinatura() {
         supabase
           .from("dp_documentos")
           .select(
-            "id, titulo, tipo, referencia_data, file_path, file_name, mime_type, aprovacao_status, submetido_por_colaborador, exige_aceite, assinatura_fisica, created_at",
+            "id, titulo, tipo, referencia_data, file_path, file_name, mime_type, aprovacao_status, submetido_por_colaborador, exige_aceite, assinatura_fisica, created_at, arquivado_em, ciclo_status",
           )
           .eq("colaborador_id", colab.data!.id)
           .eq("exige_aceite", true),
