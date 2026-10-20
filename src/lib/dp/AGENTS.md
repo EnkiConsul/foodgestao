@@ -21,3 +21,10 @@
 - Pending actions load independent domains with bounded concurrency and abortable deadlines; keep the confirmed snapshot during refresh and surface read failures, so incomplete results never mean all clear.
 
 - WhatsApp dispatch normalizes phone numbers centrally and uses explicit Android package intents with official HTTPS fallback; never assume the app opened or the message was sent.
+
+- Disciplinar: o portal só lê vias físicas assinadas (`via_assinada_path`, advertência escrita/suspensão) via `dp_portal_meus_disciplinares()`; verbais, observações e minutas ficam no dossiê interno da ficha.
+- Elogio: visibilidade privado/individual/público definida só pela RPC `dp_elogio_divulgar` (notifica o colaborador e, se público, publica no Mural da unidade via `dp_avisos`); verbais e observações nunca notificam o colaborador — reconhecimento sem expor o dossiê.
+- Histórico da ficha de registro (férias, afastamentos, advertências) é lido por `dp-ficha-historico-varrer` e só entra nos módulos pela RPC idempotente `dp_ficha_historico_aplicar` após conferência; afastamentos e advertências ficam no dossiê interno sem notificar o colaborador — evita alertas falsos.
+- Importação de ficha: regime, forma de pagamento, cargo (com CBO), salário padrão da unidade/convenção e dependentes são sugeridos pela própria ficha e gravados só quando o gestor aprova.
+- Ponto (Art. 74 CLT) é decisão da unidade: `dp_unidade_definir_ponto` liga/desliga com cascata nos colaboradores e exige justificativa da unidade acima de 20 ativos; a ficha só pede justificativa individual quando a unidade tem ponto; unidade 20+ sem ponto e sem justificativa vira pendência e alerta no início.
+- Folga dominical: colaborador > cargo na unidade > unidade, via `domingosDiferenciados`; gravada só por RPC com ciência de isonomia — sem diferenciação sem registro.
