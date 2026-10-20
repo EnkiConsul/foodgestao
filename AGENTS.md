@@ -9,13 +9,7 @@
 - O portal não lê `dp_colaboradores` de colegas: `dp_portal_equipe_unidade()` expõe só nome, função e folga fixa.
 - Pré-admissão: o checklist compartilhado governa leitura e envio; desativar requisito preserva anexos.
 - Imagem da assinatura (PNG em data URL) é gravada só pelo servidor em `assinatura_imagem` (dp_recibos/dp_documento_aceites), imutável, e estampada no PDF com rubrica em todas as páginas — reimpressão fiel.
-- Disciplinar: o portal só lê vias físicas assinadas (`via_assinada_path`, advertência escrita/suspensão) via `dp_portal_meus_disciplinares()`; verbais, observações e minutas ficam no dossiê interno da ficha.
-- Elogio: visibilidade privado/individual/público definida só pela RPC `dp_elogio_divulgar` (notifica o colaborador e, se público, publica no Mural da unidade via `dp_avisos`); verbais e observações nunca notificam o colaborador — reconhecimento sem expor o dossiê.
 - Piso do cargo: com sindicato patronal na unidade grava no patronal (convenção); sem patronal grava direto na unidade (Cargo + Unidade) — o patronal acelera, nunca bloqueia.
-- Histórico da ficha de registro (férias, afastamentos, advertências) é lido por `dp-ficha-historico-varrer` e só entra nos módulos pela RPC idempotente `dp_ficha_historico_aplicar` após conferência; afastamentos e advertências ficam no dossiê interno sem notificar o colaborador — evita alertas falsos.
-- Importação de ficha: regime, forma de pagamento, cargo (com CBO), salário padrão da unidade/convenção e dependentes são sugeridos pela própria ficha e gravados só quando o gestor aprova.
-- Ponto (Art. 74 CLT) é decisão da unidade: `dp_unidade_definir_ponto` liga/desliga com cascata nos colaboradores e exige justificativa da unidade acima de 20 ativos; a ficha só pede justificativa individual quando a unidade tem ponto; unidade 20+ sem ponto e sem justificativa vira pendência e alerta no início.
-- Folga dominical: colaborador > cargo na unidade > unidade, via `domingosDiferenciados`; gravada só por RPC com ciência de isonomia — sem diferenciação sem registro.
 - Desligamento: Aviso, Documentos e Acerto Rescisório com pendências próprias; sem assinatura digital; Acerto só baixa assinado ou com comprovante — emitir não quita.
 - Restrição de um dia: colaborador → `dp_bloqueios` (início=fim); cargo/setor → `dp_folga_limite_regras` com vigência de um dia (máximo 0 = ninguém).
 - Revogar cortesia gera carência (`grace`, fim 23:59:59 BRT via `_shared/grace.ts`), nunca ativa; vencida, `company_access_status` bloqueia; banner lê `company_grace_subscriptions` por módulo — evita acesso grátis sem fim.
@@ -32,3 +26,5 @@
 - Home calendar details reuse the official operation controller via lazyWithRetry; semantic calendar tokens preserve themed absence colors and deploy recovery.
 - Document management hosts import and history in a modal; confirmed session completion refreshes the unified list without scrolling the page.
 <!-- LOVABLE:END -->
+
+- Recrutamento 360 isolado em `recrutamento_*`: acesso = `recrutamento_liberacoes` + dono/admin (`recrutamento_pode_gerir`); status/prazo só via `recrutamento_vaga_acao` (lock, 3 ativas, 30 dias); público só `recrutamento_vaga_publica` — nunca tocar Financeiro/Pessoas.

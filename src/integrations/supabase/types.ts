@@ -15757,6 +15757,125 @@ export type Database = {
         }
         Relationships: []
       }
+      recrutamento_liberacoes: {
+        Row: {
+          company_id: string
+          liberado_em: string
+          observacao: string | null
+        }
+        Insert: {
+          company_id: string
+          liberado_em?: string
+          observacao?: string | null
+        }
+        Update: {
+          company_id?: string
+          liberado_em?: string
+          observacao?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recrutamento_liberacoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recrutamento_vagas: {
+        Row: {
+          atividades: string | null
+          bairro: string | null
+          beneficios: string | null
+          cidade: string | null
+          codigo: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          encerrada_em: string | null
+          escala: string | null
+          exibir_remuneracao: boolean
+          expira_em: string | null
+          id: string
+          jornada: string | null
+          publicada_em: string | null
+          quantidade: number
+          remuneracao: string | null
+          requisitos: string | null
+          status: string
+          tipo_contratacao: string
+          titulo: string
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          atividades?: string | null
+          bairro?: string | null
+          beneficios?: string | null
+          cidade?: string | null
+          codigo?: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          encerrada_em?: string | null
+          escala?: string | null
+          exibir_remuneracao?: boolean
+          expira_em?: string | null
+          id?: string
+          jornada?: string | null
+          publicada_em?: string | null
+          quantidade?: number
+          remuneracao?: string | null
+          requisitos?: string | null
+          status?: string
+          tipo_contratacao?: string
+          titulo: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          atividades?: string | null
+          bairro?: string | null
+          beneficios?: string | null
+          cidade?: string | null
+          codigo?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          encerrada_em?: string | null
+          escala?: string | null
+          exibir_remuneracao?: boolean
+          expira_em?: string | null
+          id?: string
+          jornada?: string | null
+          publicada_em?: string | null
+          quantidade?: number
+          remuneracao?: string | null
+          requisitos?: string | null
+          status?: string
+          tipo_contratacao?: string
+          titulo?: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recrutamento_vagas_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recrutamento_vagas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       segmentos: {
         Row: {
           ativo: boolean
@@ -21266,6 +21385,16 @@ export type Database = {
           retry_after_seconds: number
         }[]
       }
+      recrutamento_minhas_empresas: { Args: never; Returns: string[] }
+      recrutamento_pode_gerir: {
+        Args: { _company_id: string }
+        Returns: boolean
+      }
+      recrutamento_vaga_acao: {
+        Args: { _acao: string; _vaga_id: string }
+        Returns: Json
+      }
+      recrutamento_vaga_publica: { Args: { _codigo: string }; Returns: Json }
       release_open_finance_sync:
         | { Args: { _connection_id: string; _token: string }; Returns: boolean }
         | {

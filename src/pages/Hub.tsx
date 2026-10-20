@@ -13,7 +13,9 @@ import { cn } from "@/lib/utils";
 import { PendingInvitesAlert } from "@/components/invites/PendingInvitesAlert";
 import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 import { useCompanyEntitlements } from "@/hooks/useModuleAccess";
-import { Lock } from "lucide-react";
+import { Lock, UserSearch } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const MOTIVO_TEXTO: Record<string, string> = {
   sem_cobertura: "Empresa sem cobertura neste módulo",
@@ -119,6 +121,22 @@ export default function Hub() {
   );
 
 
+  // Recrutamento 360: card aditivo, só para dono/admin de empresa liberada (validado no banco).
+  const recAcesso = useQuery({
+    queryKey: ["rec-acesso", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data } = await supabase.rpc("recrutamento_pode_gerir", { _company_id: selectedCompanyId! });
+      return !!data;
+    },
+  });
+  const recDef: ModuleDefinition = {
+    slug: "rh", name: "Recrutamento 360°", shortName: "Recrutamento",
+    description: "Vagas, página pública com link e QR Code.", icon: UserSearch,
+    entryRoute: "/recrutamento", available: true,
+  };
+
   const contextLabel = companies.find((c) => c.id === selectedCompanyId)?.name ?? "Empresa";
 
   return (
@@ -150,6 +168,7 @@ export default function Hub() {
         {permittedModules.map((def) => (
           <ModuleCard key={def.slug} def={def} bloqueio={bloqueioDe(def.slug)} />
         ))}
+        {recAcesso.data === true && <ModuleCard key="recrutamento" def={recDef} />}
       </div>
       {permittedModules.length === 0 && (
         <p className="text-sm text-muted-foreground">Nenhum módulo disponível no momento.</p>
