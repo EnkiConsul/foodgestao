@@ -764,6 +764,13 @@
       "when": 1792515844287,
       "tag": "0108_recrutamento_menor_privilegio",
       "breakpoints": true
+    },
+    {
+      "idx": 109,
+      "version": "7",
+      "when": 1792520933051,
+      "tag": "0109_catalogo_food_service_v5_categorias_v4",
+      "breakpoints": true
     }
   ]
 }
