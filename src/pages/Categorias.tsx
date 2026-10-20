@@ -2,6 +2,7 @@ import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
 import { useState, useMemo, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { CatalogoV4RevisaoAviso } from "@/components/categories/CatalogoV4RevisaoAviso";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -588,6 +589,7 @@ export default function Categorias() {
             {counts.total} categoria(s) · {counts.receitas} de receita · {counts.despesas} de despesa
           </p>
         )}
+        <CatalogoV4RevisaoAviso companyId={selectedCompanyId} />
       </div>
 
       {/* Toolbar */}
