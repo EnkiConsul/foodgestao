@@ -381,7 +381,7 @@ export function PreadmissaoConviteDialog({ open, onOpenChange, inicial }: Props)
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Define quais dados e documentos a ficha vai pedir ao candidato.
+                {ORIENTACAO_VINCULO[regime] ?? "Define quais dados e documentos a ficha vai pedir ao candidato."}
               </p>
             </div>
             <div className="space-y-1">
