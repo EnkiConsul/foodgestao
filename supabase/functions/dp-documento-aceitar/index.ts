@@ -98,7 +98,16 @@ Deno.serve(async (req) => {
     }
 
     const { hash } = await garantirHashDocumento(admin, BUCKET, doc as never);
-    if (!hash) return erro(409, FRASES.conteudo_nao_conferido.frase);
+    if (!hash) {
+      await recordEdgeError({
+        functionName: FUNCAO,
+        action: "conferir conteúdo do documento",
+        error: new Error("conteudo_nao_conferido"),
+        companyId: doc.company_id,
+        details: { documento_id: documentoId },
+      });
+      return erro(409, FRASES.conteudo_nao_conferido.frase);
+    }
 
     const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || null;
     const { data: aceiteId, error } = await cliente.rpc("dp_documento_aceitar", {
