@@ -64,6 +64,11 @@ export async function gerarFichaAdmissaoPdf(opts: {
   empresa?: string;
   cnpj?: string;
   protocolo?: string;
+  /**
+   * Natureza do documento conforme o vínculo (ex.: "Ficha de Admissão",
+   * "Cadastro de Prestador PJ"). Padrão: "Ficha de Admissão".
+   */
+  documento?: string;
   /** Ficha ainda sem aprovação/ASO: sai com tarja de prévia. */
   previa?: boolean;
   foto?: { blob: Blob; mime: string } | null;
