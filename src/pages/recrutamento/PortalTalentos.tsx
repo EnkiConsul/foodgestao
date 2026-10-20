@@ -88,7 +88,7 @@ export default function PortalTalentos() {
         {etapa === "concluido" && (
           <Card><CardContent className="p-5 space-y-3 text-sm">
             <h1 className="flex items-center gap-2 text-lg font-semibold"><CheckCircle2 className="h-5 w-5 text-primary" /> Cadastro concluído</h1>
-            <p>{resultado === "ja_ativo" ? "Você já fazia parte" : "Agora você faz parte"} do Banco de Talentos da {empresa}.</p>
+            <p>{resultado === "ativado" ? "Agora você faz parte" : "Você já faz parte"} do Banco de Talentos da {empresa}.</p>
             {st.data?.autorizado_em && <p className="text-xs text-muted-foreground">Autorizado em {new Date(st.data.autorizado_em).toLocaleDateString("pt-BR")}.</p>}
             <Button asChild variant="outline" className="w-full h-11"><Link to={`/carreiras/${slug}`}>Ver vagas da empresa</Link></Button>
             <Button asChild variant="ghost" className="w-full h-11"><Link to="/candidato">Gerenciar minhas autorizações</Link></Button>
