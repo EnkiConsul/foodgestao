@@ -164,7 +164,7 @@ export function useMeusDocumentos() {
       const { data: docs } = await supabase
         .from("dp_documentos")
         .select(
-          "id, titulo, tipo, referencia_data, file_path, file_name, mime_type, aprovacao_status, motivo_recusao, submetido_por_colaborador, descricao, created_at, exige_aceite, comprovante_file_path, comprovante_file_name, comprovante_pago_em, via_assinada_path, via_assinada_mime, assinatura_fisica, comprovante_recibo_documento_id"
+          "id, titulo, tipo, referencia_data, file_path, file_name, mime_type, aprovacao_status, motivo_recusao, submetido_por_colaborador, descricao, created_at, exige_aceite, comprovante_file_path, comprovante_file_name, comprovante_pago_em, via_assinada_path, via_assinada_mime, assinatura_fisica, comprovante_recibo_documento_id, arquivado_em, ciclo_status"
         )
         .eq("colaborador_id", colab.id)
         .order("created_at", { ascending: false });
@@ -184,6 +184,8 @@ export function useMeusDocumentos() {
       for (const d of (docs ?? []) as any[]) {
         // Assinatura à mão: a minuta fica só no DP até a via assinada ser importada.
         if (d.assinatura_fisica && !d.via_assinada_path) continue;
+        // Excluído/arquivado pelo DP sem assinatura: some do portal (nunca pede assinatura).
+        if ((d.arquivado_em || (d.ciclo_status ?? "ativo") !== "ativo") && !aceitos.has(d.id)) continue;
         const tipo = normalizeTipo(d.tipo);
         const comp = fmtCompetencia(d.referencia_data);
         const origem: UnifiedOrigem = d.submetido_por_colaborador ? "meu_envio" : "dp";
