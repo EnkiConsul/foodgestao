@@ -2353,8 +2353,10 @@ export type Database = {
           applied_by: string | null
           batch_id: string
           category_code: string
+          category_id: string | null
           category_name: string | null
           chart_account_name: string | null
+          company_id: string | null
           confidence: number | null
           id: string
           new_chart_account_code: string | null
@@ -2370,8 +2372,10 @@ export type Database = {
           applied_by?: string | null
           batch_id: string
           category_code: string
+          category_id?: string | null
           category_name?: string | null
           chart_account_name?: string | null
+          company_id?: string | null
           confidence?: number | null
           id?: string
           new_chart_account_code?: string | null
@@ -2387,8 +2391,10 @@ export type Database = {
           applied_by?: string | null
           batch_id?: string
           category_code?: string
+          category_id?: string | null
           category_name?: string | null
           chart_account_name?: string | null
+          company_id?: string | null
           confidence?: number | null
           id?: string
           new_chart_account_code?: string | null
@@ -14195,6 +14201,38 @@ export type Database = {
         }
         Relationships: []
       }
+      finance_gorjeta_config: {
+        Row: {
+          company_id: string
+          observacao: string | null
+          retencao_percentual: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          company_id: string
+          observacao?: string | null
+          retencao_percentual?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          observacao?: string | null
+          retencao_percentual?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_gorjeta_config_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ia_conversations: {
         Row: {
           content: string
@@ -18143,6 +18181,14 @@ export type Database = {
           p_operation?: string
         }
         Returns: Json
+      }
+      catalogo_v4_revisao: {
+        Args: { _company_id: string }
+        Returns: {
+          categoria: string
+          lancamentos: number
+          template_code: string
+        }[]
       }
       categorize_transaction: {
         Args: {
