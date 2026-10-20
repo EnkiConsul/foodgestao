@@ -19,6 +19,7 @@ import {
   ESTADO_ROTULO, LIMITE_VAGAS_ATIVAS, TIPOS_CONTRATACAO, estadoEfetivo, urlPublicaVaga,
   type VagaEstado, type VagaStatus,
 } from "@/lib/recrutamento/vagas";
+import { PortalCarreirasCard } from "@/components/recrutamento/PortalCarreirasCard";
 
 interface Vaga {
   id: string; company_id: string; unidade_id: string | null; codigo: string; titulo: string;
@@ -129,6 +130,8 @@ export default function RecrutamentoVagas() {
         </div>
         <Button onClick={() => setEdit({ ...VAZIA })}><Plus className="h-4 w-4 mr-1" /> Nova Vaga</Button>
       </div>
+
+      <PortalCarreirasCard companyId={selectedCompanyId!} />
 
       {vagas.isLoading && <p className="text-sm text-muted-foreground">Carregando vagas…</p>}
       {vagas.data?.length === 0 && (

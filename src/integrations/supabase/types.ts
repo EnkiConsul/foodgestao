@@ -15977,6 +15977,8 @@ export type Database = {
         Row: {
           areas: string[]
           bairro: string | null
+          banco_geral_em: string | null
+          banco_geral_versao: number | null
           cidade: string | null
           consentimento_em: string
           conta_reutilizada: boolean
@@ -16000,6 +16002,8 @@ export type Database = {
         Insert: {
           areas?: string[]
           bairro?: string | null
+          banco_geral_em?: string | null
+          banco_geral_versao?: number | null
           cidade?: string | null
           consentimento_em: string
           conta_reutilizada?: boolean
@@ -16023,6 +16027,8 @@ export type Database = {
         Update: {
           areas?: string[]
           bairro?: string | null
+          banco_geral_em?: string | null
+          banco_geral_versao?: number | null
           cidade?: string | null
           consentimento_em?: string
           conta_reutilizada?: boolean
@@ -16045,6 +16051,57 @@ export type Database = {
         }
         Relationships: []
       }
+      recrutamento_consentimentos: {
+        Row: {
+          acao: string
+          candidato_id: string
+          company_id: string | null
+          em: string
+          escopo: string
+          finalidade: string
+          id: string
+          origem: string
+          texto_versao: number
+        }
+        Insert: {
+          acao: string
+          candidato_id: string
+          company_id?: string | null
+          em?: string
+          escopo: string
+          finalidade: string
+          id?: string
+          origem: string
+          texto_versao: number
+        }
+        Update: {
+          acao?: string
+          candidato_id?: string
+          company_id?: string | null
+          em?: string
+          escopo?: string
+          finalidade?: string
+          id?: string
+          origem?: string
+          texto_versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recrutamento_consentimentos_candidato_id_fkey"
+            columns: ["candidato_id"]
+            isOneToOne: false
+            referencedRelation: "recrutamento_candidatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recrutamento_consentimentos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recrutamento_liberacoes: {
         Row: {
           company_id: string
@@ -16064,6 +16121,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "recrutamento_liberacoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recrutamento_portais: {
+        Row: {
+          apresentacao: string | null
+          ativo: boolean
+          company_id: string
+          created_at: string
+          logo_url: string | null
+          nome_publico: string | null
+          regiao: string | null
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          apresentacao?: string | null
+          ativo?: boolean
+          company_id: string
+          created_at?: string
+          logo_url?: string | null
+          nome_publico?: string | null
+          regiao?: string | null
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          apresentacao?: string | null
+          ativo?: boolean
+          company_id?: string
+          created_at?: string
+          logo_url?: string | null
+          nome_publico?: string | null
+          regiao?: string | null
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recrutamento_portais_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: true
             referencedRelation: "companies"
@@ -16112,6 +16213,60 @@ export type Database = {
           versao?: number
         }
         Relationships: []
+      }
+      recrutamento_talentos: {
+        Row: {
+          autorizado_em: string
+          candidato_id: string
+          company_id: string
+          created_at: string
+          estado: string
+          id: string
+          origem: string
+          retirado_em: string | null
+          texto_versao: number
+          updated_at: string
+        }
+        Insert: {
+          autorizado_em?: string
+          candidato_id: string
+          company_id: string
+          created_at?: string
+          estado?: string
+          id?: string
+          origem: string
+          retirado_em?: string | null
+          texto_versao: number
+          updated_at?: string
+        }
+        Update: {
+          autorizado_em?: string
+          candidato_id?: string
+          company_id?: string
+          created_at?: string
+          estado?: string
+          id?: string
+          origem?: string
+          retirado_em?: string | null
+          texto_versao?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recrutamento_talentos_candidato_id_fkey"
+            columns: ["candidato_id"]
+            isOneToOne: false
+            referencedRelation: "recrutamento_candidatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recrutamento_talentos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       recrutamento_vagas: {
         Row: {
@@ -17631,7 +17786,10 @@ export type Database = {
         Returns: undefined
       }
       _rec_aval_finalizar: { Args: { _aval: string }; Returns: undefined }
+      _rec_aval_valida: { Args: { _cand: string }; Returns: boolean }
       _rec_cand_atual: { Args: never; Returns: string }
+      _rec_portal_company: { Args: { _slug: string }; Returns: string }
+      _rec_texto_versao: { Args: never; Returns: number }
       access_model_mode: { Args: never; Returns: string }
       access_model_set_mode: { Args: { _mode: string }; Returns: string }
       access_v2_compare_all: {
@@ -21730,11 +21888,36 @@ export type Database = {
         Returns: Json
       }
       recrutamento_aval_status: { Args: never; Returns: Json }
+      recrutamento_banco_geral_definir: {
+        Args: { _ativo: boolean }
+        Returns: undefined
+      }
       recrutamento_minhas_empresas: { Args: never; Returns: string[] }
+      recrutamento_minhas_participacoes: {
+        Args: never
+        Returns: {
+          autorizado_em: string
+          empresa: string
+          estado: string
+          id: string
+          retirado_em: string
+          slug: string
+        }[]
+      }
       recrutamento_pode_gerir: {
         Args: { _company_id: string }
         Returns: boolean
       }
+      recrutamento_portal_publico: { Args: { _slug: string }; Returns: Json }
+      recrutamento_talento_entrar: {
+        Args: { _banco_geral: boolean; _slug: string }
+        Returns: Json
+      }
+      recrutamento_talento_retirar: {
+        Args: { _talento_id: string }
+        Returns: undefined
+      }
+      recrutamento_talento_status: { Args: { _slug: string }; Returns: Json }
       recrutamento_vaga_acao: {
         Args: { _acao: string; _vaga_id: string }
         Returns: Json

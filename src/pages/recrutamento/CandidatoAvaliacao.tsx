@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { AREAS } from "@/lib/recrutamento/candidato";
+import { AREAS, destinoSeguro } from "@/lib/recrutamento/candidato";
 import {
   FAIXA_ROTULO, avalAtual, avalIniciar, avalResponder, avalStatus, segundosRestantes,
   type AvalPergunta, type AvalStatus,
@@ -18,6 +18,8 @@ const rotuloArea = (id?: string) => (id === "geral" ? "Rotina geral" : AREAS.fin
 export default function CandidatoAvaliacao() {
   const [params] = useSearchParams();
   const area = params.get("area");
+  const voltarParam = params.get("voltar");
+  const voltar = voltarParam && destinoSeguro(voltarParam) === voltarParam ? voltarParam : null;
   const [sessao, setSessao] = useState<"carregando" | "sem" | "com">("carregando");
   const [status, setStatus] = useState<AvalStatus | null>(null);
   const [p, setP] = useState<AvalPergunta | null>(null);
@@ -68,7 +70,7 @@ export default function CandidatoAvaliacao() {
     }
   }, [resta, p, enviando, carregarPergunta]);
 
-  if (sessao === "sem") return <Navigate to={`/candidato/acesso?voltar=${encodeURIComponent("/candidato/avaliacao")}`} replace />;
+  if (sessao === "sem") return <Navigate to={`/candidato/acesso?voltar=${encodeURIComponent(voltar ?? "/candidato/avaliacao")}`} replace />;
 
   const iniciar = async () => {
     setErro(null); setEnviando(true);
@@ -170,6 +172,7 @@ export default function CandidatoAvaliacao() {
                   {status.nova_tentativa_em && ` Nova tentativa a partir de ${new Date(status.nova_tentativa_em).toLocaleDateString("pt-BR")}.`}
                 </p>
                 <p className="text-xs text-muted-foreground">Áreas avaliadas: {(status.areas_cobertas ?? []).map(rotuloArea).join(", ")}.</p>
+                {voltar && <Button asChild className="h-11 w-full"><Link to={voltar}>Continuar</Link></Button>}
                 <Button asChild variant="outline" className="h-11 w-full"><Link to="/candidato">Voltar ao perfil</Link></Button>
               </CardContent></Card>
             ) : (
