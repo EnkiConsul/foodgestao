@@ -130,7 +130,7 @@ export default function CandidatoPerfil() {
   const [salvando, setSalvando] = useState(false);
   useEffect(() => { if (q.data) setF({ ...q.data, experiencias: Array.isArray(q.data.experiencias) ? q.data.experiencias : [] }); }, [q.data]);
 
-  if (sessao === "sem") return <Navigate to={`/candidato/entrar${voltar ? `?voltar=${encodeURIComponent(voltar)}` : ""}`} replace />;
+  if (sessao === "sem") return <Navigate to={`/candidato/acesso${voltar ? `?voltar=${encodeURIComponent(voltar)}` : ""}`} replace />;
 
   const salvar = async () => {
     if (!f) return;
@@ -150,7 +150,7 @@ export default function CandidatoPerfil() {
     if (voltar) navigate(destinoSeguro(voltar));
   };
 
-  const sair = async () => { await supabase.auth.signOut(); navigate("/candidato/entrar", { replace: true }); };
+  const sair = async () => { await supabase.auth.signOut(); navigate("/candidato/acesso", { replace: true }); };
 
   return (
     <div className="min-h-[100dvh] bg-background px-4 py-6">
