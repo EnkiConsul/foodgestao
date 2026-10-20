@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { FAIXA_ROTULO, avalStatus } from "@/lib/recrutamento/avaliacao";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus, Trash2, LogOut, CheckCircle2 } from "lucide-react";
@@ -108,6 +109,47 @@ function AtivarPerfil({ onAtivado }: { onAtivado: () => void }) {
   );
 }
 
+function StatusAvaliacao() {
+  const qc = useQueryClient();
+  const s = useQuery({ queryKey: ["recrutamento-aval-status"], queryFn: avalStatus });
+  const [mudando, setMudando] = useState(false);
+  if (!s.data?.tem_perfil) return null;
+  const d = s.data;
+  const alternar = async (v: boolean) => {
+    setMudando(true);
+    const { error } = await supabase.from("recrutamento_candidatos").update({ visivel_empresas: v }).not("id", "is", null);
+    setMudando(false);
+    if (error) { toast.error(error.message); return; }
+    qc.invalidateQueries({ queryKey: ["recrutamento-aval-status"] });
+  };
+  return (
+    <Card>
+      <CardHeader><CardTitle className="text-base">Avaliação Food Service 360</CardTitle></CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        {d.valida ? (
+          <>
+            <p className="flex items-center gap-1"><CheckCircle2 className="h-4 w-4 text-primary" /> Concluída
+              {d.faixa ? ` · ${FAIXA_ROTULO[d.faixa].titulo}` : ""}</p>
+            <p className="text-xs text-muted-foreground">Válida até {new Date(d.valida_ate!).toLocaleDateString("pt-BR")}. Resultado orientativo, não eliminatório.</p>
+            <label className="flex items-start gap-2">
+              <Checkbox checked={d.visivel_empresas === true} disabled={mudando} onCheckedChange={(v) => alternar(v === true)} className="mt-0.5" />
+              <span>Autorizo empresas da AVETO a encontrarem meu perfil no banco de talentos.</span>
+            </label>
+          </>
+        ) : (
+          <>
+            <p className="rounded-md bg-muted p-3">Perfil pendente: {d.em_andamento ? "sua avaliação está em andamento." : "conclua a avaliação obrigatória para ativá-lo."} Enquanto isso, nenhuma empresa vê seu perfil.</p>
+            <Button asChild className="h-11 w-full" disabled={!d.perfil_completo}>
+              <Link to="/candidato/avaliacao">{d.em_andamento ? "Continuar avaliação" : "Fazer avaliação"}</Link>
+            </Button>
+            {!d.perfil_completo && <p className="text-xs text-muted-foreground">Escolha ao menos uma área e salve o perfil para liberar.</p>}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function CandidatoPerfil() {
   const sessao = useSessao();
   const navigate = useNavigate();
@@ -147,6 +189,9 @@ export default function CandidatoPerfil() {
     if (error) { toast.error(error.message || "Não foi possível salvar."); return; }
     toast.success("Perfil salvo.");
     qc.invalidateQueries({ queryKey: ["recrutamento-meu-perfil"] });
+    qc.invalidateQueries({ queryKey: ["recrutamento-aval-status"] });
+    const st = await avalStatus().catch(() => null);
+    if (st && !st.valida) { navigate("/candidato/avaliacao"); return; }
     if (voltar) navigate(destinoSeguro(voltar));
   };
 
@@ -173,6 +218,9 @@ export default function CandidatoPerfil() {
                 <CheckCircle2 className="h-4 w-4 text-primary" /> WhatsApp verificado (final {f.whatsapp.slice(-4)})
               </p>
             </div>
+
+            <StatusAvaliacao />
+
 
             <Card>
               <CardHeader><CardTitle className="text-base">Áreas de interesse</CardTitle></CardHeader>
