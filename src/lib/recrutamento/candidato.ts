@@ -33,7 +33,7 @@ export function alternarArea(atuais: string[], area: string): string[] {
 
 /** Destino de retorno aceito após login (evita redirecionamento aberto). */
 export function destinoSeguro(voltar: string | null | undefined): string {
-  if (voltar && /^\/(vagas\/[A-Za-z0-9-]{1,40}|candidato)(\/[A-Za-z0-9/-]*)?$/.test(voltar)) return voltar;
+  if (voltar && /^\/(vagas\/[A-Za-z0-9-]{1,40}|carreiras\/[a-z0-9-]{3,40}|candidato)(\/[A-Za-z0-9/-]*)?$/.test(voltar)) return voltar;
   return "/candidato";
 }
 

@@ -92,6 +92,8 @@ const RecrutamentoVagas = lazyWithRetry(() => import("./pages/recrutamento/Recru
 const CandidatoAcesso = lazyWithRetry(() => import("./pages/recrutamento/CandidatoAcesso"));
 const CandidatoPerfil = lazyWithRetry(() => import("./pages/recrutamento/CandidatoPerfil"));
 const CandidatoAvaliacao = lazyWithRetry(() => import("./pages/recrutamento/CandidatoAvaliacao"));
+const PortalCarreiras = lazyWithRetry(() => import("./pages/recrutamento/PortalCarreiras"));
+const PortalTalentos = lazyWithRetry(() => import("./pages/recrutamento/PortalTalentos"));
 /** Rota antiga do acesso do candidato: redireciona para a oficial preservando ?voltar=. */
 function CandidatoEntrarLegado() {
   const { search } = useLocation();
@@ -529,6 +531,8 @@ const AppRoutes = () => (
       </Route>
       <Route path="/pre-admissao" element={<PreAdmissao />} />
       <Route path="/vagas/:codigo" element={<VagaPublica />} />
+      <Route path="/carreiras/:slug" element={<PortalCarreiras />} />
+      <Route path="/carreiras/:slug/talentos" element={<PortalTalentos />} />
       <Route path="/candidato" element={<CandidatoPerfil />} />
       <Route path="/candidato/acesso" element={<CandidatoAcesso />} />
       <Route path="/candidato/avaliacao" element={<CandidatoAvaliacao />} />

@@ -750,6 +750,20 @@
       "when": 1792513513724,
       "tag": "0106_recrutamento_avaliacao_etapa_b",
       "breakpoints": true
+    },
+    {
+      "idx": 107,
+      "version": "7",
+      "when": 1792515566995,
+      "tag": "0107_recrutamento_portal_talentos_c11",
+      "breakpoints": true
+    },
+    {
+      "idx": 108,
+      "version": "7",
+      "when": 1792515844287,
+      "tag": "0108_recrutamento_menor_privilegio",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { FAIXA_ROTULO, avalStatus } from "@/lib/recrutamento/avaliacao";
+import { bancoGeralDefinir, minhasParticipacoes, talentoRetirar } from "@/lib/recrutamento/portal";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus, Trash2, LogOut, CheckCircle2 } from "lucide-react";
@@ -117,9 +118,9 @@ function StatusAvaliacao() {
   const d = s.data;
   const alternar = async (v: boolean) => {
     setMudando(true);
-    const { error } = await supabase.from("recrutamento_candidatos").update({ visivel_empresas: v }).not("id", "is", null);
-    setMudando(false);
-    if (error) { toast.error(error.message); return; }
+    try { await bancoGeralDefinir(v); toast.success(v ? "Você entrou no Banco Geral AVETO." : "Você saiu do Banco Geral AVETO."); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Erro inesperado."); }
+    finally { setMudando(false); }
     qc.invalidateQueries({ queryKey: ["recrutamento-aval-status"] });
   };
   return (
@@ -133,7 +134,7 @@ function StatusAvaliacao() {
             <p className="text-xs text-muted-foreground">Válida até {new Date(d.valida_ate!).toLocaleDateString("pt-BR")}. Resultado orientativo, não eliminatório.</p>
             <label className="flex items-start gap-2">
               <Checkbox checked={d.visivel_empresas === true} disabled={mudando} onCheckedChange={(v) => alternar(v === true)} className="mt-0.5" />
-              <span>Autorizo empresas da AVETO a encontrarem meu perfil no banco de talentos.</span>
+              <span>Participar do Banco Geral de Talentos AVETO, para receber oportunidades de outras empresas.</span>
             </label>
           </>
         ) : (
@@ -145,6 +146,41 @@ function StatusAvaliacao() {
             {!d.perfil_completo && <p className="text-xs text-muted-foreground">Escolha ao menos uma área e salve o perfil para liberar.</p>}
           </>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function MinhasEmpresas() {
+  const q = useQuery({ queryKey: ["recrutamento-participacoes"], queryFn: minhasParticipacoes });
+  const [retirando, setRetirando] = useState<string | null>(null);
+  if (!q.data?.length) return null;
+  const retirar = async (id: string, empresa: string) => {
+    if (!confirm(`Retirar seu perfil do Banco de Talentos da ${empresa}?`)) return;
+    setRetirando(id);
+    try { await talentoRetirar(id); toast.success("Participação retirada."); await q.refetch(); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Erro inesperado."); }
+    finally { setRetirando(null); }
+  };
+  return (
+    <Card>
+      <CardHeader><CardTitle className="text-base">Empresas com meu perfil</CardTitle></CardHeader>
+      <CardContent className="space-y-2 text-sm">
+        {q.data.map((p) => (
+          <div key={p.id} className="flex items-center justify-between gap-2 rounded-md border p-3">
+            <div className="min-w-0">
+              <p className="font-medium break-words">{p.empresa}</p>
+              <p className="text-xs text-muted-foreground">
+                {p.estado === "ativo" ? `Autorizado em ${new Date(p.autorizado_em).toLocaleDateString("pt-BR")}` : `Retirado em ${new Date(p.retirado_em!).toLocaleDateString("pt-BR")}`}
+              </p>
+            </div>
+            {p.estado === "ativo" ? (
+              <Button size="sm" variant="outline" disabled={retirando === p.id} onClick={() => retirar(p.id, p.empresa)}>Retirar</Button>
+            ) : p.slug ? (
+              <Button size="sm" variant="ghost" asChild><Link to={`/carreiras/${p.slug}/talentos`}>Autorizar de novo</Link></Button>
+            ) : null}
+          </div>
+        ))}
       </CardContent>
     </Card>
   );
@@ -191,8 +227,9 @@ export default function CandidatoPerfil() {
     qc.invalidateQueries({ queryKey: ["recrutamento-meu-perfil"] });
     qc.invalidateQueries({ queryKey: ["recrutamento-aval-status"] });
     const st = await avalStatus().catch(() => null);
-    if (st && !st.valida) { navigate("/candidato/avaliacao"); return; }
-    if (voltar) navigate(destinoSeguro(voltar));
+    const volta = voltar ? destinoSeguro(voltar) : null;
+    if (st && !st.valida) { navigate(`/candidato/avaliacao${volta ? `?voltar=${encodeURIComponent(volta)}` : ""}`); return; }
+    if (volta) navigate(volta);
   };
 
   const sair = async () => { await supabase.auth.signOut(); navigate("/candidato/acesso", { replace: true }); };
@@ -220,6 +257,7 @@ export default function CandidatoPerfil() {
             </div>
 
             <StatusAvaliacao />
+            <MinhasEmpresas />
 
 
             <Card>
