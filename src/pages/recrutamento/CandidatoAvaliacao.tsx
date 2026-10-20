@@ -160,7 +160,7 @@ export default function CandidatoAvaliacao() {
           <>
             {status.valida && !faltaArea ? (
               <Card><CardContent className="p-5 space-y-3">
-                <p className="flex items-center gap-2 font-semibold"><CheckCircle2 className="h-5 w-5 text-primary" /> Avaliação concluída</p>
+                <h1 className="flex items-center gap-2 text-lg font-semibold"><CheckCircle2 className="h-5 w-5 text-primary" /> Avaliação concluída</h1>
                 {status.faixa && <>
                   <p className="text-sm font-medium">{FAIXA_ROTULO[status.faixa].titulo}</p>
                   <p className="text-sm text-muted-foreground">{FAIXA_ROTULO[status.faixa].texto}</p>
