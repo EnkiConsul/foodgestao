@@ -663,7 +663,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
       .normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w]+/g, "-").toLowerCase();
     const link = document.createElement("a");
     link.href = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }));
-    link.download = `${oficial ? "ficha-admissao" : "previa-ficha-admissao"}-${nomeArq}.pdf`;
+    link.download = `${oficial ? docVinculo.slug : `previa-${docVinculo.slug}`}-${nomeArq}.pdf`;
     document.body.appendChild(link);
     link.click();
     link.remove();
