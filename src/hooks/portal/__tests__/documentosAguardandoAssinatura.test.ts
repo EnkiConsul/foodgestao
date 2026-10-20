@@ -53,3 +53,18 @@ describe("selecionarPendentesAssinatura", () => {
     expect(d.competencia_label).toBe("05/2026");
   });
 });
+
+describe("documento excluído pelo DP", () => {
+  it("documento arquivado nunca aparece para assinar", async () => {
+    const { selecionarPendentesAssinatura } = await import("../useDocumentosAguardandoAssinatura");
+    const base = { exige_aceite: true, tipo: "adiantamento", aprovacao_status: "aprovado", created_at: "2026-10-01" };
+    const r = selecionarPendentesAssinatura(
+      [
+        { ...base, id: "a", arquivado_em: "2026-10-14", ciclo_status: "arquivado" },
+        { ...base, id: "b", arquivado_em: null, ciclo_status: "ativo" },
+      ],
+      [],
+    );
+    expect(r.map((d) => d.id)).toEqual(["b"]);
+  });
+});
