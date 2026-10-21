@@ -79,9 +79,22 @@ export default function CheckoutV2() {
   const [adicionais, setAdicionais] = useState<Record<string, number>>({});
   const [doc, setDoc] = useState("");
   const [email, setEmail] = useState("");
-  const [forma, setForma] = useState<Forma>("pix");
+  const [forma, setForma] = useState<Forma | null>(null);
   const [parcelas, setParcelas] = useState(1);
   const [aceite, setAceite] = useState(false);
+
+  // Formas disponíveis na conta de cobrança (servidor consulta o Asaas, cache de 10 min)
+  const formas = useQuery({
+    queryKey: ["checkout-v2-formas", companyId],
+    enabled: !!companyId,
+    staleTime: 60_000,
+    queryFn: async () => (await chamar({ acao: "formas", company_id: companyId! })).formas as Record<Forma, boolean>,
+  });
+  const formaDisponivel = (f: Forma) => formas.data?.[f] === true;
+  useEffect(() => {
+    if (!formas.data) return;
+    if (!forma || !formas.data[forma]) setForma(FORMAS.find((f) => formas.data![f.id])?.id ?? null);
+  }, [formas.data, forma]);
 
   const catalogo = useQuery({
     queryKey: ["checkout-v2-catalogo"],
@@ -352,9 +365,12 @@ export default function CheckoutV2() {
             <Passo n={7} titulo="Forma de Pagamento">
               <div className="grid gap-2 sm:grid-cols-3">
                 {FORMAS.map((f) => (
-                  <Opcao key={f.id} testid={`forma-${f.id}`} ativo={forma === f.id} onClick={() => setForma(f.id)}><p className="font-medium">{f.nome}</p></Opcao>
+                  <Opcao key={f.id} testid={`forma-${f.id}`} ativo={forma === f.id} disabled={!formaDisponivel(f.id)} onClick={() => setForma(f.id)}><p className="font-medium">{f.nome}</p></Opcao>
                 ))}
               </div>
+              {formas.isLoading && <p className="text-xs text-muted-foreground">Verificando formas de pagamento disponíveis…</p>}
+              {formas.data && !formas.data.pix && <p className="text-xs text-muted-foreground" data-testid="aviso-pix" role="status">PIX temporariamente indisponível. Escolha boleto ou cartão.</p>}
+              {formas.isError && <p className="text-xs text-destructive">Não foi possível verificar as formas de pagamento. Atualize a página.</p>}
               {ciclo === "anual" && forma === "cartao" && (
                 <div className="space-y-1" data-testid="parcelas">
                   <p className="text-sm font-medium">Parcelas</p>

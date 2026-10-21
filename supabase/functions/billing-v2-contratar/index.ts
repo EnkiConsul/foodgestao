@@ -87,7 +87,7 @@ const Body = z.discriminatedUnion("acao", [
       email: z.string().trim().email().max(255),
     }).optional() }),
   z.object({ acao: z.literal("adicional"), company_id: z.string().uuid(), subscription_id: z.string().uuid(), code: z.string().max(40), qtd: z.number().int().min(1).max(500) }),
-  z.object({ acao: z.literal("trocar_plano"), company_id: z.string().uuid(), subscription_id: z.string().uuid(), plano: z.string().min(3).max(60), ciclo, forma: forma.default("pix"), simular_pix_indisponivel: z.boolean().optional() }),
+  z.object({ acao: z.literal("trocar_plano"), company_id: z.string().uuid(), subscription_id: z.string().uuid(), plano: z.string().min(3).max(60), ciclo, forma: forma.optional(), simular_pix_indisponivel: z.boolean().optional() }),
   z.object({ acao: z.literal("formas"), company_id: z.string().uuid(), simular_pix_indisponivel: z.boolean().optional() }),
   z.object({ acao: z.literal("cancelar_agendamento"), company_id: z.string().uuid(), subscription_id: z.string().uuid() }),
   z.object({ acao: z.literal("parcelamento"), company_id: z.string().uuid(), plano: z.string().min(3).max(60),
@@ -129,7 +129,9 @@ Deno.serve(async (req) => {
     if (b.acao === "formas") return json({ ok: true, formas: await formasDisponiveis(admin, conta.asaas_env, { simularPixIndisponivel: simularPix }) });
     if (b.acao === "contratar" || b.acao === "trocar_plano") {
       const disp = await formasDisponiveis(admin, conta.asaas_env, { simularPixIndisponivel: simularPix });
-      if (!disp[b.forma]) return json({ error: MSG_PIX_INDISPONIVEL, forma_indisponivel: b.forma }, 422);
+      // troca de plano sem forma escolhida: primeira forma disponível
+      if (b.acao === "trocar_plano" && !b.forma) b.forma = disp.pix ? "pix" : "boleto";
+      if (!disp[b.forma!]) return json({ error: MSG_PIX_INDISPONIVEL, forma_indisponivel: b.forma }, 422);
     }
 
     if (b.acao === "atualizar_pagador") {
@@ -247,7 +249,7 @@ Deno.serve(async (req) => {
       r = await contratarAdicional(admin, sub, b.code, b.qtd, criados);
       (r as any).pendencias = await aplicarPendentes(admin, sub.id, criados);
     }
-    else if (b.acao === "trocar_plano") r = await trocarPlano(admin, sub, b.plano, b.ciclo, b.forma, criados);
+    else if (b.acao === "trocar_plano") r = await trocarPlano(admin, sub, b.plano, b.ciclo, b.forma ?? "boleto", criados);
     else if (b.acao === "cancelar_agendamento") r = await cancelarAgendamento(admin, sub);
     else r = await cancelarFimCiclo(admin, sub, b.desfazer);
     return json({ ok: true, resultado: r, asaas: criados });
