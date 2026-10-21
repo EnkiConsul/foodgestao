@@ -22287,6 +22287,7 @@ export type Database = {
         | "folga_acima_limite"
         | "folga_janela_lembrete"
         | "folga_pendentes_gestor"
+        | "ocorrencia_nova"
       dp_ocorrencia_analise_status: "pendente" | "analisada" | "nao_se_aplica"
       dp_ocorrencia_cobertura_execucao:
         | "prevista"
@@ -22773,6 +22774,7 @@ export const Constants = {
         "folga_acima_limite",
         "folga_janela_lembrete",
         "folga_pendentes_gestor",
+        "ocorrencia_nova",
       ],
       dp_ocorrencia_analise_status: ["pendente", "analisada", "nao_se_aplica"],
       dp_ocorrencia_cobertura_execucao: [
