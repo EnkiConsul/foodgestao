@@ -291,6 +291,11 @@ async function anexarArquivo(
       if (origem.isEncrypted) {
         return `O arquivo "${nome}" é protegido pelo emissor e não pode ser reproduzido neste certificado. O original continua guardado, anexado a este PDF e disponível para download.`;
       }
+      // Ensaio num documento descartável: conteúdo ilegível vira aviso sem
+      // contaminar o certificado (o pdf-lib reembute tudo ao salvar).
+      const ensaio = await PDFDocument.create();
+      await ensaio.embedPages(origem.getPages());
+      await ensaio.save();
       // Cada página é incorporada e desenhada numa folha nova, ajustada pela
       // MediaBox real: PDFs de bancos com origem deslocada não saem em branco.
       for (const src of origem.getPages()) {
@@ -298,9 +303,6 @@ async function anexarArquivo(
         const emb = await pdf.embedPage(src, {
           left: box.x, bottom: box.y, right: box.x + box.width, top: box.y + box.height,
         });
-        // Força a leitura agora: se o conteúdo for ilegível, falha aqui (aviso)
-        // em vez de quebrar a emissão inteira no salvamento.
-        await (emb as unknown as { embed: () => Promise<void> }).embed();
         const page = pdf.addPage(A4);
         const margem = 30;
         const base = 46;
