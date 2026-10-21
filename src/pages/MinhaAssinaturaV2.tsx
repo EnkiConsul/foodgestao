@@ -169,7 +169,7 @@ export default function MinhaAssinaturaV2() {
       </Card>
 
       {acao && <AcaoDialog acao={acao} companyId={selectedCompanyId} onClose={() => setAcao(null)}
-        onDone={() => { setAcao(null); qc.invalidateQueries({ queryKey: ["minha-assinatura-v2"] }); }} />}
+        onDone={() => { setAcao(null); qc.invalidateQueries({ queryKey: ["minha-assinatura-v2"] }); qc.invalidateQueries({ queryKey: ["diferenca-aberta-v2"] }); }} />}
     </div>
   );
 }
@@ -231,7 +231,8 @@ function AssinaturaCard({ s, onAcao }: { s: Json; onAcao: (a: Acao) => void }) {
     queryKey: ["diferenca-aberta-v2", s.id], enabled: !!s.pode_gerir,
     queryFn: async () => {
       const { data } = await supabase.from("invoices").select("id,amount_cents")
-        .eq("subscription_id", s.id).in("status", ["open", "overdue"]).like("notes", "Diferença%").limit(1).maybeSingle();
+        .eq("subscription_id", s.id).in("status", ["open", "overdue"]).like("notes", "Diferença%")
+        .not("notes", "ilike", "%desfeita%").limit(1).maybeSingle();
       return (data as Json | null) ?? null;
     },
   });
