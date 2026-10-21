@@ -32,7 +32,8 @@ type Acao =
   | { tipo: "plano"; sub: Json }
   | { tipo: "cancelar"; sub: Json }
   | { tipo: "desfazer_cancelamento"; sub: Json }
-  | { tipo: "cancelar_agendamento"; sub: Json };
+  | { tipo: "cancelar_agendamento"; sub: Json }
+  | { tipo: "desfazer_upgrade"; sub: Json };
 
 async function contratar(body: Json) {
   const { data, error } = await supabase.functions.invoke("billing-v2-contratar", { body });
@@ -226,6 +227,14 @@ function AssinaturaCard({ s, onAcao }: { s: Json; onAcao: (a: Acao) => void }) {
   const pendProrata = ((s.proratas_pendentes ?? []) as Json[]).reduce((t, p) => t + (p.valor_cents ?? 0), 0);
   const valorRenovacao = (pend?.plano ? destino.data?.valor_ciclo_novo_cents : null) ?? s.valor_ciclo_cents;
   const ativa = !["canceled", "expired"].includes(s.status);
+  const difAberta = useQuery({
+    queryKey: ["diferenca-aberta-v2", s.id], enabled: !!s.pode_gerir,
+    queryFn: async () => {
+      const { data } = await supabase.from("invoices").select("id,amount_cents")
+        .eq("subscription_id", s.id).in("status", ["open", "overdue"]).like("notes", "Diferença%").limit(1).maybeSingle();
+      return (data as Json | null) ?? null;
+    },
+  });
   return (
     <Card data-testid={`assinatura-${s.module}`}>
       <CardHeader className="pb-2">
@@ -322,6 +331,7 @@ function AssinaturaCard({ s, onAcao }: { s: Json; onAcao: (a: Acao) => void }) {
             <Button size="sm" variant="outline" onClick={() => onAcao({ tipo: "adicional", sub: s })}>Contratar Adicional</Button>
             <Button size="sm" variant="outline" onClick={() => onAcao({ tipo: "plano", sub: s })}>Trocar Plano ou Ciclo</Button>
             {pend && <Button size="sm" variant="outline" onClick={() => onAcao({ tipo: "cancelar_agendamento", sub: s })}>Cancelar Troca Agendada</Button>}
+            {difAberta.data && <Button size="sm" variant="outline" onClick={() => onAcao({ tipo: "desfazer_upgrade", sub: s })}>Desistir do Upgrade</Button>}
             {s.cancel_at_period_end
               ? <Button size="sm" variant="outline" onClick={() => onAcao({ tipo: "desfazer_cancelamento", sub: s })}>Manter Assinatura</Button>
               : <Button size="sm" variant="ghost" onClick={() => onAcao({ tipo: "cancelar", sub: s })}>Cancelar no Fim do Ciclo</Button>}
@@ -370,6 +380,7 @@ function AcaoDialog({ acao, companyId, onClose, onDone }: { acao: Acao; companyI
       if (acao.tipo === "adicional") return contratar({ ...base, acao: "adicional", code, qtd });
       if (acao.tipo === "plano") return contratar({ ...base, acao: "trocar_plano", plano, ciclo: cic });
       if (acao.tipo === "cancelar_agendamento") return contratar({ ...base, acao: "cancelar_agendamento" });
+      if (acao.tipo === "desfazer_upgrade") return contratar({ ...base, acao: "desfazer_upgrade" });
       return contratar({ ...base, acao: "cancelar_fim_ciclo", desfazer: acao.tipo === "desfazer_cancelamento" });
     },
     onSuccess: async (r: any) => {
@@ -398,7 +409,7 @@ function AcaoDialog({ acao, companyId, onClose, onDone }: { acao: Acao; companyI
   const podeConfirmar = !precisaCotacao || (c?.ok && !cot.isFetching);
   const titulo = {
     adicional: "Contratar Adicional", plano: "Trocar Plano ou Ciclo", cancelar: "Cancelar no Fim do Ciclo",
-    desfazer_cancelamento: "Manter Assinatura", cancelar_agendamento: "Cancelar Troca Agendada",
+    desfazer_cancelamento: "Manter Assinatura", cancelar_agendamento: "Cancelar Troca Agendada", desfazer_upgrade: "Desistir do Upgrade",
   }[acao.tipo];
 
   return (
@@ -457,6 +468,7 @@ function AcaoDialog({ acao, companyId, onClose, onDone }: { acao: Acao; companyI
         {acao.tipo === "cancelar" && <p className="text-sm">A assinatura segue ativa até {data(s.current_period_end)} e depois é encerrada. Nada mais será cobrado.</p>}
         {acao.tipo === "desfazer_cancelamento" && <p className="text-sm">O cancelamento agendado é desfeito e a assinatura renova normalmente em {data(s.current_period_end)}.</p>}
         {acao.tipo === "cancelar_agendamento" && <p className="text-sm">A troca agendada é desfeita e o plano atual continua na renovação.</p>}
+        {acao.tipo === "desfazer_upgrade" && <p className="text-sm">A cobrança da diferença em aberto é cancelada e a assinatura volta ao plano anterior, com o mesmo ciclo. Nada é cobrado.</p>}
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Voltar</Button>

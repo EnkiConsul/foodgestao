@@ -474,6 +474,49 @@ export async function cancelarAgendamento(admin: SupabaseClient, sub: any) {
   return { ok: true };
 }
 
+/** Plano em vigor antes da última troca imediata (eventos troca_aplicada / contratacao_v2). */
+async function planoAntesDaTroca(admin: SupabaseClient, sub: any): Promise<{ plano: string; ciclo: string } | null> {
+  const { data: evs } = await admin.from("subscription_events").select("tipo_evento,payload,created_at")
+    .eq("subscription_id", sub.id).in("tipo_evento", ["troca_aplicada", "contratacao_v2"]).order("created_at", { ascending: false }).limit(20);
+  const lista = evs ?? [];
+  const idx = lista.findIndex((e: any) => e.tipo_evento === "troca_aplicada" && e.payload?.origem === "imediata");
+  if (idx < 0) return null;
+  for (const e of lista.slice(idx + 1) as any[]) {
+    if (e.tipo_evento === "troca_aplicada" && e.payload?.plano) return { plano: e.payload.plano, ciclo: e.payload.ciclo };
+    if (e.tipo_evento === "contratacao_v2") {
+      const it = (e.payload?.quote?.itens ?? []).find((i: any) => i.tipo === "plano" && i.modulo === sub.module);
+      if (it?.codigo) return { plano: it.codigo, ciclo: e.payload?.quote?.ciclo === "yearly" || e.payload?.quote?.ciclo === "anual" ? "anual" : "mensal" };
+    }
+  }
+  return null;
+}
+
+/** Desiste de um upgrade imediato ainda não pago: cancela a cobrança da diferença e volta ao plano anterior. */
+export async function desfazerUpgrade(admin: SupabaseClient, sub: any, criados: Criados) {
+  const { data: fat } = await admin.from("invoices").select("id,external_invoice_id,status,notes,amount_cents")
+    .eq("subscription_id", sub.id).in("status", ["open", "overdue"]).like("notes", "Diferença%")
+    .order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (!fat) throw new BillingError(422, "Não há cobrança de diferença em aberto para desfazer. Se já foi paga, fale com o suporte.");
+  const ant = await planoAntesDaTroca(admin, sub);
+  if (!ant) throw new BillingError(422, "Não foi possível identificar o plano anterior. Fale com o suporte.");
+  if (ant.ciclo !== (sub.billing_cycle ?? "mensal")) throw new BillingError(422, "A troca mudou o ciclo de cobrança; fale com o suporte para desfazer.");
+  const env = parseAsaasEnv(sub.asaas_env);
+  if (fat.external_invoice_id) {
+    const pg = await asaasFetch(`/payments/${fat.external_invoice_id}`, {}, env);
+    if (["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH"].includes(pg?.status)) throw new BillingError(409, "Essa diferença já foi paga e não pode ser desfeita por aqui. Fale com o suporte.");
+    if (!pg?.deleted) await asaasFetch(`/payments/${fat.external_invoice_id}`, { method: "DELETE" }, env);
+    criados.push({ tipo: "cobrança cancelada", id: fat.external_invoice_id, descricao: "diferença do upgrade" });
+  }
+  const { error: eF } = await admin.from("invoices").update({ status: "canceled", notes: `${fat.notes} — desfeita pelo cliente` }).eq("id", fat.id);
+  if (eF) throw new BillingError(500, "Cobrança cancelada no provedor, mas falhou ao registrar. Fale com o suporte.", eF.message);
+  const { error: eA } = await admin.rpc("billing_v2_apply_change", { _subscription_id: sub.id, _plan_slug: ant.plano, _ciclo: ant.ciclo, _origem: "desfeita" });
+  if (eA) throw new BillingError(500, "Falha ao voltar ao plano anterior.", eA.message);
+  const v = await atualizarValorAsaas(admin, sub, criados);
+  await admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "upgrade_desfeito",
+    payload: { invoice_id: fat.id, valor_cents: fat.amount_cents, plano_restaurado: ant.plano, novo_valor_cents: v.cents } });
+  return { ok: true, plano: ant.plano, novo_valor_cents: v.cents };
+}
+
 export async function cancelarFimCiclo(admin: SupabaseClient, sub: any, desfazer = false) {
   await admin.from("subscriptions").update({ cancel_at_period_end: !desfazer }).eq("id", sub.id);
   await admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: desfazer ? "cancelamento_desfeito" : "cancelamento_agendado", payload: { efetivo_em: sub.current_period_end } });
