@@ -6,7 +6,7 @@ import { z } from "npm:zod@3";
 import { requireUser, serviceClient } from "../_shared/authz.ts";
 import {
   BillingError, cancelarAgendamento, cancelarFimCiclo, carregarConta, contratar, contratarAdicional,
-  cotar, exigirModoPermitido, opcoesParcelamento, trocarPlano, type Criados,
+  cotar, desfazerUpgrade, exigirModoPermitido, opcoesParcelamento, trocarPlano, type Criados,
 } from "../_shared/billing-v2.ts";
 import { aplicarPendentes, configurarNfseAssinatura } from "../_shared/billing-v2-ciclo.ts";
 import { asaasFetch } from "../_shared/asaas.ts";
@@ -90,6 +90,7 @@ const Body = z.discriminatedUnion("acao", [
   z.object({ acao: z.literal("trocar_plano"), company_id: z.string().uuid(), subscription_id: z.string().uuid(), plano: z.string().min(3).max(60), ciclo, forma: forma.optional(), simular_pix_indisponivel: z.boolean().optional() }),
   z.object({ acao: z.literal("formas"), company_id: z.string().uuid(), simular_pix_indisponivel: z.boolean().optional() }),
   z.object({ acao: z.literal("cancelar_agendamento"), company_id: z.string().uuid(), subscription_id: z.string().uuid() }),
+  z.object({ acao: z.literal("desfazer_upgrade"), company_id: z.string().uuid(), subscription_id: z.string().uuid() }),
   z.object({ acao: z.literal("parcelamento"), company_id: z.string().uuid(), plano: z.string().min(3).max(60),
     adicionais: z.array(z.object({ code: z.string().max(40), qtd: z.number().int().min(1).max(500) })).max(10).optional() }),
   z.object({ acao: z.literal("atualizar_pagador"), company_id: z.string().uuid(),
@@ -251,6 +252,7 @@ Deno.serve(async (req) => {
     }
     else if (b.acao === "trocar_plano") r = await trocarPlano(admin, sub, b.plano, b.ciclo, b.forma ?? "boleto", criados);
     else if (b.acao === "cancelar_agendamento") r = await cancelarAgendamento(admin, sub);
+    else if (b.acao === "desfazer_upgrade") r = await desfazerUpgrade(admin, sub, criados);
     else r = await cancelarFimCiclo(admin, sub, b.desfazer);
     return json({ ok: true, resultado: r, asaas: criados });
   } catch (e) {
