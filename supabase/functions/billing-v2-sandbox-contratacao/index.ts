@@ -125,6 +125,12 @@ Deno.serve(async (req) => {
       const subsAb = (await admin.from("subscriptions").select("id").eq("billing_account_id", (vv as any)?.billing_account_id ?? "00000000-0000-0000-0000-000000000000").gte("created_at", t0)).data ?? [];
       reg("aborto — conta que não virou sandbox", "aborta antes de chamar a contratação; nada criado", !chamou && abortou.startsWith("ABORTADO") && subsAb.length === 0,
         `${abortou.slice(0, 160)}; assinaturas criadas: ${subsAb.length}`, { conta: (vv as any)?.billing_account_id });
+      // ao final, a conta usada é SEMPRE marcada como teste/sandbox (nunca fica como produção)
+      if ((vv as any)?.billing_account_id) {
+        const { error: eFim } = await admin.from("billing_accounts").update({ is_test: true, asaas_env: "sandbox" }).eq("id", (vv as any).billing_account_id);
+        const { data: fim } = await admin.from("billing_accounts").select("is_test,asaas_env").eq("id", (vv as any).billing_account_id).single();
+        reg("aborto — conta marcada como teste ao final", "is_test = true e asaas_env = sandbox", !eFim && (fim as any)?.is_test === true && (fim as any)?.asaas_env === "sandbox", JSON.stringify(fim ?? eFim?.message));
+      }
     }
 
     // ---- i1: falha antes de criar no Asaas
