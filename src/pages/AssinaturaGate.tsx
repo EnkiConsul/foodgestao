@@ -1,13 +1,15 @@
 import { lazy, Suspense } from "react";
 import { useCheckoutV2Mode } from "@/hooks/useCheckoutV2Mode";
 import { PageSpinner } from "@/components/PageSpinner";
+import { ModoCheckoutFalha } from "@/components/billing/ModoCheckoutFalha";
 
 const Legado = lazy(() => import("./Assinatura"));
 const V2 = lazy(() => import("./MinhaAssinaturaV2"));
 
 /** /assinatura: com checkout_v2 em 'v2' abre "Minha Assinatura" nova; senão, a tela atual sem mudança. */
 export default function AssinaturaGate() {
-  const { data: modo, isLoading } = useCheckoutV2Mode();
+  const { data: modo, isLoading, isError, refetch } = useCheckoutV2Mode();
   if (isLoading) return <PageSpinner />;
+  if (isError) return <ModoCheckoutFalha onRetry={() => refetch()} />;
   return <Suspense fallback={<PageSpinner />}>{modo === "v2" ? <V2 /> : <Legado />}</Suspense>;
 }

@@ -109,6 +109,13 @@ export default function CheckoutV2() {
     },
   });
 
+  // ?plano= sem ?modulo=: descobre o módulo pelo catálogo e já deixa os dois marcados.
+  useEffect(() => {
+    if (modulo || !plano || !catalogo.data) return;
+    const p = catalogo.data.planos.find((x) => x.slug === plano);
+    if (p) setModulo(p.module as Modulo);
+  }, [catalogo.data, plano, modulo]);
+
   const conta = useQuery({
     queryKey: ["checkout-v2-conta", companyId],
     enabled: !!companyId,

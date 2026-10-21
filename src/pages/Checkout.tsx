@@ -19,15 +19,33 @@ import { notifyError } from "@/lib/notifyError";
 import { EnderecoFields, type EnderecoValor } from "@/components/shared/EnderecoFields";
 import { maskCnpj, isValidCnpj } from "@/lib/cnpj";
 import { useAssinaturaAcesso } from "@/hooks/useAssinaturaAcesso";
+import { ModoCheckoutFalha } from "@/components/billing/ModoCheckoutFalha";
 
 type Method = "PIX" | "BOLETO" | "CREDIT_CARD";
 
-/** Com checkout_v2 = 'v2', o checkout antigo leva ao novo (/planos) com o plano escolhido. */
+/** Com checkout_v2 = 'v2', o checkout antigo leva ao novo (/planos) com módulo e plano marcados. */
 export default function Checkout() {
   const { planSlug } = useParams<{ planSlug: string }>();
-  const { data: modo, isLoading } = useCheckoutV2Mode();
+  const { data: modo, isLoading, isError, refetch } = useCheckoutV2Mode();
+  // Descobre o módulo do plano para o checkout novo já abrir com os dois marcados.
+  const planoModulo = useQuery({
+    queryKey: ["checkout-plano-modulo", planSlug],
+    enabled: modo === "v2" && !!planSlug,
+    queryFn: async () => {
+      const { data } = await supabase.from("plans").select("module").eq("slug", planSlug!).maybeSingle();
+      return ((data as any)?.module ?? null) as string | null;
+    },
+  });
   if (isLoading) return null;
-  if (modo === "v2") return <Navigate to={`/planos${planSlug ? `?plano=${encodeURIComponent(planSlug)}` : ""}`} replace />;
+  if (isError) return <ModoCheckoutFalha onRetry={() => refetch()} />;
+  if (modo === "v2") {
+    if (planSlug && planoModulo.isLoading) return null;
+    const qs = new URLSearchParams();
+    if (planoModulo.data) qs.set("modulo", planoModulo.data);
+    if (planSlug) qs.set("plano", planSlug);
+    const q = qs.toString();
+    return <Navigate to={`/planos${q ? `?${q}` : ""}`} replace />;
+  }
   return <CheckoutLegado planSlug={planSlug} />;
 }
 
