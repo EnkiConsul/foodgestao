@@ -354,6 +354,11 @@ function AcaoDialog({ acao, companyId, onClose, onDone }: { acao: Acao; companyI
   const [qtd, setQtd] = useState(1);
   const [plano, setPlano] = useState<string>(s.plano.slug);
   const [cic, setCic] = useState<string>(s.ciclo);
+  const [forma, setForma] = useState<"pix" | "boleto" | "cartao" | "">("");
+  const formas = useQuery({
+    queryKey: ["formas-pagamento", companyId], enabled: acao.tipo === "plano",
+    queryFn: async () => (await contratar({ acao: "formas", company_id: companyId }))?.formas as Record<string, boolean>,
+  });
 
   const planos = useQuery({
     queryKey: ["planos-modulo", s.module], enabled: acao.tipo === "plano",
@@ -379,7 +384,7 @@ function AcaoDialog({ acao, companyId, onClose, onDone }: { acao: Acao; companyI
     mutationFn: async () => {
       const base = { company_id: companyId, subscription_id: s.id };
       if (acao.tipo === "adicional") return contratar({ ...base, acao: "adicional", code, qtd });
-      if (acao.tipo === "plano") return contratar({ ...base, acao: "trocar_plano", plano, ciclo: cic });
+      if (acao.tipo === "plano") return contratar({ ...base, acao: "trocar_plano", plano, ciclo: cic, ...(forma ? { forma } : {}) });
       if (acao.tipo === "cancelar_agendamento") return contratar({ ...base, acao: "cancelar_agendamento" });
       if (acao.tipo === "desfazer_upgrade") return contratar({ ...base, acao: "desfazer_upgrade" });
       return contratar({ ...base, acao: "cancelar_fim_ciclo", desfazer: acao.tipo === "desfazer_cancelamento" });
@@ -407,7 +412,8 @@ function AcaoDialog({ acao, companyId, onClose, onDone }: { acao: Acao; companyI
 
   const c = cot.data;
   const precisaCotacao = acao.tipo === "adicional" || acao.tipo === "plano";
-  const podeConfirmar = !precisaCotacao || (c?.ok && !cot.isFetching);
+  const pedeForma = acao.tipo === "plano" && !!c?.ok && !!c?.imediato && (c?.cobrar_agora_cents ?? 0) > 0;
+  const podeConfirmar = (!precisaCotacao || (c?.ok && !cot.isFetching)) && (!pedeForma || !!forma);
   const titulo = {
     adicional: "Contratar Adicional", plano: "Trocar Plano ou Ciclo", cancelar: "Cancelar no Fim do Ciclo",
     desfazer_cancelamento: "Manter Assinatura", cancelar_agendamento: "Cancelar Troca Agendada", desfazer_upgrade: "Desistir do Upgrade",
@@ -464,6 +470,21 @@ function AcaoDialog({ acao, companyId, onClose, onDone }: { acao: Acao; companyI
                 )}
               </>
             )}
+          </div>
+        )}
+        {pedeForma && (
+          <div className="space-y-2" data-testid="forma-pagamento">
+            <p className="text-sm font-medium">Forma de pagamento da diferença</p>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {([["pix", "PIX"], ["boleto", "Boleto"], ["cartao", "Cartão de crédito"]] as const).map(([k, rot]) => {
+                const indisp = formas.data ? formas.data[k] === false : false;
+                return (
+                  <Button key={k} type="button" variant={forma === k ? "default" : "outline"} disabled={indisp || formas.isLoading}
+                    aria-pressed={forma === k} onClick={() => setForma(k)}>{rot}</Button>
+                );
+              })}
+            </div>
+            {formas.data?.pix === false && <p className="text-xs text-muted-foreground">PIX temporariamente indisponível. Escolha boleto ou cartão.</p>}
           </div>
         )}
         {acao.tipo === "cancelar" && <p className="text-sm">A assinatura segue ativa até {data(s.current_period_end)} e depois é encerrada. Nada mais será cobrado.</p>}
