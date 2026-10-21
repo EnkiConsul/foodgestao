@@ -10,6 +10,7 @@ import {
 } from "../_shared/billing-v2.ts";
 import { aplicarPendentes, configurarNfseAssinatura } from "../_shared/billing-v2-ciclo.ts";
 import { asaasFetch } from "../_shared/asaas.ts";
+import { formasDisponiveis, MSG_PIX_INDISPONIVEL } from "../_shared/billing-formas.ts";
 
 function docValido(d: string): boolean {
   if (/^(\d)\1+$/.test(d)) return false;
@@ -79,13 +80,15 @@ const Body = z.discriminatedUnion("acao", [
     adicionais: z.array(z.object({ code: z.string().max(40), qtd: z.number().int().min(1).max(500) })).max(10).optional(),
     empresas: z.array(z.string().uuid()).min(2).max(50).optional(),
     // injeção de falha: só respeitada em conta [TESTE] do Sandbox (ver contratar)
+    simular_pix_indisponivel: z.boolean().optional(),
     simular_falha: z.enum(["criacao", "apos_assinatura", "cancelamento", "timeout", "timeout_busca", "gravacao_desfazimento"]).optional(),
     pagador: z.object({
       documento: z.string().transform((s) => s.replace(/\D/g, "")).refine((s) => s.length === 11 || s.length === 14, "CPF/CNPJ inválido"),
       email: z.string().trim().email().max(255),
     }).optional() }),
   z.object({ acao: z.literal("adicional"), company_id: z.string().uuid(), subscription_id: z.string().uuid(), code: z.string().max(40), qtd: z.number().int().min(1).max(500) }),
-  z.object({ acao: z.literal("trocar_plano"), company_id: z.string().uuid(), subscription_id: z.string().uuid(), plano: z.string().min(3).max(60), ciclo, forma: forma.default("pix") }),
+  z.object({ acao: z.literal("trocar_plano"), company_id: z.string().uuid(), subscription_id: z.string().uuid(), plano: z.string().min(3).max(60), ciclo, forma: forma.default("pix"), simular_pix_indisponivel: z.boolean().optional() }),
+  z.object({ acao: z.literal("formas"), company_id: z.string().uuid(), simular_pix_indisponivel: z.boolean().optional() }),
   z.object({ acao: z.literal("cancelar_agendamento"), company_id: z.string().uuid(), subscription_id: z.string().uuid() }),
   z.object({ acao: z.literal("parcelamento"), company_id: z.string().uuid(), plano: z.string().min(3).max(60),
     adicionais: z.array(z.object({ code: z.string().max(40), qtd: z.number().int().min(1).max(500) })).max(10).optional() }),
@@ -120,6 +123,14 @@ Deno.serve(async (req) => {
     if (!vinc) return json({ error: "Empresa sem conta de cobrança." }, 422);
     let conta = await carregarConta(admin, vinc.billing_account_id);
     await exigirModoPermitido(admin, conta);
+
+    // Formas disponíveis na conta Asaas do ambiente (simulação só em conta [TESTE] do Sandbox)
+    const simularPix = (b as any).simular_pix_indisponivel === true && conta.is_test && conta.asaas_env === "sandbox";
+    if (b.acao === "formas") return json({ ok: true, formas: await formasDisponiveis(admin, conta.asaas_env, { simularPixIndisponivel: simularPix }) });
+    if (b.acao === "contratar" || b.acao === "trocar_plano") {
+      const disp = await formasDisponiveis(admin, conta.asaas_env, { simularPixIndisponivel: simularPix });
+      if (!disp[b.forma]) return json({ error: MSG_PIX_INDISPONIVEL, forma_indisponivel: b.forma }, 422);
+    }
 
     if (b.acao === "atualizar_pagador") {
       if (!docValido(b.documento)) return json({ error: "CPF/CNPJ inválido. Confira os números e tente novamente." }, 422);
