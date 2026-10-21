@@ -18056,6 +18056,7 @@ export type Database = {
       }
       billing_v2_apply_change: {
         Args: {
+          _actor?: string
           _ciclo: string
           _origem: string
           _plan_slug: string
@@ -18100,7 +18101,7 @@ export type Database = {
       }
       billing_v2_parcelamento: { Args: { _valor_cents: number }; Returns: Json }
       billing_v2_plan_change_cancel: {
-        Args: { _subscription_id: string }
+        Args: { _actor?: string; _subscription_id: string }
         Returns: undefined
       }
       billing_v2_plan_change_quote: {
@@ -18113,6 +18114,7 @@ export type Database = {
       }
       billing_v2_plan_change_schedule: {
         Args: {
+          _actor?: string
           _billing_cycle: string
           _plan_slug: string
           _subscription_id: string
