@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { useCheckoutV2Mode } from "@/hooks/useCheckoutV2Mode";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,8 +22,16 @@ import { useAssinaturaAcesso } from "@/hooks/useAssinaturaAcesso";
 
 type Method = "PIX" | "BOLETO" | "CREDIT_CARD";
 
+/** Com checkout_v2 = 'v2', o checkout antigo leva ao novo (/planos) com o plano escolhido. */
 export default function Checkout() {
   const { planSlug } = useParams<{ planSlug: string }>();
+  const { data: modo, isLoading } = useCheckoutV2Mode();
+  if (isLoading) return null;
+  if (modo === "v2") return <Navigate to={`/planos${planSlug ? `?plano=${encodeURIComponent(planSlug)}` : ""}`} replace />;
+  return <CheckoutLegado planSlug={planSlug} />;
+}
+
+function CheckoutLegado({ planSlug }: { planSlug?: string }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [coupon, setCoupon] = useState("");

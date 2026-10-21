@@ -32,6 +32,11 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
+    // Com checkout_v2 = 'v2' a contratação só passa pelo checkout novo (billing-v2-contratar).
+    const { data: modoCk, error: eModo } = await admin.rpc("checkout_v2_mode");
+    if (eModo) return json({ error: "Não foi possível verificar o modo de contratação." }, 503);
+    if (modoCk === "v2") return json({ error: "Use a nova tela de contratação." }, 409);
+
     const body = await req.json().catch(() => ({}));
     const planId: string | undefined = body.planId;
     const billingType: AsaasBillingType = (body.paymentMethod ?? "PIX").toUpperCase();

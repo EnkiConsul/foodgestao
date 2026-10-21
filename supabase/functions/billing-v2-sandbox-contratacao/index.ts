@@ -115,22 +115,40 @@ Deno.serve(async (req) => {
     const pagadorDe = (x: { doc: string }) => ({ documento: x.doc, email: EMAIL_TESTE });
     const agoraISO = () => new Date(Date.now() - 1000).toISOString();
 
-    // ---- aborto: conta que não virou sandbox
+    // ---- aborto: conta que não virou sandbox — conta DESCARTÁVEL criada só para este teste,
+    // mantida como produção apenas durante a checagem e sempre marcada como teste/sandbox ao final.
     if (roda("aborto")) {
       const t0 = agoraISO();
-      let abortou = ""; let chamou = false;
-      try { await mk("ABORTO", false); chamou = true; } catch (e) { abortou = String((e as Error).message); }
-      const { data: emp } = await admin.from("companies").select("id").eq("user_id", uid!).eq("name", "[TESTE] ABORTO FIXO LTDA").maybeSingle();
-      const { data: vv } = await admin.from("billing_account_companies").select("billing_account_id").eq("company_id", (emp as any)?.id ?? "").is("removed_at", null).maybeSingle();
-      const subsAb = (await admin.from("subscriptions").select("id").eq("billing_account_id", (vv as any)?.billing_account_id ?? "00000000-0000-0000-0000-000000000000").gte("created_at", t0)).data ?? [];
-      reg("aborto — conta que não virou sandbox", "aborta antes de chamar a contratação; nada criado", !chamou && abortou.startsWith("ABORTADO") && subsAb.length === 0,
-        `${abortou.slice(0, 160)}; assinaturas criadas: ${subsAb.length}`, { conta: (vv as any)?.billing_account_id });
-      // ao final, a conta usada é SEMPRE marcada como teste/sandbox (nunca fica como produção)
-      if ((vv as any)?.billing_account_id) {
-        const { error: eFim } = await admin.from("billing_accounts").update({ is_test: true, asaas_env: "sandbox" }).eq("id", (vv as any).billing_account_id);
-        const { data: fim } = await admin.from("billing_accounts").select("is_test,asaas_env").eq("id", (vv as any).billing_account_id).single();
-        reg("aborto — conta marcada como teste ao final", "is_test = true e asaas_env = sandbox", !eFim && (fim as any)?.is_test === true && (fim as any)?.asaas_env === "sandbox", JSON.stringify(fim ?? eFim?.message));
+      const sufixo = crypto.randomUUID().slice(0, 8).toUpperCase();
+      const nomeDesc = `ABORTO ${sufixo}`;
+      let accDesc: string | undefined; let empDesc: string | undefined;
+      let abortou = ""; let chamou = false; let eraProducao = false;
+      try {
+        const r = await admin.from("companies").insert({ user_id: uid!, name: `[TESTE] ${nomeDesc} DESCARTAVEL LTDA`, cnpj: cnpj() }).select("id").single();
+        if (r.error) throw new Error(`empresa descartável: ${r.error.message}`);
+        empDesc = r.data.id;
+        const { data: v } = await admin.from("billing_account_companies").select("billing_account_id").eq("company_id", empDesc).is("removed_at", null).single();
+        accDesc = (v as any)?.billing_account_id;
+        if (!accDesc) throw new Error("conta descartável não criada");
+        const { data: st } = await admin.from("billing_accounts").select("asaas_env,is_test").eq("id", accDesc).single();
+        eraProducao = (st as any)?.asaas_env !== "sandbox" || (st as any)?.is_test !== true;
+        // mesma checagem de mk(), sem marcar: deve abortar
+        const { data: chk } = await admin.from("billing_accounts").select("asaas_env,is_test").eq("id", accDesc).single();
+        if ((chk as any)?.asaas_env !== "sandbox" || (chk as any)?.is_test !== true) {
+          throw new Error(`ABORTADO: conta descartável não está como sandbox/teste (${JSON.stringify(chk)}) — nada foi contratado`);
+        }
+        chamou = true;
+      } catch (e) { abortou = String((e as Error).message); }
+      finally {
+        if (accDesc) {
+          const { error: eFim } = await admin.from("billing_accounts").update({ is_test: true, asaas_env: "sandbox", nome: `[TESTE] ${nomeDesc} DESCARTAVEL` }).eq("id", accDesc);
+          const { data: fim } = await admin.from("billing_accounts").select("is_test,asaas_env").eq("id", accDesc).single();
+          reg("aborto — conta descartável marcada como teste ao final", "is_test = true e asaas_env = sandbox", !eFim && (fim as any)?.is_test === true && (fim as any)?.asaas_env === "sandbox", JSON.stringify(fim ?? eFim?.message), { conta: accDesc });
+        }
       }
+      const subsAb = accDesc ? ((await admin.from("subscriptions").select("id").eq("billing_account_id", accDesc).gte("created_at", t0)).data ?? []) : [];
+      reg("aborto — conta que não virou sandbox", "conta nova em produção; aborta antes de chamar a contratação; nada criado", eraProducao && !chamou && abortou.startsWith("ABORTADO") && subsAb.length === 0,
+        `${abortou.slice(0, 160)}; assinaturas criadas: ${subsAb.length}`, { conta: accDesc, empresa: empDesc });
     }
 
     // ---- i1: falha antes de criar no Asaas
