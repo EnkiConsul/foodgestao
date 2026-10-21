@@ -286,6 +286,11 @@ async function anexarArquivo(
   if (ehPdf) {
     try {
       const origem = await PDFDocument.load(bytes, { ignoreEncryption: true });
+      // PDF protegido (comum em comprovantes de banco): o conteúdo não pode ser
+      // lido aqui; o original segue disponível ao lado do certificado.
+      if (origem.isEncrypted) {
+        return `O arquivo "${nome}" é protegido pelo emissor e não pode ser reproduzido neste certificado. O original continua guardado, anexado a este PDF e disponível para download.`;
+      }
       // Cada página é incorporada e desenhada numa folha nova, ajustada pela
       // MediaBox real: PDFs de bancos com origem deslocada não saem em branco.
       for (const src of origem.getPages()) {
@@ -293,6 +298,9 @@ async function anexarArquivo(
         const emb = await pdf.embedPage(src, {
           left: box.x, bottom: box.y, right: box.x + box.width, top: box.y + box.height,
         });
+        // Força a leitura agora: se o conteúdo for ilegível, falha aqui (aviso)
+        // em vez de quebrar a emissão inteira no salvamento.
+        await (emb as unknown as { embed: () => Promise<void> }).embed();
         const page = pdf.addPage(A4);
         const margem = 30;
         const base = 46;
