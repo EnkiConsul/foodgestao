@@ -233,7 +233,13 @@ function AssinaturaCard({ s, onAcao }: { s: Json; onAcao: (a: Acao) => void }) {
       const { data } = await supabase.from("invoices").select("id,amount_cents")
         .eq("subscription_id", s.id).in("status", ["open", "overdue"]).like("notes", "Diferença%")
         .not("notes", "ilike", "%desfeita%").limit(1).maybeSingle();
-      return (data as Json | null) ?? null;
+      if (!data) return null;
+      // Um desfazimento por ciclo: se já houve neste ciclo, o botão some.
+      const { data: ja } = await supabase.from("subscription_events").select("id")
+        .eq("subscription_id", s.id).eq("tipo_evento", "upgrade_desfeito")
+        .gte("created_at", s.current_period_start).limit(1);
+      if (ja?.length) return null;
+      return data as Json;
     },
   });
   return (

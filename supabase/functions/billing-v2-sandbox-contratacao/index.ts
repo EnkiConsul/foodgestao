@@ -140,10 +140,18 @@ Deno.serve(async (req) => {
         chamou = true;
       } catch (e) { abortou = String((e as Error).message); }
       finally {
+        // se a conta não foi localizada antes, procura pela empresa descartável
+        if (!accDesc && empDesc) {
+          const { data: vF } = await admin.from("billing_account_companies").select("billing_account_id").eq("company_id", empDesc).is("removed_at", null).maybeSingle();
+          accDesc = (vF as any)?.billing_account_id;
+        }
         if (accDesc) {
           const { error: eFim } = await admin.from("billing_accounts").update({ is_test: true, asaas_env: "sandbox", nome: `[TESTE] ${nomeDesc} DESCARTAVEL` }).eq("id", accDesc);
           const { data: fim } = await admin.from("billing_accounts").select("is_test,asaas_env").eq("id", accDesc).single();
           reg("aborto — conta descartável marcada como teste ao final", "is_test = true e asaas_env = sandbox", !eFim && (fim as any)?.is_test === true && (fim as any)?.asaas_env === "sandbox", JSON.stringify(fim ?? eFim?.message), { conta: accDesc });
+        } else {
+          reg("aborto — conta descartável marcada como teste ao final", "is_test = true e asaas_env = sandbox", false,
+            empDesc ? "conta não encontrada pela empresa descartável" : "empresa descartável não foi criada", { empresa: empDesc });
         }
       }
       const subsAb = accDesc ? ((await admin.from("subscriptions").select("id").eq("billing_account_id", accDesc).gte("created_at", t0)).data ?? []) : [];

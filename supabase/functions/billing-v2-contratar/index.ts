@@ -233,7 +233,7 @@ Deno.serve(async (req) => {
           actor_id: user.id, payload: { empresas: b.empresas, plano: b.plano, origem: "checkout" } });
         conta = await carregarConta(admin, conta.id);
       }
-      const r = await contratar(admin, conta, au?.user?.email ?? "", b.company_id, b, criados);
+      const r = await contratar(admin, conta, au?.user?.email ?? "", b.company_id, b, criados, user.id);
       try {
         const { data: subN } = await admin.from("subscriptions").select("*").eq("id", r.subscription_id).single();
         if (await configurarNfseAssinatura(admin, subN)) criados.push({ tipo: "nota fiscal automática", id: subN.external_subscription_id, descricao: "emissão na confirmação do pagamento" });
@@ -247,13 +247,13 @@ Deno.serve(async (req) => {
 
     let r: unknown;
     if (b.acao === "adicional") {
-      r = await contratarAdicional(admin, sub, b.code, b.qtd, criados);
+      r = await contratarAdicional(admin, sub, b.code, b.qtd, criados, user.id);
       (r as any).pendencias = await aplicarPendentes(admin, sub.id, criados);
     }
-    else if (b.acao === "trocar_plano") r = await trocarPlano(admin, sub, b.plano, b.ciclo, b.forma ?? "boleto", criados);
-    else if (b.acao === "cancelar_agendamento") r = await cancelarAgendamento(admin, sub);
-    else if (b.acao === "desfazer_upgrade") r = await desfazerUpgrade(admin, sub, criados);
-    else r = await cancelarFimCiclo(admin, sub, b.desfazer);
+    else if (b.acao === "trocar_plano") r = await trocarPlano(admin, sub, b.plano, b.ciclo, b.forma ?? "boleto", criados, user.id);
+    else if (b.acao === "cancelar_agendamento") r = await cancelarAgendamento(admin, sub, user.id);
+    else if (b.acao === "desfazer_upgrade") r = await desfazerUpgrade(admin, sub, criados, user.id);
+    else r = await cancelarFimCiclo(admin, sub, b.desfazer, user.id);
     return json({ ok: true, resultado: r, asaas: criados });
   } catch (e) {
     if (e instanceof BillingError) return json({ error: e.message, detalhes: e.detalhes }, e.status);
