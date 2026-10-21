@@ -315,8 +315,18 @@ export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: 
     } else {
       let as: any;
       try {
-        as = await criarNoAsaas("/subscriptions", { customer: cliente, billingType: billingType(p.forma), value: reais(q.total_ciclo_cents),
-          nextDueDate: hoje(1), cycle: p.ciclo === "anual" ? "YEARLY" : "MONTHLY", description: plano.name, externalReference: sub.id }, conta.asaas_env, perder);
+        const corpo = { customer: cliente, billingType: billingType(p.forma), value: reais(q.total_ciclo_cents),
+          nextDueDate: hoje(1), cycle: p.ciclo === "anual" ? "YEARLY" : "MONTHLY", description: plano.name, externalReference: sub.id };
+        try {
+          as = await criarNoAsaas("/subscriptions", corpo, conta.asaas_env, perder);
+        } catch (e) {
+          // Conta Asaas sem PIX habilitado para assinaturas recusa (400, nada criado): cria com "UNDEFINED",
+          // e a fatura continua aceitando PIX na página de pagamento.
+          const msg = String((e as Error)?.message ?? "");
+          if (p.forma !== "pix" || respostaIncerta(e) || !/\[400\]/.test(msg) || !/forma de pagamento|billingType/i.test(msg)) throw e;
+          console.warn("[contratar] PIX recusado em assinatura; recriando como UNDEFINED", sub.id);
+          as = await criarNoAsaas("/subscriptions", { ...corpo, billingType: "UNDEFINED" }, conta.asaas_env, perder);
+        }
       } catch (e) { if (respostaIncerta(e)) incerto = true; throw e; }
       asId = requireAsaasId(as, "a assinatura");
       tentativa.push({ tipo: "assinatura", id: asId });
