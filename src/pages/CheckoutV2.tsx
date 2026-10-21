@@ -208,7 +208,18 @@ export default function CheckoutV2() {
       parcelas: parcelas > 1 ? parcelas : undefined, adicionais: listaAdicionais,
       pagador: { documento: docLimpo, email: email.trim() },
     }),
-    onSuccess: () => { toast.success("Contratação registrada. A cobrança foi enviada para o e-mail do pagador."); navigate("/assinatura"); },
+    onSuccess: async (r: any) => {
+      // Vai direto para a tela de pagamento (PIX, boleto ou cartão) da 1ª fatura em aberto.
+      let faturaId: string | null = null;
+      if (r?.subscription_id) {
+        const { data } = await supabase.from("invoices").select("id")
+          .eq("subscription_id", r.subscription_id).eq("status", "open")
+          .order("due_date", { ascending: true }).limit(1).maybeSingle();
+        faturaId = (data as any)?.id ?? null;
+      }
+      toast.success("Contratação registrada. Conclua o pagamento.");
+      navigate(faturaId ? `/checkout/pagamento/${faturaId}` : "/assinatura");
+    },
     onError: (e: Error) => toast.error(e.message || "Não foi possível concluir. Tente novamente."),
   });
 
