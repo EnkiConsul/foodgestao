@@ -336,9 +336,6 @@ const OCORRENCIA_CATEGORIA: Partial<Record<OcorrenciaTipo, CategoriaDia>> = {
 export const categoriaDaOcorrencia = (tipo: OcorrenciaTipo): CategoriaDia | undefined =>
   OCORRENCIA_CATEGORIA[tipo];
 
-const _FIM_MAPA = {
-};
-
 /** Categorias que já representam a pessoa fora do trabalho no dia. */
 const CATS_AUSENCIA: CategoriaDia[] = ["ausente", "atestado", "ferias", "folga_padrao", "folga_extra"];
 /** Categorias de ocorrência que substituem a categoria de trabalho (não duplicam). */
