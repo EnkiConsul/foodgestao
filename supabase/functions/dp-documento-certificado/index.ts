@@ -286,8 +286,36 @@ async function anexarArquivo(
   if (ehPdf) {
     try {
       const origem = await PDFDocument.load(bytes, { ignoreEncryption: true });
-      const paginas = await pdf.copyPages(origem, origem.getPageIndices());
-      for (const p of paginas) pdf.addPage(p);
+      // PDF protegido (comum em comprovantes de banco): o conteúdo não pode ser
+      // lido aqui; o original segue disponível ao lado do certificado.
+      if (origem.isEncrypted) {
+        return `O arquivo "${nome}" é protegido pelo emissor e não pode ser reproduzido neste certificado. O original continua guardado, anexado a este PDF e disponível para download.`;
+      }
+      // Ensaio num documento descartável: conteúdo ilegível vira aviso sem
+      // contaminar o certificado (o pdf-lib reembute tudo ao salvar).
+      const ensaio = await PDFDocument.create();
+      await ensaio.embedPages(origem.getPages());
+      await ensaio.save();
+      // Cada página é incorporada e desenhada numa folha nova, ajustada pela
+      // MediaBox real: PDFs de bancos com origem deslocada não saem em branco.
+      for (const src of origem.getPages()) {
+        const box = src.getMediaBox();
+        const emb = await pdf.embedPage(src, {
+          left: box.x, bottom: box.y, right: box.x + box.width, top: box.y + box.height,
+        });
+        const page = pdf.addPage(A4);
+        const margem = 30;
+        const base = 46;
+        const maxL = page.getWidth() - margem * 2;
+        const maxA = page.getHeight() - margem - base;
+        const esc = Math.min(maxL / emb.width, maxA / emb.height);
+        page.drawPage(emb, {
+          x: (page.getWidth() - emb.width * esc) / 2,
+          y: base + (maxA - emb.height * esc) / 2,
+          width: emb.width * esc,
+          height: emb.height * esc,
+        });
+      }
       return null;
     } catch {
       return `Não foi possível reproduzir o arquivo "${nome}" neste certificado. O original continua guardado e disponível para download.`;
@@ -409,7 +437,7 @@ Deno.serve(async (req) => {
     const chaveCache = [
       registro.company_id,
       "certificados",
-      `${documentoId}-${aceite.id}-${encodeURIComponent(String(comp?.file_path ?? "sem-comprovante")).replace(/%/g, "")}-${String(registro.comprovante_pago_em ?? "").slice(0, 10)}-${String(registro.versao ?? 1)}-r2.pdf`,
+      `${documentoId}-${aceite.id}-${encodeURIComponent(String(comp?.file_path ?? "sem-comprovante")).replace(/%/g, "")}-${String(registro.comprovante_pago_em ?? "").slice(0, 10)}-${String(registro.versao ?? 1)}-r3.pdf`,
     ].join("/");
     const pronto = await admin.storage.from(BUCKET).download(chaveCache);
     if (pronto.data && !pronto.error) {

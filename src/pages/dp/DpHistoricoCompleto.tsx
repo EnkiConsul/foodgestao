@@ -1357,7 +1357,7 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
         })()}
         // Assinado: o comprovante bancário já vem dentro do certificado; o recibo em
         // dinheiro é outro documento e continua aparecendo abaixo.
-        somenteReciboVinculado={!!certPreview}
+        somenteReciboVinculado={false}
         comprovantesExtras={extrasPreview.map((e) => ({ id: e.id, path: e.file_path, mime: e.mime_type ?? null, rotulo: e.natureza === "estorno" ? "Comprovante de Estorno (Devolução)" : e.natureza === "repagamento" ? "Novo Comprovante (Valor Correto)" : undefined }))}
         toolbar={preview && preview.tipo_key === "atestado" ? (
           <AtestadoResumo rowId={preview.id} filePath={preview.file_path} />
