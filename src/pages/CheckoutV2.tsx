@@ -209,6 +209,7 @@ export default function CheckoutV2() {
   if (!docOk) pendencias.push("Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.");
   if (!emailOk) pendencias.push("Informe um e-mail de cobrança válido.");
   if (!aceite) pendencias.push("Aceite os Termos de Uso.");
+  if (!forma) pendencias.push("Escolha uma forma de pagamento disponível.");
   if (modo === "grupo" && selGrupo.length < 2) pendencias.push("Marque pelo menos 2 empresas no modo Grupo.");
   if (planoSel && cotacao.isLoading) pendencias.push("Aguarde o cálculo do valor.");
   if (planoSel && (cotacao.error || (cotacao.data && !cotacao.data.ok))) pendencias.push("O cálculo do valor retornou erro. Revise as opções acima.");
