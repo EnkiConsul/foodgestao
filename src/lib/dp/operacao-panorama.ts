@@ -324,9 +324,19 @@ const OCORRENCIA_CATEGORIA: Partial<Record<OcorrenciaTipo, CategoriaDia>> = {
   // (ex.: motivo de uma cobertura) também tiram a pessoa do quadro do dia.
   atestado: "atestado",
   ausencia_justificada: "atestado",
-  // "Outra divergência de jornada" também é ausência: sem isso a pessoa
-  // continuava contada como folga/trabalho no painel do dia.
-  divergencia_jornada: "ausente",
+  // Atraso no retorno do intervalo: a pessoa trabalhou, só voltou tarde.
+  atraso_intervalo: "atrasado",
+  previsao_atraso_intervalo: "atrasado",
+  // Erro no relógio de ponto / esquecimento de marcação / outra divergência
+  // NÃO são ausência: a pessoa compareceu e só pede ajuste de batida.
+  // Ficam fora deste mapa de propósito para nunca virarem falta.
+};
+
+/** Exportado para teste: categoria do calendário de cada tipo de ocorrência. */
+export const categoriaDaOcorrencia = (tipo: OcorrenciaTipo): CategoriaDia | undefined =>
+  OCORRENCIA_CATEGORIA[tipo];
+
+const _FIM_MAPA = {
 };
 
 /** Categorias que já representam a pessoa fora do trabalho no dia. */
