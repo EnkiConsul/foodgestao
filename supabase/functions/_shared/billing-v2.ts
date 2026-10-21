@@ -235,7 +235,7 @@ async function gravarComRetry(nome: string, fn: () => PromiseLike<{ error: any }
 export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: string, companyId: string, p: {
   plano: string; ciclo: Ciclo; forma: Forma; parcelas?: number; adicionais?: { code: string; qtd: number }[]; modo?: "empresa" | "grupo";
   empresas?: string[]; simular_falha?: SimularFalha;
-}, criados: Criados) {
+}, criados: Criados, actorId?: string) {
   // falha simulada só em conta [TESTE] do Sandbox; em qualquer outra é ignorada
   const falha = conta.is_test && conta.asaas_env === "sandbox" ? p.simular_falha : undefined;
   const { data: plano } = await admin.from("plans").select("id,module,slug,name").eq("slug", p.plano).eq("is_active", true).maybeSingle();
@@ -363,9 +363,9 @@ export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: 
       gravarComRetry("coberturas encerradas", () => admin.from("subscription_companies").update({ removed_at: agora }).eq("subscription_id", sub.id).is("removed_at", null), simG),
       gravarComRetry("adicionais cancelados", () => admin.from("subscription_addons").update({ status: "canceled" }).eq("subscription_id", sub.id), false),
       gravarComRetry("faturas canceladas", () => admin.from("invoices").update({ status: "canceled" }).eq("subscription_id", sub.id).in("status", ["draft", "open", "overdue"]), false),
-      gravarComRetry("evento contratacao_desfeita", () => admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "contratacao_desfeita",
+      gravarComRetry("evento contratacao_desfeita", () => admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "contratacao_desfeita", actor_id: actorId ?? null,
         payload: { erro: detalhe.slice(0, 800), cliente, criados_asaas: tentativa, desfeitos_asaas: desfeitos, pendentes_asaas: pendentes, resposta_incerta: incerto, busca_falhou: buscaFalhou } }), false),
-      gravarComRetry(ok ? "evento contratacao_falhou" : "evento contratacao_falhou_compensacao_pendente", () => admin.from("billing_account_events").insert({ billing_account_id: conta.id, actor_id: conta.titular_user_id,
+      gravarComRetry(ok ? "evento contratacao_falhou" : "evento contratacao_falhou_compensacao_pendente", () => admin.from("billing_account_events").insert({ billing_account_id: conta.id, actor_id: actorId ?? conta.titular_user_id,
         tipo_evento: ok ? "contratacao_falhou" : "contratacao_falhou_compensacao_pendente",
         payload: { plano: p.plano, forma: p.forma, ciclo: p.ciclo, subscription_id: sub.id, cliente, asaas_env: conta.asaas_env,
           desfeitos: desfeitos.map((d) => d.id), pendentes, resposta_incerta: incerto, erro: detalhe.slice(0, 800) } }), false),
@@ -378,7 +378,7 @@ export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: 
     console.error("[contratar] falha", ok ? "desfeita" : "COMPENSAÇÃO PENDENTE", sub.id, detalhe, JSON.stringify(pendentes), falhas.length ? `LOCAL INCOMPLETO ${JSON.stringify(falhas)}` : "");
     throw new BillingError(502, ok ? MSG_FALHA_DESFEITA : MSG_FALHA_COMPENSACAO, { subscription_id: sub.id, compensacao_pendente: !ok, desfazimento_incompleto: falhas.length > 0 });
   }
-  await admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "contratacao_v2", payload: { quote: q, forma: p.forma, parcelas: p.parcelas ?? 1, parcelamento: parc, empresas: cobertas } });
+  await admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "contratacao_v2", actor_id: actorId ?? null, payload: { quote: q, forma: p.forma, parcelas: p.parcelas ?? 1, parcelamento: parc, empresas: cobertas } });
   return { subscription_id: sub.id, total_cents: q.total_ciclo_cents, empresas_cobertas: cobertas.length, parcelamento: parc };
 }
 
@@ -394,7 +394,7 @@ async function atualizarValorAsaas(admin: SupabaseClient, sub: any, criados: Cri
   return v;
 }
 
-export async function contratarAdicional(admin: SupabaseClient, sub: any, code: string, qtd: number, criados: Criados) {
+export async function contratarAdicional(admin: SupabaseClient, sub: any, code: string, qtd: number, criados: Criados, actorId?: string) {
   const { data: ad } = await admin.from("plan_addons").select("id,price_cents,max_quantity").eq("module", sub.module).eq("code", code).eq("is_active", true).maybeSingle();
   if (!ad) throw new BillingError(422, "Adicional inexistente para este módulo.");
   // valida no motor de preços (plano permite este adicional?)
@@ -437,7 +437,7 @@ export async function contratarAdicional(admin: SupabaseClient, sub: any, code: 
       prorataCobranca = "proxima_mensalidade";
     }
     await admin.from("subscription_addons").update({ prorata_billed_at: prorataCobranca === "imediata" || somadaAgora ? new Date().toISOString() : null, notes: `pró-rata R$ ${reais(prorata).toFixed(2)} — ${prorataCobranca}` }).eq("id", row.id);
-    await admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "prorata_adicional", payload: { code, qtd, prorata_cents: prorata, cobranca: prorataCobranca } });
+    await admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "prorata_adicional", actor_id: actorId ?? null, payload: { code, qtd, prorata_cents: prorata, cobranca: prorataCobranca } });
   }
   return { addon_row: row.id, prorata_cents: prorata, prorata_cobranca: prorataCobranca, novo_valor_cents: v.cents };
 }
