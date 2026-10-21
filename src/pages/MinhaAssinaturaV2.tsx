@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -337,6 +337,7 @@ function Bloco({ t, children }: { t: string; children: React.ReactNode }) {
 }
 
 function AcaoDialog({ acao, companyId, onClose, onDone }: { acao: Acao; companyId: string; onClose: () => void; onDone: () => void }) {
+  const navigate = useNavigate();
   const s = acao.sub;
   const [code, setCode] = useState<string>((s.adicionais_disponiveis?.[0]?.code as string) ?? "");
   const [qtd, setQtd] = useState(1);
@@ -371,7 +372,24 @@ function AcaoDialog({ acao, companyId, onClose, onDone }: { acao: Acao; companyI
       if (acao.tipo === "cancelar_agendamento") return contratar({ ...base, acao: "cancelar_agendamento" });
       return contratar({ ...base, acao: "cancelar_fim_ciclo", desfazer: acao.tipo === "desfazer_cancelamento" });
     },
-    onSuccess: () => { toast.success("Assinatura atualizada."); onDone(); },
+    onSuccess: async (r: any) => {
+      // Se houve cobrança imediata, leva direto à escolha de pagamento (PIX, boleto ou cartão).
+      const cobraAgora = (acao.tipo === "plano" && (cot.data?.cobrar_agora_cents ?? 0) > 0)
+        || (acao.tipo === "adicional" && cot.data?.cobranca === "imediata");
+      if (cobraAgora) {
+        const subId = r?.resultado?.subscription_id ?? r?.subscription_id ?? s.id;
+        const { data } = await supabase.from("invoices").select("id")
+          .eq("subscription_id", subId).eq("status", "open")
+          .order("created_at", { ascending: false }).limit(1).maybeSingle();
+        const faturaId = (data as any)?.id;
+        if (faturaId) {
+          toast.success("Assinatura atualizada. Conclua o pagamento.");
+          navigate(`/checkout/pagamento/${faturaId}`);
+          return;
+        }
+      }
+      toast.success("Assinatura atualizada."); onDone();
+    },
     onError: (e) => notifyError(e, { surface: "Assinatura", action: "atualizar a assinatura", fallback: "Não foi possível concluir. Tente de novo." }),
   });
 
