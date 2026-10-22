@@ -44,10 +44,10 @@ describe("caso B via folga agendada (exceção zero), sem saldo fictício", () =
   const DISPENSA = { ...BASE, motivo: "dispensa_sem_justa_causa" as const, modalidade: "trabalhado" as const, reducao: "sete_dias" as const };
 
   it("folga regular agendada antes da ausência legal antecipa o último comparecimento; término e 10º dia inalterados", () => {
-    // Folga agendada em 23/10 (sexta) entra como exceção zero — sem saldo de banco.
-    const mescla = mesclarFolgasAgendadas([], [{ data: "2026-10-23", tipo: "normal", direito_origem: null }]);
+    // Folgas agendadas em 23/10 (sex) e 24/10 (sáb) entram como exceção zero — sem saldo de banco.
+    const mescla = mesclarFolgasAgendadas([], [{ data: "2026-10-23", tipo: "normal", direito_origem: null }, { data: "2026-10-24", tipo: "normal" }]);
     const r = ok(simularDesligamento({ ...DISPENSA, excecoesJornada: mescla.excecoes, saldoBancoMinutos: 0, folgasCompensatorias: [] }));
-    expect(r.ultimoComparecimento).toBe("2026-10-22"); // 23/10 folga, 24/10 sábado trabalhado? não: 24/10 é sábado com jornada
+    expect(r.ultimoComparecimento).toBe("2026-10-22"); // última presença antes das folgas e dos 7 dias
     expect(r.dataEfetiva).toBe("2026-10-31");
     expect(r.prazoQuitacao).toBe("2026-11-10");
     expect(r.minutosCompensados).toBe(0);
