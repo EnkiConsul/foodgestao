@@ -229,6 +229,11 @@ export function simularDesligamento(p: ParametrosDesligamento): ResultadoOuErro 
 
   // ---- Motivos sem aviso prévio: a data informada é o término do vínculo.
   if (MOTIVOS_SEM_AVISO.has(motivo)) {
+    const avisosSemAviso = ["Sem aviso prévio neste motivo: a data informada é o término do vínculo e o prazo de quitação conta dela."];
+    if (motivo === "abandono_emprego" || motivo === "aposentadoria" || motivo === "outro")
+      avisosSemAviso.push(
+        "Este motivo exige determinação factual ou jurídica (ex.: abandono caracterizado, aposentadoria que de fato encerra o vínculo). A data-base informada foi confirmada pelo responsável; sem essa confirmação, o registro é recusado.",
+      );
     return fechar({
       semAviso: true,
       avisoDispensado: false,
