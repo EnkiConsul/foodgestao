@@ -55,7 +55,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { contratoPolicy, isSocio } from "@/lib/dp/contrato-policy";
 import { percentualAdicionalVigente } from "@/lib/dp/adicionais-risco";
 import { ColaboradorDesligamentoPanel } from "./ColaboradorDesligamentoPanel";
-import { ColaboradorDesligamentoAvisoPanel } from "./ColaboradorDesligamentoAvisoPanel";
+import { ColaboradorDesligamentoAvisoPanel, type RascunhoDesligamento } from "./ColaboradorDesligamentoAvisoPanel";
 import { useSalvarDpDesligamentoRessalvas, useDpDesligamentoRessalvas } from "@/hooks/useDpDesligamentoRessalvas";
 import { ColaboradorAcessoPanel } from "./ColaboradorAcessoPanel";
 import { AdiantamentoSolicitacoesPanel } from "@/components/dp/AdiantamentoSolicitacoesPanel";
@@ -221,6 +221,8 @@ interface Props {
   colaborador?: DpColaborador | null;
   /** Aba aberta ao exibir o diálogo (ex.: acesso ao portal ou desligamento). */
   abaInicial?: AbaVisivel;
+  /** Rascunho vindo da calculadora (só memória; nada gravado). */
+  rascunhoDesligamento?: RascunhoDesligamento | null;
   /** Folguista ou pessoa em teste que está sendo promovida a colaborador. */
   pessoaApoioInicial?: PessoaApoio | null;
   /**
@@ -324,6 +326,7 @@ export function ColaboradorFormDialog({
   onOpenChange,
   colaborador,
   abaInicial = "dados",
+  rascunhoDesligamento = null,
   pessoaApoioInicial,
   admissao = null,
   jornadaInicial = null,
@@ -3383,6 +3386,7 @@ export function ColaboradorFormDialog({
                 <ColaboradorDesligamentoAvisoPanel
                   colaboradorId={colaboradorAtual.id}
                   ativo={!!colaboradorAtual.ativo && !colaboradorAtual.data_desligamento}
+                  rascunho={rascunhoDesligamento}
                 />
               )}
               <div id="desligamento" className="scroll-mt-4">
