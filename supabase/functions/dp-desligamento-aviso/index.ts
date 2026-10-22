@@ -192,7 +192,8 @@ async function calcular(admin: any, c: Colab, b: Cond): Promise<{ resultado?: Re
     avisos.push(`${folgasConsideradas.length} folga(s) agendada(s) foram consideradas como dia sem trabalho. A origem em banco de horas não é confirmada pelo cadastro: nada foi descontado do banco.`);
   const resultado = {
     motivo: b.motivo,
-    modalidade: b.modalidade === "trabalhado" && r.diasProjetadosIndenizados > 0 ? "misto" : b.modalidade,
+    // Dispensa do cumprimento (pedido de demissão) nunca é gravada como "indenizado".
+    modalidade: modalidadePersistida(b.modalidade, r),
     reducao: b.modalidade === "trabalhado" ? b.reducao ?? null : null,
     sem_aviso: r.semAviso, aviso_dispensado: r.avisoDispensado, descontar_aviso: r.descontarAviso,
     pedido_escrito_confirmado: pedidoDispensado ? true : false,
