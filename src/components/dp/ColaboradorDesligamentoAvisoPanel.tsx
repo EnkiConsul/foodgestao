@@ -100,10 +100,12 @@ function Detalhes({ r }: { r: Resultado }) {
 
 /** Motivos sem aviso prévio: a data informada é o término do vínculo. */
 const SEM_AVISO = new Set(["dispensa_com_justa_causa", "termino_contrato", "abandono_emprego", "aposentadoria", "falecimento", "outro"]);
+/** Sem aviso e sem regra automática: exigem confirmação informada do responsável. */
+const SEM_AVISO_ASSISTIDO = new Set(["abandono_emprego", "aposentadoria", "outro"]);
 
 export type CondicoesValor = {
   motivo: string; modalidade: "trabalhado" | "indenizado"; reducao: "duas_horas" | "sete_dias"; comunicacao: string;
-  terminoAcordado: string; descontar: boolean; pedidoEscrito: boolean; aceiteEmpresa: boolean;
+  terminoAcordado: string; descontar: boolean; pedidoEscrito: boolean; aceiteEmpresa: boolean; confirmacaoSemAviso: boolean;
 };
 
 /** Formulário de condições (registrar e alterar compartilham). */
@@ -138,7 +140,7 @@ function Condicoes({ v, set, comMotivo }: {
           </RadioGroup>
         </div>
       )}
-      {!semAviso && v.modalidade === "trabalhado" && !pedido && (
+      {!semAviso && v.modalidade === "trabalhado" && v.motivo === "dispensa_sem_justa_causa" && (
         <div className="space-y-1">
           <Label>Redução escolhida pelo colaborador</Label>
           <RadioGroup value={v.reducao} onValueChange={(m) => set({ reducao: m as "duas_horas" | "sete_dias" })} className="flex flex-wrap gap-4">
@@ -149,6 +151,11 @@ function Condicoes({ v, set, comMotivo }: {
       )}
       {pedido && v.modalidade === "trabalhado" && (
         <p className="text-xs text-muted-foreground sm:col-span-2">No pedido de demissão não há redução de 2 horas nem de 7 dias (o art. 488 só vale para aviso dado pela empresa).</p>
+      )}
+      {v.motivo === "acordo_mutuo" && (
+        <p className="text-xs text-muted-foreground sm:col-span-2">{v.modalidade === "indenizado"
+          ? "Acordo mútuo com aviso indenizado: a lei reduz o aviso pela metade (art. 484-A, I, “a”)."
+          : "Acordo mútuo com aviso trabalhado: 30 dias cumpridos, sem redução automática. A metade do art. 484-A vale só para o aviso indenizado; se as partes combinaram algo diferente, valide com o jurídico."}</p>
       )}
       {pedidoDispensado && (
         <div className="space-y-3 rounded-md border p-3 sm:col-span-2">
@@ -177,6 +184,12 @@ function Condicoes({ v, set, comMotivo }: {
       )}
       {semAviso && (
         <p className="text-xs text-muted-foreground sm:col-span-2">Sem aviso prévio neste motivo: a data informada é o término do vínculo e o prazo de quitação (10 dias) conta dela.</p>
+      )}
+      {SEM_AVISO_ASSISTIDO.has(v.motivo) && (
+        <label className="flex items-start gap-2 text-sm sm:col-span-2">
+          <Checkbox checked={v.confirmacaoSemAviso} onCheckedChange={(x) => set({ confirmacaoSemAviso: x === true })} aria-label="Confirmação da data de término" />
+          <span>Este motivo exige determinação factual ou jurídica (ex.: abandono caracterizado, aposentadoria que encerra o vínculo). Confirmo que a data de término foi validada com a contabilidade ou o jurídico.</span>
+        </label>
       )}
     </div>
   );
@@ -207,6 +220,7 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
     descontar: rascunho?.descontar_aviso ?? false,
     pedidoEscrito: false,
     aceiteEmpresa: false,
+    confirmacaoSemAviso: false,
   });
   const [previa, setPrevia] = useState<Resultado | null>(null);
   const [mensagem, setMensagem] = useState<{ texto: string; erro: boolean } | null>(null);
@@ -226,13 +240,15 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
   const setCond = (p: Partial<CondicoesValor>) => { setCondState((c) => ({ ...c, ...p })); limpar(); };
   const condBody = () => ({
     motivo: cond.motivo, modalidade: cond.modalidade,
-    reducao: cond.modalidade === "trabalhado" && cond.motivo !== "pedido_demissao" ? cond.reducao : null,
+    reducao: cond.modalidade === "trabalhado" && cond.motivo === "dispensa_sem_justa_causa" ? cond.reducao : null,
     data_comunicacao: cond.comunicacao,
     data_termino_acordada: cond.motivo === "pedido_demissao" && cond.modalidade === "indenizado" && cond.terminoAcordado ? cond.terminoAcordado : null,
     descontar_aviso: cond.motivo === "pedido_demissao" && cond.modalidade === "indenizado" ? cond.descontar : undefined,
     pedido_escrito: cond.pedidoEscrito, aceite_empresa: cond.aceiteEmpresa,
+    confirmacao_sem_aviso: SEM_AVISO_ASSISTIDO.has(cond.motivo) ? cond.confirmacaoSemAviso : undefined,
   });
   const pedidoDispensadoPendente = cond.motivo === "pedido_demissao" && cond.modalidade === "indenizado" && (!cond.pedidoEscrito || !cond.aceiteEmpresa);
+  const semAvisoPendente = SEM_AVISO_ASSISTIDO.has(cond.motivo) && !cond.confirmacaoSemAviso;
   const fechar = () => { setAcao(null); limpar(); setNota(""); setChave(novaChave()); };
 
   const executar = async (body: Record<string, unknown>, sucesso: string) => {
@@ -302,7 +318,7 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
 
       {!acao && (
         <div className="flex flex-wrap gap-2">
-          {p.status !== "suspenso" && <Button size="sm" variant="outline" onClick={() => { setCondState({ motivo: p.motivo, modalidade: p.modalidade === "indenizado" ? "indenizado" : "trabalhado", reducao: (p.reducao as "duas_horas" | "sete_dias") ?? "duas_horas", comunicacao: p.data_comunicacao, terminoAcordado: "", descontar: p.descontar_aviso === true, pedidoEscrito: false, aceiteEmpresa: false }); setAcao("alterar"); }}>Alterar condições</Button>}
+          {p.status !== "suspenso" && <Button size="sm" variant="outline" onClick={() => { setCondState({ motivo: p.motivo, modalidade: p.modalidade === "indenizado" ? "indenizado" : "trabalhado", reducao: (p.reducao as "duas_horas" | "sete_dias") ?? "duas_horas", comunicacao: p.data_comunicacao, terminoAcordado: "", descontar: p.descontar_aviso === true, pedidoEscrito: false, aceiteEmpresa: false, confirmacaoSemAviso: false }); setAcao("alterar"); }}>Alterar condições</Button>}
           <Button size="sm" variant="outline" onClick={() => setAcao("reconsideracao")}>Reconsideração</Button>
           <Button size="sm" variant="outline" onClick={() => setAcao("ocorrencia")}>Registrar ocorrência</Button>
           {pausado && <Button size="sm" onClick={() => setAcao("retomar")}>Retomar aviso…</Button>}
@@ -440,7 +456,8 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
           A comunicação formal do aviso foi entregue ao colaborador em {br(previa.data_comunicacao)}. As datas passam a aparecer no portal dele.
         </label>
         {pedidoDispensadoPendente && <p className="text-xs text-destructive">Marque as duas declarações (pedido escrito e aceite da empresa) para confirmar.</p>}
-        <Button onClick={() => executar({ acao: "confirmar", colaborador_id: colaboradorId, ...condBody(), comunicacao_formal: formal, idempotency_key: chave, esperado }, "Aviso prévio registrado. O colaborador continua ativo até o último dia.")} disabled={carregando || !formal || pedidoDispensadoPendente}>Confirmar registro do aviso</Button>
+        {semAvisoPendente && <p className="text-xs text-destructive">Confirme a validação da data de término para este motivo.</p>}
+        <Button onClick={() => executar({ acao: "confirmar", colaborador_id: colaboradorId, ...condBody(), comunicacao_formal: formal, idempotency_key: chave, esperado }, "Aviso prévio registrado. O colaborador continua ativo até o último dia.")} disabled={carregando || !formal || pedidoDispensadoPendente || semAvisoPendente}>Confirmar registro do aviso</Button>
       </div>
     )}
   </>);

@@ -11,8 +11,10 @@
  *   a empresa pode dispensar o cumprimento (liberalidade) com término na data
  *   acordada — descontar ou não o aviso é decisão registrada, sem prova de
  *   novo emprego (Súmula 276 só se aplica ao aviso dado pelo EMPREGADOR).
- * - acordo_mutuo (art. 484-A): aviso pela metade; trabalhado (redução
- *   opcional) ou indenizado.
+ * - acordo_mutuo (art. 484-A, I, "a"): a redução pela metade vale SÓ para o
+ *   aviso indenizado. Trabalhado: 30 dias cumpridos, sem redução do art. 488
+ *   (redação específica para dispensa pelo empregador); eventual projeção
+ *   proporcional depende de validação jurídica e não é calculada.
  * - dispensa_com_justa_causa, termino_contrato, abandono_emprego,
  *   aposentadoria, falecimento, outro: sem aviso prévio; a data informada é o
  *   término do vínculo e o prazo de quitação conta dela (art. 477 §6º).
@@ -209,7 +211,9 @@ export function simularDesligamento(p: ParametrosDesligamento): ResultadoOuErro 
     return { erro: "Jornada semanal inválida." };
   if (motivo === "pedido_demissao" && p.reducao)
     return { erro: "A redução do art. 488 (2 horas ou 7 dias) não se aplica ao pedido de demissão." };
-  if (motivo !== "pedido_demissao" && p.modalidade === "trabalhado" && !p.reducao && !MOTIVOS_SEM_AVISO.has(motivo))
+  if (motivo === "acordo_mutuo" && p.reducao)
+    return { erro: "A redução do art. 488 tem redação específica para a dispensa pelo empregador e não se aplica automaticamente ao acordo mútuo. Se as partes combinaram redução, registre com validação jurídica." };
+  if (motivo === "dispensa_sem_justa_causa" && p.modalidade === "trabalhado" && !p.reducao)
     return { erro: "Informe a redução do art. 488: duas horas diárias ou sete dias corridos." };
   const saldoInicial = Math.max(0, Math.round(p.saldoBancoMinutos ?? 0));
   const feriados = new Set(p.feriados ?? []);
@@ -225,6 +229,11 @@ export function simularDesligamento(p: ParametrosDesligamento): ResultadoOuErro 
 
   // ---- Motivos sem aviso prévio: a data informada é o término do vínculo.
   if (MOTIVOS_SEM_AVISO.has(motivo)) {
+    const avisosSemAviso = ["Sem aviso prévio neste motivo: a data informada é o término do vínculo e o prazo de quitação conta dela."];
+    if (motivo === "abandono_emprego" || motivo === "aposentadoria" || motivo === "outro")
+      avisosSemAviso.push(
+        "Este motivo exige determinação factual ou jurídica (ex.: abandono caracterizado, aposentadoria que de fato encerra o vínculo). A data-base informada foi confirmada pelo responsável; sem essa confirmação, o registro é recusado.",
+      );
     return fechar({
       semAviso: true,
       avisoDispensado: false,
@@ -247,15 +256,18 @@ export function simularDesligamento(p: ParametrosDesligamento): ResultadoOuErro 
       dataEfetiva: p.dataComunicacao,
       baseQuitacao: p.dataComunicacao,
       dispensadoDeComparecerDesde: null,
-      avisos: ["Sem aviso prévio neste motivo: a data informada é o término do vínculo e o prazo de quitação conta dela."],
+      avisos: avisosSemAviso,
     });
   }
 
   // ---- Duração do aviso por motivo.
+  // Acordo mútuo (art. 484-A, I, "a"): a metade vale SÓ para o aviso
+  // indenizado. Trabalhado: 30 dias cumpridos (regra segura); a eventual
+  // projeção proporcional depende de validação jurídica e não é calculada.
   const proporcional = duracaoAvisoProporcional(anos);
   const duracao =
     motivo === "pedido_demissao" ? DIAS_PEDIDO_DEMISSAO
-    : motivo === "acordo_mutuo" ? Math.ceil(proporcional / 2) // art. 484-A: metade
+    : motivo === "acordo_mutuo" ? (p.modalidade === "indenizado" ? Math.ceil(proporcional / 2) : 30)
     : proporcional;
   const terminoProjetado = somarDias(p.dataComunicacao, duracao);
   const avisos: string[] = [];
@@ -326,6 +338,10 @@ export function simularDesligamento(p: ParametrosDesligamento): ResultadoOuErro 
     // Dispensa pela empresa: cumprimento limitado a 30 dias (proporcional indenizado).
     // Pedido de demissão e acordo mútuo: cumpre-se a duração apurada, sem teto de 30.
     const diasCumpridos = motivo === "dispensa_sem_justa_causa" ? Math.min(PERIODO_TRABALHADO_MAX, duracao) : duracao;
+    if (motivo === "acordo_mutuo")
+      avisos.push(
+        "Acordo mútuo com aviso trabalhado: 30 dias cumpridos. A redução pela metade do art. 484-A vale só para o aviso indenizado; eventual projeção de dias proporcionais depende de validação jurídica e não foi calculada.",
+      );
     fimCumprido = somarDias(p.dataComunicacao, diasCumpridos);
     diasProjetados = duracao - diasCumpridos;
     if (diasProjetados > 0)

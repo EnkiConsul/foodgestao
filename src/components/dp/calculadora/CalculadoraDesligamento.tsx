@@ -131,7 +131,7 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
   const params = admissao && comunicacao && (semAviso || (jornadaOk && saldoMin !== null)) ? {
     dataAdmissao: admissao, dataComunicacao: comunicacao, modalidade,
     motivo: motivo as MotivoDesligamentoCalc,
-    reducao: modalidade === "trabalhado" && motivo !== "pedido_demissao" ? reducao : null,
+    reducao: modalidade === "trabalhado" && motivo === "dispensa_sem_justa_causa" ? reducao : null,
     dataTerminoAcordada: pedidoDispensado && terminoAcordado ? terminoAcordado : null,
     descontarAviso: pedidoDispensado ? descontar : undefined,
     jornadaSemanal: (semAviso ? [0, 0, 0, 0, 0, 0, 0] : jornadaMin) as [number, number, number, number, number, number, number],
@@ -183,7 +183,7 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
                 </RadioGroup>
               </div>
             )}
-            {modalidade === "trabalhado" && motivo !== "pedido_demissao" && !semAviso && (
+            {modalidade === "trabalhado" && motivo === "dispensa_sem_justa_causa" && (
               <div>
                 <Label className="mb-1 block">Redução legal (art. 488 — escolha do colaborador)</Label>
                 <RadioGroup value={reducao} onValueChange={(v) => { setReducao(v as ReducaoArt488); setFolgas([]); }} className="flex flex-wrap gap-4">
@@ -194,6 +194,12 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
             )}
             {motivo === "pedido_demissao" && modalidade === "trabalhado" && (
               <p className="text-xs text-muted-foreground">No pedido de demissão não há redução de 2 horas nem de 7 dias (o art. 488 só vale para aviso dado pela empresa).</p>
+            )}
+            {motivo === "acordo_mutuo" && modalidade === "trabalhado" && (
+              <p className="text-xs text-muted-foreground">No acordo mútuo, a redução pela metade (art. 484-A) vale só para o aviso indenizado. Trabalhado: 30 dias cumpridos, sem redução automática de 2 horas ou 7 dias; se as partes combinaram algo diferente, valide com o jurídico.</p>
+            )}
+            {motivo === "acordo_mutuo" && modalidade === "indenizado" && (
+              <p className="text-xs text-muted-foreground">Acordo mútuo com aviso indenizado: a lei reduz o aviso pela metade (art. 484-A, I, “a”).</p>
             )}
             {pedidoDispensado && (
               <div className="space-y-3 rounded-md border p-3">
@@ -274,7 +280,7 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
           <Card><CardContent className="space-y-2 py-4">
             <Button className="w-full sm:w-auto" disabled={!r || !!registrar.bloqueio}
               onClick={() => r && registrar.abrir({
-                data_comunicacao: comunicacao, modalidade, reducao: modalidade === "trabalhado" && motivo !== "pedido_demissao" ? reducao : null,
+                data_comunicacao: comunicacao, modalidade, reducao: modalidade === "trabalhado" && motivo === "dispensa_sem_justa_causa" ? reducao : null,
                 motivo: motivo as MotivoDesligamentoCalc,
                 data_termino_acordada: pedidoDispensado && terminoAcordado ? terminoAcordado : null,
                 descontar_aviso: pedidoDispensado ? descontar : undefined,
