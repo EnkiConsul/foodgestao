@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -231,13 +232,16 @@ export function useDpEscalaMes(competencia: string, unidadeId: string | null) {
 
       const propostos = gerarEscalaMes({ competencia, colaboradores, turnos, ausencias, preservar });
 
-      const { error } = await supabase.rpc("dp_escala_gerar_mes", {
+      const { data, error } = await supabase.rpc("dp_escala_gerar_mes", {
         p_competencia: competencia,
         p_unidade_id: unidadeId,
         p_itens: propostos.map(itemParaPayload) as unknown as Json,
       });
       if (error) throw new Error(mensagemErroEscala(error.message));
-      return propostos.length;
+      // Dias de trabalho depois do último dia de quem está em aviso prévio não entram (o banco informa quantos).
+      const ignorados = Number((data as { ignorados_aviso_previo?: number } | null)?.ignorados_aviso_previo ?? 0);
+      if (ignorados > 0) toast.info(`${ignorados} dia(s) de trabalho não entraram: colaborador em aviso prévio já terá encerrado o trabalho.`);
+      return propostos.length - ignorados;
     },
     onSuccess: invalidate,
   });

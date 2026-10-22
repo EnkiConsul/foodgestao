@@ -32,7 +32,8 @@ type Processo = Resultado & {
 };
 export type RascunhoDesligamento = {
   data_comunicacao?: string; modalidade?: "trabalhado" | "indenizado"; reducao?: "duas_horas" | "sete_dias";
-  simulado?: { ultimo: string | null; prazo: string };
+  /** Referência ilustrativa da simulação (com as folgas hipotéticas escolhidas); nunca vira aprovação. */
+  simulado?: { ultimo: string | null; prazo: string; comFolgas?: boolean };
 };
 
 const br = (iso: string | null | undefined) => (iso ? iso.split("-").reverse().join("/") : "—");
@@ -160,10 +161,13 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
   const [formal, setFormal] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [chave, setChave] = useState(novaChave);
-  const [acao, setAcao] = useState<null | "alterar" | "reconsideracao" | "ocorrencia" | "cancelar">(null);
+  const [acao, setAcao] = useState<null | "alterar" | "reconsideracao" | "ocorrencia" | "cancelar" | "retomar">(null);
   const [nota, setNota] = useState("");
   const [ocTipo, setOcTipo] = useState("dispensa_cumprimento");
   const [ocData, setOcData] = useState(hojeIsoLocal());
+  const [ocComprovado, setOcComprovado] = useState(false);
+  const [fimImped, setFimImped] = useState(hojeIsoLocal());
+  const [retConf, setRetConf] = useState(false);
 
   const limpar = () => { setPrevia(null); setMensagem(null); setFormal(false); };
   const setCond = (p: Partial<typeof cond>) => { setCondState((c) => ({ ...c, ...p })); limpar(); };
@@ -192,6 +196,7 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
   const Comparacao = previa && rascunho?.simulado && (rascunho.simulado.ultimo !== previa.ultimo_comparecimento || rascunho.simulado.prazo !== previa.prazo_10_dias) && (
     <Alert><AlertTriangle className="h-4 w-4" /><AlertDescription>
       As datas oficiais (jornada, escala e feriados cadastrados) diferem da simulação: na calculadora o último dia era {br(rascunho.simulado.ultimo)} e o prazo {br(rascunho.simulado.prazo)}. Valem as datas acima.
+      {rascunho.simulado.comFolgas && " A simulação usava folgas compensatórias hipotéticas: elas não foram aprovadas nem lançadas. Para usá-las, lance as folgas na agenda e recalcule."}
     </AlertDescription></Alert>
   );
 
@@ -222,16 +227,42 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
       <DatasDesligamento r={p} />
       <Detalhes r={p} />
       {pausado
-        ? <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>A efetivação automática está pausada até a revisão. Altere as condições ou retome o aviso.</AlertDescription></Alert>
+        ? <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>
+            A efetivação automática está pausada até a revisão.
+            {p.status === "suspenso"
+              ? " Afastamento ou impedimento: só retome depois que ele terminar, com a evidência registrada. As datas não são prorrogadas sozinhas — se o término mudou, cancele e registre de novo com orientação da contabilidade."
+              : p.revisao_motivo === "dispensa_cumprimento"
+                ? " Dispensa do restante do cumprimento pela empresa: o efeito sobre o término e o prazo depende de análise jurídica. Faça o término pelo registro manual com orientação da contabilidade."
+                : " Altere as condições (o sistema recalcula) ou retome o aviso com justificativa."}
+          </AlertDescription></Alert>
         : <Alert><AlertDescription>{AVISO_AUTO}</AlertDescription></Alert>}
 
       {!acao && (
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" onClick={() => { setCondState({ motivo: p.motivo, modalidade: p.modalidade === "indenizado" ? "indenizado" : "trabalhado", reducao: (p.reducao as "duas_horas" | "sete_dias") ?? "duas_horas", comunicacao: p.data_comunicacao }); setAcao("alterar"); }}>Alterar condições</Button>
+          {p.status !== "suspenso" && <Button size="sm" variant="outline" onClick={() => { setCondState({ motivo: p.motivo, modalidade: p.modalidade === "indenizado" ? "indenizado" : "trabalhado", reducao: (p.reducao as "duas_horas" | "sete_dias") ?? "duas_horas", comunicacao: p.data_comunicacao }); setAcao("alterar"); }}>Alterar condições</Button>}
           <Button size="sm" variant="outline" onClick={() => setAcao("reconsideracao")}>Reconsideração</Button>
           <Button size="sm" variant="outline" onClick={() => setAcao("ocorrencia")}>Registrar ocorrência</Button>
-          {pausado && <Button size="sm" disabled={carregando} onClick={() => executar({ acao: "retomar", processo_id: p.id, idempotency_key: chave }, "Aviso retomado.")}>Retomar aviso</Button>}
-          <Button size="sm" variant="ghost" onClick={() => setAcao("cancelar")}>Cancelar registro lançado por engano</Button>
+          {pausado && <Button size="sm" onClick={() => setAcao("retomar")}>Retomar aviso…</Button>}
+          {p.status === "aviso_em_curso" && <Button size="sm" variant="ghost" onClick={() => setAcao("cancelar")}>Cancelar registro lançado por engano</Button>}
+        </div>
+      )}
+
+      {acao === "retomar" && (
+        <div className="space-y-2 rounded-md border p-3">
+          <p className="text-sm">Retomar volta a contar para a efetivação automática em {br(p.data_efetiva)}. O sistema confere férias, atestados e licenças registrados; o restante depende da sua verificação.</p>
+          {p.status === "suspenso" && <div className="space-y-1"><Label htmlFor="desl-fim-imp">O afastamento/impedimento terminou em</Label>
+            <Input id="desl-fim-imp" type="date" value={fimImped} onChange={(e) => setFimImped(e.target.value)} /></div>}
+          <Label htmlFor="desl-ret-just">Justificativa e evidência (o que resolveu a pausa)</Label>
+          <Textarea id="desl-ret-just" value={nota} onChange={(e) => setNota(e.target.value)} />
+          <label className="flex items-start gap-2 text-sm"><Checkbox checked={retConf} onCheckedChange={(v) => setRetConf(v === true)} />
+            <span>Conferi que não há afastamento, estabilidade ou outro impedimento em curso e que as datas acima continuam válidas.</span></label>
+          <div className="flex gap-2">
+            <Button size="sm" disabled={carregando || !retConf || nota.trim().length < 20}
+              onClick={() => executar({ acao: "retomar", processo_id: p.id, idempotency_key: chave, justificativa: nota, confirmado: true, ...(p.status === "suspenso" ? { fim_impedimento: fimImped } : {}) }, "Aviso retomado.")}>Confirmar retomada</Button>
+            <Button size="sm" variant="ghost" onClick={() => { fechar(); setRetConf(false); }}>Voltar</Button>
+          </div>
+          <p className="text-xs text-muted-foreground">Mínimo de 20 caracteres. A retomada fica registrada no histórico com seu usuário.</p>
+          {Msg}
         </div>
       )}
 
@@ -280,13 +311,23 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1"><Label htmlFor="desl-oc-data">A partir de</Label><Input id="desl-oc-data" type="date" value={ocData} onChange={(e) => setOcData(e.target.value)} /></div>
+            <div className="space-y-1"><Label htmlFor="desl-oc-data">{ocTipo === "novo_emprego" ? "Último dia trabalhado" : "A partir de"}</Label><Input id="desl-oc-data" type="date" value={ocData} onChange={(e) => setOcData(e.target.value)} /></div>
           </div>
+          {ocTipo === "novo_emprego" && p.modalidade === "trabalhado" && (
+            <label className="flex items-start gap-2 text-sm"><Checkbox checked={ocComprovado} onCheckedChange={(v) => setOcComprovado(v === true)} />
+              <span>O colaborador pediu por escrito a dispensa do restante do aviso e comprovou o novo emprego (Súmula 276 do TST). O vínculo termina no último dia trabalhado, sem pagar os dias restantes, e o prazo de 10 dias passa a contar dessa data.</span></label>
+          )}
+          {ocTipo === "novo_emprego" && p.modalidade !== "trabalhado" && (
+            <p className="text-xs text-muted-foreground">Em aviso indenizado ou misto o efeito do novo emprego depende de análise: fica pausado para revisão manual.</p>
+          )}
           <Label htmlFor="desl-oc-nota">Observação interna</Label>
           <Textarea id="desl-oc-nota" value={nota} onChange={(e) => setNota(e.target.value)} />
-          <p className="text-xs text-muted-foreground">A efetivação automática fica pausada. Os efeitos sobre datas e pagamento dependem de análise: depois, altere as condições ou retome o aviso.</p>
+          <p className="text-xs text-muted-foreground">{ocTipo === "novo_emprego" && ocComprovado && p.modalidade === "trabalhado"
+            ? "As novas datas são calculadas no servidor e publicadas ao colaborador."
+            : "A efetivação automática fica pausada. Nenhuma data é alterada: os efeitos dependem de análise e da sua decisão registrada."}</p>
           <div className="flex gap-2">
-            <Button size="sm" disabled={carregando} onClick={() => executar({ acao: "ocorrencia", processo_id: p.id, idempotency_key: chave, tipo: ocTipo, data: ocData, nota }, "Ocorrência registrada. Aviso pausado para revisão.")}>Registrar</Button>
+            <Button size="sm" disabled={carregando} onClick={() => executar({ acao: "ocorrencia", processo_id: p.id, idempotency_key: chave, tipo: ocTipo, data: ocData, nota, ...(ocTipo === "novo_emprego" && ocComprovado && p.modalidade === "trabalhado" ? { aplicar_termino: true } : {}) },
+              ocTipo === "novo_emprego" && ocComprovado && p.modalidade === "trabalhado" ? "Término antecipado registrado com as novas datas." : "Ocorrência registrada. Aviso pausado para revisão.")}>Registrar</Button>
             <Button size="sm" variant="ghost" onClick={fechar}>Voltar</Button>
           </div>
           {Msg}

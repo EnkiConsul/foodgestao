@@ -191,3 +191,23 @@ describe("Fase 1 — 10º dia bruto e sugestão anterior", () => {
     expect(p).toEqual(copia);
   });
 });
+
+describe("feriado × escala publicada (food service trabalha em feriado)", () => {
+  it("sem escala no feriado, o dia é sem jornada", () => {
+    expect(ok(base({ feriados: ["2026-10-31"] })).ultimoComparecimento).toBe("2026-10-30");
+  });
+  it("escala publicada com trabalho no feriado prevalece", () => {
+    const r = ok(base({ feriados: ["2026-10-31"], excecoesJornada: [{ data: "2026-10-31", minutos: 240 }] }));
+    expect(r.ultimoComparecimento).toBe("2026-10-31");
+    expect(r.baseQuitacao).toBe("2026-10-31");
+    expect(r.prazoQuitacao).toBe("2026-11-10");
+  });
+  it("escala com folga explícita zera dia útil comum", () => {
+    expect(ok(base({ excecoesJornada: [{ data: "2026-10-31", minutos: 0 }] })).ultimoComparecimento).toBe("2026-10-30");
+  });
+  it("10º dia bruto e sugestão anterior seguem o calendário de feriados", () => {
+    const r = ok(base({ feriados: ["2026-11-10"], excecoesJornada: [{ data: "2026-11-10", minutos: 480 }] }));
+    expect(r.prazoQuitacao).toBe("2026-11-10");
+    expect(r.sugestaoPagamentoDiaUtilAnterior).toBe("2026-11-09");
+  });
+});

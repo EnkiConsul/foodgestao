@@ -16,6 +16,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
 import { requireUser, serviceClient } from "../_shared/authz.ts";
 import { simularDesligamento } from "../_shared/desligamento-motor.ts";
+import { prazoLegalRescisao, prazoPagamentoRescisao } from "../_shared/desligamento-datas.ts";
 import { jornadaSemanalDaConfig, configVigenteEm, type DiaConfigMin, type TurnoMin } from "../_shared/desligamento-jornada.ts";
 import { datasDeFeriados, type FeriadoRegra } from "../_shared/feriados.ts";
 
@@ -36,8 +37,11 @@ const Body = z.discriminatedUnion("acao", [
   z.object({ acao: z.literal("alterar"), processo_id: z.string().uuid(), idempotency_key: Chave, previa: z.boolean().optional(), ...Condicoes }),
   z.object({ acao: z.literal("reconsideracao"), processo_id: z.string().uuid(), idempotency_key: Chave, resultado: z.enum(["aceita", "recusada"]), nota: z.string().max(500).optional() }),
   z.object({ acao: z.literal("ocorrencia"), processo_id: z.string().uuid(), idempotency_key: Chave,
-    tipo: z.enum(["dispensa_cumprimento", "novo_emprego", "afastamento", "impedimento_legal", "outro"]), data: Data, nota: z.string().max(500).optional() }),
-  z.object({ acao: z.literal("retomar"), processo_id: z.string().uuid(), idempotency_key: Chave }),
+    tipo: z.enum(["dispensa_cumprimento", "novo_emprego", "afastamento", "impedimento_legal", "outro"]), data: Data, nota: z.string().max(500).optional(),
+    aplicar_termino: z.literal(true).optional() }),
+  // Retomada exige evidência + confirmação; o banco ainda confere férias/atestados/licenças.
+  z.object({ acao: z.literal("retomar"), processo_id: z.string().uuid(), idempotency_key: Chave,
+    justificativa: z.string().trim().min(20).max(500), confirmado: z.literal(true), fim_impedimento: Data.optional() }),
   z.object({ acao: z.literal("pos"), processo_id: z.string().uuid(), idempotency_key: Chave,
     pagamento_previsto: Data.nullable().optional(), pagamento_status: z.enum(["pendente", "programado", "pago"]).optional(),
     pagamento_em: Data.nullable().optional(), pagamento_ref: z.string().max(120).nullable().optional(),
@@ -55,6 +59,15 @@ const somar = (iso: string, n: number) => { const d = new Date(`${iso}T00:00:00Z
 
 type Colab = { id: string; company_id: string; unidade_id: string | null; data_admissao: string | null; regime: string | null; ativo: boolean; data_desligamento: string | null; deleted_at: string | null };
 type Cond = { motivo: string; modalidade: "trabalhado" | "indenizado"; reducao?: "duas_horas" | "sete_dias" | null; data_comunicacao: string };
+
+// deno-lint-ignore no-explicit-any
+async function feriadosDaUnidade(admin: any, c: Pick<Colab, "unidade_id" | "company_id">, ano: number): Promise<string[]> {
+  if (!c.unidade_id) return [];
+  const { data: fs } = await admin.from("dp_unidade_feriados")
+    .select("id, nome, tipo, data, dia, mes, ordinal, dia_semana, ano_inicio, ativo")
+    .eq("unidade_id", c.unidade_id).eq("company_id", c.company_id);
+  return [...datasDeFeriados(((fs ?? []) as FeriadoRegra[]).filter((f) => f.ativo !== false), [ano, ano + 1])];
+}
 
 // deno-lint-ignore no-explicit-any
 async function calcular(admin: any, c: Colab, b: Cond): Promise<{ resultado?: Record<string, unknown>; resp?: Response }> {
@@ -81,14 +94,7 @@ async function calcular(admin: any, c: Colab, b: Cond): Promise<{ resultado?: Re
   const j = jornadaSemanalDaConfig(dias, cfg.turno_padrao_id, (turnos ?? []) as TurnoMin[]);
   if (j.incompletos.length) return revisao("Há dia de trabalho sem horário na jornada cadastrada. Corrija antes de registrar.");
 
-  let feriados: string[] = [];
-  const ano = Number(b.data_comunicacao.slice(0, 4));
-  if (c.unidade_id) {
-    const { data: fs } = await admin.from("dp_unidade_feriados")
-      .select("id, nome, tipo, data, dia, mes, ordinal, dia_semana, ano_inicio, ativo")
-      .eq("unidade_id", c.unidade_id).eq("company_id", c.company_id);
-    feriados = [...datasDeFeriados(((fs ?? []) as FeriadoRegra[]).filter((f) => f.ativo !== false), [ano, ano + 1])];
-  }
+  const feriados = await feriadosDaUnidade(admin, c, Number(b.data_comunicacao.slice(0, 4)));
 
   // Escala publicada no período: exceções reais (ex.: domingo trabalhado).
   const { data: itens } = await admin.from("dp_escala_itens")
@@ -145,6 +151,12 @@ Deno.serve(async (req) => {
     const { data, error } = await admin.rpc("is_company_admin_or_owner", { _user_id: user.id, _company_id: companyId });
     return !error && data === true;
   };
+  // Alertas D-2/prazo/sugestão do próprio processo já na confirmação (não espera o cron).
+  const alertarAgora = async (id?: string) => {
+    if (!id) return 0;
+    const { data } = await admin.rpc("dp_desligamento_alertas_processo", { p_processo: id, p_hoje: null });
+    return typeof data === "number" ? data : 0;
+  };
   const carregarColab = async (id: string) => {
     const { data } = await admin.from("dp_colaboradores")
       .select("id, company_id, unidade_id, data_admissao, regime, ativo, data_desligamento, deleted_at").eq("id", id).maybeSingle();
@@ -165,7 +177,8 @@ Deno.serve(async (req) => {
       const { avisos: _a, usou_escala: _u, ...gravar } = resultado!;
       const { data, error } = await admin.rpc("dp_desligamento_registrar_aviso", { p: { ...gravar, colaborador_id: c.id, idempotency_key: b.idempotency_key, ator: user.id } });
       if (error) return json(409, { error: error.message });
-      return json(200, { ok: true, ...(data as Record<string, unknown>), resultado });
+      const alertas = await alertarAgora((data as { id?: string })?.id);
+      return json(200, { ok: true, ...(data as Record<string, unknown>), resultado, alertas });
     }
 
     const { data: proc } = await admin.from("dp_desligamento_processos").select("id, company_id, colaborador_id, status").eq("id", b.processo_id).maybeSingle();
@@ -188,13 +201,22 @@ Deno.serve(async (req) => {
       const { avisos: _a, usou_escala: _u, motivo: _m, ...gravar } = resultado!;
       extra = gravar;
     }
+    if (b.acao === "ocorrencia" && b.aplicar_termino) {
+      // Súmula 276: novo emprego comprovado encerra no último dia trabalhado; prazo do 10º dia dessa data.
+      if (b.tipo !== "novo_emprego") return json(400, { error: "Término antecipado automático só para novo emprego comprovado." });
+      const c = await carregarColab(proc.colaborador_id);
+      if (!c || !c.ativo || c.data_desligamento) return json(409, { error: "Colaborador não está ativo." });
+      const feriados = new Set(await feriadosDaUnidade(admin, c, Number(b.data.slice(0, 4))));
+      extra = { aplicar_termino: true, prazo_10_dias: prazoLegalRescisao(b.data), sugestao_pagamento: prazoPagamentoRescisao(b.data, feriados) };
+    }
     const { acao, processo_id, idempotency_key, ...resto } = b as Record<string, unknown> & { acao: string; processo_id: string; idempotency_key: string };
     if (acao === "alterar") { delete resto.esperado; delete resto.previa; delete resto.motivo; }
     const { data, error } = await admin.rpc("dp_desligamento_transicao", {
       p: { ...resto, ...extra, acao, processo_id, idempotency_key, ator: user.id },
     });
     if (error) return json(409, { error: error.message });
-    return json(200, { ok: true, ...(data as Record<string, unknown>) });
+    const alertas = await alertarAgora(proc.id);
+    return json(200, { ok: true, ...(data as Record<string, unknown>), alertas });
   } catch (_e) {
     // Log sem dados pessoais.
     console.error("dp-desligamento-aviso: falha interna", (b as { acao: string }).acao);

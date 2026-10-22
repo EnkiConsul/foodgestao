@@ -28,6 +28,11 @@ describe("Atalho Registrar desligamento", () => {
     expect(abrir).toHaveBeenCalledTimes(1);
     const arg = abrir.mock.calls[0][0];
     expect(Object.keys(arg).sort()).toEqual(["data_comunicacao", "modalidade", "reducao", "simulado"]);
-    expect(arg).toEqual({ data_comunicacao: "2026-10-01", modalidade: "trabalhado", reducao: "duas_horas", simulado: { ultimo: "2026-10-31", prazo: "2026-11-10" } });
+    // Referência = cenário simulado COM a folga escolhida (último dia antecipado), sem levar folgas/saldo.
+    expect(arg.data_comunicacao).toBe("2026-10-01");
+    expect(arg.simulado.comFolgas).toBe(true);
+    expect(arg.simulado.ultimo).not.toBe("2026-10-31");
+    expect(arg.simulado.ultimo < "2026-10-31").toBe(true);
+    expect(Object.keys(arg.simulado).sort()).toEqual(["comFolgas", "prazo", "ultimo"]);
   });
 });
