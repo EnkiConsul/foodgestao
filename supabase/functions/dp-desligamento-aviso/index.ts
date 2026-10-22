@@ -199,7 +199,9 @@ async function calcular(admin: any, c: Colab, b: Cond): Promise<{ resultado?: Re
     aceite_empresa_confirmado: pedidoDispensado ? true : false,
     data_comunicacao: b.data_comunicacao, inicio_aviso: r.inicioAviso,
     ultimo_comparecimento: r.ultimoComparecimento, dispensado_desde: r.dispensadoDeComparecerDesde,
-    data_efetiva: efetiva, projecao_indenizada: r.terminoProjetado, base_quitacao: r.baseQuitacao,
+    // Pedido de demissão com dispensa do cumprimento: não há projeção
+    // indenizada (a empresa dispensou, não indenizou) — grava null.
+    data_efetiva: efetiva, projecao_indenizada: r.avisoDispensado ? null : r.terminoProjetado, base_quitacao: r.baseQuitacao,
     prazo_10_dias: r.prazoQuitacao, sugestao_pagamento: r.sugestaoPagamentoDiaUtilAnterior,
     dias_aviso: r.duracaoLegalDias, dias_indenizados: r.diasProjetadosIndenizados,
     regra_versao: REGRA_VERSAO, avisos, usou_escala: excecoes.length > 0,

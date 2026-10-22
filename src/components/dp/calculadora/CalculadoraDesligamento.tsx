@@ -352,7 +352,9 @@ function Resultado({ r, b, onAlternar }: { r: ResultadoDesligamento; b: Resultad
           <div>Início da contagem: <strong>{br(r.inicioAviso)}</strong></div>
           <div>Duração legal: <strong>{r.duracaoLegalDias} dias</strong> <span className="text-muted-foreground">({r.anosCompletos} ano(s) completo(s))</span></div>
           {!indenizado && <div>Comparecimento previsto: <strong>{br(r.inicioAviso)} a {br(r.fimPeriodoCumprido)}</strong></div>}
-          <div>Término projetado: <strong>{br(r.terminoProjetado)}</strong></div>
+          {r.avisoDispensado
+            ? <div>Aviso: <strong>cumprimento dispensado pela empresa</strong> (fim teórico do aviso não cumprido: {br(r.terminoProjetado)})</div>
+            : <div>Término projetado: <strong>{br(r.terminoProjetado)}</strong></div>}
           {r.diasProjetadosIndenizados > 0 && <div>Dias indenizados: <strong>{r.diasProjetadosIndenizados}</strong></div>}
           {r.periodoReducao && <div>Ausência legal: <strong>{br(r.periodoReducao.inicio)} a {br(r.periodoReducao.fim)}</strong></div>}
           {!indenizado && <>
