@@ -95,7 +95,7 @@ async function feriadosDaUnidade(admin: any, c: Pick<Colab, "unidade_id" | "comp
 }
 
 // deno-lint-ignore no-explicit-any
-async function calcular(admin: any, c: Colab, b: Cond): Promise<{ resultado?: Record<string, unknown>; resp?: Response }> {
+async function calcular(admin: any, c: Colab, b: Cond, previa = false): Promise<{ resultado?: Record<string, unknown>; resp?: Response }> {
   const revisao = (msg: string) => ({ resp: json(422, { revisao: true, error: msg }) });
   if (c.regime !== "clt") return revisao("O cálculo automático cobre apenas o regime CLT. Para este vínculo, a análise é manual, com confirmação da contabilidade ou do jurídico.");
   if (!c.data_admissao) return revisao("Cadastre a data de admissão para calcular.");
@@ -103,13 +103,14 @@ async function calcular(admin: any, c: Colab, b: Cond): Promise<{ resultado?: Re
   const pedidoDispensado = b.motivo === "pedido_demissao" && b.modalidade === "indenizado";
   if (b.motivo === "pedido_demissao" && b.reducao)
     return { resp: json(400, { error: "A redução do art. 488 (2 horas ou 7 dias) não se aplica ao pedido de demissão." }) };
-  if (pedidoDispensado && (b.pedido_escrito !== true || b.aceite_empresa !== true))
+  // Na prévia as declarações não são exigidas: só valem para gravar.
+  if (!previa && pedidoDispensado && (b.pedido_escrito !== true || b.aceite_empresa !== true))
     return { resp: json(400, { error: "Confirme as duas declarações: o pedido escrito do colaborador e o aceite da empresa. Guarde a evidência no GED ou com a contabilidade." }) };
-  if (SEM_AVISO_ASSISTIDO.has(b.motivo) && b.confirmacao_sem_aviso !== true)
+  if (!previa && SEM_AVISO_ASSISTIDO.has(b.motivo) && b.confirmacao_sem_aviso !== true)
     return { resp: json(400, { error: "Este motivo exige determinação factual ou jurídica. Confirme que a data de término foi validada (ex.: abandono caracterizado, aposentadoria que encerra o vínculo) antes de registrar." }) };
   const hoje = hojeSP();
   if (b.data_comunicacao > hoje) return { resp: json(400, { error: "A comunicação não pode ser futura: registre depois de comunicar formalmente." }) };
-  if (b.data_comunicacao < somar(hoje, -30)) return { resp: json(400, { error: "Comunicação há mais de 30 dias: use o registro manual." }) };
+  // Registro tardio é permitido: o gestor pode lançar dias ou semanas depois.
 
   // Jornada e escala só são exigidas quando há aviso com jornadas (trabalhado).
   const precisaJornada = !semAviso && b.modalidade === "trabalhado";
@@ -207,8 +208,7 @@ async function calcular(admin: any, c: Colab, b: Cond): Promise<{ resultado?: Re
     dias_aviso: r.duracaoLegalDias, dias_indenizados: r.diasProjetadosIndenizados,
     regra_versao: REGRA_VERSAO, avisos, usou_escala: excecoes.length > 0,
   };
-  if (efetiva < hoje) return { resp: json(409, { error: "O término calculado já passou. Use o registro manual na data do término.", resultado }) };
-  return { resultado };
+  return { resultado: { ...resultado, termino_passado: efetiva < hoje, prazo_vencido: r.prazoQuitacao < hoje } };
 }
 
 const diverge = (e: { ultimo: string | null; prazo: string; efetiva: string } | undefined, r: Record<string, unknown>) =>
@@ -245,16 +245,26 @@ Deno.serve(async (req) => {
       // Mesma resposta para inexistente e de outra empresa: não revela cadastro alheio.
       if (!c || !(await autorizado(c.company_id))) return json(403, { error: "Sem permissão" });
       if (!c.ativo || c.data_desligamento || c.deleted_at) return json(409, { error: "Colaborador não está ativo." });
-      const { resultado, resp } = await calcular(admin, c, b);
+      const { resultado, resp } = await calcular(admin, c, b, b.acao === "previa");
       if (resp) return resp;
       if (b.acao === "previa") return json(200, { resultado });
       if (!b.comunicacao_formal) return json(400, { error: "Confirme que a comunicação formal foi entregue ao colaborador." });
       if (diverge(b.esperado, resultado!)) return json(409, { divergente: true, error: "As datas oficiais mudaram desde a prévia. Revise e confirme de novo.", resultado });
-      const { avisos: _a, usou_escala: _u, ...gravar } = resultado!;
+      const { avisos: _a, usou_escala: _u, termino_passado, prazo_vencido: _pv, ...gravar } = resultado!;
       const { data, error } = await admin.rpc("dp_desligamento_registrar_aviso", { p: { ...gravar, colaborador_id: c.id, idempotency_key: b.idempotency_key, ator: user.id } });
       if (error) return json(409, { error: error.message });
+      // Registro tardio: o término já passou, então efetiva agora pelo mesmo
+      // processo do robô diário (idempotente; confere férias e cadastro).
+      let efetivado = false;
+      if (termino_passado) {
+        const { error: errProc } = await admin.rpc("dp_desligamento_processar", { p_hoje: null, p_simular: false });
+        if (!errProc) {
+          const { data: st } = await admin.from("dp_desligamento_processos").select("status").eq("id", (data as { id?: string })?.id ?? "").maybeSingle();
+          efetivado = st?.status === "efetivado";
+        }
+      }
       const alertas = await alertarAgora((data as { id?: string })?.id);
-      return json(200, { ok: true, ...(data as Record<string, unknown>), resultado, alertas });
+      return json(200, { ok: true, ...(data as Record<string, unknown>), resultado, alertas, efetivado });
     }
 
     const { data: proc } = await admin.from("dp_desligamento_processos").select("id, company_id, colaborador_id, status").eq("id", b.processo_id).maybeSingle();
@@ -270,11 +280,11 @@ Deno.serve(async (req) => {
     if (b.acao === "alterar") {
       const c = await carregarColab(proc.colaborador_id);
       if (!c || !c.ativo || c.data_desligamento) return json(409, { error: "Colaborador não está ativo." });
-      const { resultado, resp } = await calcular(admin, c, b);
+      const { resultado, resp } = await calcular(admin, c, b, b.previa === true);
       if (resp) return resp;
       if (b.previa) return json(200, { resultado });
       if (diverge(b.esperado, resultado!)) return json(409, { divergente: true, error: "As datas oficiais mudaram. Revise e confirme de novo.", resultado });
-      const { avisos: _a, usou_escala: _u, motivo: _m, ...gravar } = resultado!;
+      const { avisos: _a, usou_escala: _u, motivo: _m, termino_passado: _tp, prazo_vencido: _pv, ...gravar } = resultado!;
       extra = gravar;
     }
     if (b.acao === "ocorrencia" && b.aplicar_termino) {
