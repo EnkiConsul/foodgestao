@@ -8,4 +8,6 @@
 - [x] Correções de banco: cast do enum regime_previsto, folgas dominicais (mínimo legal 1/mês), normalização de sexo
 - [x] Selo "Aguardando registro" na lista de pré-admissões e na Rotina (com dias)
 - [x] Provas no banco em transação desfeita: ativação, idempotência, conversão CLT — nada gravado em dados reais
+- [x] Rótulo "Aguardando admissão" em todos os selos (lista, ficha e Operação do Dia)
+- [x] Desistência da admissão: excluir a ficha ou cancelar o link encerra o cadastro provisório (inativa com data de saída, cancela folgas/solicitações/trocas futuras) preservando todo o histórico — migração 0128 + Edge dp-preadmissao-convite
 - [ ] Homologação visual pelo gestor na ficha da Verônica (aguarda uso real)
