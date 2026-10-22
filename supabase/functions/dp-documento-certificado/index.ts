@@ -274,6 +274,20 @@ function paginaAnexo(
   }
 }
 
+/** Remove a proteção padrão (senha de abertura vazia) de PDFs de bancos. */
+async function descriptografarPdf(bytes: Uint8Array): Promise<Uint8Array | null> {
+  try {
+    const { PDFDocument: PDFCantoo } = await import("npm:@cantoo/pdf-lib@2.11.1");
+    const doc = await PDFCantoo.load(bytes, { password: "" } as never);
+    const saida = await doc.save();
+    const teste = await PDFDocument.load(saida, { ignoreEncryption: true });
+    return teste.isEncrypted ? null : saida;
+  } catch (e) {
+    console.warn("descriptografarPdf falhou", (e as Error)?.message);
+    return null;
+  }
+}
+
 /** Insere um arquivo (PDF ou imagem) como páginas do certificado. */
 async function anexarArquivo(
   pdf: PDFDocument,
@@ -285,11 +299,16 @@ async function anexarArquivo(
   const ehPdf = tipo.includes("pdf") || /\.pdf$/i.test(nome);
   if (ehPdf) {
     try {
-      const origem = await PDFDocument.load(bytes, { ignoreEncryption: true });
-      // PDF protegido (comum em comprovantes de banco): o conteúdo não pode ser
-      // lido aqui; o original segue disponível ao lado do certificado.
+      let origem = await PDFDocument.load(bytes, { ignoreEncryption: true });
+      // PDF protegido (comum em comprovantes de banco: Mercado Pago, Nubank):
+      // quase sempre a senha de abertura é vazia — descriptografa uma cópia
+      // em memória para reproduzir; o original segue guardado sem alteração.
       if (origem.isEncrypted) {
-        return `O arquivo "${nome}" é protegido pelo emissor e não pode ser reproduzido neste certificado. O original continua guardado, anexado a este PDF e disponível para download.`;
+        const livre = await descriptografarPdf(bytes);
+        if (!livre) {
+          return `O arquivo "${nome}" é protegido por senha pelo emissor e não pode ser reproduzido neste certificado. O original continua guardado, anexado a este PDF e disponível para download.`;
+        }
+        origem = await PDFDocument.load(livre);
       }
       // Ensaio num documento descartável: conteúdo ilegível vira aviso sem
       // contaminar o certificado (o pdf-lib reembute tudo ao salvar).
@@ -437,7 +456,7 @@ Deno.serve(async (req) => {
     const chaveCache = [
       registro.company_id,
       "certificados",
-      `${documentoId}-${aceite.id}-${encodeURIComponent(String(comp?.file_path ?? "sem-comprovante")).replace(/%/g, "")}-${String(registro.comprovante_pago_em ?? "").slice(0, 10)}-${String(registro.versao ?? 1)}-r3.pdf`,
+      `${documentoId}-${aceite.id}-${encodeURIComponent(String(comp?.file_path ?? "sem-comprovante")).replace(/%/g, "")}-${String(registro.comprovante_pago_em ?? "").slice(0, 10)}-${String(registro.versao ?? 1)}-r4.pdf`,
     ].join("/");
     const pronto = await admin.storage.from(BUCKET).download(chaveCache);
     if (pronto.data && !pronto.error) {
