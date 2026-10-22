@@ -17,7 +17,7 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
 import { requireUser, serviceClient } from "../_shared/authz.ts";
-import { simularDesligamento, MOTIVOS_SEM_AVISO, type MotivoDesligamentoCalc } from "../_shared/desligamento-motor.ts";
+import { simularDesligamento, modalidadePersistida, MOTIVOS_SEM_AVISO, type MotivoDesligamentoCalc } from "../_shared/desligamento-motor.ts";
 import { mesclarFolgasAgendadas, type FolgaAgendada } from "../_shared/desligamento-folgas.ts";
 import { validarTerminoNovoEmprego } from "./termino.ts";
 import { prazoLegalRescisao, prazoPagamentoRescisao } from "../_shared/desligamento-datas.ts";
@@ -192,7 +192,8 @@ async function calcular(admin: any, c: Colab, b: Cond): Promise<{ resultado?: Re
     avisos.push(`${folgasConsideradas.length} folga(s) agendada(s) foram consideradas como dia sem trabalho. A origem em banco de horas não é confirmada pelo cadastro: nada foi descontado do banco.`);
   const resultado = {
     motivo: b.motivo,
-    modalidade: b.modalidade === "trabalhado" && r.diasProjetadosIndenizados > 0 ? "misto" : b.modalidade,
+    // Dispensa do cumprimento (pedido de demissão) nunca é gravada como "indenizado".
+    modalidade: modalidadePersistida(b.modalidade, r),
     reducao: b.modalidade === "trabalhado" ? b.reducao ?? null : null,
     sem_aviso: r.semAviso, aviso_dispensado: r.avisoDispensado, descontar_aviso: r.descontarAviso,
     pedido_escrito_confirmado: pedidoDispensado ? true : false,

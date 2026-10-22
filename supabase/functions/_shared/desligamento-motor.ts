@@ -427,3 +427,19 @@ export function simularDesligamento(p: ParametrosDesligamento): ResultadoOuErro 
     avisos,
   });
 }
+
+/** Modalidade gravada no processo: dispensa do cumprimento nunca vira "indenizado". */
+export type ModalidadePersistida = "trabalhado" | "indenizado" | "misto" | "dispensado_cumprimento";
+export function modalidadePersistida(
+  entrada: ModalidadeAviso,
+  r: { avisoDispensado: boolean; diasProjetadosIndenizados: number },
+): ModalidadePersistida {
+  if (r.avisoDispensado) return "dispensado_cumprimento";
+  if (entrada === "trabalhado" && r.diasProjetadosIndenizados > 0) return "misto";
+  return entrada;
+}
+
+/** Aviso dispensado: lido da modalidade gravada (fonte única), nunca de "indenizado". */
+export function ehDispensaCumprimento(p: { modalidade?: string | null; aviso_dispensado?: boolean | null }): boolean {
+  return p.modalidade === "dispensado_cumprimento" || p.aviso_dispensado === true;
+}
