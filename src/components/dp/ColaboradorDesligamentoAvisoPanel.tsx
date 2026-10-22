@@ -1,3 +1,4 @@
+import { ehDispensaCumprimento } from "@/lib/dp/compensacao/desligamentoMotor";
 import { useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -91,7 +92,7 @@ function Detalhes({ r }: { r: Resultado }) {
   return (
     <div className="grid gap-1 text-sm sm:grid-cols-2">
       <div>Comunicação: <strong>{br(r.data_comunicacao)}</strong></div>
-      {r.aviso_dispensado ? (
+      {ehDispensaCumprimento(r) ? (
         <>
           <div>Aviso: <strong>cumprimento dispensado pela empresa</strong></div>
           <div>Desconto do aviso: <strong>{r.descontar_aviso ? "sim (confirmar com a contabilidade)" : "não"}</strong></div>
@@ -327,7 +328,7 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
 
       {!acao && (
         <div className="flex flex-wrap gap-2">
-          {p.status !== "suspenso" && <Button size="sm" variant="outline" onClick={() => { setCondState({ motivo: p.motivo, modalidade: p.modalidade === "indenizado" ? "indenizado" : "trabalhado", reducao: (p.reducao as "duas_horas" | "sete_dias") ?? "duas_horas", comunicacao: p.data_comunicacao, terminoAcordado: "", descontar: p.descontar_aviso === true, pedidoEscrito: false, aceiteEmpresa: false, confirmacaoSemAviso: false }); setAcao("alterar"); }}>Alterar condições</Button>}
+          {p.status !== "suspenso" && <Button size="sm" variant="outline" onClick={() => { setCondState({ motivo: p.motivo, modalidade: p.modalidade === "indenizado" || p.modalidade === "dispensado_cumprimento" ? "indenizado" : "trabalhado", reducao: (p.reducao as "duas_horas" | "sete_dias") ?? "duas_horas", comunicacao: p.data_comunicacao, terminoAcordado: "", descontar: p.descontar_aviso === true, pedidoEscrito: false, aceiteEmpresa: false, confirmacaoSemAviso: false }); setAcao("alterar"); }}>Alterar condições</Button>}
           <Button size="sm" variant="outline" onClick={() => setAcao("reconsideracao")}>Reconsideração</Button>
           <Button size="sm" variant="outline" onClick={() => setAcao("ocorrencia")}>Registrar ocorrência</Button>
           {pausado && <Button size="sm" onClick={() => setAcao("retomar")}>Retomar aviso…</Button>}
