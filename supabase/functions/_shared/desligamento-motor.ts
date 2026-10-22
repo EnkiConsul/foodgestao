@@ -256,15 +256,18 @@ export function simularDesligamento(p: ParametrosDesligamento): ResultadoOuErro 
       dataEfetiva: p.dataComunicacao,
       baseQuitacao: p.dataComunicacao,
       dispensadoDeComparecerDesde: null,
-      avisos: ["Sem aviso prévio neste motivo: a data informada é o término do vínculo e o prazo de quitação conta dela."],
+      avisos: avisosSemAviso,
     });
   }
 
   // ---- Duração do aviso por motivo.
+  // Acordo mútuo (art. 484-A, I, "a"): a metade vale SÓ para o aviso
+  // indenizado. Trabalhado: 30 dias cumpridos (regra segura); a eventual
+  // projeção proporcional depende de validação jurídica e não é calculada.
   const proporcional = duracaoAvisoProporcional(anos);
   const duracao =
     motivo === "pedido_demissao" ? DIAS_PEDIDO_DEMISSAO
-    : motivo === "acordo_mutuo" ? Math.ceil(proporcional / 2) // art. 484-A: metade
+    : motivo === "acordo_mutuo" ? (p.modalidade === "indenizado" ? Math.ceil(proporcional / 2) : 30)
     : proporcional;
   const terminoProjetado = somarDias(p.dataComunicacao, duracao);
   const avisos: string[] = [];
