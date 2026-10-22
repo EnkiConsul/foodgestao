@@ -1,15 +1,16 @@
 /**
- * Registro do aviso prévio (Fase 3A).
+ * Desligamento — aviso prévio e acompanhamento (gestor).
  *
  * O servidor recalcula tudo com o MESMO motor da calculadora, usando dados
- * oficiais (admissão, jornada vigente, feriados da unidade). Nada vindo do
- * navegador é aceito como data, empresa ou papel. Não grava
- * `dp_colaboradores.data_desligamento` nem `ativo`: o vínculo segue ativo.
+ * oficiais: admissão, jornada vigente, escala publicada (exceções) e
+ * feriados da unidade. Nada vindo do navegador é aceito como data, empresa
+ * ou papel. Não grava `dp_colaboradores.data_desligamento` nem `ativo`: o
+ * vínculo segue ativo até a efetivação (worker diário no banco).
  *
- * Ações: "previa" (só calcula), "confirmar" (grava processo + evento em uma
- * transação, idempotente), "cancelar" (registro lançado por engano).
- * Cobertura: dispensa sem justa causa pela empresa, regime CLT. Demais
- * motivos/regimes ficam em "revisão necessária" (sem datas inventadas).
+ * Ações: previa | confirmar | alterar | reconsideracao | ocorrencia |
+ * retomar | pos | encerrar_admin | cancelar.
+ * Cobertura automática: dispensa sem justa causa pela empresa, regime CLT.
+ * Demais motivos/regimes: "revisão necessária" (sem datas inventadas).
  */
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
@@ -19,72 +20,53 @@ import { jornadaSemanalDaConfig, configVigenteEm, type DiaConfigMin, type TurnoM
 import { datasDeFeriados, type FeriadoRegra } from "../_shared/feriados.ts";
 
 const REGRA_VERSAO = "clt-dispensa-sem-justa-causa@2026-10";
+const Data = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const Chave = z.string().min(8).max(80);
 
+const Condicoes = {
+  motivo: z.string().min(1).max(60),
+  modalidade: z.enum(["trabalhado", "indenizado"]),
+  reducao: z.enum(["duas_horas", "sete_dias"]).nullable().optional(),
+  data_comunicacao: Data,
+  esperado: z.object({ ultimo: z.string().nullable(), prazo: z.string(), efetiva: z.string() }).optional(),
+};
 const Body = z.discriminatedUnion("acao", [
-  z.object({
-    acao: z.enum(["previa", "confirmar"]),
-    colaborador_id: z.string().uuid(),
-    motivo: z.string().min(1).max(60),
-    modalidade: z.enum(["trabalhado", "indenizado"]),
-    reducao: z.enum(["duas_horas", "sete_dias"]).nullable().optional(),
-    data_comunicacao: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    comunicacao_formal: z.boolean().optional(),
-    idempotency_key: z.string().min(8).max(80).optional(),
-    esperado: z.object({ ultimo: z.string().nullable(), prazo: z.string(), efetiva: z.string() }).optional(),
-  }),
+  z.object({ acao: z.literal("previa"), colaborador_id: z.string().uuid(), ...Condicoes }),
+  z.object({ acao: z.literal("confirmar"), colaborador_id: z.string().uuid(), comunicacao_formal: z.boolean(), idempotency_key: Chave, ...Condicoes }),
+  z.object({ acao: z.literal("alterar"), processo_id: z.string().uuid(), idempotency_key: Chave, previa: z.boolean().optional(), ...Condicoes }),
+  z.object({ acao: z.literal("reconsideracao"), processo_id: z.string().uuid(), idempotency_key: Chave, resultado: z.enum(["aceita", "recusada"]), nota: z.string().max(500).optional() }),
+  z.object({ acao: z.literal("ocorrencia"), processo_id: z.string().uuid(), idempotency_key: Chave,
+    tipo: z.enum(["dispensa_cumprimento", "novo_emprego", "afastamento", "impedimento_legal", "outro"]), data: Data, nota: z.string().max(500).optional() }),
+  z.object({ acao: z.literal("retomar"), processo_id: z.string().uuid(), idempotency_key: Chave }),
+  z.object({ acao: z.literal("pos"), processo_id: z.string().uuid(), idempotency_key: Chave,
+    pagamento_previsto: Data.nullable().optional(), pagamento_status: z.enum(["pendente", "programado", "pago"]).optional(),
+    pagamento_em: Data.nullable().optional(), pagamento_ref: z.string().max(120).nullable().optional(),
+    valor_informado: z.number().nonnegative().max(10_000_000).nullable().optional(),
+    checklist: z.record(z.string().max(40), z.boolean()).optional() }),
+  z.object({ acao: z.literal("encerrar_admin"), processo_id: z.string().uuid(), idempotency_key: Chave }),
   z.object({ acao: z.literal("cancelar"), processo_id: z.string().uuid(), justificativa: z.string().min(5).max(500) }),
 ]);
+type BodyT = z.infer<typeof Body>;
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-
-function hojeSP(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-}
+const hojeSP = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 const somar = (iso: string, n: number) => { const d = new Date(`${iso}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return json(405, { error: "Método não permitido" });
-  const user = await requireUser(req);
-  if (!user) return json(401, { error: "Sessão inválida" });
-  const parsed = Body.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) return json(400, { error: "Dados inválidos", campos: parsed.error.flatten().fieldErrors });
-  const b = parsed.data;
-  const admin = serviceClient();
+type Colab = { id: string; company_id: string; unidade_id: string | null; data_admissao: string | null; regime: string | null; ativo: boolean; data_desligamento: string | null; deleted_at: string | null };
+type Cond = { motivo: string; modalidade: "trabalhado" | "indenizado"; reducao?: "duas_horas" | "sete_dias" | null; data_comunicacao: string };
 
-  const autorizado = async (companyId: string) => {
-    const { data, error } = await admin.rpc("is_company_admin_or_owner", { _user_id: user.id, _company_id: companyId });
-    return !error && data === true;
-  };
-
-  if (b.acao === "cancelar") {
-    const { data: proc } = await admin.from("dp_desligamento_processos").select("id, company_id").eq("id", b.processo_id).maybeSingle();
-    if (!proc || !(await autorizado(proc.company_id))) return json(403, { error: "Sem permissão" });
-    const { error } = await admin.rpc("dp_desligamento_cancelar", { p_processo: proc.id, p_ator: user.id, p_justificativa: b.justificativa });
-    if (error) return json(409, { error: error.message });
-    return json(200, { ok: true });
-  }
-
-  const { data: c } = await admin.from("dp_colaboradores")
-    .select("id, company_id, unidade_id, data_admissao, regime, ativo, data_desligamento, deleted_at")
-    .eq("id", b.colaborador_id).maybeSingle();
-  // Mesma resposta para inexistente e de outra empresa: não revela cadastro alheio.
-  if (!c || !(await autorizado(c.company_id))) return json(403, { error: "Sem permissão" });
-  if (!c.ativo || c.data_desligamento || c.deleted_at) return json(409, { error: "Colaborador não está ativo." });
-
-  const revisao = (msg: string) => json(422, { revisao: true, error: msg });
+// deno-lint-ignore no-explicit-any
+async function calcular(admin: any, c: Colab, b: Cond): Promise<{ resultado?: Record<string, unknown>; resp?: Response }> {
+  const revisao = (msg: string) => ({ resp: json(422, { revisao: true, error: msg }) });
   if (b.motivo !== "dispensa_sem_justa_causa")
-    return revisao("Este motivo ainda não tem regra validada no sistema. Registre com o RH/contabilidade; nenhuma data foi calculada.");
-  if (c.regime !== "clt")
-    return revisao("O cálculo automático cobre apenas o regime CLT. Para este vínculo, a análise é manual.");
+    return revisao("Este motivo ainda não tem regra validada no sistema. Use o registro manual abaixo na data do término, com orientação da contabilidade. Nenhuma data foi calculada.");
+  if (c.regime !== "clt") return revisao("O cálculo automático cobre apenas o regime CLT. Para este vínculo, a análise é manual.");
   if (!c.data_admissao) return revisao("Cadastre a data de admissão para calcular.");
-
   const hoje = hojeSP();
-  if (b.data_comunicacao > hoje) return json(400, { error: "A comunicação não pode ser futura: registre depois de comunicar formalmente." });
-  if (b.data_comunicacao < somar(hoje, -30)) return json(400, { error: "Comunicação há mais de 30 dias: registre pela análise manual." });
+  if (b.data_comunicacao > hoje) return { resp: json(400, { error: "A comunicação não pode ser futura: registre depois de comunicar formalmente." }) };
+  if (b.data_comunicacao < somar(hoje, -30)) return { resp: json(400, { error: "Comunicação há mais de 30 dias: use o registro manual." }) };
 
-  // Jornada oficial vigente na comunicação.
   const { data: cfgs } = await admin.from("dp_colaborador_config_trabalho")
     .select("vigencia_inicio, vigencia_fim, turno_padrao_id, folga_fixa_dow, dias:dp_colaborador_config_dias(dow, trabalha, turno_id, entrada, saida, intervalo_minutos)")
     .eq("colaborador_id", c.id).eq("company_id", c.company_id);
@@ -100,21 +82,37 @@ Deno.serve(async (req) => {
   if (j.incompletos.length) return revisao("Há dia de trabalho sem horário na jornada cadastrada. Corrija antes de registrar.");
 
   let feriados: string[] = [];
+  const ano = Number(b.data_comunicacao.slice(0, 4));
   if (c.unidade_id) {
     const { data: fs } = await admin.from("dp_unidade_feriados")
       .select("id, nome, tipo, data, dia, mes, ordinal, dia_semana, ano_inicio, ativo")
       .eq("unidade_id", c.unidade_id).eq("company_id", c.company_id);
-    const ano = Number(b.data_comunicacao.slice(0, 4));
     feriados = [...datasDeFeriados(((fs ?? []) as FeriadoRegra[]).filter((f) => f.ativo !== false), [ano, ano + 1])];
   }
+
+  // Escala publicada no período: exceções reais (ex.: domingo trabalhado).
+  const { data: itens } = await admin.from("dp_escala_itens")
+    .select("data, tipo, carga_prevista_horas, escala:dp_escalas!inner(status)")
+    .eq("colaborador_id", c.id).eq("company_id", c.company_id).eq("escala.status", "publicada")
+    .gt("data", b.data_comunicacao).lte("data", somar(b.data_comunicacao, 90));
+  const excecoes: { data: string; minutos: number }[] = [];
+  let semCarga = false;
+  for (const it of (itens ?? []) as { data: string; tipo: string; carga_prevista_horas: number | null }[]) {
+    if (it.tipo === "trabalho") {
+      if (!it.carga_prevista_horas || it.carga_prevista_horas <= 0) { semCarga = true; continue; }
+      excecoes.push({ data: it.data, minutos: Math.round(Number(it.carga_prevista_horas) * 60) });
+    } else excecoes.push({ data: it.data, minutos: 0 });
+  }
+  if (semCarga) return revisao("A escala publicada tem dia de trabalho sem carga horária. Corrija a escala antes de registrar.");
 
   const r = simularDesligamento({
     dataAdmissao: String(c.data_admissao).slice(0, 10), dataComunicacao: b.data_comunicacao,
     modalidade: b.modalidade, reducao: b.modalidade === "trabalhado" ? b.reducao ?? null : null,
-    jornadaSemanal: j.semana, feriados, folgasCompensatorias: [], saldoBancoMinutos: 0,
+    jornadaSemanal: j.semana, excecoesJornada: excecoes, feriados, folgasCompensatorias: [], saldoBancoMinutos: 0,
   });
-  if ("erro" in r) return json(400, { error: r.erro });
-
+  if ("erro" in r) return { resp: json(400, { error: r.erro }) };
+  if (b.modalidade === "trabalhado" && !r.ultimoComparecimento)
+    return revisao("Não há jornadas previstas no período do aviso. Revise a jornada antes de registrar.");
   const efetiva = r.fimPeriodoCumprido ?? b.data_comunicacao;
   const resultado = {
     motivo: b.motivo,
@@ -125,24 +123,81 @@ Deno.serve(async (req) => {
     data_efetiva: efetiva, projecao_indenizada: r.terminoProjetado, base_quitacao: r.baseQuitacao,
     prazo_10_dias: r.prazoQuitacao, sugestao_pagamento: r.sugestaoPagamentoDiaUtilAnterior,
     dias_aviso: r.duracaoLegalDias, dias_indenizados: r.diasProjetadosIndenizados,
-    regra_versao: REGRA_VERSAO, avisos: r.avisos,
+    regra_versao: REGRA_VERSAO, avisos: r.avisos, usou_escala: excecoes.length > 0,
   };
-  if (b.modalidade === "trabalhado" && !r.ultimoComparecimento)
-    return revisao("Não há jornadas previstas no período do aviso. Revise a jornada antes de registrar.");
-  if (efetiva < hoje)
-    return json(409, { error: "O término calculado já passou. Use o registro de desligamento na data do término.", resultado });
+  if (efetiva < hoje) return { resp: json(409, { error: "O término calculado já passou. Use o registro manual na data do término.", resultado }) };
+  return { resultado };
+}
 
-  if (b.acao === "previa") return json(200, { resultado });
+const diverge = (e: { ultimo: string | null; prazo: string; efetiva: string } | undefined, r: Record<string, unknown>) =>
+  !e || e.ultimo !== r.ultimo_comparecimento || e.prazo !== r.prazo_10_dias || e.efetiva !== r.data_efetiva;
 
-  if (!b.comunicacao_formal) return json(400, { error: "Confirme que a comunicação formal foi entregue ao colaborador." });
-  if (!b.idempotency_key) return json(400, { error: "Chave de confirmação ausente." });
-  if (!b.esperado || b.esperado.ultimo !== resultado.ultimo_comparecimento || b.esperado.prazo !== resultado.prazo_10_dias || b.esperado.efetiva !== efetiva)
-    return json(409, { divergente: true, error: "As datas oficiais mudaram desde a prévia. Revise e confirme de novo.", resultado });
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return json(405, { error: "Método não permitido" });
+  const user = await requireUser(req);
+  if (!user) return json(401, { error: "Sessão inválida" });
+  const parsed = Body.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return json(400, { error: "Dados inválidos", campos: parsed.error.flatten().fieldErrors });
+  const b: BodyT = parsed.data;
+  const admin = serviceClient();
+  const autorizado = async (companyId: string) => {
+    const { data, error } = await admin.rpc("is_company_admin_or_owner", { _user_id: user.id, _company_id: companyId });
+    return !error && data === true;
+  };
+  const carregarColab = async (id: string) => {
+    const { data } = await admin.from("dp_colaboradores")
+      .select("id, company_id, unidade_id, data_admissao, regime, ativo, data_desligamento, deleted_at").eq("id", id).maybeSingle();
+    return data as Colab | null;
+  };
 
-  const { avisos: _a, ...gravar } = resultado;
-  const { data, error } = await admin.rpc("dp_desligamento_registrar_aviso", {
-    p: { ...gravar, colaborador_id: c.id, idempotency_key: b.idempotency_key, ator: user.id },
-  });
-  if (error) return json(409, { error: error.message });
-  return json(200, { ok: true, ...(data as Record<string, unknown>), resultado });
+  try {
+    if (b.acao === "previa" || b.acao === "confirmar") {
+      const c = await carregarColab(b.colaborador_id);
+      // Mesma resposta para inexistente e de outra empresa: não revela cadastro alheio.
+      if (!c || !(await autorizado(c.company_id))) return json(403, { error: "Sem permissão" });
+      if (!c.ativo || c.data_desligamento || c.deleted_at) return json(409, { error: "Colaborador não está ativo." });
+      const { resultado, resp } = await calcular(admin, c, b);
+      if (resp) return resp;
+      if (b.acao === "previa") return json(200, { resultado });
+      if (!b.comunicacao_formal) return json(400, { error: "Confirme que a comunicação formal foi entregue ao colaborador." });
+      if (diverge(b.esperado, resultado!)) return json(409, { divergente: true, error: "As datas oficiais mudaram desde a prévia. Revise e confirme de novo.", resultado });
+      const { avisos: _a, usou_escala: _u, ...gravar } = resultado!;
+      const { data, error } = await admin.rpc("dp_desligamento_registrar_aviso", { p: { ...gravar, colaborador_id: c.id, idempotency_key: b.idempotency_key, ator: user.id } });
+      if (error) return json(409, { error: error.message });
+      return json(200, { ok: true, ...(data as Record<string, unknown>), resultado });
+    }
+
+    const { data: proc } = await admin.from("dp_desligamento_processos").select("id, company_id, colaborador_id, status").eq("id", b.processo_id).maybeSingle();
+    if (!proc || !(await autorizado(proc.company_id))) return json(403, { error: "Sem permissão" });
+
+    if (b.acao === "cancelar") {
+      const { error } = await admin.rpc("dp_desligamento_cancelar", { p_processo: proc.id, p_ator: user.id, p_justificativa: b.justificativa });
+      if (error) return json(409, { error: error.message });
+      return json(200, { ok: true });
+    }
+
+    let extra: Record<string, unknown> = {};
+    if (b.acao === "alterar") {
+      const c = await carregarColab(proc.colaborador_id);
+      if (!c || !c.ativo || c.data_desligamento) return json(409, { error: "Colaborador não está ativo." });
+      const { resultado, resp } = await calcular(admin, c, b);
+      if (resp) return resp;
+      if (b.previa) return json(200, { resultado });
+      if (diverge(b.esperado, resultado!)) return json(409, { divergente: true, error: "As datas oficiais mudaram. Revise e confirme de novo.", resultado });
+      const { avisos: _a, usou_escala: _u, motivo: _m, ...gravar } = resultado!;
+      extra = gravar;
+    }
+    const { acao, processo_id, idempotency_key, ...resto } = b as Record<string, unknown> & { acao: string; processo_id: string; idempotency_key: string };
+    if (acao === "alterar") { delete resto.esperado; delete resto.previa; delete resto.motivo; }
+    const { data, error } = await admin.rpc("dp_desligamento_transicao", {
+      p: { ...resto, ...extra, acao, processo_id, idempotency_key, ator: user.id },
+    });
+    if (error) return json(409, { error: error.message });
+    return json(200, { ok: true, ...(data as Record<string, unknown>) });
+  } catch (_e) {
+    // Log sem dados pessoais.
+    console.error("dp-desligamento-aviso: falha interna", (b as { acao: string }).acao);
+    return json(500, { error: "Falha interna. Tente de novo." });
+  }
 });
