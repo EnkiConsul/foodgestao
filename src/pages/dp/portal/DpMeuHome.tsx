@@ -27,6 +27,7 @@ import { toProperName } from "@/lib/text/properName";
 import { ConfirmarContatosPortal } from "@/components/dp/contatos/ConfirmarContatosPortal";
 import { InstalarAppCard } from "@/components/dp/portal/InstalarAppCard";
 import { VerMenuCompleto } from "@/components/mobile/VerMenuCompleto";
+import { MeuDesligamentoCard } from "@/components/dp/portal/MeuDesligamentoCard";
 
 
 export default function DpMeuHome() {
@@ -131,6 +132,8 @@ export default function DpMeuHome() {
           </Button>
         </div>
       </header>
+
+      <MeuDesligamentoCard />
 
       {/* Escolha mensal de folgas liberada: destaque no topo. */}
       <CardEscolhaFolgaHome />

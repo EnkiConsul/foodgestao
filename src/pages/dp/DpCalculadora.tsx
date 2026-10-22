@@ -15,6 +15,9 @@ import { useJornadasCalculadoraGestor, useJornadasCalculadoraMinhas } from "@/ho
 import { unidadesDosColaboradores, colaboradoresDaUnidade, elegivelCompensacao, type RegraUnidadeComp, type ExcecaoComp } from "@/lib/dp/compensacao/filtroCalculadora";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
+import type { RascunhoDesligamento } from "@/components/dp/ColaboradorDesligamentoAvisoPanel";
+import type { RegistrarDesligamento } from "@/components/dp/calculadora/CalculadoraDesligamento";
 
 /** Calculadora de simulação (sem gravar nada). Gestor e colaborador usam a mesma tela. */
 export default function DpCalculadora({ perfil = "gestor" }: { perfil?: PerfilCalculadora }) {
@@ -33,7 +36,8 @@ function CalculadoraGestor() {
   const [colabId, setColabId] = useState<string | null>(null);
   const [unidade, setUnidade] = useState("todas");
   const [versao, setVersao] = useState(0);
-  const novaSimulacao = () => { setColabId(null); setUnidade("todas"); setVersao((v) => v + 1); };
+  const [aba, setAba] = useState("compensatoria");
+  const novaSimulacao = () => { setColabId(null); setUnidade("todas"); setAba("compensatoria"); setVersao((v) => v + 1); };
   const lista = useDpColaboradores();
   const { selectedCompanyId } = useCompanyContext();
   // Só quem tem banco de horas ou compensação de feriados (unidade + exceção individual).
@@ -53,9 +57,28 @@ function CalculadoraGestor() {
       };
     },
   });
-  const elegiveis = useMemo(() => (lista.data ?? []).filter((c) =>
-    regras.data && elegivelCompensacao(c.unidade_id ? regras.data.un.get(c.unidade_id) : undefined, regras.data.ex.get(c.id))),
-  [lista.data, regras.data]);
+  const [ficha, setFicha] = useState<RascunhoDesligamento | null>(null);
+  // Desligamento: todos os CLT ativos; as demais abas mantêm o filtro de compensação.
+  const elegiveis = useMemo(() => (lista.data ?? []).filter((c) => aba === "desligamento"
+    ? c.ativo && !c.data_desligamento && c.regime === "clt"
+    : regras.data && elegivelCompensacao(c.unidade_id ? regras.data.un.get(c.unidade_id) : undefined, regras.data.ex.get(c.id))),
+  [lista.data, regras.data, aba]);
+  const trocarAba = (a: string) => { setAba(a); setColabId(null); };
+  const procAberto = useQuery({
+    queryKey: ["dp_desligamento_processo", colabId],
+    enabled: !!colabId && aba === "desligamento",
+    queryFn: async () => {
+      const { data } = await supabase.from("dp_desligamento_processos").select("id")
+        .eq("colaborador_id", colabId!).in("status", ["aviso_em_curso", "suspenso", "aguardando_revisao"]).maybeSingle();
+      return !!data;
+    },
+  });
+  const colabSel = (lista.data ?? []).find((c) => c.id === colabId) ?? null;
+  const registrar: RegistrarDesligamento = {
+    rotulo: procAberto.data ? "Abrir desligamento" : "Registrar desligamento",
+    bloqueio: colabSel ? null : "Selecione um colaborador acima para registrar. Na simulação manual não há cadastro a abrir.",
+    abrir: (r) => setFicha(procAberto.data ? {} : r),
+  };
   const unidades = useMemo(() => unidadesDosColaboradores(elegiveis), [elegiveis]);
   const filtrados = useMemo(() => colaboradoresDaUnidade(elegiveis, unidade), [elegiveis, unidade]);
   const q = useJornadasCalculadoraGestor(colabId);
@@ -88,7 +111,7 @@ function CalculadoraGestor() {
           <Label htmlFor="calc-colab" className="text-xs">Colaborador (opcional)</Label>
           <Select value={colabId ?? ""} onValueChange={(v) => setColabId(v || null)} disabled={lista.isLoading || vazio}>
             <SelectTrigger id="calc-colab" aria-label="Selecionar colaborador">
-              <SelectValue placeholder={lista.isLoading ? "Carregando…" : lista.isError ? "Erro ao carregar colaboradores" : vazio ? "Nenhum colaborador com banco de horas ou compensação de feriados" : "Simulação manual (sem colaborador)"} />
+              <SelectValue placeholder={lista.isLoading ? "Carregando…" : lista.isError ? "Erro ao carregar colaboradores" : vazio ? (aba === "desligamento" ? "Nenhum colaborador CLT ativo" : "Nenhum colaborador com banco de horas ou compensação de feriados") : "Simulação manual (sem colaborador)"} />
             </SelectTrigger>
             <SelectContent>
               {filtrados.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
@@ -100,7 +123,15 @@ function CalculadoraGestor() {
     </Card>
   );
   const admissao = (lista.data ?? []).find((c) => c.id === colabId)?.data_admissao ?? null;
-  return <CalculadoraCompensacao key={versao} perfil="gestor" origem={origem} topo={topo} admissao={admissao} />;
+  return (
+    <>
+      <CalculadoraCompensacao key={versao} perfil="gestor" origem={origem} topo={topo} admissao={admissao} onAbaChange={trocarAba} registrar={registrar} />
+      {colabSel && ficha && (
+        <ColaboradorFormDialog open onOpenChange={(o) => { if (!o) setFicha(null); }} colaborador={colabSel}
+          abaInicial="desligamento" rascunhoDesligamento={Object.keys(ficha).length ? ficha : null} />
+      )}
+    </>
+  );
 }
 
 function CalculadoraColaborador() {

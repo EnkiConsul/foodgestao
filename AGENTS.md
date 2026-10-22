@@ -30,3 +30,4 @@
 <!-- LOVABLE:END -->
 
 - Catálogo financeiro: `private.catalogo_v4_sincronizar` só cria/vincula conta vazia (log em `category_template_chart_links_log`), nunca renomeia personalizado nem reclassifica lançamentos; DRE por código via `computeDreGerencial`.
+- Desligamento: datas só pelo motor compartilhado `supabase/functions/_shared/desligamento-motor.ts` (navegador reexporta); gravação só via Edge `dp-desligamento-aviso` → RPCs service_role; vínculo só é inativado pelo worker `dp_desligamento_processar` (cron) ou registro legado na data calculada — evita desligamento antecipado.

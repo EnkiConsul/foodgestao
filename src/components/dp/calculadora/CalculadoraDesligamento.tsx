@@ -60,8 +60,15 @@ function concentrarNoFinal(base: ResultadoDesligamento, saldoMin: number): strin
   return out.sort();
 }
 
-export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornadaInicial = null, unidadeId = null }: {
-  chave?: string; admissaoInicial?: string | null; jornadaInicial?: string[] | null; unidadeId?: string | null;
+/** Atalho opcional para a ficha: só leva decisões, nunca grava. */
+export type RegistrarDesligamento = {
+  rotulo: string;
+  bloqueio?: string | null;
+  abrir: (r: { data_comunicacao: string; modalidade: ModalidadeAviso; reducao: ReducaoArt488 | null; simulado: { ultimo: string | null; prazo: string } }) => void;
+};
+
+export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornadaInicial = null, unidadeId = null, registrar }: {
+  chave?: string; admissaoInicial?: string | null; jornadaInicial?: string[] | null; unidadeId?: string | null; registrar?: RegistrarDesligamento;
 } = {}) {
   const [admissao, setAdmissao] = useState("");
   const [comunicacao, setComunicacao] = useState(hojeLocal());
@@ -208,6 +215,15 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
           {saldoErro ? "Corrija o saldo do banco de horas para simular." : "Informe a data de admissão para simular."}</CardContent></Card>}
         {erro && <Card><CardContent className="py-6 text-sm text-destructive">{erro}</CardContent></Card>}
         {r && b && <Resultado r={r} b={b} onAlternar={alternar} />}
+        {registrar && (
+          <Card><CardContent className="space-y-2 py-4">
+            <Button className="w-full sm:w-auto" disabled={!b || !!registrar.bloqueio}
+              onClick={() => b && registrar.abrir({ data_comunicacao: comunicacao, modalidade, reducao: modalidade === "trabalhado" ? reducao : null, simulado: { ultimo: b.ultimoComparecimento, prazo: b.prazoQuitacao } })}>
+              {registrar.rotulo}
+            </Button>
+            <p className="text-xs text-muted-foreground">{registrar.bloqueio ?? "Abre a ficha na aba Desligamento com estes dados para conferência. Nada é gravado até você confirmar lá; folgas simuladas, saldo e jornada editada aqui não são levados."}</p>
+          </CardContent></Card>
+        )}
       </div>
 
       <p className="flex gap-2 text-xs text-muted-foreground lg:col-span-2">

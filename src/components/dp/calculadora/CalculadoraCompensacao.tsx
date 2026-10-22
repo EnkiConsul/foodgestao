@@ -13,7 +13,7 @@ import {
   parseHoras, formatarMinutos, simularCompensacao,
   type DiaCompensavel, type StatusSimulacao,
 } from "@/lib/dp/compensacao/motor";
-import { CalculadoraDesligamento } from "./CalculadoraDesligamento";
+import { CalculadoraDesligamento, type RegistrarDesligamento } from "./CalculadoraDesligamento";
 import { CalendarioSimulacao } from "./CalendarioSimulacao";
 import { cenariosCompensacao, type Cenario, type GrupoJornada } from "@/lib/dp/compensacao/cenarios";
 
@@ -67,7 +67,10 @@ export const ORIENTACAO_SALDO_COLABORADOR =
 
 const hhmm = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
 
-export function CalculadoraCompensacao({ perfil, origem, topo, admissao }: { perfil: PerfilCalculadora; origem?: OrigemJornadas; topo?: ReactNode; admissao?: string | null }) {
+export function CalculadoraCompensacao({ perfil, origem, topo, admissao, onAbaChange, registrar }: {
+  perfil: PerfilCalculadora; origem?: OrigemJornadas; topo?: ReactNode; admissao?: string | null;
+  onAbaChange?: (aba: string) => void; registrar?: RegistrarDesligamento;
+}) {
   // Desligamento só existe na árvore do gestor; o colaborador nunca monta o componente.
   const gestor = perfil === "gestor";
   // Jornada por dia da semana do cadastro, herdada pela aba Desligamento.
@@ -79,13 +82,13 @@ export function CalculadoraCompensacao({ perfil, origem, topo, admissao }: { per
   return (
     <div className="space-y-4">
       {topo}
-      <Tabs defaultValue="compensatoria" className="space-y-4">
+      <Tabs defaultValue="compensatoria" className="space-y-4" onValueChange={onAbaChange}>
         <TabsList className="w-full justify-start overflow-x-auto sm:w-auto">
           <TabsTrigger value="compensatoria">Folga Compensatória</TabsTrigger>
           {gestor && <TabsTrigger value="desligamento">Desligamento</TabsTrigger>}
         </TabsList>
         <TabsContent value="compensatoria" forceMount className="space-y-4 data-[state=inactive]:hidden"><HorasFolgas perfil={perfil} origem={origem} /></TabsContent>
-        {gestor && <TabsContent value="desligamento" forceMount className="data-[state=inactive]:hidden"><CalculadoraDesligamento chave={origem?.chave} admissaoInicial={admissao ?? null} jornadaInicial={jornadaDow} unidadeId={origem?.unidadeId ?? null} /></TabsContent>}
+        {gestor && <TabsContent value="desligamento" forceMount className="data-[state=inactive]:hidden"><CalculadoraDesligamento chave={origem?.chave} admissaoInicial={admissao ?? null} jornadaInicial={jornadaDow} unidadeId={origem?.unidadeId ?? null} registrar={registrar} /></TabsContent>}
       </Tabs>
     </div>
   );
