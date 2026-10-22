@@ -311,13 +311,23 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1"><Label htmlFor="desl-oc-data">A partir de</Label><Input id="desl-oc-data" type="date" value={ocData} onChange={(e) => setOcData(e.target.value)} /></div>
+            <div className="space-y-1"><Label htmlFor="desl-oc-data">{ocTipo === "novo_emprego" ? "Último dia trabalhado" : "A partir de"}</Label><Input id="desl-oc-data" type="date" value={ocData} onChange={(e) => setOcData(e.target.value)} /></div>
           </div>
+          {ocTipo === "novo_emprego" && p.modalidade === "trabalhado" && (
+            <label className="flex items-start gap-2 text-sm"><Checkbox checked={ocComprovado} onCheckedChange={(v) => setOcComprovado(v === true)} />
+              <span>O colaborador pediu por escrito a dispensa do restante do aviso e comprovou o novo emprego (Súmula 276 do TST). O vínculo termina no último dia trabalhado, sem pagar os dias restantes, e o prazo de 10 dias passa a contar dessa data.</span></label>
+          )}
+          {ocTipo === "novo_emprego" && p.modalidade !== "trabalhado" && (
+            <p className="text-xs text-muted-foreground">Em aviso indenizado ou misto o efeito do novo emprego depende de análise: fica pausado para revisão manual.</p>
+          )}
           <Label htmlFor="desl-oc-nota">Observação interna</Label>
           <Textarea id="desl-oc-nota" value={nota} onChange={(e) => setNota(e.target.value)} />
-          <p className="text-xs text-muted-foreground">A efetivação automática fica pausada. Os efeitos sobre datas e pagamento dependem de análise: depois, altere as condições ou retome o aviso.</p>
+          <p className="text-xs text-muted-foreground">{ocTipo === "novo_emprego" && ocComprovado && p.modalidade === "trabalhado"
+            ? "As novas datas são calculadas no servidor e publicadas ao colaborador."
+            : "A efetivação automática fica pausada. Nenhuma data é alterada: os efeitos dependem de análise e da sua decisão registrada."}</p>
           <div className="flex gap-2">
-            <Button size="sm" disabled={carregando} onClick={() => executar({ acao: "ocorrencia", processo_id: p.id, idempotency_key: chave, tipo: ocTipo, data: ocData, nota }, "Ocorrência registrada. Aviso pausado para revisão.")}>Registrar</Button>
+            <Button size="sm" disabled={carregando} onClick={() => executar({ acao: "ocorrencia", processo_id: p.id, idempotency_key: chave, tipo: ocTipo, data: ocData, nota, ...(ocTipo === "novo_emprego" && ocComprovado && p.modalidade === "trabalhado" ? { aplicar_termino: true } : {}) },
+              ocTipo === "novo_emprego" && ocComprovado && p.modalidade === "trabalhado" ? "Término antecipado registrado com as novas datas." : "Ocorrência registrada. Aviso pausado para revisão.")}>Registrar</Button>
             <Button size="sm" variant="ghost" onClick={fechar}>Voltar</Button>
           </div>
           {Msg}
