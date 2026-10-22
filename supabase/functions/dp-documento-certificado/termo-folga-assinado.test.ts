@@ -34,9 +34,14 @@ Deno.test("aceite aplicado no campo conserva cláusulas e original, com imagem n
   if (!original.every((v, i) => v === copia[i])) throw new Error("Original modificado");
 });
 Deno.test("sem imagem válida ou modelo conhecido não estampa aceite", async () => {
-  for (const bytes of [await minuta(), await (await PDFDocument.create()).save()]) {
+  const vazio = await PDFDocument.create();
+  vazio.addPage([595, 842]);
+  for (const caso of [
+    { bytes: await minuta(), imagem: null },
+    { bytes: await vazio.save(), imagem: assinatura },
+  ]) {
     let recusou = false;
-    try { await assinarCampoTermoFolga(bytes, { assinatura: null, aceitoEm: "2026-10-11T13:18:00Z" }); } catch { recusou = true; }
-    if (!recusou) throw new Error("Aceite sem assinatura foi permitido");
+    try { await assinarCampoTermoFolga(caso.bytes, { assinatura: caso.imagem, aceitoEm: "2026-10-11T13:18:00Z" }); } catch { recusou = true; }
+    if (!recusou) throw new Error("Aceite sem assinatura ou modelo conhecido foi permitido");
   }
 });
