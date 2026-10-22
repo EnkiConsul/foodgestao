@@ -227,16 +227,42 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
       <DatasDesligamento r={p} />
       <Detalhes r={p} />
       {pausado
-        ? <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>A efetivação automática está pausada até a revisão. Altere as condições ou retome o aviso.</AlertDescription></Alert>
+        ? <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>
+            A efetivação automática está pausada até a revisão.
+            {p.status === "suspenso"
+              ? " Afastamento ou impedimento: só retome depois que ele terminar, com a evidência registrada. As datas não são prorrogadas sozinhas — se o término mudou, cancele e registre de novo com orientação da contabilidade."
+              : p.revisao_motivo === "dispensa_cumprimento"
+                ? " Dispensa do restante do cumprimento pela empresa: o efeito sobre o término e o prazo depende de análise jurídica. Faça o término pelo registro manual com orientação da contabilidade."
+                : " Altere as condições (o sistema recalcula) ou retome o aviso com justificativa."}
+          </AlertDescription></Alert>
         : <Alert><AlertDescription>{AVISO_AUTO}</AlertDescription></Alert>}
 
       {!acao && (
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" onClick={() => { setCondState({ motivo: p.motivo, modalidade: p.modalidade === "indenizado" ? "indenizado" : "trabalhado", reducao: (p.reducao as "duas_horas" | "sete_dias") ?? "duas_horas", comunicacao: p.data_comunicacao }); setAcao("alterar"); }}>Alterar condições</Button>
+          {p.status !== "suspenso" && <Button size="sm" variant="outline" onClick={() => { setCondState({ motivo: p.motivo, modalidade: p.modalidade === "indenizado" ? "indenizado" : "trabalhado", reducao: (p.reducao as "duas_horas" | "sete_dias") ?? "duas_horas", comunicacao: p.data_comunicacao }); setAcao("alterar"); }}>Alterar condições</Button>}
           <Button size="sm" variant="outline" onClick={() => setAcao("reconsideracao")}>Reconsideração</Button>
           <Button size="sm" variant="outline" onClick={() => setAcao("ocorrencia")}>Registrar ocorrência</Button>
-          {pausado && <Button size="sm" disabled={carregando} onClick={() => executar({ acao: "retomar", processo_id: p.id, idempotency_key: chave }, "Aviso retomado.")}>Retomar aviso</Button>}
-          <Button size="sm" variant="ghost" onClick={() => setAcao("cancelar")}>Cancelar registro lançado por engano</Button>
+          {pausado && <Button size="sm" onClick={() => setAcao("retomar")}>Retomar aviso…</Button>}
+          {p.status === "aviso_em_curso" && <Button size="sm" variant="ghost" onClick={() => setAcao("cancelar")}>Cancelar registro lançado por engano</Button>}
+        </div>
+      )}
+
+      {acao === "retomar" && (
+        <div className="space-y-2 rounded-md border p-3">
+          <p className="text-sm">Retomar volta a contar para a efetivação automática em {br(p.data_efetiva)}. O sistema confere férias, atestados e licenças registrados; o restante depende da sua verificação.</p>
+          {p.status === "suspenso" && <div className="space-y-1"><Label htmlFor="desl-fim-imp">O afastamento/impedimento terminou em</Label>
+            <Input id="desl-fim-imp" type="date" value={fimImped} onChange={(e) => setFimImped(e.target.value)} /></div>}
+          <Label htmlFor="desl-ret-just">Justificativa e evidência (o que resolveu a pausa)</Label>
+          <Textarea id="desl-ret-just" value={nota} onChange={(e) => setNota(e.target.value)} />
+          <label className="flex items-start gap-2 text-sm"><Checkbox checked={retConf} onCheckedChange={(v) => setRetConf(v === true)} />
+            <span>Conferi que não há afastamento, estabilidade ou outro impedimento em curso e que as datas acima continuam válidas.</span></label>
+          <div className="flex gap-2">
+            <Button size="sm" disabled={carregando || !retConf || nota.trim().length < 20}
+              onClick={() => executar({ acao: "retomar", processo_id: p.id, idempotency_key: chave, justificativa: nota, confirmado: true, ...(p.status === "suspenso" ? { fim_impedimento: fimImped } : {}) }, "Aviso retomado.")}>Confirmar retomada</Button>
+            <Button size="sm" variant="ghost" onClick={() => { fechar(); setRetConf(false); }}>Voltar</Button>
+          </div>
+          <p className="text-xs text-muted-foreground">Mínimo de 20 caracteres. A retomada fica registrada no histórico com seu usuário.</p>
+          {Msg}
         </div>
       )}
 
