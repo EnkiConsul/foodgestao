@@ -11,8 +11,10 @@
  *   a empresa pode dispensar o cumprimento (liberalidade) com término na data
  *   acordada — descontar ou não o aviso é decisão registrada, sem prova de
  *   novo emprego (Súmula 276 só se aplica ao aviso dado pelo EMPREGADOR).
- * - acordo_mutuo (art. 484-A): aviso pela metade; trabalhado (redução
- *   opcional) ou indenizado.
+ * - acordo_mutuo (art. 484-A, I, "a"): a redução pela metade vale SÓ para o
+ *   aviso indenizado. Trabalhado: 30 dias cumpridos, sem redução do art. 488
+ *   (redação específica para dispensa pelo empregador); eventual projeção
+ *   proporcional depende de validação jurídica e não é calculada.
  * - dispensa_com_justa_causa, termino_contrato, abandono_emprego,
  *   aposentadoria, falecimento, outro: sem aviso prévio; a data informada é o
  *   término do vínculo e o prazo de quitação conta dela (art. 477 §6º).
