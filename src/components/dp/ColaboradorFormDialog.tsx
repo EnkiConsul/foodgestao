@@ -3389,9 +3389,12 @@ export function ColaboradorFormDialog({
                   rascunho={rascunhoDesligamento}
                 />
               )}
-              <div id="desligamento" className="scroll-mt-4">
-                <ColaboradorDesligamentoPanel colaborador={colaboradorAtual} />
-              </div>
+              {/* Bloco antigo só para quem já está desligado (ressalvas, recontratar, reintegrar). */}
+              {(!colaboradorAtual?.ativo || !!colaboradorAtual?.data_desligamento) && (
+                <div id="desligamento" className="scroll-mt-4">
+                  <ColaboradorDesligamentoPanel colaborador={colaboradorAtual} />
+                </div>
+              )}
             </TabsContent>
           )}
 

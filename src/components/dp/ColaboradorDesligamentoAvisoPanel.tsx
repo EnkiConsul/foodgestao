@@ -15,6 +15,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MOTIVO_DESLIGAMENTO_OPTIONS } from "@/lib/dp/desligamento";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { prepararUpload } from "@/lib/storage/uploadPolicy";
+import { sanitizeStorageFilename } from "@/lib/storage";
+import { DP_DOCUMENTOS_BUCKET } from "@/lib/documentoArquivo";
+import { registrarDocumento } from "@/lib/dp/documentos-oficial";
+import { Paperclip, X } from "lucide-react";
 
 /**
  * Desligamento na ficha: Registrar → Aviso em andamento → Desligado + pendências.
@@ -26,6 +32,7 @@ type Resultado = {
   projecao_indenizada: string | null; base_quitacao: string; prazo_10_dias: string; sugestao_pagamento: string;
   dias_aviso: number; dias_indenizados: number; avisos?: string[];
   sem_aviso?: boolean; aviso_dispensado?: boolean; descontar_aviso?: boolean | null;
+  termino_passado?: boolean; prazo_vencido?: boolean;
 };
 type Processo = Resultado & {
   id: string; status: string; motivo: string; revisao_motivo: string | null; comunicacao_confirmada_em: string | null;
@@ -81,6 +88,8 @@ export function DatasDesligamento({ r, gestor = true }: {
         <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><Wallet className="h-4 w-4" /> Prazo para pagamento da rescisão</p>
         <p className="text-2xl font-bold" data-testid="aviso-prazo">{br(r.prazo_10_dias)} <span className="text-sm font-normal">({semana(r.prazo_10_dias)})</span></p>
         <p className="text-xs text-muted-foreground">10º dia corrido contado de {br(r.base_quitacao)}.</p>
+        {gestor && r.prazo_10_dias < hojeIsoLocal() && (
+          <p className="text-xs font-medium text-destructive" data-testid="aviso-prazo-vencido">Este prazo já passou.</p>)}
         {gestor && r.sugestao_pagamento && r.sugestao_pagamento !== r.prazo_10_dias && (
           <p className="text-xs text-muted-foreground" data-testid="aviso-sugestao">Sugestão para a empresa: pagar até {br(r.sugestao_pagamento)} ({semana(r.sugestao_pagamento)}), último dia útil antes do prazo.</p>)}
       </CardContent></Card>
@@ -209,6 +218,8 @@ const AVISO_AUTO = "O desligamento é efetivado automaticamente logo depois do �
 
 export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascunho }: { colaboradorId: string; ativo: boolean; rascunho?: RascunhoDesligamento | null }) {
   const qc = useQueryClient();
+  const { selectedCompanyId } = useCompanyContext();
+  const [anexos, setAnexos] = useState<File[]>([]);
   const proc = useQuery({
     queryKey: ["dp_desligamento_processo", colaboradorId],
     queryFn: async () => {
@@ -269,6 +280,41 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
     if (r.corpo?.divergente) { setPrevia(r.corpo.resultado); setFormal(false); setMensagem({ texto: "As datas oficiais mudaram. Confira e confirme de novo.", erro: false }); }
     else setMensagem({ texto: r.corpo?.error ?? "Não foi possível concluir.", erro: true });
     return false;
+  };
+  /** Registra e, depois, guarda os anexos em Documentos (tipo Aviso Prévio). */
+  const confirmarRegistro = async () => {
+    setCarregando(true);
+    const r = await chamar({ acao: "confirmar", colaborador_id: colaboradorId, ...condBody(), comunicacao_formal: formal, idempotency_key: chave, esperado });
+    if (!r.ok) {
+      setCarregando(false);
+      if (r.corpo?.divergente) { setPrevia(r.corpo.resultado); setFormal(false); setMensagem({ texto: "As datas oficiais mudaram. Confira e confirme de novo.", erro: false }); }
+      else setMensagem({ texto: r.corpo?.error ?? "Não foi possível concluir.", erro: true });
+      return;
+    }
+    let falhas = 0;
+    for (const escolhido of anexos) {
+      try {
+        if (!selectedCompanyId) throw new Error("Empresa não selecionada");
+        const file = await prepararUpload(DP_DOCUMENTOS_BUCKET, escolhido);
+        const path = `${selectedCompanyId}/${colaboradorId}/${Date.now()}-${sanitizeStorageFilename(file.name)}`;
+        const up = await supabase.storage.from(DP_DOCUMENTOS_BUCKET).upload(path, file, { contentType: file.type, upsert: false });
+        if (up.error) throw up.error;
+        await registrarDocumento({
+          company_id: selectedCompanyId, colaborador_id: colaboradorId, tipo: "aviso_previo",
+          titulo: anexos.length > 1 ? file.name.replace(/\.[^.]+$/, "") : "Comprovante do desligamento",
+          descricao: "Anexado no registro do desligamento", file_path: path, file_name: file.name,
+          file_size: file.size, mime_type: file.type, referencia_data: cond.comunicacao,
+        });
+      } catch { falhas++; }
+    }
+    setCarregando(false);
+    const base = r.corpo?.efetivado ? "Desligamento registrado e efetivado." : "Desligamento registrado.";
+    if (falhas) toast.warning(`${base} ${falhas} anexo(s) não foram enviados: anexe pela aba Documentos.`);
+    else toast.success(anexos.length ? `${base} ${anexos.length} anexo(s) guardado(s) em Documentos.` : base);
+    setAnexos([]);
+    qc.invalidateQueries({ queryKey: ["dp_documentos"] });
+    qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
+    fechar(); recarregar();
   };
   const calcular = async (extra: Record<string, unknown>) => {
     setCarregando(true); limpar();
@@ -448,8 +494,8 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
   if (!ativo) return null;
 
   // ---------- Registrar
-  return secao("Registrar aviso prévio", null, <>
-    <p className="text-sm text-muted-foreground">Calcula com a jornada, a escala publicada e os feriados cadastrados. O colaborador continua ativo, com acesso ao portal, até o último dia do vínculo.</p>
+  return secao("Registrar desligamento", null, <>
+    <p className="text-sm text-muted-foreground">Informe o motivo e a data, mesmo que já tenham passado. O sistema mostra o último dia de trabalho e o prazo final do pagamento, com a jornada, a escala publicada e os feriados cadastrados.</p>
     {rascunho && <p className="text-xs text-muted-foreground">Dados trazidos da calculadora para conferência. Nada foi gravado.</p>}
     <Condicoes v={cond} set={setCond} comMotivo />
     <Button onClick={() => calcular({ acao: "previa", colaborador_id: colaboradorId })} disabled={carregando || !cond.comunicacao}>{carregando ? "Calculando…" : "Calcular datas oficiais"}</Button>
@@ -460,14 +506,30 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
         <Detalhes r={previa} />
         {Comparacao}
         {previa.avisos?.map((a) => <p key={a} className="text-xs text-muted-foreground">{a}</p>)}
-        <Alert><AlertDescription>{AVISO_AUTO}</AlertDescription></Alert>
+        {previa.termino_passado
+          ? <Alert><AlertDescription>O término já passou. Ao confirmar, o desligamento é efetivado na hora e as folgas e pedidos pendentes depois do término são cancelados.</AlertDescription></Alert>
+          : <Alert><AlertDescription>{AVISO_AUTO}</AlertDescription></Alert>}
+        <div className="space-y-2">
+          <Label htmlFor="desl-anexos">Anexos (opcional): carta do pedido, comunicação assinada, e-mail</Label>
+          <Input id="desl-anexos" type="file" multiple accept="application/pdf,image/*"
+            onChange={(e) => { const fs = Array.from(e.target.files ?? []); setAnexos((a) => [...a, ...fs]); e.currentTarget.value = ""; }} />
+          {anexos.length > 0 && (
+            <ul className="space-y-1">
+              {anexos.map((f, i) => (
+                <li key={`${f.name}-${i}`} className="flex items-center gap-2 text-sm">
+                  <Paperclip className="h-4 w-4 shrink-0" /><span className="truncate">{f.name}</span>
+                  <Button type="button" size="icon" variant="ghost" className="h-7 w-7" aria-label={`Remover ${f.name}`} onClick={() => setAnexos((a) => a.filter((_, j) => j !== i))}><X className="h-4 w-4" /></Button>
+                </li>))}
+            </ul>)}
+          <p className="text-xs text-muted-foreground">Os arquivos ficam na aba Documentos do colaborador, como Aviso Prévio.</p>
+        </div>
         <label className="flex items-start gap-2 text-sm">
           <Checkbox checked={formal} onCheckedChange={(v) => setFormal(v === true)} aria-label="Comunicação formal entregue" />
           A comunicação formal do aviso foi entregue ao colaborador em {br(previa.data_comunicacao)}. As datas passam a aparecer no portal dele.
         </label>
         {pedidoDispensadoPendente && <p className="text-xs text-destructive">Marque as duas declarações (pedido escrito e aceite da empresa) para confirmar.</p>}
         {semAvisoPendente && <p className="text-xs text-destructive">Confirme a validação da data de término para este motivo.</p>}
-        <Button onClick={() => executar({ acao: "confirmar", colaborador_id: colaboradorId, ...condBody(), comunicacao_formal: formal, idempotency_key: chave, esperado }, "Aviso prévio registrado. O colaborador continua ativo até o último dia.")} disabled={carregando || !formal || pedidoDispensadoPendente || semAvisoPendente}>Confirmar registro do aviso</Button>
+        <Button onClick={() => void confirmarRegistro()} disabled={carregando || !formal || pedidoDispensadoPendente || semAvisoPendente}>{carregando ? "Registrando…" : "Confirmar registro"}</Button>
       </div>
     )}
   </>);
