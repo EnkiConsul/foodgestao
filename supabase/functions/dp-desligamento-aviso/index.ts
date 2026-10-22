@@ -116,9 +116,10 @@ async function calcular(admin: any, c: Colab, b: Cond): Promise<{ resultado?: Re
   let semana: [number, number, number, number, number, number, number] = [0, 0, 0, 0, 0, 0, 0];
   let excecoes: { data: string; minutos: number }[] = [];
   if (!semAviso) {
-    const { data: cfgs } = await admin.from("dp_colaborador_config_trabalho")
+    const { data: cfgs, error: errCfg } = await admin.from("dp_colaborador_config_trabalho")
       .select("vigencia_inicio, vigencia_fim, turno_padrao_id, folga_fixa_dow, dias:dp_colaborador_config_dias(dow, trabalha, turno_id, entrada, saida, intervalo_minutos)")
       .eq("colaborador_id", c.id).eq("company_id", c.company_id);
+    if (errCfg) return revisao("Não foi possível ler a jornada cadastrada. Tente de novo; se persistir, registre manualmente.");
     type Cfg = { vigencia_inicio: string; vigencia_fim: string | null; turno_padrao_id: string | null; folga_fixa_dow: number | null; dias: DiaConfigMin[] | null };
     const cfg = configVigenteEm((cfgs ?? []) as Cfg[], b.data_comunicacao);
     if (precisaJornada && (!cfg || !(cfg.dias ?? []).length))
@@ -126,9 +127,10 @@ async function calcular(admin: any, c: Colab, b: Cond): Promise<{ resultado?: Re
     if (cfg && (cfg.dias ?? []).length) {
       const dias = (cfg.dias ?? []).map((d) => (cfg.folga_fixa_dow === d.dow ? { ...d, trabalha: false } : d));
       const ids = [...new Set([cfg.turno_padrao_id, ...dias.map((d) => d.turno_id)].filter(Boolean))] as string[];
-      const { data: turnos } = ids.length
+      const { data: turnos, error: errTurnos } = ids.length
         ? await admin.from("dp_turnos").select("id, entrada, saida, intervalo_minutos").eq("company_id", c.company_id).in("id", ids)
-        : { data: [] };
+        : { data: [], error: null };
+      if (errTurnos) return revisao("Não foi possível ler os turnos cadastrados. Tente de novo; se persistir, registre manualmente.");
       const j = jornadaSemanalDaConfig(dias, cfg.turno_padrao_id, (turnos ?? []) as TurnoMin[]);
       if (precisaJornada && j.incompletos.length)
         return revisao("Há dia de trabalho sem horário na jornada cadastrada. Corrija antes de registrar.");
@@ -136,10 +138,11 @@ async function calcular(admin: any, c: Colab, b: Cond): Promise<{ resultado?: Re
     }
 
     // Escala publicada no período: exceções reais (ex.: domingo trabalhado).
-    const { data: itens } = await admin.from("dp_escala_itens")
+    const { data: itens, error: errEscala } = await admin.from("dp_escala_itens")
       .select("data, tipo, carga_prevista_horas, escala:dp_escalas!inner(status)")
       .eq("colaborador_id", c.id).eq("company_id", c.company_id).eq("escala.status", "publicada")
       .gt("data", b.data_comunicacao).lte("data", somar(b.data_comunicacao, 90));
+    if (errEscala) return revisao("Não foi possível ler a escala publicada. Tente de novo; se persistir, registre manualmente.");
     let semCarga = false;
     for (const it of (itens ?? []) as { data: string; tipo: string; carga_prevista_horas: number | null }[]) {
       if (it.tipo === "trabalho") {
@@ -152,18 +155,23 @@ async function calcular(admin: any, c: Colab, b: Cond): Promise<{ resultado?: Re
 
   const feriados = await feriadosDaUnidade(admin, c, Number(b.data_comunicacao.slice(0, 4)));
 
-  // Folgas compensatórias REAIS já aprovadas (agendadas) dentro do período do
-  // aviso entram no cálculo. O saldo não é persistido no sistema, então cada
-  // folga aprovada é aceita pelo seu próprio valor — o subsistema de folgas é
-  // quem autorizou; nada é lançado nem descontado aqui.
-  let folgasAprovadas: string[] = [];
+  // Folgas AGENDADAS dentro do período entram como DIA SEM TRABALHO (exceção
+  // de jornada zero) — nunca como abatimento de banco de horas: o cadastro
+  // não confirma origem bancária e nenhum saldo é inventado ou descontado.
+  // Conflito com a escala publicada (trabalho no mesmo dia) vira revisão.
+  let folgasConsideradas: string[] = [];
   if (!semAviso && b.modalidade === "trabalhado") {
-    const { data: fls } = await admin.from("dp_folgas")
-      .select("data")
+    const { data: fls, error: errFolgas } = await admin.from("dp_folgas")
+      .select("data, tipo, origem, direito_origem")
       .eq("colaborador_id", c.id).eq("company_id", c.company_id)
-      .eq("status", "agendada").in("tipo", ["normal", "extra", "abono"])
+      .eq("status", "agendada")
       .gt("data", b.data_comunicacao).lte("data", somar(b.data_comunicacao, 95));
-    folgasAprovadas = [...new Set(((fls ?? []) as { data: string }[]).map((f) => String(f.data).slice(0, 10)))].sort();
+    if (errFolgas) return revisao("Não foi possível ler as folgas agendadas. Tente de novo; se persistir, registre manualmente.");
+    const mescla = mesclarFolgasAgendadas(excecoes, (fls ?? []) as FolgaAgendada[]);
+    if (mescla.conflitos.length)
+      return revisao(`Há folga agendada em dia que a escala publicada marca como trabalho (${mescla.conflitos.join(", ")}). Resolva o conflito na agenda antes de registrar.`);
+    excecoes = mescla.excecoes;
+    folgasConsideradas = mescla.consideradas;
   }
 
   const r = simularDesligamento({
@@ -172,17 +180,16 @@ async function calcular(admin: any, c: Colab, b: Cond): Promise<{ resultado?: Re
     dataTerminoAcordada: pedidoDispensado ? b.data_termino_acordada ?? null : null,
     descontarAviso: pedidoDispensado ? b.descontar_aviso === true : undefined,
     jornadaSemanal: semana, excecoesJornada: excecoes, feriados,
-    folgasCompensatorias: folgasAprovadas, saldoBancoMinutos: folgasAprovadas.length * 1440,
+    // Saldo/folgas de banco só existem na simulação da calculadora; aqui nada é descontado.
+    folgasCompensatorias: [], saldoBancoMinutos: 0,
   });
   if ("erro" in r) return { resp: json(400, { error: r.erro }) };
   if (!semAviso && b.modalidade === "trabalhado" && !r.ultimoComparecimento)
     return revisao("Não há jornadas previstas no período do aviso. Revise a jornada antes de registrar.");
   const efetiva = r.dataEfetiva;
   const avisos = [...r.avisos];
-  if (r.folgasAceitas.length)
-    avisos.push(`${r.folgasAceitas.length} folga(s) compensatória(s) já aprovada(s) foram consideradas no último dia de trabalho.`);
-  if (r.folgasRejeitadas.length)
-    avisos.push(`${r.folgasRejeitadas.length} folga(s) aprovada(s) caíram fora do período de comparecimento e não mudaram as datas.`);
+  if (folgasConsideradas.length)
+    avisos.push(`${folgasConsideradas.length} folga(s) agendada(s) foram consideradas como dia sem trabalho. A origem em banco de horas não é confirmada pelo cadastro: nada foi descontado do banco.`);
   const resultado = {
     motivo: b.motivo,
     modalidade: b.modalidade === "trabalhado" && r.diasProjetadosIndenizados > 0 ? "misto" : b.modalidade,
