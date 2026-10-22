@@ -66,7 +66,7 @@ export interface ColaboradorPanorama {
   ativo?: boolean;
   data_admissao?: string | null;
   data_desligamento?: string | null;
-  /** Pré-admissão ativada na rotina (freelancer provisório aguardando registro). */
+  /** Pré-admissão ativada na rotina (freelancer provisório aguardando admissão). */
   aguardando_registro?: boolean;
   /** Datas em que cedeu a folga fixa numa troca e trabalha (dp_dia_trabalho_excepcional). */
   trabalho_excepcional?: string[];
@@ -198,7 +198,7 @@ export interface PessoaPanorama {
   socio: boolean;
   /** Sócio vinculado a uma unidade e com jornada: conta como parte do quadro. */
   socio_integrado?: boolean;
-  /** Pré-admissão ativada na rotina: freelancer provisório aguardando registro. */
+  /** Pré-admissão ativada na rotina: freelancer provisório aguardando admissão. */
   aguardando_registro?: boolean;
   /** Origem do horário: jornada habitual, escala, convocação, avulso ou registro manual. */
   origem: "jornada" | "escala" | "convocacao" | "avulso" | "registro_manual";

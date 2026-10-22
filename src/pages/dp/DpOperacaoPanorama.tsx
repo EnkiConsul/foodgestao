@@ -744,9 +744,9 @@ function DetalheDiaOperacao({
                               {p.aguardando_registro && (
                                 <span
                                   className="shrink-0 rounded-full border border-amber-500/50 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-500"
-                                  title="Pré-admissão ativa na rotina como freelancer provisório, aguardando o registro oficial."
+                                  title="Pré-admissão ativa na rotina como freelancer provisório, aguardando a admissão oficial."
                                 >
-                                  Aguardando registro
+                                  Aguardando admissão
                                 </span>
                               )}
                               <span className={cn(

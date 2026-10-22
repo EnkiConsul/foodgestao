@@ -21062,6 +21062,10 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_preadmissao_encerrar_rotina: {
+        Args: { _ator: string; _preadmissao_id: string }
+        Returns: Json
+      }
       dp_preadmissao_enviar: {
         Args: {
           p_estados: string[]

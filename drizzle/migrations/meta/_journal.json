@@ -897,6 +897,13 @@
       "when": 1792710779927,
       "tag": "0127_preadmissao_efetivar_sexo_normaliza",
       "breakpoints": true
+    },
+    {
+      "idx": 128,
+      "version": "7",
+      "when": 1792713233252,
+      "tag": "0128_preadmissao_encerrar_rotina",
+      "breakpoints": true
     }
   ]
 }

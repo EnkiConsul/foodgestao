@@ -250,6 +250,9 @@ Deno.serve(async (req) => {
       await admin.from("dp_preadmissao_convites").update({ revoked_at: new Date().toISOString() })
         .eq("preadmissao_id", pa.id).is("revoked_at", null);
       await admin.from("dp_preadmissoes").update({ status: "cancelado" }).eq("id", pa.id);
+      // Desistência com rotina ativa: encerra o vínculo provisório preservando
+      // todo o histórico operacional desde o primeiro dia na loja.
+      await admin.rpc("dp_preadmissao_encerrar_rotina", { _preadmissao_id: pa.id, _ator: caller.id });
       await registrarEvento(admin, pa.id, pa.company_id as string, "cancelada", {}, caller.id);
       return jsonResponse(req, 200, { success: true, status: "cancelado" });
     }

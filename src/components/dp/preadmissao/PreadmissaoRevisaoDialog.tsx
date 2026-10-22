@@ -1409,7 +1409,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                   <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 space-y-1">
                     <p className="text-sm font-semibold flex items-center gap-2">
                       <Store className="h-4 w-4 text-amber-600" aria-hidden="true" />
-                      Na rotina da loja · aguardando registro há {diasAguardandoRegistro(rotinaInfo.iniciou_em)}{" "}
+                      Na rotina da loja · aguardando admissão há {diasAguardandoRegistro(rotinaInfo.iniciou_em)}{" "}
                       {diasAguardandoRegistro(rotinaInfo.iniciou_em) === 1 ? "dia" : "dias"}
                     </p>
                     <p className="text-xs text-muted-foreground">

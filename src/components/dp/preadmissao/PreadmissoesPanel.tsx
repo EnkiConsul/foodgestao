@@ -356,9 +356,9 @@ export function PreadmissoesPanel({
                                 <Badge
                                   variant="outline"
                                   className="ml-1 whitespace-normal border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-500"
-                                  title="Já atua na rotina da loja com vínculo provisório de freelancer, aguardando o registro oficial."
+                                  title="Já atua na rotina da loja com vínculo provisório de freelancer, aguardando a admissão oficial."
                                 >
-                                  Na rotina · aguardando registro há {dias} {dias === 1 ? "dia" : "dias"}
+                                  Na rotina · aguardando admissão há {dias} {dias === 1 ? "dia" : "dias"}
                                 </Badge>
                               );
                             })()}
