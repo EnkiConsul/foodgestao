@@ -36,7 +36,8 @@ function CalculadoraGestor() {
   const [colabId, setColabId] = useState<string | null>(null);
   const [unidade, setUnidade] = useState("todas");
   const [versao, setVersao] = useState(0);
-  const novaSimulacao = () => { setColabId(null); setUnidade("todas"); setVersao((v) => v + 1); };
+  const [aba, setAba] = useState("compensatoria");
+  const novaSimulacao = () => { setColabId(null); setUnidade("todas"); setAba("compensatoria"); setVersao((v) => v + 1); };
   const lista = useDpColaboradores();
   const { selectedCompanyId } = useCompanyContext();
   // Só quem tem banco de horas ou compensação de feriados (unidade + exceção individual).
@@ -56,7 +57,6 @@ function CalculadoraGestor() {
       };
     },
   });
-  const [aba, setAba] = useState("compensatoria");
   const [ficha, setFicha] = useState<RascunhoDesligamento | null>(null);
   // Desligamento: todos os CLT ativos; as demais abas mantêm o filtro de compensação.
   const elegiveis = useMemo(() => (lista.data ?? []).filter((c) => aba === "desligamento"
