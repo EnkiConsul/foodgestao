@@ -18,6 +18,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
 import { requireUser, serviceClient } from "../_shared/authz.ts";
 import { simularDesligamento, MOTIVOS_SEM_AVISO, type MotivoDesligamentoCalc } from "../_shared/desligamento-motor.ts";
+import { mesclarFolgasAgendadas, type FolgaAgendada } from "../_shared/desligamento-folgas.ts";
 import { validarTerminoNovoEmprego } from "./termino.ts";
 import { prazoLegalRescisao, prazoPagamentoRescisao } from "../_shared/desligamento-datas.ts";
 import { jornadaSemanalDaConfig, configVigenteEm, type DiaConfigMin, type TurnoMin } from "../_shared/desligamento-jornada.ts";
