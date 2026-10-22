@@ -390,7 +390,7 @@ export function simularDesligamento(p: ParametrosDesligamento): ResultadoOuErro 
     descontarAviso: null,
     anosCompletos: anos,
     duracaoLegalDias: duracao,
-    diasProporcionais: Math.max(0, proporcional - 30),
+    diasProporcionais: Math.max(0, duracao - 30),
     inicioAviso: inicio,
     fimPeriodoCumprido: fimCumprido,
     terminoProjetado,
