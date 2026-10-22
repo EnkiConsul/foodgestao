@@ -274,6 +274,20 @@ function paginaAnexo(
   }
 }
 
+/** Remove a proteção padrão (senha de abertura vazia) de PDFs de bancos. */
+async function descriptografarPdf(bytes: Uint8Array): Promise<Uint8Array | null> {
+  try {
+    const { PDFDocument: PDFCantoo } = await import("npm:@cantoo/pdf-lib@2.3.2");
+    const doc = await PDFCantoo.load(bytes, { password: "" } as never);
+    const saida = await doc.save();
+    const teste = await PDFDocument.load(saida, { ignoreEncryption: true });
+    return teste.isEncrypted ? null : saida;
+  } catch (e) {
+    console.warn("descriptografarPdf falhou", (e as Error)?.message);
+    return null;
+  }
+}
+
 /** Insere um arquivo (PDF ou imagem) como páginas do certificado. */
 async function anexarArquivo(
   pdf: PDFDocument,
