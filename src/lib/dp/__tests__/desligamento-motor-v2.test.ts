@@ -68,11 +68,21 @@ describe("acordo mútuo (art. 484-A)", () => {
     expect(r.prazoQuitacao).toBe("2026-10-11");
   });
 
-  it("trabalhado: cumpre a metade com redução opcional", () => {
-    const r = ok(simularDesligamento({ ...BASE, dataAdmissao: "2021-01-10", motivo: "acordo_mutuo", modalidade: "trabalhado", reducao: "sete_dias" }));
-    expect(r.fimPeriodoCumprido).toBe("2026-10-24"); // 23 dias a partir de 01/10
+  it("trabalhado: NUNCA é a metade do indenizado — cumpre 30 dias, sem redução automática", () => {
+    // 5 anos: indenizado seria 23 (metade de 45); trabalhado é 30 cheios.
+    const r = ok(simularDesligamento({ ...BASE, dataAdmissao: "2021-01-10", motivo: "acordo_mutuo", modalidade: "trabalhado" }));
+    expect(r.duracaoLegalDias).toBe(30);
+    expect(r.fimPeriodoCumprido).toBe("2026-10-31");
     expect(r.diasProjetadosIndenizados).toBe(0);
-    expect(r.periodoReducao).toEqual({ inicio: "2026-10-18", fim: "2026-10-24" });
+    expect(r.periodoReducao).toBeNull();
+    expect(r.dataEfetiva).toBe("2026-10-31");
+    expect(r.prazoQuitacao).toBe("2026-11-10");
+    expect(r.avisos.join(" ")).toMatch(/metade do art\. 484-A vale só para o aviso indenizado/);
+  });
+
+  it("trabalhado: redução do art. 488 é recusada (redação específica para dispensa pelo empregador)", () => {
+    const r = simularDesligamento({ ...BASE, motivo: "acordo_mutuo", modalidade: "trabalhado", reducao: "sete_dias" });
+    expect("erro" in r && r.erro).toMatch(/não se aplica automaticamente ao acordo mútuo/);
   });
 });
 
