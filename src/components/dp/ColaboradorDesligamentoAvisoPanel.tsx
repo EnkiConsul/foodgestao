@@ -100,10 +100,12 @@ function Detalhes({ r }: { r: Resultado }) {
 
 /** Motivos sem aviso prévio: a data informada é o término do vínculo. */
 const SEM_AVISO = new Set(["dispensa_com_justa_causa", "termino_contrato", "abandono_emprego", "aposentadoria", "falecimento", "outro"]);
+/** Sem aviso e sem regra automática: exigem confirmação informada do responsável. */
+const SEM_AVISO_ASSISTIDO = new Set(["abandono_emprego", "aposentadoria", "outro"]);
 
 export type CondicoesValor = {
   motivo: string; modalidade: "trabalhado" | "indenizado"; reducao: "duas_horas" | "sete_dias"; comunicacao: string;
-  terminoAcordado: string; descontar: boolean; pedidoEscrito: boolean; aceiteEmpresa: boolean;
+  terminoAcordado: string; descontar: boolean; pedidoEscrito: boolean; aceiteEmpresa: boolean; confirmacaoSemAviso: boolean;
 };
 
 /** Formulário de condições (registrar e alterar compartilham). */
@@ -138,7 +140,7 @@ function Condicoes({ v, set, comMotivo }: {
           </RadioGroup>
         </div>
       )}
-      {!semAviso && v.modalidade === "trabalhado" && !pedido && (
+      {!semAviso && v.modalidade === "trabalhado" && v.motivo === "dispensa_sem_justa_causa" && (
         <div className="space-y-1">
           <Label>Redução escolhida pelo colaborador</Label>
           <RadioGroup value={v.reducao} onValueChange={(m) => set({ reducao: m as "duas_horas" | "sete_dias" })} className="flex flex-wrap gap-4">
@@ -149,6 +151,11 @@ function Condicoes({ v, set, comMotivo }: {
       )}
       {pedido && v.modalidade === "trabalhado" && (
         <p className="text-xs text-muted-foreground sm:col-span-2">No pedido de demissão não há redução de 2 horas nem de 7 dias (o art. 488 só vale para aviso dado pela empresa).</p>
+      )}
+      {v.motivo === "acordo_mutuo" && (
+        <p className="text-xs text-muted-foreground sm:col-span-2">{v.modalidade === "indenizado"
+          ? "Acordo mútuo com aviso indenizado: a lei reduz o aviso pela metade (art. 484-A, I, “a”)."
+          : "Acordo mútuo com aviso trabalhado: 30 dias cumpridos, sem redução automática. A metade do art. 484-A vale só para o aviso indenizado; se as partes combinaram algo diferente, valide com o jurídico."}</p>
       )}
       {pedidoDispensado && (
         <div className="space-y-3 rounded-md border p-3 sm:col-span-2">
