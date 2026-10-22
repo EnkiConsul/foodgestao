@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
     ultimo_comparecimento: r.ultimoComparecimento, dispensado_desde: r.dispensadoDeComparecerDesde,
     data_efetiva: efetiva, projecao_indenizada: r.terminoProjetado, base_quitacao: r.baseQuitacao,
     prazo_10_dias: r.prazoQuitacao, sugestao_pagamento: r.sugestaoPagamentoDiaUtilAnterior,
-    dias_aviso: r.duracaoLegalDias, dias_indenizados: r.modalidade === undefined ? 0 : r.diasProjetadosIndenizados,
+    dias_aviso: r.duracaoLegalDias, dias_indenizados: r.diasProjetadosIndenizados,
     regra_versao: REGRA_VERSAO, avisos: r.avisos,
   };
   if (b.modalidade === "trabalhado" && !r.ultimoComparecimento)
