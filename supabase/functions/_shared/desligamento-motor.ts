@@ -211,6 +211,8 @@ export function simularDesligamento(p: ParametrosDesligamento): ResultadoOuErro 
     return { erro: "Jornada semanal inválida." };
   if (motivo === "pedido_demissao" && p.reducao)
     return { erro: "A redução do art. 488 (2 horas ou 7 dias) não se aplica ao pedido de demissão." };
+  if (motivo === "acordo_mutuo" && p.reducao)
+    return { erro: "A redução do art. 488 tem redação específica para a dispensa pelo empregador e não se aplica automaticamente ao acordo mútuo. Se as partes combinaram redução, registre com validação jurídica." };
   if (motivo !== "pedido_demissao" && p.modalidade === "trabalhado" && !p.reducao && !MOTIVOS_SEM_AVISO.has(motivo))
     return { erro: "Informe a redução do art. 488: duas horas diárias ou sete dias corridos." };
   const saldoInicial = Math.max(0, Math.round(p.saldoBancoMinutos ?? 0));
