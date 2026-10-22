@@ -876,6 +876,13 @@
       "when": 1792710519739,
       "tag": "0124_preadmissao_rotina_regime_cast",
       "breakpoints": true
+    },
+    {
+      "idx": 125,
+      "version": "7",
+      "when": 1792710630578,
+      "tag": "0125_preadmissao_efetivar_domingos_folga",
+      "breakpoints": true
     }
   ]
 }
