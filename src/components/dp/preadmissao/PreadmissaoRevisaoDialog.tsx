@@ -18,7 +18,7 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  AlertTriangle, CheckCircle2, Clock, Download, Eye, FileUp, Loader2, Plus, Printer, Trash2, XCircle,
+  AlertTriangle, CheckCircle2, Clock, Download, Eye, FileUp, Loader2, Plus, Printer, Store, Trash2, XCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -64,6 +64,7 @@ import { CargoSelectItems, CargoSelectAviso } from "@/components/dp/cargos/Cargo
 import { useDpSetores } from "@/hooks/useDpSetores";
 import {
   PREADMISSAO_STATUS_LABEL, abrirDocumentoPreadmissao, anexarFichaOficial,
+  diasAguardandoRegistro, rotinaDaPreadmissao,
   useDpPreadmissao, useDpPreadmissaoGestor, type PreadmissaoStatus,
 } from "@/hooks/dp/useDpPreadmissoes";
 
