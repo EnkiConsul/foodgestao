@@ -32,7 +32,8 @@ type Processo = Resultado & {
 };
 export type RascunhoDesligamento = {
   data_comunicacao?: string; modalidade?: "trabalhado" | "indenizado"; reducao?: "duas_horas" | "sete_dias";
-  simulado?: { ultimo: string | null; prazo: string };
+  /** Referência ilustrativa da simulação (com as folgas hipotéticas escolhidas); nunca vira aprovação. */
+  simulado?: { ultimo: string | null; prazo: string; comFolgas?: boolean };
 };
 
 const br = (iso: string | null | undefined) => (iso ? iso.split("-").reverse().join("/") : "—");

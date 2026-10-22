@@ -217,7 +217,7 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
         {r && b && <Resultado r={r} b={b} onAlternar={alternar} />}
         {registrar && (
           <Card><CardContent className="space-y-2 py-4">
-            <Button className="w-full sm:w-auto" disabled={!b || !!registrar.bloqueio}
+            <Button className="w-full sm:w-auto" disabled={!r || !!registrar.bloqueio}
               onClick={() => r && registrar.abrir({ data_comunicacao: comunicacao, modalidade, reducao: modalidade === "trabalhado" ? reducao : null, simulado: { ultimo: r.ultimoComparecimento, prazo: r.prazoQuitacao, comFolgas: r.folgasAceitas.length > 0 } })}>
               {registrar.rotulo}
             </Button>
