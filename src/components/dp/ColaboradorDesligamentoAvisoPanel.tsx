@@ -161,10 +161,13 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
   const [formal, setFormal] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [chave, setChave] = useState(novaChave);
-  const [acao, setAcao] = useState<null | "alterar" | "reconsideracao" | "ocorrencia" | "cancelar">(null);
+  const [acao, setAcao] = useState<null | "alterar" | "reconsideracao" | "ocorrencia" | "cancelar" | "retomar">(null);
   const [nota, setNota] = useState("");
   const [ocTipo, setOcTipo] = useState("dispensa_cumprimento");
   const [ocData, setOcData] = useState(hojeIsoLocal());
+  const [ocComprovado, setOcComprovado] = useState(false);
+  const [fimImped, setFimImped] = useState(hojeIsoLocal());
+  const [retConf, setRetConf] = useState(false);
 
   const limpar = () => { setPrevia(null); setMensagem(null); setFormal(false); };
   const setCond = (p: Partial<typeof cond>) => { setCondState((c) => ({ ...c, ...p })); limpar(); };
@@ -193,6 +196,7 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
   const Comparacao = previa && rascunho?.simulado && (rascunho.simulado.ultimo !== previa.ultimo_comparecimento || rascunho.simulado.prazo !== previa.prazo_10_dias) && (
     <Alert><AlertTriangle className="h-4 w-4" /><AlertDescription>
       As datas oficiais (jornada, escala e feriados cadastrados) diferem da simulação: na calculadora o último dia era {br(rascunho.simulado.ultimo)} e o prazo {br(rascunho.simulado.prazo)}. Valem as datas acima.
+      {rascunho.simulado.comFolgas && " A simulação usava folgas compensatórias hipotéticas: elas não foram aprovadas nem lançadas. Para usá-las, lance as folgas na agenda e recalcule."}
     </AlertDescription></Alert>
   );
 
