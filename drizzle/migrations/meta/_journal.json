@@ -827,6 +827,13 @@
       "when": 1792687111021,
       "tag": "0117_desligamento_f4_f5_f6_portal",
       "breakpoints": true
+    },
+    {
+      "idx": 118,
+      "version": "7",
+      "when": 1792688090667,
+      "tag": "0118_desligamento_correcoes_pre_teste",
+      "breakpoints": true
     }
   ]
 }

@@ -19719,6 +19719,10 @@ export type Database = {
         Args: { p_colaborador_id: string; p_dependente: Json }
         Returns: string
       }
+      dp_desligamento_alertas_processo: {
+        Args: { p_hoje?: string; p_processo: string }
+        Returns: number
+      }
       dp_desligamento_cancelar: {
         Args: { p_ator: string; p_justificativa: string; p_processo: string }
         Returns: undefined
