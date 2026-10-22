@@ -107,8 +107,8 @@ describe("caso B: dispensa com redução de 7 dias + folga compensatória aprova
     expect(sem.periodoReducao).toEqual({ inicio: "2026-10-25", fim: "2026-10-31" });
     expect(sem.ultimoComparecimento).toBe("2026-10-24");
 
-    const com = ok(simularDesligamento({ ...DISPENSA, saldoBancoMinutos: 480, folgasCompensatorias: ["2026-10-23"] }));
-    expect(com.folgasAceitas).toEqual(["2026-10-23"]);
+    const com = ok(simularDesligamento({ ...DISPENSA, saldoBancoMinutos: 960, folgasCompensatorias: ["2026-10-23", "2026-10-24"] }));
+    expect(com.folgasAceitas).toEqual(["2026-10-23", "2026-10-24"]);
     expect(com.ultimoComparecimento).toBe("2026-10-22"); // última presença antes dos 7 dias
     expect(com.dataEfetiva).toBe("2026-10-31"); // término NÃO antecipa
     expect(com.prazoQuitacao).toBe("2026-11-10");
