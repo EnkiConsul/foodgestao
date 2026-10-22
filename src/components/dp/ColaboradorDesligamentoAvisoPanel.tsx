@@ -318,7 +318,7 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
 
       {!acao && (
         <div className="flex flex-wrap gap-2">
-          {p.status !== "suspenso" && <Button size="sm" variant="outline" onClick={() => { setCondState({ motivo: p.motivo, modalidade: p.modalidade === "indenizado" ? "indenizado" : "trabalhado", reducao: (p.reducao as "duas_horas" | "sete_dias") ?? "duas_horas", comunicacao: p.data_comunicacao, terminoAcordado: "", descontar: p.descontar_aviso === true, pedidoEscrito: false, aceiteEmpresa: false }); setAcao("alterar"); }}>Alterar condições</Button>}
+          {p.status !== "suspenso" && <Button size="sm" variant="outline" onClick={() => { setCondState({ motivo: p.motivo, modalidade: p.modalidade === "indenizado" ? "indenizado" : "trabalhado", reducao: (p.reducao as "duas_horas" | "sete_dias") ?? "duas_horas", comunicacao: p.data_comunicacao, terminoAcordado: "", descontar: p.descontar_aviso === true, pedidoEscrito: false, aceiteEmpresa: false, confirmacaoSemAviso: false }); setAcao("alterar"); }}>Alterar condições</Button>}
           <Button size="sm" variant="outline" onClick={() => setAcao("reconsideracao")}>Reconsideração</Button>
           <Button size="sm" variant="outline" onClick={() => setAcao("ocorrencia")}>Registrar ocorrência</Button>
           {pausado && <Button size="sm" onClick={() => setAcao("retomar")}>Retomar aviso…</Button>}
@@ -456,7 +456,8 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
           A comunicação formal do aviso foi entregue ao colaborador em {br(previa.data_comunicacao)}. As datas passam a aparecer no portal dele.
         </label>
         {pedidoDispensadoPendente && <p className="text-xs text-destructive">Marque as duas declarações (pedido escrito e aceite da empresa) para confirmar.</p>}
-        <Button onClick={() => executar({ acao: "confirmar", colaborador_id: colaboradorId, ...condBody(), comunicacao_formal: formal, idempotency_key: chave, esperado }, "Aviso prévio registrado. O colaborador continua ativo até o último dia.")} disabled={carregando || !formal || pedidoDispensadoPendente}>Confirmar registro do aviso</Button>
+        {semAvisoPendente && <p className="text-xs text-destructive">Confirme a validação da data de término para este motivo.</p>}
+        <Button onClick={() => executar({ acao: "confirmar", colaborador_id: colaboradorId, ...condBody(), comunicacao_formal: formal, idempotency_key: chave, esperado }, "Aviso prévio registrado. O colaborador continua ativo até o último dia.")} disabled={carregando || !formal || pedidoDispensadoPendente || semAvisoPendente}>Confirmar registro do aviso</Button>
       </div>
     )}
   </>);
