@@ -277,7 +277,7 @@ function paginaAnexo(
 /** Remove a proteção padrão (senha de abertura vazia) de PDFs de bancos. */
 async function descriptografarPdf(bytes: Uint8Array): Promise<Uint8Array | null> {
   try {
-    const { PDFDocument: PDFCantoo } = await import("npm:@cantoo/pdf-lib@2.3.2");
+    const { PDFDocument: PDFCantoo } = await import("npm:@cantoo/pdf-lib@2.11.1");
     const doc = await PDFCantoo.load(bytes, { password: "" } as never);
     const saida = await doc.save();
     const teste = await PDFDocument.load(saida, { ignoreEncryption: true });
