@@ -61,6 +61,38 @@ export interface PreadmissaoResumo {
   convite_expira_em: string | null;
   /** Tipo de vínculo previsto no convite (define o que a ficha pede). */
   regime_previsto?: string | null;
+  /** Dados do gestor; `rotina` marca a ativação operacional na loja. */
+  admin_dados?: Record<string, unknown> | null;
+}
+
+/** Ativação operacional na rotina da loja (pré-admissão aguardando registro). */
+export interface PreadmissaoRotina {
+  colaborador_id: string;
+  iniciou_em: string;
+  ativado_em?: string;
+  regime_provisorio?: string;
+  forma_provisoria?: string;
+}
+
+/** Lê a ativação na rotina a partir dos dados administrativos. */
+export function rotinaDaPreadmissao(adminDados: Record<string, unknown> | null | undefined): PreadmissaoRotina | null {
+  const r = adminDados?.rotina as Record<string, unknown> | undefined;
+  if (!r || typeof r.colaborador_id !== "string" || !r.colaborador_id) return null;
+  return {
+    colaborador_id: r.colaborador_id,
+    iniciou_em: typeof r.iniciou_em === "string" ? r.iniciou_em : "",
+    ativado_em: typeof r.ativado_em === "string" ? r.ativado_em : undefined,
+    regime_provisorio: typeof r.regime_provisorio === "string" ? r.regime_provisorio : undefined,
+    forma_provisoria: typeof r.forma_provisoria === "string" ? r.forma_provisoria : undefined,
+  };
+}
+
+/** Dias desde o início na rotina (0 no próprio dia). */
+export function diasAguardandoRegistro(iniciouEm: string, hoje = new Date()): number {
+  const inicio = new Date(`${iniciouEm}T00:00:00`);
+  if (Number.isNaN(inicio.getTime())) return 0;
+  const base = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  return Math.max(0, Math.floor((base.getTime() - inicio.getTime()) / 86400000));
 }
 
 export interface PreadmissaoPessoa {

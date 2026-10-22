@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
         .select(
           "id, company_id, candidato_nome, whatsapp, cpf, status, cargo_previsto_id, unidade_prevista_id, regime_previsto, " +
             "trabalho_apos_22h, enviado_em, revisado_em, contabilidade_enviado_em, " +
-            "ficha_oficial_conferida_em, colaborador_id, created_at, updated_at",
+            "ficha_oficial_conferida_em, colaborador_id, created_at, updated_at, admin_dados",
         )
         .eq("company_id", companyId)
         .is("removido_em", null)
