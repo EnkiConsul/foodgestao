@@ -822,6 +822,54 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   );
   const adminBruto = (pa?.admin_dados ?? {}) as Record<string, unknown>;
   const jornadaAdmissao = (adminBruto.jornada ?? null) as JornadaRascunho | null;
+  /** Ativação operacional já feita (freelancer provisório na rotina da loja). */
+  const rotinaInfo = rotinaDaPreadmissao(adminBruto);
+  const podeAtivarRotina =
+    !encerrada && !rotinaInfo && (regimeAtual === "clt" || regimeAtual === "intermitente");
+
+  /**
+   * Jornada enviada na ativação: a da ficha, completando os dias trabalhados
+   * com o horário base quando o dia não tem horário próprio.
+   */
+  const jornadaParaRotina = (j: JornadaRascunho) => ({
+    horario: j.horario,
+    folga_variavel: j.folga_variavel === true,
+    dias: (j.dias ?? []).map((d) => ({
+      dow: d.dow,
+      trabalha: d.trabalha === true,
+      turno_id: d.turno_id ?? null,
+      entrada: d.trabalha ? (d.entrada || j.horario?.entrada || null) : null,
+      saida: d.trabalha ? (d.saida || j.horario?.saida || null) : null,
+      intervalo_minutos: d.trabalha ? (d.intervalo_minutos ?? j.horario?.intervalo_minutos ?? 0) : null,
+      setor_id: d.setor_id ?? null,
+    })),
+  });
+
+  const ativarRotina = async () => {
+    const id = pa?.id;
+    if (!id || !jornadaAdmissao) return;
+    setAtivandoRotina(true);
+    try {
+      const { error } = await supabase.rpc("dp_preadmissao_ativar_rotina", {
+        p_preadmissao_id: id,
+        p_data_inicio: dataInicioRotina,
+        p_jornada: jornadaParaRotina(jornadaAdmissao),
+      });
+      if (error) throw error;
+      toast.success(
+        regimeAtual === "intermitente"
+          ? "Ativado na rotina como freelancer diarista, aguardando o registro."
+          : "Ativado na rotina como freelancer mensalista, aguardando o registro.",
+      );
+      setAtivarRotinaAberto(false);
+      await queryClient.invalidateQueries();
+      await refetch();
+    } catch (e) {
+      notifyError(e as Error, { surface: "Pessoas 360°", action: "ativar na rotina da loja" });
+    } finally {
+      setAtivandoRotina(false);
+    }
+  };
 
   const modo = useMemo<ModoAdmissao["form"] | null>(() => {
     if (!pa) return null;
