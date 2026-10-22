@@ -16,6 +16,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
 import { requireUser, serviceClient } from "../_shared/authz.ts";
 import { simularDesligamento } from "../_shared/desligamento-motor.ts";
+import { validarTerminoNovoEmprego } from "./termino.ts";
 import { prazoLegalRescisao, prazoPagamentoRescisao } from "../_shared/desligamento-datas.ts";
 import { jornadaSemanalDaConfig, configVigenteEm, type DiaConfigMin, type TurnoMin } from "../_shared/desligamento-jornada.ts";
 import { datasDeFeriados, type FeriadoRegra } from "../_shared/feriados.ts";
@@ -38,7 +39,8 @@ const Body = z.discriminatedUnion("acao", [
   z.object({ acao: z.literal("reconsideracao"), processo_id: z.string().uuid(), idempotency_key: Chave, resultado: z.enum(["aceita", "recusada"]), nota: z.string().max(500).optional() }),
   z.object({ acao: z.literal("ocorrencia"), processo_id: z.string().uuid(), idempotency_key: Chave,
     tipo: z.enum(["dispensa_cumprimento", "novo_emprego", "afastamento", "impedimento_legal", "outro"]), data: Data, nota: z.string().max(500).optional(),
-    aplicar_termino: z.literal(true).optional() }),
+    aplicar_termino: z.literal(true).optional(),
+    pedido_dispensado_pelo_empregado: z.boolean().optional(), novo_emprego_comprovado: z.boolean().optional() }),
   // Retomada exige evidência + confirmação; o banco ainda confere férias/atestados/licenças.
   z.object({ acao: z.literal("retomar"), processo_id: z.string().uuid(), idempotency_key: Chave,
     justificativa: z.string().trim().min(20).max(500), confirmado: z.literal(true), fim_impedimento: Data.optional() }),
@@ -203,7 +205,8 @@ Deno.serve(async (req) => {
     }
     if (b.acao === "ocorrencia" && b.aplicar_termino) {
       // Súmula 276: novo emprego comprovado encerra no último dia trabalhado; prazo do 10º dia dessa data.
-      if (b.tipo !== "novo_emprego") return json(400, { error: "Término antecipado automático só para novo emprego comprovado." });
+      const erroTermino = validarTerminoNovoEmprego(b, hojeSP());
+      if (erroTermino) return json(400, { error: erroTermino });
       const c = await carregarColab(proc.colaborador_id);
       if (!c || !c.ativo || c.data_desligamento) return json(409, { error: "Colaborador não está ativo." });
       const feriados = new Set(await feriadosDaUnidade(admin, c, Number(b.data.slice(0, 4))));

@@ -834,6 +834,13 @@
       "when": 1792688090667,
       "tag": "0118_desligamento_correcoes_pre_teste",
       "breakpoints": true
+    },
+    {
+      "idx": 119,
+      "version": "7",
+      "when": 1792688629454,
+      "tag": "0119_desligamento_novo_emprego_exige_evidencia",
+      "breakpoints": true
     }
   ]
 }
