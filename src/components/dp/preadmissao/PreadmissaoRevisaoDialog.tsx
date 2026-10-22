@@ -1282,6 +1282,55 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AlertDialog open={ativarRotinaAberto} onOpenChange={setAtivarRotinaAberto}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ativar na rotina da loja</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  A pessoa entra na escala, folgas e plantões da unidade como{" "}
+                  <strong>{regimeAtual === "intermitente" ? "freelancer diarista" : "freelancer mensalista"}</strong>,
+                  sem acesso ao portal e sem efeito CLT. Ao efetivar a admissão, o mesmo cadastro vira o vínculo
+                  oficial e a data de admissão formal passa a contar.
+                </p>
+                <div className="space-y-1">
+                  <Label htmlFor="inicio-rotina" className="text-xs">Início das atividades na loja</Label>
+                  <Input
+                    id="inicio-rotina"
+                    type="date"
+                    value={dataInicioRotina}
+                    onChange={(e) => setDataInicioRotina(e.target.value)}
+                  />
+                </div>
+                {jornadaAdmissao ? (
+                  <p className="rounded-md border bg-muted/30 p-2 text-xs">
+                    Horário que vai para a rotina: <strong>{descricaoJornada(jornadaAdmissao)}</strong>.
+                    Para ajustar, use a aba Horário antes de ativar.
+                  </p>
+                ) : (
+                  <p className="rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-xs text-amber-700 dark:text-amber-500">
+                    Defina o horário de trabalho na aba Horário antes de ativar na rotina.
+                  </p>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={ativandoRotina || !jornadaAdmissao || !dataInicioRotina}
+              onClick={(e) => {
+                e.preventDefault();
+                void ativarRotina();
+              }}
+            >
+              {ativandoRotina && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Confirmar Ativação
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 
