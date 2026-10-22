@@ -9,27 +9,39 @@
  *
  * Ações: previa | confirmar | alterar | reconsideracao | ocorrencia |
  * retomar | pos | encerrar_admin | cancelar.
- * Cobertura automática: dispensa sem justa causa pela empresa, regime CLT.
- * Demais motivos/regimes: "revisão necessária" (sem datas inventadas).
+ * Cobertura automática (regime CLT): dispensa sem justa causa, pedido de
+ * demissão (cumprido ou dispensado pela empresa, com/sem desconto), acordo
+ * mútuo (art. 484-A) e motivos sem aviso prévio. Demais regimes: "revisão
+ * necessária" (sem datas inventadas).
  */
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
 import { requireUser, serviceClient } from "../_shared/authz.ts";
-import { simularDesligamento } from "../_shared/desligamento-motor.ts";
+import { simularDesligamento, MOTIVOS_SEM_AVISO, type MotivoDesligamentoCalc } from "../_shared/desligamento-motor.ts";
 import { validarTerminoNovoEmprego } from "./termino.ts";
 import { prazoLegalRescisao, prazoPagamentoRescisao } from "../_shared/desligamento-datas.ts";
 import { jornadaSemanalDaConfig, configVigenteEm, type DiaConfigMin, type TurnoMin } from "../_shared/desligamento-jornada.ts";
 import { datasDeFeriados, type FeriadoRegra } from "../_shared/feriados.ts";
 
-const REGRA_VERSAO = "clt-dispensa-sem-justa-causa@2026-10";
+const REGRA_VERSAO = "clt-aviso@2026-11";
 const Data = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Chave = z.string().min(8).max(80);
+const Motivo = z.enum([
+  "dispensa_sem_justa_causa", "pedido_demissao", "acordo_mutuo", "dispensa_com_justa_causa",
+  "termino_contrato", "abandono_emprego", "aposentadoria", "falecimento", "outro",
+]);
 
 const Condicoes = {
-  motivo: z.string().min(1).max(60),
+  motivo: Motivo,
   modalidade: z.enum(["trabalhado", "indenizado"]),
   reducao: z.enum(["duas_horas", "sete_dias"]).nullable().optional(),
   data_comunicacao: Data,
+  // Pedido de demissão dispensado pela empresa: término acordado + opção de desconto.
+  data_termino_acordada: Data.nullable().optional(),
+  descontar_aviso: z.boolean().optional(),
+  // Declarações obrigatórias no pedido de demissão dispensado (evidência no GED/contabilidade).
+  pedido_escrito: z.boolean().optional(),
+  aceite_empresa: z.boolean().optional(),
   esperado: z.object({ ultimo: z.string().nullable(), prazo: z.string(), efetiva: z.string() }).optional(),
 };
 const Body = z.discriminatedUnion("acao", [
