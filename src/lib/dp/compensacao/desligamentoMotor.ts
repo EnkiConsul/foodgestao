@@ -9,6 +9,8 @@
  * CC art. 132. Minutos inteiros; datas ISO "AAAA-MM-DD" tratadas em UTC.
  */
 
+import { prazoLegalRescisao, prazoPagamentoRescisao } from "@/lib/dp/desligamento";
+
 export type ModalidadeAviso = "trabalhado" | "indenizado";
 export type ReducaoArt488 = "duas_horas" | "sete_dias";
 
@@ -88,8 +90,14 @@ export interface ResultadoDesligamento {
   baseQuitacao: string;
   /** Base + 10 dias corridos (art. 477 §6º). */
   prazoQuitacao: string;
-  /** Primeiro dia útil se o prazo cair em sábado, domingo ou feriado informado. */
-  prazoQuitacaoDiaUtil: string;
+  /**
+   * Sugestão operacional SÓ para a empresa: último dia útil anterior quando o
+   * 10º dia cai em sábado, domingo ou feriado informado. Nunca substitui
+   * `prazoQuitacao` nem é limite legal.
+   */
+  sugestaoPagamentoDiaUtilAnterior: string;
+  /** Indenizado: data a partir da qual o empregado fica dispensado de comparecer (D+1). Null no trabalhado. */
+  dispensadoDeComparecerDesde: string | null;
   avisos: string[];
 }
 
@@ -228,9 +236,9 @@ export function simularDesligamento(p: ParametrosDesligamento): ResultadoOuErro 
   // Quitação: 10 dias a partir do término do contrato (art. 477 §6º).
   // Trabalhado: fim do período cumprido; indenizado: afastamento na data da comunicação.
   const baseQuitacao = fimCumprido ?? p.dataComunicacao;
-  const prazo = somarDias(baseQuitacao, 10);
-  let util = prazo;
-  while (feriados.has(util) || diaSemana(util) === 0 || diaSemana(util) === 6) util = somarDias(util, 1);
+  // Função canônica única: 10º dia corrido bruto; sugestão recua ao útil anterior.
+  const prazo = prazoLegalRescisao(baseQuitacao);
+  const sugestao = prazoPagamentoRescisao(baseQuitacao, feriados);
 
   return {
     anosCompletos: anos,
@@ -250,7 +258,8 @@ export function simularDesligamento(p: ParametrosDesligamento): ResultadoOuErro 
     folgasRejeitadas: rejeitadas,
     baseQuitacao,
     prazoQuitacao: prazo,
-    prazoQuitacaoDiaUtil: util,
+    sugestaoPagamentoDiaUtilAnterior: sugestao,
+    dispensadoDeComparecerDesde: p.modalidade === "indenizado" ? inicio : null,
     avisos,
   };
 }

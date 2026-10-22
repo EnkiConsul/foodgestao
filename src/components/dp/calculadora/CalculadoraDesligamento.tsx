@@ -227,7 +227,7 @@ function Resultado({ r, b, onAlternar }: { r: ResultadoDesligamento; b: Resultad
           <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             <CalendarCheck className="h-4 w-4" /> Último dia previsto de comparecimento à loja</p>
           {indenizado
-            ? <p className="text-lg font-semibold" data-testid="ultimo-comparecimento">Dispensado de comparecer durante o aviso</p>
+            ? <p className="text-lg font-semibold" data-testid="ultimo-comparecimento">Dispensado de comparecer a partir de {br(r.dispensadoDeComparecerDesde)} ({semana(r.dispensadoDeComparecerDesde!)})</p>
             : <p className="text-2xl font-bold" data-testid="ultimo-comparecimento">
                 {r.ultimoComparecimento ? `${br(r.ultimoComparecimento)} (${semana(r.ultimoComparecimento)})` : "Sem jornadas no período"}</p>}
           {!indenizado && b.ultimoComparecimento !== r.ultimoComparecimento && (
@@ -255,9 +255,9 @@ function Resultado({ r, b, onAlternar }: { r: ResultadoDesligamento; b: Resultad
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-base">Prazo de quitação (art. 477, §6º)</CardTitle></CardHeader>
         <CardContent className="space-y-1 text-sm">
-          <div>Contado de <strong>{br(r.baseQuitacao)}</strong>: até <strong>{br(r.prazoQuitacao)} ({semana(r.prazoQuitacao)})</strong></div>
-          {r.prazoQuitacaoDiaUtil !== r.prazoQuitacao && (
-            <p className="text-xs text-muted-foreground">Cai em dia não útil. Há entendimento que prorroga para {br(r.prazoQuitacaoDiaUtil)}, mas não é pacífico: o mais seguro é pagar até {br(r.prazoQuitacao)}.</p>)}
+          <div>10º dia corrido, contado de <strong>{br(r.baseQuitacao)}</strong>: <strong data-testid="prazo-quitacao">{br(r.prazoQuitacao)} ({semana(r.prazoQuitacao)})</strong></div>
+          {r.sugestaoPagamentoDiaUtilAnterior !== r.prazoQuitacao && (
+            <p className="text-xs text-muted-foreground" data-testid="sugestao-pagamento">Sugestão para a empresa: pagar até {br(r.sugestaoPagamentoDiaUtilAnterior)} ({semana(r.sugestaoPagamentoDiaUtilAnterior)}), último dia útil antes do 10º dia.</p>)}
         </CardContent>
       </Card>
 
