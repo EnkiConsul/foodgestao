@@ -312,7 +312,7 @@ async function montarDuasVias(r: ReciboPdf): Promise<Uint8Array> {
     if (r.descricao) {
       page.drawText("DESCRIÇÃO", { x: margem, y, size: 6.5, font: negrito, color: CLARO });
       y -= 10;
-      for (const l of linhas(r.descricao, fonte, 8, largura).slice(0, 5)) {
+      for (const l of linhas(r.descricao, fonte, 8, largura).slice(0, 7)) {
         page.drawText(l, { x: margem, y, size: 8, font: fonte, color: rgb(0.07, 0.07, 0.07) });
         y -= 9.5;
       }
