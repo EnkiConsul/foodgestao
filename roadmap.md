@@ -186,3 +186,8 @@
 - [x] Escolaridade com orientação, selfie como alternativa à 3x4, carteira digital padrão, reservista só para homens, bancos do financeiro com busca e Pix reaproveitando CPF/celular/e-mail.
 - [x] Leitura automática de RG/CNH, comprovante de endereço, carteira de trabalho, título e reservista: preenche só campos vazios, marca "lido do documento" e mantém digitação manual.
 - [ ] Comprovante bancário: não existe como documento pedido na ficha; incluir se a empresa quiser.
+
+## Calendário — aniversariantes compactos
+- [x] Trocar o card grande por pílula compacta na faixa de métricas (ícone de bolo + número), abrindo o painel com as ações.
+- [x] Retirar o confete 🎉 dos aniversários (só feriados mantêm o emoji); o dia do calendário sinaliza aniversário com o ícone de bolo.
+- [x] Conferir no computador e no celular com dados da Pakerê: pílula na faixa de métricas, painel abre com a lista e as ações, sem confete; build OK, sem publicação.
