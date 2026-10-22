@@ -185,6 +185,12 @@ function Condicoes({ v, set, comMotivo }: {
       {semAviso && (
         <p className="text-xs text-muted-foreground sm:col-span-2">Sem aviso prévio neste motivo: a data informada é o término do vínculo e o prazo de quitação (10 dias) conta dela.</p>
       )}
+      {SEM_AVISO_ASSISTIDO.has(v.motivo) && (
+        <label className="flex items-start gap-2 text-sm sm:col-span-2">
+          <Checkbox checked={v.confirmacaoSemAviso} onCheckedChange={(x) => set({ confirmacaoSemAviso: x === true })} aria-label="Confirmação da data de término" />
+          <span>Este motivo exige determinação factual ou jurídica (ex.: abandono caracterizado, aposentadoria que encerra o vínculo). Confirmo que a data de término foi validada com a contabilidade ou o jurídico.</span>
+        </label>
+      )}
     </div>
   );
 }
@@ -214,6 +220,7 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
     descontar: rascunho?.descontar_aviso ?? false,
     pedidoEscrito: false,
     aceiteEmpresa: false,
+    confirmacaoSemAviso: false,
   });
   const [previa, setPrevia] = useState<Resultado | null>(null);
   const [mensagem, setMensagem] = useState<{ texto: string; erro: boolean } | null>(null);
@@ -233,13 +240,15 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
   const setCond = (p: Partial<CondicoesValor>) => { setCondState((c) => ({ ...c, ...p })); limpar(); };
   const condBody = () => ({
     motivo: cond.motivo, modalidade: cond.modalidade,
-    reducao: cond.modalidade === "trabalhado" && cond.motivo !== "pedido_demissao" ? cond.reducao : null,
+    reducao: cond.modalidade === "trabalhado" && cond.motivo === "dispensa_sem_justa_causa" ? cond.reducao : null,
     data_comunicacao: cond.comunicacao,
     data_termino_acordada: cond.motivo === "pedido_demissao" && cond.modalidade === "indenizado" && cond.terminoAcordado ? cond.terminoAcordado : null,
     descontar_aviso: cond.motivo === "pedido_demissao" && cond.modalidade === "indenizado" ? cond.descontar : undefined,
     pedido_escrito: cond.pedidoEscrito, aceite_empresa: cond.aceiteEmpresa,
+    confirmacao_sem_aviso: SEM_AVISO_ASSISTIDO.has(cond.motivo) ? cond.confirmacaoSemAviso : undefined,
   });
   const pedidoDispensadoPendente = cond.motivo === "pedido_demissao" && cond.modalidade === "indenizado" && (!cond.pedidoEscrito || !cond.aceiteEmpresa);
+  const semAvisoPendente = SEM_AVISO_ASSISTIDO.has(cond.motivo) && !cond.confirmacaoSemAviso;
   const fechar = () => { setAcao(null); limpar(); setNota(""); setChave(novaChave()); };
 
   const executar = async (body: Record<string, unknown>, sucesso: string) => {
