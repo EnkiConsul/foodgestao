@@ -44,6 +44,8 @@ export function notificacaoPathGestor(refTable: string | null | undefined, refId
   const base = NOTIFICACAO_PATH_GESTOR[refTable] ?? "/dp/notificacoes";
   // Troca: abre direto o detalhe da troca envolvida.
   if (refTable === "dp_trocas" && refId) return `${base}&troca_id=${encodeURIComponent(refId)}`;
+  // Ocorrência: abre direto o dia/colaborador e a tratativa da ocorrência.
+  if (refTable === "dp_ocorrencias" && refId) return `${base}?id=${encodeURIComponent(refId)}`;
   return base;
 }
 
