@@ -96,11 +96,22 @@ function Detalhes({ r }: { r: Resultado }) {
   );
 }
 
+/** Motivos sem aviso prévio: a data informada é o término do vínculo. */
+const SEM_AVISO = new Set(["dispensa_com_justa_causa", "termino_contrato", "abandono_emprego", "aposentadoria", "falecimento", "outro"]);
+
+export type CondicoesValor = {
+  motivo: string; modalidade: "trabalhado" | "indenizado"; reducao: "duas_horas" | "sete_dias"; comunicacao: string;
+  terminoAcordado: string; descontar: boolean; pedidoEscrito: boolean; aceiteEmpresa: boolean;
+};
+
 /** Formulário de condições (registrar e alterar compartilham). */
 function Condicoes({ v, set, comMotivo }: {
-  v: { motivo: string; modalidade: "trabalhado" | "indenizado"; reducao: "duas_horas" | "sete_dias"; comunicacao: string };
-  set: (p: Partial<typeof v>) => void; comMotivo: boolean;
+  v: CondicoesValor;
+  set: (p: Partial<CondicoesValor>) => void; comMotivo: boolean;
 }) {
+  const semAviso = SEM_AVISO.has(v.motivo);
+  const pedido = v.motivo === "pedido_demissao";
+  const pedidoDispensado = pedido && v.modalidade === "indenizado";
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       {comMotivo && (
@@ -113,17 +124,19 @@ function Condicoes({ v, set, comMotivo }: {
         </div>
       )}
       <div className="space-y-1">
-        <Label htmlFor="desl-com">Data da comunicação</Label>
+        <Label htmlFor="desl-com">{semAviso ? "Data do término" : pedido ? "Data do pedido" : "Data da comunicação"}</Label>
         <Input id="desl-com" type="date" value={v.comunicacao} max={hojeIsoLocal()} onChange={(e) => set({ comunicacao: e.target.value })} />
       </div>
-      <div className="space-y-1">
-        <Label>Aviso</Label>
-        <RadioGroup value={v.modalidade} onValueChange={(m) => set({ modalidade: m as "trabalhado" | "indenizado" })} className="flex gap-4">
-          <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="trabalhado" /> Trabalhado</label>
-          <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="indenizado" /> Indenizado</label>
-        </RadioGroup>
-      </div>
-      {v.modalidade === "trabalhado" && (
+      {!semAviso && (
+        <div className="space-y-1">
+          <Label>{pedido ? "Cumprimento do aviso (30 dias)" : "Aviso"}</Label>
+          <RadioGroup value={v.modalidade} onValueChange={(m) => set({ modalidade: m as "trabalhado" | "indenizado" })} className="flex gap-4">
+            <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="trabalhado" /> Trabalhado</label>
+            <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="indenizado" /> {pedido ? "Empresa dispensa o cumprimento" : "Indenizado"}</label>
+          </RadioGroup>
+        </div>
+      )}
+      {!semAviso && v.modalidade === "trabalhado" && !pedido && (
         <div className="space-y-1">
           <Label>Redução escolhida pelo colaborador</Label>
           <RadioGroup value={v.reducao} onValueChange={(m) => set({ reducao: m as "duas_horas" | "sete_dias" })} className="flex flex-wrap gap-4">
@@ -131,6 +144,37 @@ function Condicoes({ v, set, comMotivo }: {
             <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="sete_dias" /> 7 dias corridos no final</label>
           </RadioGroup>
         </div>
+      )}
+      {pedido && v.modalidade === "trabalhado" && (
+        <p className="text-xs text-muted-foreground sm:col-span-2">No pedido de demissão não há redução de 2 horas nem de 7 dias (o art. 488 só vale para aviso dado pela empresa).</p>
+      )}
+      {pedidoDispensado && (
+        <div className="space-y-3 rounded-md border p-3 sm:col-span-2">
+          <div className="space-y-1">
+            <Label htmlFor="desl-term">Término acordado (vazio = na data do pedido)</Label>
+            <Input id="desl-term" type="date" value={v.terminoAcordado} min={v.comunicacao} onChange={(e) => set({ terminoAcordado: e.target.value })} />
+          </div>
+          <div className="space-y-1">
+            <Label>Desconto do aviso</Label>
+            <RadioGroup value={v.descontar ? "com" : "sem"} onValueChange={(m) => set({ descontar: m === "com" })} className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="sem" /> Sem descontar</label>
+              <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="com" /> Descontar</label>
+            </RadioGroup>
+            <p className="text-xs text-muted-foreground">Dispensar o cumprimento é liberalidade da empresa e não exige prova de novo emprego. O desconto do aviso no pedido de demissão é tema controverso: confirme com a contabilidade ou o jurídico antes de aplicar.</p>
+          </div>
+          <label className="flex items-start gap-2 text-sm">
+            <Checkbox checked={v.pedidoEscrito} onCheckedChange={(x) => set({ pedidoEscrito: x === true })} aria-label="Pedido escrito do colaborador" />
+            <span>O colaborador pediu a demissão por escrito.</span>
+          </label>
+          <label className="flex items-start gap-2 text-sm">
+            <Checkbox checked={v.aceiteEmpresa} onCheckedChange={(x) => set({ aceiteEmpresa: x === true })} aria-label="Aceite da empresa" />
+            <span>A empresa aceitou dispensar o cumprimento do aviso{v.descontar ? ", com desconto" : ", sem descontar"}.</span>
+          </label>
+          <p className="text-xs text-muted-foreground">Guarde o pedido e o aceite no GED ou com a contabilidade; estas declarações não substituem a evidência.</p>
+        </div>
+      )}
+      {semAviso && (
+        <p className="text-xs text-muted-foreground sm:col-span-2">Sem aviso prévio neste motivo: a data informada é o término do vínculo e o prazo de quitação (10 dias) conta dela.</p>
       )}
     </div>
   );
