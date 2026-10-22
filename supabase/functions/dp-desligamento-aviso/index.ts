@@ -105,6 +105,8 @@ async function calcular(admin: any, c: Colab, b: Cond): Promise<{ resultado?: Re
     return { resp: json(400, { error: "A redução do art. 488 (2 horas ou 7 dias) não se aplica ao pedido de demissão." }) };
   if (pedidoDispensado && (b.pedido_escrito !== true || b.aceite_empresa !== true))
     return { resp: json(400, { error: "Confirme as duas declarações: o pedido escrito do colaborador e o aceite da empresa. Guarde a evidência no GED ou com a contabilidade." }) };
+  if (SEM_AVISO_ASSISTIDO.has(b.motivo) && b.confirmacao_sem_aviso !== true)
+    return { resp: json(400, { error: "Este motivo exige determinação factual ou jurídica. Confirme que a data de término foi validada (ex.: abandono caracterizado, aposentadoria que encerra o vínculo) antes de registrar." }) };
   const hoje = hojeSP();
   if (b.data_comunicacao > hoje) return { resp: json(400, { error: "A comunicação não pode ser futura: registre depois de comunicar formalmente." }) };
   if (b.data_comunicacao < somar(hoje, -30)) return { resp: json(400, { error: "Comunicação há mais de 30 dias: use o registro manual." }) };
