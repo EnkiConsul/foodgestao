@@ -285,11 +285,16 @@ async function anexarArquivo(
   const ehPdf = tipo.includes("pdf") || /\.pdf$/i.test(nome);
   if (ehPdf) {
     try {
-      const origem = await PDFDocument.load(bytes, { ignoreEncryption: true });
-      // PDF protegido (comum em comprovantes de banco): o conteúdo não pode ser
-      // lido aqui; o original segue disponível ao lado do certificado.
+      let origem = await PDFDocument.load(bytes, { ignoreEncryption: true });
+      // PDF protegido (comum em comprovantes de banco: Mercado Pago, Nubank):
+      // quase sempre a senha de abertura é vazia — descriptografa uma cópia
+      // em memória para reproduzir; o original segue guardado sem alteração.
       if (origem.isEncrypted) {
-        return `O arquivo "${nome}" é protegido pelo emissor e não pode ser reproduzido neste certificado. O original continua guardado, anexado a este PDF e disponível para download.`;
+        const livre = await descriptografarPdf(bytes);
+        if (!livre) {
+          return `O arquivo "${nome}" é protegido por senha pelo emissor e não pode ser reproduzido neste certificado. O original continua guardado, anexado a este PDF e disponível para download.`;
+        }
+        origem = await PDFDocument.load(livre);
       }
       // Ensaio num documento descartável: conteúdo ilegível vira aviso sem
       // contaminar o certificado (o pdf-lib reembute tudo ao salvar).
