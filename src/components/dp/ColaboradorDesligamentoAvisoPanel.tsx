@@ -24,6 +24,7 @@ type Resultado = {
   ultimo_comparecimento: string | null; dispensado_desde: string | null; data_efetiva: string;
   projecao_indenizada: string; base_quitacao: string; prazo_10_dias: string; sugestao_pagamento: string;
   dias_aviso: number; dias_indenizados: number; avisos?: string[];
+  sem_aviso?: boolean; aviso_dispensado?: boolean; descontar_aviso?: boolean | null;
 };
 type Processo = Resultado & {
   id: string; status: string; motivo: string; revisao_motivo: string | null; comunicacao_confirmada_em: string | null;
@@ -32,6 +33,7 @@ type Processo = Resultado & {
 };
 export type RascunhoDesligamento = {
   data_comunicacao?: string; modalidade?: "trabalhado" | "indenizado"; reducao?: "duas_horas" | "sete_dias";
+  motivo?: string; data_termino_acordada?: string | null; descontar_aviso?: boolean;
   /** Referência ilustrativa da simulação (com as folgas hipotéticas escolhidas); nunca vira aprovação. */
   simulado?: { ultimo: string | null; prazo: string; comFolgas?: boolean };
 };
