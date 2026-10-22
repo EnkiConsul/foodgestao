@@ -65,7 +65,7 @@ export interface PreadmissaoResumo {
   admin_dados?: Record<string, unknown> | null;
 }
 
-/** Ativação operacional na rotina da loja (pré-admissão aguardando registro). */
+/** Ativação operacional na rotina da loja (pré-admissão aguardando admissão). */
 export interface PreadmissaoRotina {
   colaborador_id: string;
   iniciou_em: string;
