@@ -24,6 +24,7 @@ type Resultado = {
   ultimo_comparecimento: string | null; dispensado_desde: string | null; data_efetiva: string;
   projecao_indenizada: string; base_quitacao: string; prazo_10_dias: string; sugestao_pagamento: string;
   dias_aviso: number; dias_indenizados: number; avisos?: string[];
+  sem_aviso?: boolean; aviso_dispensado?: boolean; descontar_aviso?: boolean | null;
 };
 type Processo = Resultado & {
   id: string; status: string; motivo: string; revisao_motivo: string | null; comunicacao_confirmada_em: string | null;
@@ -32,6 +33,7 @@ type Processo = Resultado & {
 };
 export type RascunhoDesligamento = {
   data_comunicacao?: string; modalidade?: "trabalhado" | "indenizado"; reducao?: "duas_horas" | "sete_dias";
+  motivo?: string; data_termino_acordada?: string | null; descontar_aviso?: boolean;
   /** Referência ilustrativa da simulação (com as folgas hipotéticas escolhidas); nunca vira aprovação. */
   simulado?: { ultimo: string | null; prazo: string; comFolgas?: boolean };
 };
@@ -61,16 +63,18 @@ async function chamar(body: Record<string, unknown>) {
 }
 
 export function DatasDesligamento({ r, gestor = true }: {
-  r: Pick<Resultado, "ultimo_comparecimento" | "dispensado_desde" | "prazo_10_dias" | "base_quitacao"> & { sugestao_pagamento?: string | null };
+  r: Pick<Resultado, "ultimo_comparecimento" | "dispensado_desde" | "prazo_10_dias" | "base_quitacao"> & { sugestao_pagamento?: string | null; sem_aviso?: boolean; data_efetiva?: string };
   gestor?: boolean;
 }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <Card className="border-primary"><CardContent className="space-y-1 py-4">
-        <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><CalendarCheck className="h-4 w-4" /> Último dia de trabalho</p>
-        {r.ultimo_comparecimento
-          ? <p className="text-2xl font-bold" data-testid="aviso-ultimo">{br(r.ultimo_comparecimento)} <span className="text-sm font-normal">({semana(r.ultimo_comparecimento)})</span></p>
-          : <p className="text-lg font-semibold" data-testid="aviso-ultimo">Dispensado de comparecer a partir de {br(r.dispensado_desde)}</p>}
+        <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><CalendarCheck className="h-4 w-4" /> {r.sem_aviso ? "Término do vínculo" : "Último dia de trabalho"}</p>
+        {r.sem_aviso
+          ? <p className="text-2xl font-bold" data-testid="aviso-ultimo">{br(r.data_efetiva ?? null)} <span className="text-sm font-normal">({r.data_efetiva ? semana(r.data_efetiva) : ""})</span></p>
+          : r.ultimo_comparecimento
+            ? <p className="text-2xl font-bold" data-testid="aviso-ultimo">{br(r.ultimo_comparecimento)} <span className="text-sm font-normal">({semana(r.ultimo_comparecimento)})</span></p>
+            : <p className="text-lg font-semibold" data-testid="aviso-ultimo">Dispensado de comparecer a partir de {br(r.dispensado_desde)}</p>}
       </CardContent></Card>
       <Card className="border-primary"><CardContent className="space-y-1 py-4">
         <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><Wallet className="h-4 w-4" /> Prazo para pagamento da rescisão</p>
@@ -94,11 +98,22 @@ function Detalhes({ r }: { r: Resultado }) {
   );
 }
 
+/** Motivos sem aviso prévio: a data informada é o término do vínculo. */
+const SEM_AVISO = new Set(["dispensa_com_justa_causa", "termino_contrato", "abandono_emprego", "aposentadoria", "falecimento", "outro"]);
+
+export type CondicoesValor = {
+  motivo: string; modalidade: "trabalhado" | "indenizado"; reducao: "duas_horas" | "sete_dias"; comunicacao: string;
+  terminoAcordado: string; descontar: boolean; pedidoEscrito: boolean; aceiteEmpresa: boolean;
+};
+
 /** Formulário de condições (registrar e alterar compartilham). */
 function Condicoes({ v, set, comMotivo }: {
-  v: { motivo: string; modalidade: "trabalhado" | "indenizado"; reducao: "duas_horas" | "sete_dias"; comunicacao: string };
-  set: (p: Partial<typeof v>) => void; comMotivo: boolean;
+  v: CondicoesValor;
+  set: (p: Partial<CondicoesValor>) => void; comMotivo: boolean;
 }) {
+  const semAviso = SEM_AVISO.has(v.motivo);
+  const pedido = v.motivo === "pedido_demissao";
+  const pedidoDispensado = pedido && v.modalidade === "indenizado";
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       {comMotivo && (
@@ -111,17 +126,19 @@ function Condicoes({ v, set, comMotivo }: {
         </div>
       )}
       <div className="space-y-1">
-        <Label htmlFor="desl-com">Data da comunicação</Label>
+        <Label htmlFor="desl-com">{semAviso ? "Data do término" : pedido ? "Data do pedido" : "Data da comunicação"}</Label>
         <Input id="desl-com" type="date" value={v.comunicacao} max={hojeIsoLocal()} onChange={(e) => set({ comunicacao: e.target.value })} />
       </div>
-      <div className="space-y-1">
-        <Label>Aviso</Label>
-        <RadioGroup value={v.modalidade} onValueChange={(m) => set({ modalidade: m as "trabalhado" | "indenizado" })} className="flex gap-4">
-          <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="trabalhado" /> Trabalhado</label>
-          <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="indenizado" /> Indenizado</label>
-        </RadioGroup>
-      </div>
-      {v.modalidade === "trabalhado" && (
+      {!semAviso && (
+        <div className="space-y-1">
+          <Label>{pedido ? "Cumprimento do aviso (30 dias)" : "Aviso"}</Label>
+          <RadioGroup value={v.modalidade} onValueChange={(m) => set({ modalidade: m as "trabalhado" | "indenizado" })} className="flex gap-4">
+            <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="trabalhado" /> Trabalhado</label>
+            <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="indenizado" /> {pedido ? "Empresa dispensa o cumprimento" : "Indenizado"}</label>
+          </RadioGroup>
+        </div>
+      )}
+      {!semAviso && v.modalidade === "trabalhado" && !pedido && (
         <div className="space-y-1">
           <Label>Redução escolhida pelo colaborador</Label>
           <RadioGroup value={v.reducao} onValueChange={(m) => set({ reducao: m as "duas_horas" | "sete_dias" })} className="flex flex-wrap gap-4">
@@ -129,6 +146,37 @@ function Condicoes({ v, set, comMotivo }: {
             <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="sete_dias" /> 7 dias corridos no final</label>
           </RadioGroup>
         </div>
+      )}
+      {pedido && v.modalidade === "trabalhado" && (
+        <p className="text-xs text-muted-foreground sm:col-span-2">No pedido de demissão não há redução de 2 horas nem de 7 dias (o art. 488 só vale para aviso dado pela empresa).</p>
+      )}
+      {pedidoDispensado && (
+        <div className="space-y-3 rounded-md border p-3 sm:col-span-2">
+          <div className="space-y-1">
+            <Label htmlFor="desl-term">Término acordado (vazio = na data do pedido)</Label>
+            <Input id="desl-term" type="date" value={v.terminoAcordado} min={v.comunicacao} onChange={(e) => set({ terminoAcordado: e.target.value })} />
+          </div>
+          <div className="space-y-1">
+            <Label>Desconto do aviso</Label>
+            <RadioGroup value={v.descontar ? "com" : "sem"} onValueChange={(m) => set({ descontar: m === "com" })} className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="sem" /> Sem descontar</label>
+              <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="com" /> Descontar</label>
+            </RadioGroup>
+            <p className="text-xs text-muted-foreground">Dispensar o cumprimento é liberalidade da empresa e não exige prova de novo emprego. O desconto do aviso no pedido de demissão é tema controverso: confirme com a contabilidade ou o jurídico antes de aplicar.</p>
+          </div>
+          <label className="flex items-start gap-2 text-sm">
+            <Checkbox checked={v.pedidoEscrito} onCheckedChange={(x) => set({ pedidoEscrito: x === true })} aria-label="Pedido escrito do colaborador" />
+            <span>O colaborador pediu a demissão por escrito.</span>
+          </label>
+          <label className="flex items-start gap-2 text-sm">
+            <Checkbox checked={v.aceiteEmpresa} onCheckedChange={(x) => set({ aceiteEmpresa: x === true })} aria-label="Aceite da empresa" />
+            <span>A empresa aceitou dispensar o cumprimento do aviso{v.descontar ? ", com desconto" : ", sem descontar"}.</span>
+          </label>
+          <p className="text-xs text-muted-foreground">Guarde o pedido e o aceite no GED ou com a contabilidade; estas declarações não substituem a evidência.</p>
+        </div>
+      )}
+      {semAviso && (
+        <p className="text-xs text-muted-foreground sm:col-span-2">Sem aviso prévio neste motivo: a data informada é o término do vínculo e o prazo de quitação (10 dias) conta dela.</p>
       )}
     </div>
   );
@@ -150,11 +198,15 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
   });
   const recarregar = () => qc.invalidateQueries({ queryKey: ["dp_desligamento_processo", colaboradorId] });
 
-  const [cond, setCondState] = useState({
-    motivo: "dispensa_sem_justa_causa",
+  const [cond, setCondState] = useState<CondicoesValor>({
+    motivo: rascunho?.motivo ?? "dispensa_sem_justa_causa",
     modalidade: (rascunho?.modalidade ?? "trabalhado") as "trabalhado" | "indenizado",
     reducao: (rascunho?.reducao ?? "duas_horas") as "duas_horas" | "sete_dias",
     comunicacao: rascunho?.data_comunicacao ?? hojeIsoLocal(),
+    terminoAcordado: rascunho?.data_termino_acordada ?? "",
+    descontar: rascunho?.descontar_aviso ?? false,
+    pedidoEscrito: false,
+    aceiteEmpresa: false,
   });
   const [previa, setPrevia] = useState<Resultado | null>(null);
   const [mensagem, setMensagem] = useState<{ texto: string; erro: boolean } | null>(null);
@@ -171,8 +223,16 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
   const [retConf, setRetConf] = useState(false);
 
   const limpar = () => { setPrevia(null); setMensagem(null); setFormal(false); };
-  const setCond = (p: Partial<typeof cond>) => { setCondState((c) => ({ ...c, ...p })); limpar(); };
-  const condBody = () => ({ motivo: cond.motivo, modalidade: cond.modalidade, reducao: cond.modalidade === "trabalhado" ? cond.reducao : null, data_comunicacao: cond.comunicacao });
+  const setCond = (p: Partial<CondicoesValor>) => { setCondState((c) => ({ ...c, ...p })); limpar(); };
+  const condBody = () => ({
+    motivo: cond.motivo, modalidade: cond.modalidade,
+    reducao: cond.modalidade === "trabalhado" && cond.motivo !== "pedido_demissao" ? cond.reducao : null,
+    data_comunicacao: cond.comunicacao,
+    data_termino_acordada: cond.motivo === "pedido_demissao" && cond.modalidade === "indenizado" && cond.terminoAcordado ? cond.terminoAcordado : null,
+    descontar_aviso: cond.motivo === "pedido_demissao" && cond.modalidade === "indenizado" ? cond.descontar : undefined,
+    pedido_escrito: cond.pedidoEscrito, aceite_empresa: cond.aceiteEmpresa,
+  });
+  const pedidoDispensadoPendente = cond.motivo === "pedido_demissao" && cond.modalidade === "indenizado" && (!cond.pedidoEscrito || !cond.aceiteEmpresa);
   const fechar = () => { setAcao(null); limpar(); setNota(""); setChave(novaChave()); };
 
   const executar = async (body: Record<string, unknown>, sucesso: string) => {
@@ -242,7 +302,7 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
 
       {!acao && (
         <div className="flex flex-wrap gap-2">
-          {p.status !== "suspenso" && <Button size="sm" variant="outline" onClick={() => { setCondState({ motivo: p.motivo, modalidade: p.modalidade === "indenizado" ? "indenizado" : "trabalhado", reducao: (p.reducao as "duas_horas" | "sete_dias") ?? "duas_horas", comunicacao: p.data_comunicacao }); setAcao("alterar"); }}>Alterar condições</Button>}
+          {p.status !== "suspenso" && <Button size="sm" variant="outline" onClick={() => { setCondState({ motivo: p.motivo, modalidade: p.modalidade === "indenizado" ? "indenizado" : "trabalhado", reducao: (p.reducao as "duas_horas" | "sete_dias") ?? "duas_horas", comunicacao: p.data_comunicacao, terminoAcordado: "", descontar: p.descontar_aviso === true, pedidoEscrito: false, aceiteEmpresa: false }); setAcao("alterar"); }}>Alterar condições</Button>}
           <Button size="sm" variant="outline" onClick={() => setAcao("reconsideracao")}>Reconsideração</Button>
           <Button size="sm" variant="outline" onClick={() => setAcao("ocorrencia")}>Registrar ocorrência</Button>
           {pausado && <Button size="sm" onClick={() => setAcao("retomar")}>Retomar aviso…</Button>}
@@ -379,7 +439,8 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
           <Checkbox checked={formal} onCheckedChange={(v) => setFormal(v === true)} aria-label="Comunicação formal entregue" />
           A comunicação formal do aviso foi entregue ao colaborador em {br(previa.data_comunicacao)}. As datas passam a aparecer no portal dele.
         </label>
-        <Button onClick={() => executar({ acao: "confirmar", colaborador_id: colaboradorId, ...condBody(), comunicacao_formal: formal, idempotency_key: chave, esperado }, "Aviso prévio registrado. O colaborador continua ativo até o último dia.")} disabled={carregando || !formal}>Confirmar registro do aviso</Button>
+        {pedidoDispensadoPendente && <p className="text-xs text-destructive">Marque as duas declarações (pedido escrito e aceite da empresa) para confirmar.</p>}
+        <Button onClick={() => executar({ acao: "confirmar", colaborador_id: colaboradorId, ...condBody(), comunicacao_formal: formal, idempotency_key: chave, esperado }, "Aviso prévio registrado. O colaborador continua ativo até o último dia.")} disabled={carregando || !formal || pedidoDispensadoPendente}>Confirmar registro do aviso</Button>
       </div>
     )}
   </>);

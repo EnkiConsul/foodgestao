@@ -841,6 +841,13 @@
       "when": 1792688629454,
       "tag": "0119_desligamento_novo_emprego_exige_evidencia",
       "breakpoints": true
+    },
+    {
+      "idx": 120,
+      "version": "7",
+      "when": 1792690173610,
+      "tag": "0120_desligamento_motivos_v2",
+      "breakpoints": true
     }
   ]
 }

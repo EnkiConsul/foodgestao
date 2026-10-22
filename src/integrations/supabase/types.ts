@@ -8275,6 +8275,7 @@ export type Database = {
       }
       dp_desligamento_processos: {
         Row: {
+          aceite_empresa_confirmado: boolean
           alterado_apos_comunicacao: boolean
           base_quitacao: string | null
           calculado_por: string | null
@@ -8285,6 +8286,7 @@ export type Database = {
           criado_por: string | null
           data_comunicacao: string | null
           data_efetiva: string | null
+          descontar_aviso: boolean | null
           dias_aviso: number | null
           dias_indenizados: number | null
           dispensado_desde: string | null
@@ -8298,6 +8300,7 @@ export type Database = {
           pagamento_previsto: string | null
           pagamento_ref: string | null
           pagamento_status: string
+          pedido_escrito_confirmado: boolean
           pos_checklist: Json
           prazo_10_dias: string | null
           projecao_indenizada: string | null
@@ -8314,6 +8317,7 @@ export type Database = {
           versao: number
         }
         Insert: {
+          aceite_empresa_confirmado?: boolean
           alterado_apos_comunicacao?: boolean
           base_quitacao?: string | null
           calculado_por?: string | null
@@ -8324,6 +8328,7 @@ export type Database = {
           criado_por?: string | null
           data_comunicacao?: string | null
           data_efetiva?: string | null
+          descontar_aviso?: boolean | null
           dias_aviso?: number | null
           dias_indenizados?: number | null
           dispensado_desde?: string | null
@@ -8337,6 +8342,7 @@ export type Database = {
           pagamento_previsto?: string | null
           pagamento_ref?: string | null
           pagamento_status?: string
+          pedido_escrito_confirmado?: boolean
           pos_checklist?: Json
           prazo_10_dias?: string | null
           projecao_indenizada?: string | null
@@ -8353,6 +8359,7 @@ export type Database = {
           versao?: number
         }
         Update: {
+          aceite_empresa_confirmado?: boolean
           alterado_apos_comunicacao?: boolean
           base_quitacao?: string | null
           calculado_por?: string | null
@@ -8363,6 +8370,7 @@ export type Database = {
           criado_por?: string | null
           data_comunicacao?: string | null
           data_efetiva?: string | null
+          descontar_aviso?: boolean | null
           dias_aviso?: number | null
           dias_indenizados?: number | null
           dispensado_desde?: string | null
@@ -8376,6 +8384,7 @@ export type Database = {
           pagamento_previsto?: string | null
           pagamento_ref?: string | null
           pagamento_status?: string
+          pedido_escrito_confirmado?: boolean
           pos_checklist?: Json
           prazo_10_dias?: string | null
           projecao_indenizada?: string | null

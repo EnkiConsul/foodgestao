@@ -27,7 +27,8 @@ describe("Atalho Registrar desligamento", () => {
     fireEvent.click(screen.getByRole("button", { name: "Registrar desligamento" }));
     expect(abrir).toHaveBeenCalledTimes(1);
     const arg = abrir.mock.calls[0][0];
-    expect(Object.keys(arg).sort()).toEqual(["data_comunicacao", "modalidade", "reducao", "simulado"]);
+    expect(Object.keys(arg).sort()).toEqual(["data_comunicacao", "data_termino_acordada", "descontar_aviso", "modalidade", "motivo", "reducao", "simulado"]);
+    expect(arg.motivo).toBe("dispensa_sem_justa_causa");
     // Referência = cenário simulado COM a folga escolhida (último dia antecipado), sem levar folgas/saldo.
     expect(arg.data_comunicacao).toBe("2026-10-01");
     expect(arg.simulado.comFolgas).toBe(true);
