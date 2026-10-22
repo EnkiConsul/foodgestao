@@ -18,6 +18,7 @@ import { recordEdgeError } from "../_shared/error-log.ts";
 import { resumoQuitacao } from "../_shared/quitacao.ts";
 import { desenharAssinatura, embutirAssinatura, rubricarPaginas } from "../_shared/assinatura-pdf.ts";
 import { montarReciboPdf, reciboDaLinha } from "../_shared/recibo-pdf.ts";
+import { assinarCampoTermoFolga } from "./termo-folga-assinado.ts";
 import type { PDFImage } from "npm:pdf-lib@1.17.1";
 import {
   MARCA_ASSINATURA,
@@ -456,7 +457,7 @@ Deno.serve(async (req) => {
     const chaveCache = [
       registro.company_id,
       "certificados",
-      `${documentoId}-${aceite.id}-${encodeURIComponent(String(comp?.file_path ?? "sem-comprovante")).replace(/%/g, "")}-${String(registro.comprovante_pago_em ?? "").slice(0, 10)}-${String(registro.versao ?? 1)}-r4.pdf`,
+      `${documentoId}-${aceite.id}-${encodeURIComponent(String(comp?.file_path ?? "sem-comprovante")).replace(/%/g, "")}-${String(registro.comprovante_pago_em ?? "").slice(0, 10)}-${String(registro.versao ?? 1)}-r5.pdf`,
     ].join("/");
     const pronto = await admin.storage.from(BUCKET).download(chaveCache);
     if (pronto.data && !pronto.error) {
@@ -562,6 +563,27 @@ Deno.serve(async (req) => {
     // Página 1 depois dos avisos conhecidos do download.
     let docBytes: Uint8Array | null = null;
     if (baixarDoc.data) docBytes = new Uint8Array(await baixarDoc.data.arrayBuffer());
+
+    // Modelo emitido pelo calendário: atualiza apenas a cópia do certificado.
+    // Uma versão/hash diferente nunca recebe a assinatura do aceite anterior.
+    const termoFolga = registro.tipo === "ajuste_jornada" &&
+      registro.titulo === "Termo de Alteração de Folga" &&
+      /^termo-alteracao-folga-\d{4}-\d{2}-\d{2}\.pdf$/.test(String(doc.file_name ?? ""));
+    const mesmaVersao = Number(aceite.documento_versao ?? registro.versao ?? 1) === Number(registro.versao ?? 1);
+    if (termoFolga && docBytes && mesmaVersao && aceite.assinatura_imagem) {
+      const { sha256Hex } = await import("../_shared/doc-hash.ts");
+      const hash = await sha256Hex(docBytes.slice().buffer as ArrayBuffer);
+      if (aceite.hash_origem !== "legado_caminho" && hash === aceite.conteudo_hash) {
+        try {
+          docBytes = await assinarCampoTermoFolga(docBytes, {
+            assinatura: aceite.assinatura_imagem, aceitoEm: aceite.aceito_em,
+          });
+        } catch (e) {
+          await recordEdgeError({ functionName: FUNCAO, action: "estampar aceite no termo de folga", error: e, details: { documento_id: documentoId } });
+          avisos.push("A assinatura está comprovada neste certificado, mas não foi possível atualizar o campo no termo original.");
+        }
+      }
+    }
 
     // Recibo: a página anexada é refeita com a assinatura estampada na linha do recebedor.
     try {

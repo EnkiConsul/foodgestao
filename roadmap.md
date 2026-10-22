@@ -1,4 +1,7 @@
 # Melhorias da admissão
+## Termos de alteração de folga — assinatura no documento
+- [x] Aplicar o aceite registrado no campo do empregado, sem alterar o original ou o hash aprovado.
+- [x] Testar e regenerar os dois termos do Herick: hash original conferido, assinatura e aceite realizado no campo; certificados 200 e abertura real pela tela. Sem publicação do site.
 ## Ações do Dia — aviso de atualização
 - [x] Substituir o erro grande por aviso compacto quando existir uma lista confirmada, mantendo nova tentativa disponível.
 - [x] Conferir preservação das ações, nova tentativa e apresentação no celular/computador: 18 testes passaram; falha de rede simulada preservou 55 ações; sem publicar.
