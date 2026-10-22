@@ -741,6 +741,14 @@ function DetalheDiaOperacao({
                             {/* Linha 1: nome + vínculo */}
                             <div className="flex min-w-0 items-center justify-between gap-2">
                               <p className="min-w-0 truncate text-sm font-bold" title={p.nome}>{p.nome}</p>
+                              {p.aguardando_registro && (
+                                <span
+                                  className="shrink-0 rounded-full border border-amber-500/50 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-500"
+                                  title="Pré-admissão ativa na rotina como freelancer provisório, aguardando o registro oficial."
+                                >
+                                  Aguardando registro
+                                </span>
+                              )}
                               <span className={cn(
                                 "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
                                 vinculoPessoa(p, regimes) === "Fixo" ? "bg-primary/10 text-primary" : "bg-foreground text-background",
