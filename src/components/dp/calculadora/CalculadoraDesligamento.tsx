@@ -64,7 +64,7 @@ function concentrarNoFinal(base: ResultadoDesligamento, saldoMin: number): strin
 export type RegistrarDesligamento = {
   rotulo: string;
   bloqueio?: string | null;
-  abrir: (r: { data_comunicacao: string; modalidade: ModalidadeAviso; reducao: ReducaoArt488 | null; simulado: { ultimo: string | null; prazo: string } }) => void;
+  abrir: (r: { data_comunicacao: string; modalidade: ModalidadeAviso; reducao: ReducaoArt488 | null; simulado: { ultimo: string | null; prazo: string; comFolgas: boolean } }) => void;
 };
 
 export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornadaInicial = null, unidadeId = null, registrar }: {
