@@ -166,6 +166,7 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
   const [ocTipo, setOcTipo] = useState("dispensa_cumprimento");
   const [ocData, setOcData] = useState(hojeIsoLocal());
   const [ocComprovado, setOcComprovado] = useState(false);
+  const [ocPedido, setOcPedido] = useState(false);
   const [fimImped, setFimImped] = useState(hojeIsoLocal());
   const [retConf, setRetConf] = useState(false);
 
@@ -314,20 +315,25 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
             <div className="space-y-1"><Label htmlFor="desl-oc-data">{ocTipo === "novo_emprego" ? "Último dia trabalhado" : "A partir de"}</Label><Input id="desl-oc-data" type="date" value={ocData} onChange={(e) => setOcData(e.target.value)} /></div>
           </div>
           {ocTipo === "novo_emprego" && p.modalidade === "trabalhado" && (
-            <label className="flex items-start gap-2 text-sm"><Checkbox checked={ocComprovado} onCheckedChange={(v) => setOcComprovado(v === true)} />
-              <span>O colaborador pediu por escrito a dispensa do restante do aviso e comprovou o novo emprego (Súmula 276 do TST). O vínculo termina no último dia trabalhado, sem pagar os dias restantes, e o prazo de 10 dias passa a contar dessa data.</span></label>
+            <div className="space-y-2 rounded-md bg-muted/40 p-2">
+              <label className="flex items-start gap-2 text-sm"><Checkbox checked={ocPedido} onCheckedChange={(v) => setOcPedido(v === true)} />
+                <span>O colaborador pediu por escrito a dispensa do restante do aviso.</span></label>
+              <label className="flex items-start gap-2 text-sm"><Checkbox checked={ocComprovado} onCheckedChange={(v) => setOcComprovado(v === true)} />
+                <span>O novo emprego foi comprovado.</span></label>
+              <p className="text-xs text-muted-foreground">Guarde o pedido e o comprovante no GED ou com a contabilidade; esta declaração não substitui a prova. O vínculo termina no último dia trabalhado (já ocorrido) e o prazo de 10 dias conta dessa data. O tratamento das verbas depende de conferência da contabilidade; a AVETO calcula datas do processo.</p>
+            </div>
           )}
           {ocTipo === "novo_emprego" && p.modalidade !== "trabalhado" && (
             <p className="text-xs text-muted-foreground">Em aviso indenizado ou misto o efeito do novo emprego depende de análise: fica pausado para revisão manual.</p>
           )}
-          <Label htmlFor="desl-oc-nota">Observação interna</Label>
+          <Label htmlFor="desl-oc-nota">{termino ? "Evidência: como e quando houve o pedido e a comprovação (mín. 20 caracteres)" : "Observação interna"}</Label>
           <Textarea id="desl-oc-nota" value={nota} onChange={(e) => setNota(e.target.value)} />
-          <p className="text-xs text-muted-foreground">{ocTipo === "novo_emprego" && ocComprovado && p.modalidade === "trabalhado"
+          <p className="text-xs text-muted-foreground">{termino
             ? "As novas datas são calculadas no servidor e publicadas ao colaborador."
             : "A efetivação automática fica pausada. Nenhuma data é alterada: os efeitos dependem de análise e da sua decisão registrada."}</p>
           <div className="flex gap-2">
-            <Button size="sm" disabled={carregando} onClick={() => executar({ acao: "ocorrencia", processo_id: p.id, idempotency_key: chave, tipo: ocTipo, data: ocData, nota, ...(ocTipo === "novo_emprego" && ocComprovado && p.modalidade === "trabalhado" ? { aplicar_termino: true } : {}) },
-              ocTipo === "novo_emprego" && ocComprovado && p.modalidade === "trabalhado" ? "Término antecipado registrado com as novas datas." : "Ocorrência registrada. Aviso pausado para revisão.")}>Registrar</Button>
+            <Button size="sm" disabled={carregando || (termino && nota.trim().length < 20)} onClick={() => executar({ acao: "ocorrencia", processo_id: p.id, idempotency_key: chave, tipo: ocTipo, data: ocData, nota, ...(termino ? { aplicar_termino: true, pedido_dispensado_pelo_empregado: true, novo_emprego_comprovado: true } : {}) },
+              termino ? "Término antecipado registrado com as novas datas." : "Ocorrência registrada. Aviso pausado para revisão.")}>Registrar</Button>
             <Button size="sm" variant="ghost" onClick={fechar}>Voltar</Button>
           </div>
           {Msg}
