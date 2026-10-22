@@ -338,6 +338,10 @@ export function simularDesligamento(p: ParametrosDesligamento): ResultadoOuErro 
     // Dispensa pela empresa: cumprimento limitado a 30 dias (proporcional indenizado).
     // Pedido de demissão e acordo mútuo: cumpre-se a duração apurada, sem teto de 30.
     const diasCumpridos = motivo === "dispensa_sem_justa_causa" ? Math.min(PERIODO_TRABALHADO_MAX, duracao) : duracao;
+    if (motivo === "acordo_mutuo")
+      avisos.push(
+        "Acordo mútuo com aviso trabalhado: 30 dias cumpridos. A redução pela metade do art. 484-A vale só para o aviso indenizado; eventual projeção de dias proporcionais depende de validação jurídica e não foi calculada.",
+      );
     fimCumprido = somarDias(p.dataComunicacao, diasCumpridos);
     diasProjetados = duracao - diasCumpridos;
     if (diasProjetados > 0)
