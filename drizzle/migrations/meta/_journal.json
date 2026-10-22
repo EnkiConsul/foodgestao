@@ -855,6 +855,13 @@
       "when": 1792692681072,
       "tag": "0121_desligamento_modalidade_dispensado_cumprimento",
       "breakpoints": true
+    },
+    {
+      "idx": 122,
+      "version": "7",
+      "when": 1792707402908,
+      "tag": "0122_cancelar_avisos_documento_removido",
+      "breakpoints": true
     }
   ]
 }

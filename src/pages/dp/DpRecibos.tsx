@@ -574,7 +574,10 @@ export default function DpRecibos() {
           </div>
           <div className="space-y-1.5 md:col-span-2">
             <Label>Descrição (Opcional)</Label>
-            <Textarea rows={2} value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex.: diária do evento de sábado" />
+            <Textarea rows={3} maxLength={500} value={descricao} onChange={(e) => setDescricao(e.target.value.slice(0, 500))} placeholder="Ex.: diária do evento de sábado" />
+            <p className={`text-xs text-right ${descricao.length >= 460 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+              {descricao.length} / 500 caracteres
+            </p>
           </div>
         </div>
 
