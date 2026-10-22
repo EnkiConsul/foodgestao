@@ -8279,12 +8279,16 @@ export type Database = {
           calculado_por: string | null
           colaborador_id: string
           company_id: string
+          comunicacao_confirmada_em: string | null
           created_at: string
           criado_por: string | null
           data_comunicacao: string | null
           data_efetiva: string | null
+          dias_aviso: number | null
+          dias_indenizados: number | null
           dispensado_desde: string | null
           id: string
+          idempotency_key: string | null
           inicio_aviso: string | null
           modalidade: string | null
           motivo: Database["public"]["Enums"]["dp_motivo_desligamento"]
@@ -8304,12 +8308,16 @@ export type Database = {
           calculado_por?: string | null
           colaborador_id: string
           company_id: string
+          comunicacao_confirmada_em?: string | null
           created_at?: string
           criado_por?: string | null
           data_comunicacao?: string | null
           data_efetiva?: string | null
+          dias_aviso?: number | null
+          dias_indenizados?: number | null
           dispensado_desde?: string | null
           id?: string
+          idempotency_key?: string | null
           inicio_aviso?: string | null
           modalidade?: string | null
           motivo: Database["public"]["Enums"]["dp_motivo_desligamento"]
@@ -8329,12 +8337,16 @@ export type Database = {
           calculado_por?: string | null
           colaborador_id?: string
           company_id?: string
+          comunicacao_confirmada_em?: string | null
           created_at?: string
           criado_por?: string | null
           data_comunicacao?: string | null
           data_efetiva?: string | null
+          dias_aviso?: number | null
+          dias_indenizados?: number | null
           dispensado_desde?: string | null
           id?: string
+          idempotency_key?: string | null
           inicio_aviso?: string | null
           modalidade?: string | null
           motivo?: Database["public"]["Enums"]["dp_motivo_desligamento"]
@@ -19677,6 +19689,15 @@ export type Database = {
         Args: { p_colaborador_id: string; p_dependente: Json }
         Returns: string
       }
+      dp_desligamento_cancelar: {
+        Args: { p_ator: string; p_justificativa: string; p_processo: string }
+        Returns: undefined
+      }
+      dp_desligamento_limite_agenda: {
+        Args: { p_colab: string }
+        Returns: string
+      }
+      dp_desligamento_registrar_aviso: { Args: { p: Json }; Returns: Json }
       dp_desligar_colaborador: {
         Args: {
           p_colaborador_id: string

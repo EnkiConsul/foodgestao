@@ -55,6 +55,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { contratoPolicy, isSocio } from "@/lib/dp/contrato-policy";
 import { percentualAdicionalVigente } from "@/lib/dp/adicionais-risco";
 import { ColaboradorDesligamentoPanel } from "./ColaboradorDesligamentoPanel";
+import { ColaboradorDesligamentoAvisoPanel } from "./ColaboradorDesligamentoAvisoPanel";
 import { useSalvarDpDesligamentoRessalvas, useDpDesligamentoRessalvas } from "@/hooks/useDpDesligamentoRessalvas";
 import { ColaboradorAcessoPanel } from "./ColaboradorAcessoPanel";
 import { AdiantamentoSolicitacoesPanel } from "@/components/dp/AdiantamentoSolicitacoesPanel";
@@ -719,9 +720,8 @@ export function ColaboradorFormDialog({
     alteracaoConfirmada.current = null;
     setAlteracaoPendente(null);
 
-    // Acesso e desligamento agora vivem na aba Dados: o atalho abre Dados e
-    // rola até a âncora do bloco correspondente.
-    const ancora = abaInicial === "acesso" ? "acesso-portal" : abaInicial === "desligamento" ? "desligamento" : null;
+    // Acesso vive na aba Dados (âncora); desligamento tem aba própria.
+    const ancora = abaInicial === "acesso" ? "acesso-portal" : null;
     setTab(ancora ? "dados" : (abaInicial as AbaVisivel));
     if (ancora) {
       window.setTimeout(() => {
@@ -2408,6 +2408,9 @@ export function ColaboradorFormDialog({
               </TabsTrigger>
               <TabsTrigger value="dependentes">Dependentes</TabsTrigger>
               <TabsTrigger value="documentos">Documentos</TabsTrigger>
+              {(isEdit || criadoId) && !socioSelecionado && (
+                <TabsTrigger value="desligamento">Desligamento</TabsTrigger>
+              )}
 
             </TabsList>
             </div>
@@ -3007,12 +3010,6 @@ export function ColaboradorFormDialog({
               <div id="acesso-portal" className="scroll-mt-4">
                 <ColaboradorAcessoPanel colaborador={colaboradorAtual} />
               </div>
-              {/* Saída de sócio é alteração de contrato social, não rescisão. */}
-              {!socioSelecionado && (
-                <div id="desligamento" className="scroll-mt-4">
-                  <ColaboradorDesligamentoPanel colaborador={colaboradorAtual} />
-                </div>
-              )}
             </div>
           )}
 
@@ -3378,6 +3375,21 @@ export function ColaboradorFormDialog({
               <ColaboradorDocumentosPanel colaboradorId={colaborador?.id ?? criadoId ?? null} />
             )}
           </TabsContent>
+
+          {/* Saída de sócio é alteração de contrato social, não rescisão. */}
+          {(isEdit || criadoId) && !socioSelecionado && (
+            <TabsContent value="desligamento" className="mt-4 space-y-4">
+              {colaboradorAtual?.id && (
+                <ColaboradorDesligamentoAvisoPanel
+                  colaboradorId={colaboradorAtual.id}
+                  ativo={!!colaboradorAtual.ativo && !colaboradorAtual.data_desligamento}
+                />
+              )}
+              <div id="desligamento" className="scroll-mt-4">
+                <ColaboradorDesligamentoPanel colaborador={colaboradorAtual} />
+              </div>
+            </TabsContent>
+          )}
 
 
 

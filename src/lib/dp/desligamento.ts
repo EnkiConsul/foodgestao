@@ -1,3 +1,5 @@
+import { parseDateOnly, toDateOnly } from "../../../supabase/functions/_shared/desligamento-datas.ts";
+export { parseDateOnly, toDateOnly, prazoLegalRescisao, prazoPagamentoRescisao } from "../../../supabase/functions/_shared/desligamento-datas.ts";
 export type MotivoDesligamento =
   | "pedido_demissao"
   | "dispensa_sem_justa_causa"
@@ -40,18 +42,6 @@ export const ELEGIBILIDADE_OPTIONS = Object.entries(ELEGIBILIDADE_LABEL).map(([v
 
 export const DIAS_CARENCIA_PORTAL_DEFAULT = 30;
 
-/** Converte 'YYYY-MM-DD' em Date local (sem drift de fuso). */
-export function parseDateOnly(value: string): Date {
-  const [y, m, d] = value.split("-").map(Number);
-  return new Date(y, (m ?? 1) - 1, d ?? 1);
-}
-
-export function toDateOnly(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
 
 /** Data-limite de acesso ao portal = data de demissão + dias de carência. */
 export function calcAcessoPortalAte(
@@ -80,25 +70,3 @@ export function diasRestantesCarencia(
   return Math.round((fim - inicio) / 86_400_000);
 }
 
-/** Prazo legal (Art. 477, § 6º, CLT): 10 dias corridos após o término. */
-export function prazoLegalRescisao(dataDesligamento: string): string {
-  const d = parseDateOnly(dataDesligamento);
-  d.setDate(d.getDate() + 10);
-  return toDateOnly(d);
-}
-
-/**
- * Sugestão para pagamento por TED/compensação bancária: se o prazo legal
- * cair em sábado, domingo ou feriado da unidade, antecipa para o dia útil
- * anterior. Pix e espécie podem ser pagos no próprio prazo legal.
- */
-export function prazoPagamentoRescisao(
-  dataDesligamento: string,
-  feriados: ReadonlySet<string> = new Set(),
-): string {
-  const d = parseDateOnly(prazoLegalRescisao(dataDesligamento));
-  while (d.getDay() === 0 || d.getDay() === 6 || feriados.has(toDateOnly(d))) {
-    d.setDate(d.getDate() - 1);
-  }
-  return toDateOnly(d);
-}
