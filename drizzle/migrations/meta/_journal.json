@@ -862,6 +862,13 @@
       "when": 1792707402908,
       "tag": "0122_cancelar_avisos_documento_removido",
       "breakpoints": true
+    },
+    {
+      "idx": 123,
+      "version": "7",
+      "when": 1792710065117,
+      "tag": "0123_preadmissao_ativar_rotina",
+      "breakpoints": true
     }
   ]
 }

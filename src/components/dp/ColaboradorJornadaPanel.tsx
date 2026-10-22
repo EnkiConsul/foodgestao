@@ -28,7 +28,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpColaboradorConfigTrabalho } from "@/hooks/useDpColaboradorConfigTrabalho";
 import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 import { useDpModelosHorario, type ModeloHorarioColaborador } from "@/hooks/useDpModelosHorario";
-import { chaveHorarioBase, contarHorariosBase, horarioBaseMaisComum, sugerirModeloHorario, assinaturaSemana } from "@/lib/dp/modeloHorarioRanking";
+import { chaveHorarioBase, contarHorariosBase, horarioBaseMaisComum, montarSemanaUniforme, sugerirSemanaBaseCargo, assinaturaSemana } from "@/lib/dp/modeloHorarioRanking";
 import { contratoPolicy, isSocio } from "@/lib/dp/contrato-policy";
 import { formatarHoras } from "@/lib/dp/jornada-utils";
 import { formatarFaixaTurno, intervaloAbaixoDoLegal } from "@/lib/dp/turno-utils";
@@ -286,23 +286,51 @@ export function ColaboradorJornadaPanel({
     setHorarioReferencia(base);
   }, [active, vigente, colaborador?.id, colaborador?.cargo_id, alterado, modelosDoCargo]);
 
+  /**
+   * Semana sugerida para o cargo: o horário que MAIS se repete entre os
+   * colegas, aplicado igual em todos os dias (sem copiar exceções de
+   * sexta/sábado/domingo de ninguém) e sempre com 1 folga semanal.
+   */
+  const sugestaoCargo = useMemo(
+    () => sugerirSemanaBaseCargo(modelosDoCargo, colaborador?.cargo_id ?? null),
+    [modelosDoCargo, colaborador?.cargo_id],
+  );
+
+  /** A semana atual já está no padrão uniforme do cargo? */
+  const semanaNoPadraoCargo = useMemo(() => {
+    if (!sugestaoCargo) return false;
+    return montarSemanaUniforme(sugestaoCargo).every((alvo) => {
+      const d = dias.find((x) => x.dow === alvo.dow);
+      if (!d || d.trabalha !== alvo.trabalha) return false;
+      if (!alvo.trabalha) return true;
+      return (d.entrada ?? null) === (alvo.entrada ?? null)
+        && (d.saida ?? null) === (alvo.saida ?? null)
+        && (d.intervalo_minutos ?? 0) === (alvo.intervalo_minutos ?? 0);
+    });
+  }, [dias, sugestaoCargo]);
+
+  /** Um clique: uniformiza a semana no horário padrão do cargo (6x1). */
+  const aplicarPadraoCargo = () => {
+    if (!sugestaoCargo) return;
+    horarioAplicadoRef.current = "sugestao";
+    setHorarioReferencia(sugestaoCargo.horario);
+    setDias(montarSemanaUniforme(sugestaoCargo));
+    setFolgaVariavel(false);
+    setAlterado(true);
+    setOrigemSugestao("cargo");
+  };
+
   useEffect(() => {
     if (!active || vigente || colaborador?.id || !colaborador?.cargo_id || alterado || rascunhoInicial) return;
     const chave = `${colaborador?.nome ?? "novo"}:${colaborador?.cargo_id}:${colaborador?.unidade_id ?? "sem-unidade"}:${admissao ?? "sem-admissao"}`;
     if (sugestaoAplicadaRef.current === chave) return;
-    const modelo = sugerirModeloHorario(modelosDoCargo, colaborador?.cargo_id);
     sugestaoAplicadaRef.current = chave;
-    if (!modelo?.horario) {
+    if (!sugestaoCargo) {
       setOrigemSugestao("sem_compativel");
       return;
     }
-    horarioAplicadoRef.current = "sugestao";
-    setHorarioReferencia(modelo.horario);
-    setDias(normalizarDias(modelo.dias));
-    setFolgaVariavel(modelo.folga_variavel);
-    setAlterado(true);
-    setOrigemSugestao("cargo");
-  }, [active, vigente, colaborador?.id, colaborador?.nome, colaborador?.cargo_id, colaborador?.unidade_id, admissao, alterado, modelosDoCargo]);
+    aplicarPadraoCargo();
+  }, [active, vigente, colaborador?.id, colaborador?.nome, colaborador?.cargo_id, colaborador?.unidade_id, admissao, alterado, modelosDoCargo, sugestaoCargo]);
 
   // Recarrega o formulário com a configuração vigente sempre que o painel ativa.
   useEffect(() => {
@@ -1016,7 +1044,7 @@ export function ColaboradorJornadaPanel({
         {origemSugestao === "cargo" && (
           <p className="flex items-center gap-2 rounded-md border bg-muted/30 p-2 text-xs text-muted-foreground">
             <Info className="h-4 w-4 shrink-0" aria-hidden="true" />
-            Horário sugerido pelos colegas do mesmo cargo nesta unidade — pode ajustar.
+            Horário mais usado pelos colegas deste cargo, igual todos os dias e com 1 folga na semana — ajuste a folga clicando no dia.
           </p>
         )}
         {origemSugestao === "sem_compativel" && (
@@ -1032,6 +1060,15 @@ export function ColaboradorJornadaPanel({
             {tituloSistema("Horário de Trabalho por Dia")}
           </h3>
           <div className="flex items-center gap-2">
+            {sugestaoCargo && !semanaNoPadraoCargo && (
+              <Button
+                type="button" size="sm" variant="outline" className="h-8 text-xs"
+                title="Aplica o horário mais usado pelos colegas deste cargo, igual em todos os dias, com 1 folga na semana."
+                onClick={aplicarPadraoCargo}
+              >
+                Horário padrão do cargo
+              </Button>
+            )}
             <Button type="button" size="sm" variant="outline" className="h-8 text-xs" onClick={() => aplicarEscala("6x1")}>
               6x1
             </Button>
