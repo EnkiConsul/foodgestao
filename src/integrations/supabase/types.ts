@@ -8216,6 +8216,163 @@ export type Database = {
           },
         ]
       }
+      dp_desligamento_eventos: {
+        Row: {
+          antes: Json | null
+          ator: string | null
+          company_id: string
+          created_at: string
+          depois: Json | null
+          id: number
+          idempotency_key: string
+          itens_agenda: Json | null
+          processo_id: string
+          tipo: string
+          versao_processo: number
+        }
+        Insert: {
+          antes?: Json | null
+          ator?: string | null
+          company_id: string
+          created_at?: string
+          depois?: Json | null
+          id?: never
+          idempotency_key: string
+          itens_agenda?: Json | null
+          processo_id: string
+          tipo: string
+          versao_processo: number
+        }
+        Update: {
+          antes?: Json | null
+          ator?: string | null
+          company_id?: string
+          created_at?: string
+          depois?: Json | null
+          id?: never
+          idempotency_key?: string
+          itens_agenda?: Json | null
+          processo_id?: string
+          tipo?: string
+          versao_processo?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_desligamento_eventos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_desligamento_eventos_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_desligamento_processos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dp_desligamento_processos: {
+        Row: {
+          base_quitacao: string | null
+          calculado_por: string | null
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          criado_por: string | null
+          data_comunicacao: string | null
+          data_efetiva: string | null
+          dispensado_desde: string | null
+          id: string
+          inicio_aviso: string | null
+          modalidade: string | null
+          motivo: Database["public"]["Enums"]["dp_motivo_desligamento"]
+          prazo_10_dias: string | null
+          projecao_indenizada: string | null
+          reducao: string | null
+          regra_validada: boolean
+          regra_versao: string | null
+          status: string
+          sugestao_pagamento: string | null
+          ultimo_comparecimento: string | null
+          updated_at: string
+          versao: number
+        }
+        Insert: {
+          base_quitacao?: string | null
+          calculado_por?: string | null
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          criado_por?: string | null
+          data_comunicacao?: string | null
+          data_efetiva?: string | null
+          dispensado_desde?: string | null
+          id?: string
+          inicio_aviso?: string | null
+          modalidade?: string | null
+          motivo: Database["public"]["Enums"]["dp_motivo_desligamento"]
+          prazo_10_dias?: string | null
+          projecao_indenizada?: string | null
+          reducao?: string | null
+          regra_validada?: boolean
+          regra_versao?: string | null
+          status?: string
+          sugestao_pagamento?: string | null
+          ultimo_comparecimento?: string | null
+          updated_at?: string
+          versao?: number
+        }
+        Update: {
+          base_quitacao?: string | null
+          calculado_por?: string | null
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          criado_por?: string | null
+          data_comunicacao?: string | null
+          data_efetiva?: string | null
+          dispensado_desde?: string | null
+          id?: string
+          inicio_aviso?: string | null
+          modalidade?: string | null
+          motivo?: Database["public"]["Enums"]["dp_motivo_desligamento"]
+          prazo_10_dias?: string | null
+          projecao_indenizada?: string | null
+          reducao?: string | null
+          regra_validada?: boolean
+          regra_versao?: string | null
+          status?: string
+          sugestao_pagamento?: string | null
+          ultimo_comparecimento?: string | null
+          updated_at?: string
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_desligamento_processos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_desligamento_processos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_desligamento_processos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_dia_config: {
         Row: {
           company_id: string
