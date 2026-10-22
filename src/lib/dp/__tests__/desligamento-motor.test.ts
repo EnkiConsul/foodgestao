@@ -65,7 +65,8 @@ describe("trabalhado × indenizado", () => {
     expect(r.terminoProjetado).toBe("2026-10-31");
     expect(r.baseQuitacao).toBe("2026-10-01");
     expect(r.prazoQuitacao).toBe("2026-10-11"); // domingo
-    expect(r.prazoQuitacaoDiaUtil).toBe("2026-10-12");
+    expect(r.sugestaoPagamentoDiaUtilAnterior).toBe("2026-10-09"); // sexta anterior
+    expect(r.dispensadoDeComparecerDesde).toBe("2026-10-02");
     expect(r.folgasRejeitadas[0].motivo).toBe("aviso_indenizado");
   });
   it("trabalhado exige escolha da redução", () => {
@@ -146,5 +147,47 @@ describe("calendário e folgas compensatórias", () => {
     const r = ok(base({ saldoBancoMinutos: 360, folgasCompensatorias: ["2026-10-05"] }));
     expect(r.minutosCompensados).toBe(360);
     expect(r.saldoResidualMinutos).toBe(0);
+  });
+});
+
+describe("Fase 1 — 10º dia bruto e sugestão anterior", () => {
+  const ind = (com: string, feriados?: string[]) => ok(base({ modalidade: "indenizado", reducao: null, dataComunicacao: com, feriados }));
+  it("dia útil: sugestão igual ao prazo", () => {
+    const r = ind("2026-10-05"); // +10 = qui 15/10
+    expect(r.prazoQuitacao).toBe("2026-10-15");
+    expect(r.sugestaoPagamentoDiaUtilAnterior).toBe("2026-10-15");
+  });
+  it("sábado: prazo mantido, sugestão na sexta", () => {
+    const r = ind("2026-10-07"); // +10 = sáb 17/10
+    expect(r.prazoQuitacao).toBe("2026-10-17");
+    expect(r.sugestaoPagamentoDiaUtilAnterior).toBe("2026-10-16");
+  });
+  it("feriado: prazo mantido, sugestão no útil anterior", () => {
+    const r = ind("2026-10-02", ["2026-10-12"]); // +10 = seg 12/10 feriado
+    expect(r.prazoQuitacao).toBe("2026-10-12");
+    expect(r.sugestaoPagamentoDiaUtilAnterior).toBe("2026-10-09");
+  });
+  it("misto 42 dias: base é o fim do cumprido, não a projeção", () => {
+    const r = ok(base({ dataAdmissao: "2022-09-01" })); // 4 anos → 42
+    expect(r.duracaoLegalDias).toBe(42);
+    expect(r.diasProjetadosIndenizados).toBe(12);
+    expect(r.fimPeriodoCumprido).toBe("2026-10-31");
+    expect(r.terminoProjetado).toBe("2026-11-12");
+    expect(r.baseQuitacao).toBe("2026-10-31");
+    expect(r.prazoQuitacao).toBe("2026-11-10");
+    expect(r.ultimoComparecimento).toBe("2026-10-31");
+    expect(r.dispensadoDeComparecerDesde).toBeNull();
+  });
+  it("sete dias não antecipa a data contratual nem a base", () => {
+    const r = ok(base({ reducao: "sete_dias" }));
+    expect(r.ultimoComparecimento).toBe("2026-10-24");
+    expect(r.fimPeriodoCumprido).toBe("2026-10-31");
+    expect(r.baseQuitacao).toBe("2026-10-31");
+  });
+  it("pura: mesma entrada, mesma saída, sem mutar parâmetros", () => {
+    const p = base({ saldoBancoMinutos: 600, folgasCompensatorias: ["2026-10-30", "2026-10-05"] });
+    const copia = JSON.parse(JSON.stringify(p));
+    expect(ok(p)).toEqual(ok(p));
+    expect(p).toEqual(copia);
   });
 });

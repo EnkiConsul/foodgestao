@@ -66,8 +66,18 @@ describe("Aba Desligamento", () => {
     render(<CalculadoraDesligamento />);
     preencher();
     fireEvent.click(screen.getByLabelText("Indenizado"));
-    expect(ultimo()).toMatch(/Dispensado/);
+    expect(ultimo()).toMatch(/Dispensado de comparecer a partir de 02\/10\/2026/);
     expect(screen.queryByLabelText("Calendário do aviso")).toBeNull();
+  });
+  it("prazo mostra o 10º dia bruto e sugestão anterior só como linha secundária", () => {
+    render(<CalculadoraDesligamento />);
+    preencher();
+    expect(screen.getByTestId("prazo-quitacao").textContent).toContain("10/11/2026");
+    expect(screen.queryByTestId("sugestao-pagamento")).toBeNull();
+    fireEvent.click(screen.getByLabelText("Indenizado")); // 01/10 + 10 = dom 11/10
+    expect(screen.getByTestId("prazo-quitacao").textContent).toContain("11/10/2026");
+    expect(screen.getByTestId("sugestao-pagamento").textContent).toMatch(/Sugestão para a empresa: pagar até 09\/10\/2026/);
+    expect(document.body.textContent).not.toMatch(/prorroga/i);
   });
   it("7 dias corridos: ausência legal no final, separada das folgas", () => {
     render(<CalculadoraDesligamento />);
