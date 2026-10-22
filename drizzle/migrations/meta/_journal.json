@@ -820,6 +820,13 @@
       "when": 1792686216608,
       "tag": "0116_desligamento_registro_aviso_e_agenda",
       "breakpoints": true
+    },
+    {
+      "idx": 117,
+      "version": "7",
+      "when": 1792687111021,
+      "tag": "0117_desligamento_f4_f5_f6_portal",
+      "breakpoints": true
     }
   ]
 }

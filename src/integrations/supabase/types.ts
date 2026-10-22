@@ -8275,6 +8275,7 @@ export type Database = {
       }
       dp_desligamento_processos: {
         Row: {
+          alterado_apos_comunicacao: boolean
           base_quitacao: string | null
           calculado_por: string | null
           colaborador_id: string
@@ -8287,23 +8288,33 @@ export type Database = {
           dias_aviso: number | null
           dias_indenizados: number | null
           dispensado_desde: string | null
+          encerrado_admin_em: string | null
           id: string
           idempotency_key: string | null
           inicio_aviso: string | null
           modalidade: string | null
           motivo: Database["public"]["Enums"]["dp_motivo_desligamento"]
+          pagamento_em: string | null
+          pagamento_previsto: string | null
+          pagamento_ref: string | null
+          pagamento_status: string
+          pos_checklist: Json
           prazo_10_dias: string | null
           projecao_indenizada: string | null
+          publicado_em: string | null
           reducao: string | null
           regra_validada: boolean
           regra_versao: string | null
+          revisao_motivo: string | null
           status: string
           sugestao_pagamento: string | null
           ultimo_comparecimento: string | null
           updated_at: string
+          valor_informado: number | null
           versao: number
         }
         Insert: {
+          alterado_apos_comunicacao?: boolean
           base_quitacao?: string | null
           calculado_por?: string | null
           colaborador_id: string
@@ -8316,23 +8327,33 @@ export type Database = {
           dias_aviso?: number | null
           dias_indenizados?: number | null
           dispensado_desde?: string | null
+          encerrado_admin_em?: string | null
           id?: string
           idempotency_key?: string | null
           inicio_aviso?: string | null
           modalidade?: string | null
           motivo: Database["public"]["Enums"]["dp_motivo_desligamento"]
+          pagamento_em?: string | null
+          pagamento_previsto?: string | null
+          pagamento_ref?: string | null
+          pagamento_status?: string
+          pos_checklist?: Json
           prazo_10_dias?: string | null
           projecao_indenizada?: string | null
+          publicado_em?: string | null
           reducao?: string | null
           regra_validada?: boolean
           regra_versao?: string | null
+          revisao_motivo?: string | null
           status?: string
           sugestao_pagamento?: string | null
           ultimo_comparecimento?: string | null
           updated_at?: string
+          valor_informado?: number | null
           versao?: number
         }
         Update: {
+          alterado_apos_comunicacao?: boolean
           base_quitacao?: string | null
           calculado_por?: string | null
           colaborador_id?: string
@@ -8345,20 +8366,29 @@ export type Database = {
           dias_aviso?: number | null
           dias_indenizados?: number | null
           dispensado_desde?: string | null
+          encerrado_admin_em?: string | null
           id?: string
           idempotency_key?: string | null
           inicio_aviso?: string | null
           modalidade?: string | null
           motivo?: Database["public"]["Enums"]["dp_motivo_desligamento"]
+          pagamento_em?: string | null
+          pagamento_previsto?: string | null
+          pagamento_ref?: string | null
+          pagamento_status?: string
+          pos_checklist?: Json
           prazo_10_dias?: string | null
           projecao_indenizada?: string | null
+          publicado_em?: string | null
           reducao?: string | null
           regra_validada?: boolean
           regra_versao?: string | null
+          revisao_motivo?: string | null
           status?: string
           sugestao_pagamento?: string | null
           ultimo_comparecimento?: string | null
           updated_at?: string
+          valor_informado?: number | null
           versao?: number
         }
         Relationships: [
@@ -19693,11 +19723,30 @@ export type Database = {
         Args: { p_ator: string; p_justificativa: string; p_processo: string }
         Returns: undefined
       }
+      dp_desligamento_checar_legado: {
+        Args: { p_colab: string; p_data: string }
+        Returns: undefined
+      }
       dp_desligamento_limite_agenda: {
         Args: { p_colab: string }
         Returns: string
       }
+      dp_desligamento_notificar: {
+        Args: {
+          p_admin: boolean
+          p_chave: string
+          p_desc: string
+          p_titulo: string
+          v: Database["public"]["Tables"]["dp_desligamento_processos"]["Row"]
+        }
+        Returns: undefined
+      }
+      dp_desligamento_processar: {
+        Args: { p_hoje?: string; p_simular?: boolean }
+        Returns: Json
+      }
       dp_desligamento_registrar_aviso: { Args: { p: Json }; Returns: Json }
+      dp_desligamento_transicao: { Args: { p: Json }; Returns: Json }
       dp_desligar_colaborador: {
         Args: {
           p_colaborador_id: string
@@ -20480,6 +20529,7 @@ export type Database = {
         }[]
       }
       dp_meu_colaborador: { Args: never; Returns: string }
+      dp_meu_desligamento: { Args: never; Returns: Json }
       dp_meu_sindicato_ctx: {
         Args: never
         Returns: {
@@ -22466,6 +22516,7 @@ export type Database = {
         | "folga_janela_lembrete"
         | "folga_pendentes_gestor"
         | "ocorrencia_nova"
+        | "desligamento_aviso"
       dp_ocorrencia_analise_status: "pendente" | "analisada" | "nao_se_aplica"
       dp_ocorrencia_cobertura_execucao:
         | "prevista"
@@ -22953,6 +23004,7 @@ export const Constants = {
         "folga_janela_lembrete",
         "folga_pendentes_gestor",
         "ocorrencia_nova",
+        "desligamento_aviso",
       ],
       dp_ocorrencia_analise_status: ["pendente", "analisada", "nao_se_aplica"],
       dp_ocorrencia_cobertura_execucao: [
