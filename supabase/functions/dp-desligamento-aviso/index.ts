@@ -72,7 +72,12 @@ const hojeSP = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_P
 const somar = (iso: string, n: number) => { const d = new Date(`${iso}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 
 type Colab = { id: string; company_id: string; unidade_id: string | null; data_admissao: string | null; regime: string | null; ativo: boolean; data_desligamento: string | null; deleted_at: string | null };
-type Cond = { motivo: string; modalidade: "trabalhado" | "indenizado"; reducao?: "duas_horas" | "sete_dias" | null; data_comunicacao: string };
+type Cond = {
+  motivo: MotivoDesligamentoCalc; modalidade: "trabalhado" | "indenizado";
+  reducao?: "duas_horas" | "sete_dias" | null; data_comunicacao: string;
+  data_termino_acordada?: string | null; descontar_aviso?: boolean;
+  pedido_escrito?: boolean; aceite_empresa?: boolean;
+};
 
 // deno-lint-ignore no-explicit-any
 async function feriadosDaUnidade(admin: any, c: Pick<Colab, "unidade_id" | "company_id">, ano: number): Promise<string[]> {
