@@ -9,13 +9,13 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { parseHoras, formatarMinutos } from "@/lib/dp/compensacao/motor";
 import {
   simularDesligamento, type ClassificacaoDia, type ModalidadeAviso, type ReducaoArt488,
-  type ResultadoDesligamento, type MotivoRejeicao,
+  type ResultadoDesligamento, type MotivoRejeicao, type MotivoDesligamentoCalc,
 } from "@/lib/dp/compensacao/desligamentoMotor";
 import { useDpFeriados } from "@/hooks/useDpFeriados";
 import { datasDeFeriados } from "@/lib/dp/feriados";
 
 /**
- * Simulação de aviso prévio (dispensa sem justa causa pela empresa).
+ * Simulação de aviso prévio e término de vínculo (CLT).
  * Só em memória: não lê nem grava dados, não solicita folga, não registra desligamento.
  * Montado apenas para o perfil gestor (ver CalculadoraCompensacao).
  */
@@ -38,6 +38,15 @@ const MOTIVO: Record<MotivoRejeicao, string> = {
   dia_de_ausencia_legal: "dia já coberto pela ausência legal",
   excede_saldo: "saldo insuficiente para essa jornada",
   aviso_indenizado: "aviso indenizado não tem jornadas",
+};
+
+/** Grupos de motivo da calculadora: os sem aviso usam "outro" como representante. */
+type MotivoCalc = "dispensa_sem_justa_causa" | "pedido_demissao" | "acordo_mutuo" | "outro";
+const MOTIVO_ROTULO: Record<MotivoCalc, string> = {
+  dispensa_sem_justa_causa: "Dispensa sem justa causa (empresa)",
+  pedido_demissao: "Pedido de demissão (colaborador)",
+  acordo_mutuo: "Acordo mútuo (art. 484-A)",
+  outro: "Outros motivos sem aviso prévio",
 };
 
 function hojeLocal(): string {
@@ -64,7 +73,11 @@ function concentrarNoFinal(base: ResultadoDesligamento, saldoMin: number): strin
 export type RegistrarDesligamento = {
   rotulo: string;
   bloqueio?: string | null;
-  abrir: (r: { data_comunicacao: string; modalidade: ModalidadeAviso; reducao: ReducaoArt488 | null; simulado: { ultimo: string | null; prazo: string; comFolgas: boolean } }) => void;
+  abrir: (r: {
+    data_comunicacao: string; modalidade: ModalidadeAviso; reducao: ReducaoArt488 | null;
+    motivo: MotivoDesligamentoCalc; data_termino_acordada?: string | null; descontar_aviso?: boolean;
+    simulado: { ultimo: string | null; prazo: string; comFolgas: boolean };
+  }) => void;
 };
 
 export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornadaInicial = null, unidadeId = null, registrar }: {
@@ -72,8 +85,11 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
 } = {}) {
   const [admissao, setAdmissao] = useState("");
   const [comunicacao, setComunicacao] = useState(hojeLocal());
+  const [motivo, setMotivo] = useState<MotivoCalc>("dispensa_sem_justa_causa");
   const [modalidade, setModalidade] = useState<ModalidadeAviso>("trabalhado");
   const [reducao, setReducao] = useState<ReducaoArt488>("duas_horas");
+  const [terminoAcordado, setTerminoAcordado] = useState("");
+  const [descontar, setDescontar] = useState(false);
   const [jornada, setJornada] = useState<string[]>(JORNADA_EXEMPLO);
   const [jornadaEditada, setJornadaEditada] = useState(false);
   const [feriadosManuais, setFeriados] = useState<string[]>([]);
@@ -94,6 +110,10 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chave, admissaoInicial, jornadaKey]);
 
+  const semAviso = motivo === "outro";
+  const pedidoDispensado = motivo === "pedido_demissao" && modalidade === "indenizado";
+  const comJornadas = !semAviso && modalidade === "trabalhado";
+
   const jornadaMin = jornada.map((t) => {
     if (!t.trim()) return 0;
     const r = parseHoras(t);
@@ -108,11 +128,14 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
     : !saldoParse.ok ? ("erro" in saldoParse ? saldoParse.erro : "Saldo inválido.")
     : "Informe apenas saldo positivo.";
 
-  const params = admissao && comunicacao && jornadaOk && saldoMin !== null ? {
+  const params = admissao && comunicacao && (semAviso || (jornadaOk && saldoMin !== null)) ? {
     dataAdmissao: admissao, dataComunicacao: comunicacao, modalidade,
-    reducao: modalidade === "trabalhado" ? reducao : null,
-    jornadaSemanal: jornadaMin as [number, number, number, number, number, number, number],
-    feriados, saldoBancoMinutos: saldoMin,
+    motivo: motivo as MotivoDesligamentoCalc,
+    reducao: modalidade === "trabalhado" && motivo !== "pedido_demissao" ? reducao : null,
+    dataTerminoAcordada: pedidoDispensado && terminoAcordado ? terminoAcordado : null,
+    descontarAviso: pedidoDispensado ? descontar : undefined,
+    jornadaSemanal: (semAviso ? [0, 0, 0, 0, 0, 0, 0] : jornadaMin) as [number, number, number, number, number, number, number],
+    feriados, saldoBancoMinutos: saldoMin ?? 0,
   } : null;
 
   const base = useMemo(() => (params ? simularDesligamento({ ...params, folgasCompensatorias: [] }) : null),
@@ -134,22 +157,33 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
       <div className="space-y-4">
         <Card>
           <CardHeader><CardTitle className="text-base">Aviso prévio</CardTitle>
-            <CardDescription>Dispensa sem justa causa por iniciativa da empresa.</CardDescription></CardHeader>
+            <CardDescription>Motivo e condições do desligamento (regime CLT).</CardDescription></CardHeader>
           <CardContent className="space-y-3">
+            <div>
+              <Label className="mb-1 block">Motivo</Label>
+              <RadioGroup value={motivo} onValueChange={(v) => { setMotivo(v as MotivoCalc); setFolgas([]); }} className="grid gap-2">
+                {(Object.keys(MOTIVO_ROTULO) as MotivoCalc[]).map((m) => (
+                  <div key={m} className="flex items-center gap-2"><RadioGroupItem value={m} id={`mot-${m}`} /><Label htmlFor={`mot-${m}`}>{MOTIVO_ROTULO[m]}</Label></div>
+                ))}
+              </RadioGroup>
+            </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div><Label htmlFor="dsl-adm">Data de admissão</Label>
                 <Input id="dsl-adm" type="date" value={admissao} onChange={(e) => { setAdmissao(e.target.value); setFolgas([]); }} /></div>
-              <div><Label htmlFor="dsl-com">Comunicação (simulada)</Label>
+              <div><Label htmlFor="dsl-com">{semAviso ? "Data do término" : "Comunicação (simulada)"}</Label>
                 <Input id="dsl-com" type="date" value={comunicacao} onChange={(e) => { setComunicacao(e.target.value); setFolgas([]); }} /></div>
             </div>
-            <div>
-              <Label className="mb-1 block">Modalidade</Label>
-              <RadioGroup value={modalidade} onValueChange={(v) => { setModalidade(v as ModalidadeAviso); setFolgas([]); }} className="flex flex-wrap gap-4">
-                <div className="flex items-center gap-2"><RadioGroupItem value="trabalhado" id="m-trab" /><Label htmlFor="m-trab">Trabalhado</Label></div>
-                <div className="flex items-center gap-2"><RadioGroupItem value="indenizado" id="m-ind" /><Label htmlFor="m-ind">Indenizado</Label></div>
-              </RadioGroup>
-            </div>
-            {modalidade === "trabalhado" && (
+            {!semAviso && (
+              <div>
+                <Label className="mb-1 block">{motivo === "pedido_demissao" ? "Cumprimento do aviso (30 dias)" : "Modalidade"}</Label>
+                <RadioGroup value={modalidade} onValueChange={(v) => { setModalidade(v as ModalidadeAviso); setFolgas([]); }} className="flex flex-wrap gap-4">
+                  <div className="flex items-center gap-2"><RadioGroupItem value="trabalhado" id="m-trab" /><Label htmlFor="m-trab">Trabalhado</Label></div>
+                  <div className="flex items-center gap-2"><RadioGroupItem value="indenizado" id="m-ind" />
+                    <Label htmlFor="m-ind">{motivo === "pedido_demissao" ? "Empresa dispensa o cumprimento" : "Indenizado"}</Label></div>
+                </RadioGroup>
+              </div>
+            )}
+            {modalidade === "trabalhado" && motivo !== "pedido_demissao" && !semAviso && (
               <div>
                 <Label className="mb-1 block">Redução legal (art. 488 — escolha do colaborador)</Label>
                 <RadioGroup value={reducao} onValueChange={(v) => { setReducao(v as ReducaoArt488); setFolgas([]); }} className="flex flex-wrap gap-4">
@@ -158,67 +192,94 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
                 </RadioGroup>
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">Jornada por dia da semana
-              {!jornadaEditada && <Badge variant="outline">Exemplo editável</Badge>}</CardTitle>
-            <CardDescription>Horas líquidas. Deixe 0 no DSR e nos dias sem expediente.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-7 gap-1">
-              {DIAS.map((d, i) => (
-                <div key={d}><Label htmlFor={`j-${i}`} className="text-xs">{d}</Label>
-                  <Input id={`j-${i}`} aria-label={`Jornada ${d}`} inputMode="decimal" className={`px-1 text-center ${jornadaMin[i] === null ? "border-destructive" : ""}`}
-                    value={jornada[i]} onChange={(e) => { setJornadaEditada(true); setFolgas([]); setJornada((js) => js.map((x, k) => (k === i ? e.target.value : x))); }} /></div>
-              ))}
-            </div>
-            {!jornadaOk && <p className="text-sm text-destructive">Corrija a jornada destacada (ex.: 8, 7:20, 6h30).</p>}
-            <div>
-              <Label className="text-xs">Feriados no período</Label>
-              <div className="flex gap-2">
-                <Input type="date" aria-label="Novo feriado" value={novoFeriado} onChange={(e) => setNovoFeriado(e.target.value)} />
-                <Button type="button" variant="outline" size="icon" aria-label="Adicionar feriado" disabled={!novoFeriado}
-                  onClick={() => { if (!feriados.includes(novoFeriado)) setFeriados([...feriadosManuais, novoFeriado].sort()); setNovoFeriado(""); setFolgas([]); }}>
-                  <Plus className="h-4 w-4" /></Button>
+            {motivo === "pedido_demissao" && modalidade === "trabalhado" && (
+              <p className="text-xs text-muted-foreground">No pedido de demissão não há redução de 2 horas nem de 7 dias (o art. 488 só vale para aviso dado pela empresa).</p>
+            )}
+            {pedidoDispensado && (
+              <div className="space-y-3 rounded-md border p-3">
+                <div><Label htmlFor="dsl-term">Término acordado (vazio = na data do pedido)</Label>
+                  <Input id="dsl-term" type="date" value={terminoAcordado} min={comunicacao} onChange={(e) => setTerminoAcordado(e.target.value)} /></div>
+                <div>
+                  <Label className="mb-1 block">Desconto do aviso</Label>
+                  <RadioGroup value={descontar ? "com" : "sem"} onValueChange={(v) => setDescontar(v === "com")} className="flex flex-wrap gap-4">
+                    <div className="flex items-center gap-2"><RadioGroupItem value="sem" id="d-sem" /><Label htmlFor="d-sem">Sem descontar</Label></div>
+                    <div className="flex items-center gap-2"><RadioGroupItem value="com" id="d-com" /><Label htmlFor="d-com">Descontar</Label></div>
+                  </RadioGroup>
+                  <p className="mt-1 text-xs text-muted-foreground">Dispensar o cumprimento é liberalidade da empresa e não exige prova de novo emprego. O desconto do aviso no pedido de demissão é tema controverso: confirme com a contabilidade ou o jurídico.</p>
+                </div>
               </div>
-              {feriados.length > 0 && <div className="mt-2 flex flex-wrap gap-1">{feriados.map((f) => (
-                <Badge key={f} variant="secondary" className="gap-1">{br(f)}
-                  {feriadosUnidade.includes(f) ? <span className="text-[10px] text-muted-foreground">unidade</span>
-                    : <button type="button" aria-label={`Remover feriado ${br(f)}`} onClick={() => { setFeriados(feriadosManuais.filter((x) => x !== f)); setFolgas([]); }}><X className="h-3 w-3" /></button>}</Badge>
-              ))}</div>}
-            </div>
+            )}
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader><CardTitle className="text-base">Banco de horas (simulação)</CardTitle>
-            <CardDescription>Saldo positivo. Toque nos dias de trabalho do calendário para simular folgas.</CardDescription></CardHeader>
-          <CardContent className="space-y-2">
-            <Input aria-label="Saldo do banco de horas" inputMode="decimal" placeholder="Ex.: 16 ou 24:30" value={saldoTxt}
-              onChange={(e) => { setSaldoTxt(e.target.value); setFolgas([]); }} />
-            {saldoErro && <p role="alert" className="text-sm text-destructive">{saldoErro}</p>}
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" size="sm" disabled={!b || modalidade !== "trabalhado" || !saldoMin}
-                onClick={() => b && saldoMin && setFolgas(concentrarNoFinal(b, saldoMin))}>Concentrar no final</Button>
-              <Button type="button" variant="ghost" size="sm" disabled={!folgas.length} onClick={() => setFolgas([])}>Limpar folgas</Button>
-            </div>
-            <p className="text-xs text-muted-foreground">Concentra folgas consecutivas nas últimas jornadas para antecipar o último dia de trabalho. Para simular folgas intercaladas, selecione os dias diretamente no calendário.</p>
-          </CardContent>
-        </Card>
+        {comJornadas && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">Jornada por dia da semana
+                {!jornadaEditada && <Badge variant="outline">Exemplo editável</Badge>}</CardTitle>
+              <CardDescription>Horas líquidas. Deixe 0 no DSR e nos dias sem expediente.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-7 gap-1">
+                {DIAS.map((d, i) => (
+                  <div key={d}><Label htmlFor={`j-${i}`} className="text-xs">{d}</Label>
+                    <Input id={`j-${i}`} aria-label={`Jornada ${d}`} inputMode="decimal" className={`px-1 text-center ${jornadaMin[i] === null ? "border-destructive" : ""}`}
+                      value={jornada[i]} onChange={(e) => { setJornadaEditada(true); setFolgas([]); setJornada((js) => js.map((x, k) => (k === i ? e.target.value : x))); }} /></div>
+                ))}
+              </div>
+              {!jornadaOk && <p className="text-sm text-destructive">Corrija a jornada destacada (ex.: 8, 7:20, 6h30).</p>}
+              <div>
+                <Label className="text-xs">Feriados no período</Label>
+                <div className="flex gap-2">
+                  <Input type="date" aria-label="Novo feriado" value={novoFeriado} onChange={(e) => setNovoFeriado(e.target.value)} />
+                  <Button type="button" variant="outline" size="icon" aria-label="Adicionar feriado" disabled={!novoFeriado}
+                    onClick={() => { if (!feriados.includes(novoFeriado)) setFeriados([...feriadosManuais, novoFeriado].sort()); setNovoFeriado(""); setFolgas([]); }}>
+                    <Plus className="h-4 w-4" /></Button>
+                </div>
+                {feriados.length > 0 && <div className="mt-2 flex flex-wrap gap-1">{feriados.map((f) => (
+                  <Badge key={f} variant="secondary" className="gap-1">{br(f)}
+                    {feriadosUnidade.includes(f) ? <span className="text-[10px] text-muted-foreground">unidade</span>
+                      : <button type="button" aria-label={`Remover feriado ${br(f)}`} onClick={() => { setFeriados(feriadosManuais.filter((x) => x !== f)); setFolgas([]); }}><X className="h-3 w-3" /></button>}</Badge>
+                ))}</div>}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {comJornadas && (
+          <Card>
+            <CardHeader><CardTitle className="text-base">Banco de horas (simulação)</CardTitle>
+              <CardDescription>Saldo positivo. Toque nos dias de trabalho do calendário para simular folgas.</CardDescription></CardHeader>
+            <CardContent className="space-y-2">
+              <Input aria-label="Saldo do banco de horas" inputMode="decimal" placeholder="Ex.: 16 ou 24:30" value={saldoTxt}
+                onChange={(e) => { setSaldoTxt(e.target.value); setFolgas([]); }} />
+              {saldoErro && <p role="alert" className="text-sm text-destructive">{saldoErro}</p>}
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="outline" size="sm" disabled={!b || modalidade !== "trabalhado" || !saldoMin}
+                  onClick={() => b && saldoMin && setFolgas(concentrarNoFinal(b, saldoMin))}>Concentrar no final</Button>
+                <Button type="button" variant="ghost" size="sm" disabled={!folgas.length} onClick={() => setFolgas([])}>Limpar folgas</Button>
+              </div>
+              <p className="text-xs text-muted-foreground">Concentra folgas consecutivas nas últimas jornadas para antecipar o último dia de trabalho. Para simular folgas intercaladas, selecione os dias diretamente no calendário.</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <div className="space-y-4">
         {!params && <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">
           {saldoErro ? "Corrija o saldo do banco de horas para simular." : "Informe a data de admissão para simular."}</CardContent></Card>}
         {erro && <Card><CardContent className="py-6 text-sm text-destructive">{erro}</CardContent></Card>}
-        {r && b && <Resultado r={r} b={b} onAlternar={alternar} />}
+        {r && b && (r.semAviso ? <ResultadoSemAviso r={r} /> : <Resultado r={r} b={b} onAlternar={alternar} />)}
         {registrar && (
           <Card><CardContent className="space-y-2 py-4">
             <Button className="w-full sm:w-auto" disabled={!r || !!registrar.bloqueio}
-              onClick={() => r && registrar.abrir({ data_comunicacao: comunicacao, modalidade, reducao: modalidade === "trabalhado" ? reducao : null, simulado: { ultimo: r.ultimoComparecimento, prazo: r.prazoQuitacao, comFolgas: r.folgasAceitas.length > 0 } })}>
+              onClick={() => r && registrar.abrir({
+                data_comunicacao: comunicacao, modalidade, reducao: modalidade === "trabalhado" && motivo !== "pedido_demissao" ? reducao : null,
+                motivo: motivo as MotivoDesligamentoCalc,
+                data_termino_acordada: pedidoDispensado && terminoAcordado ? terminoAcordado : null,
+                descontar_aviso: pedidoDispensado ? descontar : undefined,
+                simulado: { ultimo: r.ultimoComparecimento, prazo: r.prazoQuitacao, comFolgas: r.folgasAceitas.length > 0 },
+              })}>
               {registrar.rotulo}
             </Button>
             <p className="text-xs text-muted-foreground">{registrar.bloqueio ?? "Abre a ficha na aba Desligamento com estes dados para conferência. Nada é gravado até você confirmar lá; folgas simuladas, saldo e jornada editada aqui não são levados."}</p>
@@ -231,6 +292,33 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
         Simulação de planejamento. Não registra desligamento, não solicita nem aprova folgas e não altera escala ou banco de horas. Compensação durante o aviso depende de acordo, norma coletiva e análise jurídica de cada empresa.
       </p>
     </div>
+  );
+}
+
+/** Motivos sem aviso prévio: só o término e o prazo de quitação. */
+function ResultadoSemAviso({ r }: { r: ResultadoDesligamento }) {
+  return (
+    <>
+      <Card className="border-primary">
+        <CardContent className="space-y-1 py-5">
+          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <CalendarCheck className="h-4 w-4" /> Término do vínculo</p>
+          <p className="text-2xl font-bold" data-testid="ultimo-comparecimento">{br(r.dataEfetiva)} ({semana(r.dataEfetiva)})</p>
+          <p className="text-xs text-muted-foreground">Sem aviso prévio neste motivo: a data informada é o término.</p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-base">Prazo de quitação (art. 477, §6º)</CardTitle></CardHeader>
+        <CardContent className="space-y-1 text-sm">
+          <div>10º dia corrido, contado de <strong>{br(r.baseQuitacao)}</strong>: <strong data-testid="prazo-quitacao">{br(r.prazoQuitacao)} ({semana(r.prazoQuitacao)})</strong></div>
+          {r.sugestaoPagamentoDiaUtilAnterior !== r.prazoQuitacao && (
+            <p className="text-xs text-muted-foreground" data-testid="sugestao-pagamento">Sugestão para a empresa: pagar até {br(r.sugestaoPagamentoDiaUtilAnterior)} ({semana(r.sugestaoPagamentoDiaUtilAnterior)}), último dia útil antes do 10º dia.</p>)}
+        </CardContent>
+      </Card>
+      {r.avisos.length > 0 && (
+        <div className="space-y-1">{r.avisos.map((a) => <p key={a} className="flex gap-2 text-xs text-muted-foreground"><Info className="h-3.5 w-3.5 shrink-0" />{a}</p>)}</div>
+      )}
+    </>
   );
 }
 
@@ -248,6 +336,8 @@ function Resultado({ r, b, onAlternar }: { r: ResultadoDesligamento; b: Resultad
                 {r.ultimoComparecimento ? `${br(r.ultimoComparecimento)} (${semana(r.ultimoComparecimento)})` : "Sem jornadas no período"}</p>}
           {!indenizado && b.ultimoComparecimento !== r.ultimoComparecimento && (
             <p className="text-xs text-muted-foreground">Sem compensação seria {br(b.ultimoComparecimento)}. O término do contrato não muda.</p>)}
+          {r.avisoDispensado && (
+            <p className="text-xs text-muted-foreground">Término do vínculo: <strong>{br(r.dataEfetiva)}</strong>{r.descontarAviso ? " · com desconto do aviso (confirmar com a contabilidade)" : " · sem desconto do aviso"}.</p>)}
         </CardContent>
       </Card>
 
