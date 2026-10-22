@@ -22,7 +22,7 @@ import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 type Resultado = {
   modalidade: string; reducao?: string | null; data_comunicacao: string; inicio_aviso: string;
   ultimo_comparecimento: string | null; dispensado_desde: string | null; data_efetiva: string;
-  projecao_indenizada: string; base_quitacao: string; prazo_10_dias: string; sugestao_pagamento: string;
+  projecao_indenizada: string | null; base_quitacao: string; prazo_10_dias: string; sugestao_pagamento: string;
   dias_aviso: number; dias_indenizados: number; avisos?: string[];
   sem_aviso?: boolean; aviso_dispensado?: boolean; descontar_aviso?: boolean | null;
 };
@@ -91,9 +91,18 @@ function Detalhes({ r }: { r: Resultado }) {
   return (
     <div className="grid gap-1 text-sm sm:grid-cols-2">
       <div>Comunicação: <strong>{br(r.data_comunicacao)}</strong></div>
-      <div>Aviso: <strong>{r.dias_aviso} dias</strong>{r.dias_indenizados > 0 && <> ({r.dias_indenizados} indenizados)</>}</div>
+      {r.aviso_dispensado ? (
+        <>
+          <div>Aviso: <strong>cumprimento dispensado pela empresa</strong></div>
+          <div>Desconto do aviso: <strong>{r.descontar_aviso ? "sim (confirmar com a contabilidade)" : "não"}</strong></div>
+        </>
+      ) : (
+        <>
+          <div>Aviso: <strong>{r.dias_aviso} dias</strong>{r.dias_indenizados > 0 && <> ({r.dias_indenizados} indenizados)</>}</div>
+          {r.projecao_indenizada && <div>Término com projeção: <strong>{br(r.projecao_indenizada)}</strong></div>}
+        </>
+      )}
       <div>Término do vínculo: <strong>{br(r.data_efetiva)}</strong></div>
-      <div>Término com projeção: <strong>{br(r.projecao_indenizada)}</strong></div>
     </div>
   );
 }

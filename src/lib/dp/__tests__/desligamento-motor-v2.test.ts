@@ -39,7 +39,9 @@ describe("pedido de demissão (art. 487 §2º)", () => {
     expect(r.prazoQuitacao).toBe("2026-10-11");
     expect(r.dispensadoDeComparecerDesde).toBe("2026-10-02");
     expect(r.ultimoComparecimento).toBeNull();
-    expect(r.diasProjetadosIndenizados).toBe(30);
+    // Dispensa do cumprimento NÃO é aviso indenizado: zero dias projetados.
+    expect(r.diasProjetadosIndenizados).toBe(0);
+    expect(r.terminoProjetado).toBe("2026-10-31"); // fim teórico do aviso não cumprido
     expect(r.avisos.join(" ")).toMatch(/não exige comprovação de novo emprego/);
   });
 
@@ -48,7 +50,8 @@ describe("pedido de demissão (art. 487 §2º)", () => {
     expect(r.dataEfetiva).toBe("2026-10-15");
     expect(r.prazoQuitacao).toBe("2026-10-25");
     expect(r.descontarAviso).toBe(true);
-    expect(r.diasProjetadosIndenizados).toBe(16); // 31/10 - 15/10
+    expect(r.avisoDispensado).toBe(true);
+    expect(r.diasProjetadosIndenizados).toBe(0); // dispensa do cumprimento, não indenização
     expect(r.avisos.join(" ")).toMatch(/tema controverso/);
   });
 

@@ -177,7 +177,6 @@ export function somarDias(iso: string, n: number): string {
 }
 const diaSemana = (iso: string) => parse(iso)!.getUTCDay();
 /** Diferença em dias corridos (b - a). */
-const diffDias = (a: string, b: string) => Math.round((parse(b)!.getTime() - parse(a)!.getTime()) / 86_400_000);
 
 /** Anos completos entre admissão e comunicação (aniversário exato). */
 export function anosCompletos(admissao: string, comunicacao: string): number {
