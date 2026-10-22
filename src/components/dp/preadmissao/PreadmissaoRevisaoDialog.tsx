@@ -18,7 +18,7 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  AlertTriangle, CheckCircle2, Clock, Download, Eye, FileUp, Loader2, Plus, Printer, Trash2, XCircle,
+  AlertTriangle, CheckCircle2, Clock, Download, Eye, FileUp, Loader2, Plus, Printer, Store, Trash2, XCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -64,6 +64,7 @@ import { CargoSelectItems, CargoSelectAviso } from "@/components/dp/cargos/Cargo
 import { useDpSetores } from "@/hooks/useDpSetores";
 import {
   PREADMISSAO_STATUS_LABEL, abrirDocumentoPreadmissao, anexarFichaOficial,
+  diasAguardandoRegistro, rotinaDaPreadmissao,
   useDpPreadmissao, useDpPreadmissaoGestor, type PreadmissaoStatus,
 } from "@/hooks/dp/useDpPreadmissoes";
 
@@ -493,6 +494,10 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   }, [preadmissaoId]);
   const [efetivando, setEfetivando] = useState(false);
   const [confirmarClt, setConfirmarClt] = useState(false);
+  /** Ativação operacional na rotina da loja (antes do registro formal). */
+  const [ativarRotinaAberto, setAtivarRotinaAberto] = useState(false);
+  const [dataInicioRotina, setDataInicioRotina] = useState(() => new Date().toISOString().slice(0, 10));
+  const [ativandoRotina, setAtivandoRotina] = useState(false);
   const regimeAtual = admin.regime_trabalho || data?.preadmissao?.regime_previsto || "clt";
   const isClt = regimeAtual === "clt" || regimeAtual === "intermitente";
   const statusAtual = data?.preadmissao?.status as string | undefined;
@@ -817,6 +822,54 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   );
   const adminBruto = (pa?.admin_dados ?? {}) as Record<string, unknown>;
   const jornadaAdmissao = (adminBruto.jornada ?? null) as JornadaRascunho | null;
+  /** Ativação operacional já feita (freelancer provisório na rotina da loja). */
+  const rotinaInfo = rotinaDaPreadmissao(adminBruto);
+  const podeAtivarRotina =
+    !encerrada && !rotinaInfo && (regimeAtual === "clt" || regimeAtual === "intermitente");
+
+  /**
+   * Jornada enviada na ativação: a da ficha, completando os dias trabalhados
+   * com o horário base quando o dia não tem horário próprio.
+   */
+  const jornadaParaRotina = (j: JornadaRascunho) => ({
+    horario: j.horario,
+    folga_variavel: j.folga_variavel === true,
+    dias: (j.dias ?? []).map((d) => ({
+      dow: d.dow,
+      trabalha: d.trabalha === true,
+      turno_id: d.turno_id ?? null,
+      entrada: d.trabalha ? (d.entrada || j.horario?.entrada || null) : null,
+      saida: d.trabalha ? (d.saida || j.horario?.saida || null) : null,
+      intervalo_minutos: d.trabalha ? (d.intervalo_minutos ?? j.horario?.intervalo_minutos ?? 0) : null,
+      setor_id: d.setor_id ?? null,
+    })),
+  });
+
+  const ativarRotina = async () => {
+    const id = pa?.id;
+    if (!id || !jornadaAdmissao) return;
+    setAtivandoRotina(true);
+    try {
+      const { error } = await supabase.rpc("dp_preadmissao_ativar_rotina", {
+        p_preadmissao_id: id,
+        p_data_inicio: dataInicioRotina,
+        p_jornada: JSON.parse(JSON.stringify(jornadaParaRotina(jornadaAdmissao))),
+      });
+      if (error) throw error;
+      toast.success(
+        regimeAtual === "intermitente"
+          ? "Ativado na rotina como freelancer diarista, aguardando o registro."
+          : "Ativado na rotina como freelancer mensalista, aguardando o registro.",
+      );
+      setAtivarRotinaAberto(false);
+      await queryClient.invalidateQueries();
+      await refetch();
+    } catch (e) {
+      notifyError(e as Error, { surface: "Pessoas 360°", action: "ativar na rotina da loja" });
+    } finally {
+      setAtivandoRotina(false);
+    }
+  };
 
   const modo = useMemo<ModoAdmissao["form"] | null>(() => {
     if (!pa) return null;
@@ -1229,6 +1282,55 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AlertDialog open={ativarRotinaAberto} onOpenChange={setAtivarRotinaAberto}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ativar na rotina da loja</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  A pessoa entra na escala, folgas e plantões da unidade como{" "}
+                  <strong>{regimeAtual === "intermitente" ? "freelancer diarista" : "freelancer mensalista"}</strong>,
+                  sem acesso ao portal e sem efeito CLT. Ao efetivar a admissão, o mesmo cadastro vira o vínculo
+                  oficial e a data de admissão formal passa a contar.
+                </p>
+                <div className="space-y-1">
+                  <Label htmlFor="inicio-rotina" className="text-xs">Início das atividades na loja</Label>
+                  <Input
+                    id="inicio-rotina"
+                    type="date"
+                    value={dataInicioRotina}
+                    onChange={(e) => setDataInicioRotina(e.target.value)}
+                  />
+                </div>
+                {jornadaAdmissao ? (
+                  <p className="rounded-md border bg-muted/30 p-2 text-xs">
+                    Horário que vai para a rotina: <strong>{descricaoJornada(jornadaAdmissao)}</strong>.
+                    Para ajustar, use a aba Horário antes de ativar.
+                  </p>
+                ) : (
+                  <p className="rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-xs text-amber-700 dark:text-amber-500">
+                    Defina o horário de trabalho na aba Horário antes de ativar na rotina.
+                  </p>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={ativandoRotina || !jornadaAdmissao || !dataInicioRotina}
+              onClick={(e) => {
+                e.preventDefault();
+                void ativarRotina();
+              }}
+            >
+              {ativandoRotina && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Confirmar Ativação
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 
@@ -1302,6 +1404,40 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
       <Separator />
       <div className="space-y-4">
         <h3 className="text-sm font-semibold">Admissão</h3>
+
+                {rotinaInfo && (
+                  <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 space-y-1">
+                    <p className="text-sm font-semibold flex items-center gap-2">
+                      <Store className="h-4 w-4 text-amber-600" aria-hidden="true" />
+                      Na rotina da loja · aguardando registro há {diasAguardandoRegistro(rotinaInfo.iniciou_em)}{" "}
+                      {diasAguardandoRegistro(rotinaInfo.iniciou_em) === 1 ? "dia" : "dias"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Atua na loja desde{" "}
+                      {rotinaInfo.iniciou_em
+                        ? new Date(`${rotinaInfo.iniciou_em}T00:00:00`).toLocaleDateString("pt-BR")
+                        : "—"}{" "}
+                      como {rotinaInfo.forma_provisoria === "diarista" ? "freelancer diarista" : "freelancer mensalista"} —
+                      sem acesso ao portal e sem efeito CLT. Ao efetivar, o mesmo cadastro vira o vínculo oficial
+                      e a data de admissão formal passa a valer para férias e demais direitos.
+                    </p>
+                  </div>
+                )}
+
+                {podeAtivarRotina && (
+                  <div className="rounded-lg border p-3 space-y-2">
+                    <p className="text-sm font-semibold">Já está trabalhando na loja?</p>
+                    <p className="text-xs text-muted-foreground">
+                      Ative na rotina para escala, folgas e plantões enquanto o registro não sai. O sistema trata
+                      como {regimeAtual === "intermitente" ? "freelancer diarista" : "freelancer mensalista"} —
+                      sem portal, sem férias e sem efeito CLT até a efetivação.
+                    </p>
+                    <Button variant="outline" onClick={() => setAtivarRotinaAberto(true)}>
+                      <Store className="h-4 w-4 mr-2" /> Ativar na Rotina da Loja
+                    </Button>
+                  </div>
+                )}
+
                 {["aguardando_revisao", "aguardando_nova_versao", "em_preenchimento"].includes(status) && (
                   <div className="space-y-2">
                     <Label className="text-xs">Pedir correção ao candidato</Label>

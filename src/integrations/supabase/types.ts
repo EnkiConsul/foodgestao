@@ -20995,6 +20995,14 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_preadmissao_ativar_rotina: {
+        Args: {
+          p_data_inicio: string
+          p_jornada: Json
+          p_preadmissao_id: string
+        }
+        Returns: Json
+      }
       dp_preadmissao_avaliar_documento: {
         Args: {
           p_documento_id: string

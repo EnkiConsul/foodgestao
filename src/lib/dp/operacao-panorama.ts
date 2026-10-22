@@ -66,6 +66,8 @@ export interface ColaboradorPanorama {
   ativo?: boolean;
   data_admissao?: string | null;
   data_desligamento?: string | null;
+  /** Pré-admissão ativada na rotina (freelancer provisório aguardando registro). */
+  aguardando_registro?: boolean;
   /** Datas em que cedeu a folga fixa numa troca e trabalha (dp_dia_trabalho_excepcional). */
   trabalho_excepcional?: string[];
 }
@@ -196,6 +198,8 @@ export interface PessoaPanorama {
   socio: boolean;
   /** Sócio vinculado a uma unidade e com jornada: conta como parte do quadro. */
   socio_integrado?: boolean;
+  /** Pré-admissão ativada na rotina: freelancer provisório aguardando registro. */
+  aguardando_registro?: boolean;
   /** Origem do horário: jornada habitual, escala, convocação, avulso ou registro manual. */
   origem: "jornada" | "escala" | "convocacao" | "avulso" | "registro_manual";
 
@@ -472,6 +476,7 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       setor_habitual_nome: colab.setor_id ? nomeSetor.get(colab.setor_id) ?? null : null,
       socio: !!colab.socio,
       socio_integrado: socioIntegrado,
+      aguardando_registro: !!colab.aguardando_registro,
       folga_troca:
         categoria === "folga_padrao" &&
         (folgasPor.get(colab.id) ?? []).some((f) => f.origem === "troca"),

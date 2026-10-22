@@ -862,6 +862,41 @@
       "when": 1792707402908,
       "tag": "0122_cancelar_avisos_documento_removido",
       "breakpoints": true
+    },
+    {
+      "idx": 123,
+      "version": "7",
+      "when": 1792710065117,
+      "tag": "0123_preadmissao_ativar_rotina",
+      "breakpoints": true
+    },
+    {
+      "idx": 124,
+      "version": "7",
+      "when": 1792710519739,
+      "tag": "0124_preadmissao_rotina_regime_cast",
+      "breakpoints": true
+    },
+    {
+      "idx": 125,
+      "version": "7",
+      "when": 1792710630578,
+      "tag": "0125_preadmissao_efetivar_domingos_folga",
+      "breakpoints": true
+    },
+    {
+      "idx": 126,
+      "version": "7",
+      "when": 1792710708790,
+      "tag": "0126_preadmissao_efetivar_sexo_upper",
+      "breakpoints": true
+    },
+    {
+      "idx": 127,
+      "version": "7",
+      "when": 1792710779927,
+      "tag": "0127_preadmissao_efetivar_sexo_normaliza",
+      "breakpoints": true
     }
   ]
 }
