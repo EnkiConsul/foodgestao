@@ -853,7 +853,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
       const { error } = await supabase.rpc("dp_preadmissao_ativar_rotina", {
         p_preadmissao_id: id,
         p_data_inicio: dataInicioRotina,
-        p_jornada: jornadaParaRotina(jornadaAdmissao),
+        p_jornada: JSON.parse(JSON.stringify(jornadaParaRotina(jornadaAdmissao))),
       });
       if (error) throw error;
       toast.success(
