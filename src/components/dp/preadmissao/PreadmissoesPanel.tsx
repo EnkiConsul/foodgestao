@@ -347,6 +347,20 @@ export function PreadmissoesPanel({
                             <Badge variant="outline" className={`${TOM[p.status] ?? ""} whitespace-normal`}>
                               {PREADMISSAO_STATUS_LABEL[p.status]}
                             </Badge>
+                            {(() => {
+                              const rotina = rotinaDaPreadmissao(p.admin_dados);
+                              if (!rotina) return null;
+                              const dias = diasAguardandoRegistro(rotina.iniciou_em);
+                              return (
+                                <Badge
+                                  variant="outline"
+                                  className="ml-1 whitespace-normal border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-500"
+                                  title="Já atua na rotina da loja com vínculo provisório de freelancer, aguardando o registro oficial."
+                                >
+                                  Na rotina · aguardando registro há {dias} {dias === 1 ? "dia" : "dias"}
+                                </Badge>
+                              );
+                            })()}
                           </TableCell>
                         )}
                         {ver("cargo") && (
