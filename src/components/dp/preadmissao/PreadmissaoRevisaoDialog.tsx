@@ -494,6 +494,10 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   }, [preadmissaoId]);
   const [efetivando, setEfetivando] = useState(false);
   const [confirmarClt, setConfirmarClt] = useState(false);
+  /** Ativação operacional na rotina da loja (antes do registro formal). */
+  const [ativarRotinaAberto, setAtivarRotinaAberto] = useState(false);
+  const [dataInicioRotina, setDataInicioRotina] = useState(() => new Date().toISOString().slice(0, 10));
+  const [ativandoRotina, setAtivandoRotina] = useState(false);
   const regimeAtual = admin.regime_trabalho || data?.preadmissao?.regime_previsto || "clt";
   const isClt = regimeAtual === "clt" || regimeAtual === "intermitente";
   const statusAtual = data?.preadmissao?.status as string | undefined;
