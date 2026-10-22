@@ -91,64 +91,103 @@ async function feriadosDaUnidade(admin: any, c: Pick<Colab, "unidade_id" | "comp
 // deno-lint-ignore no-explicit-any
 async function calcular(admin: any, c: Colab, b: Cond): Promise<{ resultado?: Record<string, unknown>; resp?: Response }> {
   const revisao = (msg: string) => ({ resp: json(422, { revisao: true, error: msg }) });
-  if (b.motivo !== "dispensa_sem_justa_causa")
-    return revisao("Este motivo ainda não tem regra validada no sistema. Use o registro manual abaixo na data do término, com orientação da contabilidade. Nenhuma data foi calculada.");
-  if (c.regime !== "clt") return revisao("O cálculo automático cobre apenas o regime CLT. Para este vínculo, a análise é manual.");
+  if (c.regime !== "clt") return revisao("O cálculo automático cobre apenas o regime CLT. Para este vínculo, a análise é manual, com confirmação da contabilidade ou do jurídico.");
   if (!c.data_admissao) return revisao("Cadastre a data de admissão para calcular.");
+  const semAviso = MOTIVOS_SEM_AVISO.has(b.motivo);
+  const pedidoDispensado = b.motivo === "pedido_demissao" && b.modalidade === "indenizado";
+  if (b.motivo === "pedido_demissao" && b.reducao)
+    return { resp: json(400, { error: "A redução do art. 488 (2 horas ou 7 dias) não se aplica ao pedido de demissão." }) };
+  if (pedidoDispensado && (b.pedido_escrito !== true || b.aceite_empresa !== true))
+    return { resp: json(400, { error: "Confirme as duas declarações: o pedido escrito do colaborador e o aceite da empresa. Guarde a evidência no GED ou com a contabilidade." }) };
   const hoje = hojeSP();
   if (b.data_comunicacao > hoje) return { resp: json(400, { error: "A comunicação não pode ser futura: registre depois de comunicar formalmente." }) };
   if (b.data_comunicacao < somar(hoje, -30)) return { resp: json(400, { error: "Comunicação há mais de 30 dias: use o registro manual." }) };
 
-  const { data: cfgs } = await admin.from("dp_colaborador_config_trabalho")
-    .select("vigencia_inicio, vigencia_fim, turno_padrao_id, folga_fixa_dow, dias:dp_colaborador_config_dias(dow, trabalha, turno_id, entrada, saida, intervalo_minutos)")
-    .eq("colaborador_id", c.id).eq("company_id", c.company_id);
-  type Cfg = { vigencia_inicio: string; vigencia_fim: string | null; turno_padrao_id: string | null; folga_fixa_dow: number | null; dias: DiaConfigMin[] | null };
-  const cfg = configVigenteEm((cfgs ?? []) as Cfg[], b.data_comunicacao);
-  if (!cfg || !(cfg.dias ?? []).length) return revisao("Jornada do colaborador não cadastrada. Cadastre em Turno & Jornada para calcular.");
-  const dias = (cfg.dias ?? []).map((d) => (cfg.folga_fixa_dow === d.dow ? { ...d, trabalha: false } : d));
-  const ids = [...new Set([cfg.turno_padrao_id, ...dias.map((d) => d.turno_id)].filter(Boolean))] as string[];
-  const { data: turnos } = ids.length
-    ? await admin.from("dp_turnos").select("id, entrada, saida, intervalo_minutos").eq("company_id", c.company_id).in("id", ids)
-    : { data: [] };
-  const j = jornadaSemanalDaConfig(dias, cfg.turno_padrao_id, (turnos ?? []) as TurnoMin[]);
-  if (j.incompletos.length) return revisao("Há dia de trabalho sem horário na jornada cadastrada. Corrija antes de registrar.");
+  // Jornada e escala só são exigidas quando há aviso com jornadas (trabalhado).
+  const precisaJornada = !semAviso && b.modalidade === "trabalhado";
+  let semana: [number, number, number, number, number, number, number] = [0, 0, 0, 0, 0, 0, 0];
+  let excecoes: { data: string; minutos: number }[] = [];
+  if (!semAviso) {
+    const { data: cfgs } = await admin.from("dp_colaborador_config_trabalho")
+      .select("vigencia_inicio, vigencia_fim, turno_padrao_id, folga_fixa_dow, dias:dp_colaborador_config_dias(dow, trabalha, turno_id, entrada, saida, intervalo_minutos)")
+      .eq("colaborador_id", c.id).eq("company_id", c.company_id);
+    type Cfg = { vigencia_inicio: string; vigencia_fim: string | null; turno_padrao_id: string | null; folga_fixa_dow: number | null; dias: DiaConfigMin[] | null };
+    const cfg = configVigenteEm((cfgs ?? []) as Cfg[], b.data_comunicacao);
+    if (precisaJornada && (!cfg || !(cfg.dias ?? []).length))
+      return revisao("Jornada do colaborador não cadastrada. Cadastre em Turno & Jornada para calcular.");
+    if (cfg && (cfg.dias ?? []).length) {
+      const dias = (cfg.dias ?? []).map((d) => (cfg.folga_fixa_dow === d.dow ? { ...d, trabalha: false } : d));
+      const ids = [...new Set([cfg.turno_padrao_id, ...dias.map((d) => d.turno_id)].filter(Boolean))] as string[];
+      const { data: turnos } = ids.length
+        ? await admin.from("dp_turnos").select("id, entrada, saida, intervalo_minutos").eq("company_id", c.company_id).in("id", ids)
+        : { data: [] };
+      const j = jornadaSemanalDaConfig(dias, cfg.turno_padrao_id, (turnos ?? []) as TurnoMin[]);
+      if (precisaJornada && j.incompletos.length)
+        return revisao("Há dia de trabalho sem horário na jornada cadastrada. Corrija antes de registrar.");
+      semana = j.semana;
+    }
+
+    // Escala publicada no período: exceções reais (ex.: domingo trabalhado).
+    const { data: itens } = await admin.from("dp_escala_itens")
+      .select("data, tipo, carga_prevista_horas, escala:dp_escalas!inner(status)")
+      .eq("colaborador_id", c.id).eq("company_id", c.company_id).eq("escala.status", "publicada")
+      .gt("data", b.data_comunicacao).lte("data", somar(b.data_comunicacao, 90));
+    let semCarga = false;
+    for (const it of (itens ?? []) as { data: string; tipo: string; carga_prevista_horas: number | null }[]) {
+      if (it.tipo === "trabalho") {
+        if (!it.carga_prevista_horas || it.carga_prevista_horas <= 0) { semCarga = true; continue; }
+        excecoes.push({ data: it.data, minutos: Math.round(Number(it.carga_prevista_horas) * 60) });
+      } else excecoes.push({ data: it.data, minutos: 0 });
+    }
+    if (semCarga) return revisao("A escala publicada tem dia de trabalho sem carga horária. Corrija a escala antes de registrar.");
+  }
 
   const feriados = await feriadosDaUnidade(admin, c, Number(b.data_comunicacao.slice(0, 4)));
 
-  // Escala publicada no período: exceções reais (ex.: domingo trabalhado).
-  const { data: itens } = await admin.from("dp_escala_itens")
-    .select("data, tipo, carga_prevista_horas, escala:dp_escalas!inner(status)")
-    .eq("colaborador_id", c.id).eq("company_id", c.company_id).eq("escala.status", "publicada")
-    .gt("data", b.data_comunicacao).lte("data", somar(b.data_comunicacao, 90));
-  const excecoes: { data: string; minutos: number }[] = [];
-  let semCarga = false;
-  for (const it of (itens ?? []) as { data: string; tipo: string; carga_prevista_horas: number | null }[]) {
-    if (it.tipo === "trabalho") {
-      if (!it.carga_prevista_horas || it.carga_prevista_horas <= 0) { semCarga = true; continue; }
-      excecoes.push({ data: it.data, minutos: Math.round(Number(it.carga_prevista_horas) * 60) });
-    } else excecoes.push({ data: it.data, minutos: 0 });
+  // Folgas compensatórias REAIS já aprovadas (agendadas) dentro do período do
+  // aviso entram no cálculo. O saldo não é persistido no sistema, então cada
+  // folga aprovada é aceita pelo seu próprio valor — o subsistema de folgas é
+  // quem autorizou; nada é lançado nem descontado aqui.
+  let folgasAprovadas: string[] = [];
+  if (!semAviso && b.modalidade === "trabalhado") {
+    const { data: fls } = await admin.from("dp_folgas")
+      .select("data")
+      .eq("colaborador_id", c.id).eq("company_id", c.company_id)
+      .eq("status", "agendada").in("tipo", ["normal", "extra", "abono"])
+      .gt("data", b.data_comunicacao).lte("data", somar(b.data_comunicacao, 95));
+    folgasAprovadas = [...new Set(((fls ?? []) as { data: string }[]).map((f) => String(f.data).slice(0, 10)))].sort();
   }
-  if (semCarga) return revisao("A escala publicada tem dia de trabalho sem carga horária. Corrija a escala antes de registrar.");
 
   const r = simularDesligamento({
     dataAdmissao: String(c.data_admissao).slice(0, 10), dataComunicacao: b.data_comunicacao,
-    modalidade: b.modalidade, reducao: b.modalidade === "trabalhado" ? b.reducao ?? null : null,
-    jornadaSemanal: j.semana, excecoesJornada: excecoes, feriados, folgasCompensatorias: [], saldoBancoMinutos: 0,
+    motivo: b.motivo, modalidade: b.modalidade, reducao: b.modalidade === "trabalhado" ? b.reducao ?? null : null,
+    dataTerminoAcordada: pedidoDispensado ? b.data_termino_acordada ?? null : null,
+    descontarAviso: pedidoDispensado ? b.descontar_aviso === true : undefined,
+    jornadaSemanal: semana, excecoesJornada: excecoes, feriados,
+    folgasCompensatorias: folgasAprovadas, saldoBancoMinutos: folgasAprovadas.length * 1440,
   });
   if ("erro" in r) return { resp: json(400, { error: r.erro }) };
-  if (b.modalidade === "trabalhado" && !r.ultimoComparecimento)
+  if (!semAviso && b.modalidade === "trabalhado" && !r.ultimoComparecimento)
     return revisao("Não há jornadas previstas no período do aviso. Revise a jornada antes de registrar.");
-  const efetiva = r.fimPeriodoCumprido ?? b.data_comunicacao;
+  const efetiva = r.dataEfetiva;
+  const avisos = [...r.avisos];
+  if (r.folgasAceitas.length)
+    avisos.push(`${r.folgasAceitas.length} folga(s) compensatória(s) já aprovada(s) foram consideradas no último dia de trabalho.`);
+  if (r.folgasRejeitadas.length)
+    avisos.push(`${r.folgasRejeitadas.length} folga(s) aprovada(s) caíram fora do período de comparecimento e não mudaram as datas.`);
   const resultado = {
     motivo: b.motivo,
     modalidade: b.modalidade === "trabalhado" && r.diasProjetadosIndenizados > 0 ? "misto" : b.modalidade,
     reducao: b.modalidade === "trabalhado" ? b.reducao ?? null : null,
+    sem_aviso: r.semAviso, aviso_dispensado: r.avisoDispensado, descontar_aviso: r.descontarAviso,
+    pedido_escrito_confirmado: pedidoDispensado ? true : false,
+    aceite_empresa_confirmado: pedidoDispensado ? true : false,
     data_comunicacao: b.data_comunicacao, inicio_aviso: r.inicioAviso,
     ultimo_comparecimento: r.ultimoComparecimento, dispensado_desde: r.dispensadoDeComparecerDesde,
     data_efetiva: efetiva, projecao_indenizada: r.terminoProjetado, base_quitacao: r.baseQuitacao,
     prazo_10_dias: r.prazoQuitacao, sugestao_pagamento: r.sugestaoPagamentoDiaUtilAnterior,
     dias_aviso: r.duracaoLegalDias, dias_indenizados: r.diasProjetadosIndenizados,
-    regra_versao: REGRA_VERSAO, avisos: r.avisos, usou_escala: excecoes.length > 0,
+    regra_versao: REGRA_VERSAO, avisos, usou_escala: excecoes.length > 0,
   };
   if (efetiva < hoje) return { resp: json(409, { error: "O término calculado já passou. Use o registro manual na data do término.", resultado }) };
   return { resultado };
