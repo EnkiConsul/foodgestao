@@ -23,6 +23,7 @@ export async function assinarCampoTermoFolga(
     const contents = page.node.Contents();
     const streams = contents instanceof PDFArray ? contents.asArray() : contents ? [contents] : [];
     const novos = [];
+    const posicoes: Array<{ x: number; y: number }> = [];
     for (const ref of streams) {
       const stream = pdf.context.lookup(ref);
       if (!(stream instanceof PDFRawStream)) throw new Error("Modelo de termo não reconhecido.");
@@ -39,19 +40,19 @@ export async function assinarCampoTermoFolga(
         const y = Number(matriz[2]) - 8;
         // O modelo tem coluna de 234,5 pontos; a frase antiga era centralizada nela.
         const colunaX = x - (234.5 - fonte.widthOfTextAtSize("Aguardando assinatura digital (aceite)", 8)) / 2;
-        desenharAssinatura(page, imagem, colunaX, y + 3, 220, 50);
-        page.drawText("Assinado eletronicamente", {
-          x: colunaX, y: y + 56, size: 7, font: fonte, color: rgb(0.08, 0.5, 0.24),
-        });
+        posicoes.push({ x: colunaX, y });
         campos++;
         return "";
       });
       novos.push(pdf.context.register(pdf.context.flateStream(atualizado)));
     }
-    // drawImage/drawText acrescentaram um stream; preservá-lo junto do original atualizado.
-    const depois = page.node.Contents();
-    const extras = depois instanceof PDFArray ? depois.asArray().slice(streams.length) : [];
-    page.node.set(PDFName.of("Contents"), pdf.context.obj([...novos, ...extras]));
+    page.node.set(PDFName.of("Contents"), pdf.context.obj(novos));
+    for (const { x, y } of posicoes) {
+      desenharAssinatura(page, imagem, x, y + 3, 220, 50);
+      page.drawText("Assinado eletronicamente", {
+        x, y: y + 56, size: 7, font: fonte, color: rgb(0.08, 0.5, 0.24),
+      });
+    }
   }
   if (registros !== 1 || campos !== 1) throw new Error("Modelo de termo não reconhecido; original preservado.");
   return pdf.save();
