@@ -13,7 +13,11 @@ import { toUpperCadastro } from "@/lib/text/upperCadastro";
 import { filtrarAniversariantesPortal } from "@/lib/dp/aniversariantes-portal";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 
-export function AniversariantesCard({ variant = "admin", compacto = false, emFaixa = false, competencia, dataDia, unidadeId }: { variant?: "admin" | "portal"; compacto?: boolean; emFaixa?: boolean; competencia?: string; dataDia?: string; unidadeId?: string | null }) {
+/** Mesmo formato das métricas em linha do calendário (pílula no desktop, célula no celular). */
+const CHIP_CLS =
+  "flex h-11 w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg border bg-card px-1.5 py-1 text-xs shadow-sm transition-colors hover:bg-muted active:bg-muted md:h-7 md:w-auto md:shrink-0 md:flex-row md:justify-start md:gap-1.5 md:rounded-full md:px-2.5 md:whitespace-nowrap";
+
+export function AniversariantesCard({ variant = "admin", compacto = false, emFaixa = false, chip = false, competencia, dataDia, unidadeId }: { variant?: "admin" | "portal"; compacto?: boolean; emFaixa?: boolean; chip?: boolean; competencia?: string; dataDia?: string; unidadeId?: string | null }) {
   const { data: todos = [], isLoading, isError, refetch } = useDpAniversariantes30d(competencia);
   const { data: eu } = useMeuVinculoPortal();
   const [aberto, setAberto] = useState(false);
@@ -38,59 +42,78 @@ export function AniversariantesCard({ variant = "admin", compacto = false, emFai
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium break-words leading-snug">{toUpperCadastro(a.nome)}</p>
               <div className="flex flex-wrap items-center justify-between gap-2 mt-1"><Badge variant="outline" className="text-[10px]">{a.tipo === "nascimento" ? "Nascimento" : "Contratação"}</Badge><span className="text-[11px] text-muted-foreground">{a.tipo === "nascimento" ? `${a.faltamDias < 0 ? "Completou" : "Completa"} ${a.anosCompletos} anos` : `${a.anosCompletos} ${a.anosCompletos === 1 ? "ano" : "anos"} de casa`}</span></div>
-              <div className="flex flex-wrap items-center justify-between gap-2 mt-1"><span className="text-[11px] text-muted-foreground break-words">{a.unidade ? `🏢 ${a.unidade}` : ""}</span><span className="text-[11px] text-muted-foreground inline-flex items-center gap-1"><Clock className="h-3 w-3" />{a.faltamDias === 0 ? "Hoje 🎉" : a.faltamDias < 0 ? `Há ${-a.faltamDias} ${a.faltamDias === -1 ? "dia" : "dias"}` : `Faltam ${a.faltamDias} ${a.faltamDias === 1 ? "dia" : "dias"}`}</span></div>
+              <div className="flex flex-wrap items-center justify-between gap-2 mt-1"><span className="text-[11px] text-muted-foreground break-words">{a.unidade ? `🏢 ${a.unidade}` : ""}</span><span className="text-[11px] text-muted-foreground inline-flex items-center gap-1"><Clock className="h-3 w-3" />{a.faltamDias === 0 ? "Hoje" : a.faltamDias < 0 ? `Há ${-a.faltamDias} ${a.faltamDias === -1 ? "dia" : "dias"}` : `Faltam ${a.faltamDias} ${a.faltamDias === 1 ? "dia" : "dias"}`}</span></div>
               {!portal && <div className="flex items-center justify-end gap-1.5 mt-2"><Button size="sm" variant="outline" className="min-h-9 text-xs flex-1" onClick={() => setTarget(a)}><MessageSquare className="h-3 w-3 mr-1" />WhatsApp</Button><Button asChild size="sm" variant="outline" className="min-h-9 text-xs flex-1"><Link to={`/dp/mensagens?to=${a.colaboradorId}`}><MessageCircle className="h-3 w-3 mr-1" />Comunicado</Link></Button></div>}
             </div>
           </div>
         ))}
       </div>;
 
+  const gatilhoChip = (
+    <button type="button" onClick={() => setAberto(true)} className={CHIP_CLS} title="Ver aniversariantes" aria-label={`Ver aniversariantes: ${data.length}`}>
+      <span className="flex items-center gap-1.5">
+        <Cake className="h-3.5 w-3.5 shrink-0 text-calendar-dominical" aria-hidden="true" />
+        <span className="font-bold tabular-nums">{isError ? "—" : data.length}</span>
+      </span>
+      <span className="min-w-0 truncate text-center text-[11px] leading-tight text-muted-foreground md:text-left md:text-xs">aniversariantes</span>
+    </button>
+  );
+
+  const painel = isMobile ? (
+    <Drawer open={aberto} onOpenChange={setAberto}>
+      <DrawerContent className="max-h-[90dvh]">
+        <DrawerHeader className="relative text-left">
+          <DrawerTitle>Aniversariantes</DrawerTitle>
+          <DrawerDescription>{competencia ? "Nascimento e tempo de casa neste mês" : "Nascimento e tempo de casa nos próximos 30 dias"}</DrawerDescription>
+          <DrawerClose asChild>
+            <Button variant="ghost" size="icon" className="absolute right-2 top-0" aria-label="Fechar">
+              <X className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </DrawerClose>
+        </DrawerHeader>
+        <div className="min-w-0 overflow-y-auto px-4 pb-6">{lista}</div>
+      </DrawerContent>
+    </Drawer>
+  ) : (
+    <DpDialogShell open={aberto} onOpenChange={setAberto} icon={Cake} title="Aniversariantes" description={competencia ? "Nascimento e tempo de casa neste mês" : "Nascimento e tempo de casa nos próximos 30 dias"}>{lista}</DpDialogShell>
+  );
+
   return (
     <>
-    {compacto ? <>
-      <Button variant="outline" onClick={() => setAberto(true)} className={cn("h-auto min-w-0 w-full justify-start rounded-2xl bg-card text-left", emFaixa ? "min-h-11 gap-1 px-2 py-2 sm:gap-2 sm:px-3" : "grid min-h-12 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-1.5 gap-y-1 px-2.5 py-3 sm:flex sm:gap-3 sm:px-4")} aria-label="Ver aniversariantes">
-        <span className={cn("shrink-0 items-center justify-center rounded-lg bg-calendar-dominical/15 text-calendar-dominical", emFaixa ? "hidden h-7 w-7 sm:flex" : "hidden h-9 w-9 sm:flex")}><Cake className="h-4 w-4" /></span>
-        <span className={cn("min-w-0 flex-1 whitespace-normal", !emFaixa && "contents sm:block")}>
-          <strong className={cn("block font-semibold", emFaixa ? "break-words text-[10px] leading-tight sm:text-xs" : "text-xs leading-snug sm:text-sm")}>Aniversariantes</strong>
-          {!emFaixa && <span className="col-span-2 row-start-2 block whitespace-normal break-words text-[11px] leading-snug text-muted-foreground sm:text-xs">{competencia ? "Neste mês" : "Nos próximos 30 dias"}</span>}
-        </span>
-        <span className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full bg-calendar-dominical/15 px-1.5 text-xs font-bold tabular-nums text-calendar-dominical">{isLoading ? "…" : isError ? "—" : data.length}</span>
-        {!emFaixa && <ChevronRight className="hidden h-4 w-4 shrink-0 text-muted-foreground sm:block" />}
-      </Button>
-      {isMobile ? (
-        <Drawer open={aberto} onOpenChange={setAberto}>
-          <DrawerContent className="max-h-[90dvh]">
-            <DrawerHeader className="relative text-left">
-              <DrawerTitle>Aniversariantes</DrawerTitle>
-              <DrawerDescription>{competencia ? "Nascimento e tempo de casa neste mês" : "Nascimento e tempo de casa nos próximos 30 dias"}</DrawerDescription>
-              <DrawerClose asChild>
-                <Button variant="ghost" size="icon" className="absolute right-2 top-0" aria-label="Fechar">
-                  <X className="h-4 w-4" aria-hidden="true" />
-                </Button>
-              </DrawerClose>
-            </DrawerHeader>
-            <div className="min-w-0 overflow-y-auto px-4 pb-6">{lista}</div>
-          </DrawerContent>
-        </Drawer>
+      {chip ? (
+        isLoading ? null : isError || data.length > 0 ? gatilhoChip : null
+      ) : compacto ? (
+        <>
+          <Button variant="outline" onClick={() => setAberto(true)} className={cn("h-auto min-w-0 w-full justify-start rounded-2xl bg-card text-left", emFaixa ? "min-h-11 gap-1 px-2 py-2 sm:gap-2 sm:px-3" : "grid min-h-12 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-1.5 gap-y-1 px-2.5 py-3 sm:flex sm:gap-3 sm:px-4")} aria-label="Ver aniversariantes">
+            <span className={cn("shrink-0 items-center justify-center rounded-lg bg-calendar-dominical/15 text-calendar-dominical", emFaixa ? "hidden h-7 w-7 sm:flex" : "hidden h-9 w-9 sm:flex")}><Cake className="h-4 w-4" /></span>
+            <span className={cn("min-w-0 flex-1 whitespace-normal", !emFaixa && "contents sm:block")}>
+              <strong className={cn("block font-semibold", emFaixa ? "break-words text-[10px] leading-tight sm:text-xs" : "text-xs leading-snug sm:text-sm")}>Aniversariantes</strong>
+              {!emFaixa && <span className="col-span-2 row-start-2 block whitespace-normal break-words text-[11px] leading-snug text-muted-foreground sm:text-xs">{competencia ? "Neste mês" : "Nos próximos 30 dias"}</span>}
+            </span>
+            <span className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full bg-calendar-dominical/15 px-1.5 text-xs font-bold tabular-nums text-calendar-dominical">{isLoading ? "…" : isError ? "—" : data.length}</span>
+            {!emFaixa && <ChevronRight className="hidden h-4 w-4 shrink-0 text-muted-foreground sm:block" />}
+          </Button>
+          {painel}
+        </>
       ) : (
-        <DpDialogShell open={aberto} onOpenChange={setAberto} icon={Cake} title="Aniversariantes" description={competencia ? "Nascimento e tempo de casa neste mês" : "Nascimento e tempo de casa nos próximos 30 dias"}>{lista}</DpDialogShell>
-      )}
-    </> : <div className={cn("min-w-0", competencia ? "space-y-3" : "rounded-2xl border-2 border-[hsl(var(--dp-birthday-border))] bg-[hsl(var(--dp-birthday-bg))] p-5")}>
-      <div className="flex items-center gap-2 mb-1 flex-wrap">
-        <Cake className="h-5 w-5 text-primary shrink-0" />
-        <h2 className="text-base sm:text-lg font-semibold min-w-0 break-words">Aniversariantes</h2>
-        <Badge className="ml-1 bg-primary text-primary-foreground rounded-full h-6 min-w-6 px-2 shrink-0">
-          {data.length}
-        </Badge>
-      </div>
-      <p className="text-xs text-muted-foreground mb-4">
-        {portal
-          ? "Colegas da sua unidade e seu tempo de casa"
-           : dataDia ? "Nascimento e tempo de casa neste dia" : competencia ? "Nascimento e tempo de casa neste mês" : "Aniversários de nascimento e de contratação nos próximos 30 dias"}
-      </p>
+        <div className={cn("min-w-0", competencia ? "space-y-3" : "rounded-2xl border-2 border-[hsl(var(--dp-birthday-border))] bg-[hsl(var(--dp-birthday-bg))] p-5")}>
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <Cake className="h-5 w-5 text-primary shrink-0" />
+            <h2 className="text-base sm:text-lg font-semibold min-w-0 break-words">Aniversariantes</h2>
+            <Badge className="ml-1 bg-primary text-primary-foreground rounded-full h-6 min-w-6 px-2 shrink-0">
+              {data.length}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">
+            {portal
+              ? "Colegas da sua unidade e seu tempo de casa"
+               : dataDia ? "Nascimento e tempo de casa neste dia" : competencia ? "Nascimento e tempo de casa neste mês" : "Aniversários de nascimento e de contratação nos próximos 30 dias"}
+          </p>
 
-      {lista}
-    </div>}
+          {lista}
+        </div>
+      )}
+      {(chip || compacto) && painel}
 
       <WhatsappComposerDialog
         open={!!target}
