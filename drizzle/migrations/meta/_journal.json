@@ -848,6 +848,13 @@
       "when": 1792690173610,
       "tag": "0120_desligamento_motivos_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 121,
+      "version": "7",
+      "when": 1792692681072,
+      "tag": "0121_desligamento_modalidade_dispensado_cumprimento",
+      "breakpoints": true
     }
   ]
 }
