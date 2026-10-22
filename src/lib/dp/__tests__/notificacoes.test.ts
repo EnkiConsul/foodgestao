@@ -51,6 +51,11 @@ describe("destinos (deep links)", () => {
     expect(notificacaoPathGestor("desconhecida")).toBe("/dp/notificacoes");
   });
 
+  it("ocorrência abre direto pelo id", () => {
+    expect(notificacaoPathGestor("dp_ocorrencias", "abc")).toBe("/dp/ocorrencias?id=abc");
+    expect(notificacaoPathGestor("dp_ocorrencias")).toBe("/dp/ocorrencias");
+  });
+
   it("portal cai em rotas do colaborador", () => {
     expect(notificacaoPathPortal("dp_convocacoes")).toBe("/dp/meu/convocacoes");
     expect(notificacaoPathPortal(null)).toBe("/dp/meu");
