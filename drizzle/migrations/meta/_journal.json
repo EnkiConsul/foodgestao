@@ -883,6 +883,13 @@
       "when": 1792710630578,
       "tag": "0125_preadmissao_efetivar_domingos_folga",
       "breakpoints": true
+    },
+    {
+      "idx": 126,
+      "version": "7",
+      "when": 1792710708790,
+      "tag": "0126_preadmissao_efetivar_sexo_upper",
+      "breakpoints": true
     }
   ]
 }
