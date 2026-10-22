@@ -43,6 +43,8 @@ const Condicoes = {
   // Declarações obrigatórias no pedido de demissão dispensado (evidência no GED/contabilidade).
   pedido_escrito: z.boolean().optional(),
   aceite_empresa: z.boolean().optional(),
+  // Motivos sem aviso que exigem determinação factual/jurídica (abandono, aposentadoria, outro).
+  confirmacao_sem_aviso: z.boolean().optional(),
   esperado: z.object({ ultimo: z.string().nullable(), prazo: z.string(), efetiva: z.string() }).optional(),
 };
 const Body = z.discriminatedUnion("acao", [
@@ -77,8 +79,11 @@ type Cond = {
   motivo: MotivoDesligamentoCalc; modalidade: "trabalhado" | "indenizado";
   reducao?: "duas_horas" | "sete_dias" | null; data_comunicacao: string;
   data_termino_acordada?: string | null; descontar_aviso?: boolean;
-  pedido_escrito?: boolean; aceite_empresa?: boolean;
+  pedido_escrito?: boolean; aceite_empresa?: boolean; confirmacao_sem_aviso?: boolean;
 };
+
+/** Motivos sem aviso que não podem ser validados pela mera seleção. */
+const SEM_AVISO_ASSISTIDO: ReadonlySet<string> = new Set(["abandono_emprego", "aposentadoria", "outro"]);
 
 // deno-lint-ignore no-explicit-any
 async function feriadosDaUnidade(admin: any, c: Pick<Colab, "unidade_id" | "company_id">, ano: number): Promise<string[]> {
