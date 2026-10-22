@@ -66,6 +66,8 @@ export interface ColaboradorPanorama {
   ativo?: boolean;
   data_admissao?: string | null;
   data_desligamento?: string | null;
+  /** Pré-admissão ativada na rotina (freelancer provisório aguardando registro). */
+  aguardando_registro?: boolean;
   /** Datas em que cedeu a folga fixa numa troca e trabalha (dp_dia_trabalho_excepcional). */
   trabalho_excepcional?: string[];
 }

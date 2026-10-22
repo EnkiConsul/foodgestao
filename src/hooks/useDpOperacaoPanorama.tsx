@@ -122,7 +122,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           supabase
             .from("dp_colaboradores")
             .select(
-              "id, nome, nome_social, regime, vinculo_label, forma_pagamento, unidade_id, cargo_id, setor_id, ativo, data_admissao, data_desligamento",
+              "id, nome, nome_social, regime, vinculo_label, forma_pagamento, unidade_id, cargo_id, setor_id, ativo, data_admissao, data_desligamento, origem_cadastro",
             )
             .eq("company_id", selectedCompanyId!)
             .order("nome"),
@@ -497,6 +497,10 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           ativo: c.ativo !== false,
           data_admissao: c.data_admissao,
           data_desligamento: c.data_desligamento,
+          // Pré-admissão ativada na rotina: freelancer provisório aguardando
+          // o registro oficial (selo na operação).
+          aguardando_registro:
+            (c as { origem_cadastro?: string | null }).origem_cadastro === "preadmissao_rotina",
           trabalho_excepcional: excepcionais.data?.get(c.id) ?? [],
         };
       });
