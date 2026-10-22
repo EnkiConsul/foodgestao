@@ -129,7 +129,8 @@ export interface ResultadoDesligamento {
   fimPeriodoCumprido: string | null;
   /** Data de término com a projeção integral do aviso (art. 487 §1º; anotação na CTPS). */
   terminoProjetado: string;
-  /** Dias projetados (indenizados) além do período cumprido. */
+  /** Dias projetados (indenizados) além do período cumprido. Sempre 0 no pedido
+   *  de demissão com dispensa do cumprimento: dispensa não é aviso indenizado. */
   diasProjetadosIndenizados: number;
   /** Período da ausência legal de 7 dias, quando escolhida. */
   periodoReducao: { inicio: string; fim: string } | null;
@@ -295,8 +296,10 @@ export function simularDesligamento(p: ParametrosDesligamento): ResultadoOuErro 
       diasProporcionais: 0,
       inicioAviso: inicio,
       fimPeriodoCumprido: null,
+      // Fim TEÓRICO do aviso não cumprido (referência do gestor); não é
+      // projeção indenizada: a empresa dispensou o cumprimento, não indenizou.
       terminoProjetado,
-      diasProjetadosIndenizados: diffDias(efetiva, terminoProjetado),
+      diasProjetadosIndenizados: 0,
       periodoReducao: null,
       calendario: [],
       ultimoComparecimento: null,
