@@ -218,7 +218,7 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
         {registrar && (
           <Card><CardContent className="space-y-2 py-4">
             <Button className="w-full sm:w-auto" disabled={!b || !!registrar.bloqueio}
-              onClick={() => b && registrar.abrir({ data_comunicacao: comunicacao, modalidade, reducao: modalidade === "trabalhado" ? reducao : null, simulado: { ultimo: b.ultimoComparecimento, prazo: b.prazoQuitacao } })}>
+              onClick={() => r && registrar.abrir({ data_comunicacao: comunicacao, modalidade, reducao: modalidade === "trabalhado" ? reducao : null, simulado: { ultimo: r.ultimoComparecimento, prazo: r.prazoQuitacao, comFolgas: r.folgasAceitas.length > 0 } })}>
               {registrar.rotulo}
             </Button>
             <p className="text-xs text-muted-foreground">{registrar.bloqueio ?? "Abre a ficha na aba Desligamento com estes dados para conferência. Nada é gravado até você confirmar lá; folgas simuladas, saldo e jornada editada aqui não são levados."}</p>

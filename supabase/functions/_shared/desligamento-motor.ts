@@ -161,9 +161,13 @@ export function simularDesligamento(p: ParametrosDesligamento): ResultadoOuErro 
   const excecoes = new Map((p.excecoesJornada ?? []).map((e) => [e.data, Math.max(0, Math.round(e.minutos))]));
   const avisos: string[] = [];
 
+  // Precedência: escala explícita do dia (trabalho > 0 ou folga = 0) vale sobre
+  // o feriado — food service trabalha em feriado. Sem escala, feriado = sem jornada.
+  // Só afeta o último comparecimento; prazo e sugestão seguem o calendário de feriados.
   const jornadaDe = (iso: string) => {
+    if (excecoes.has(iso)) return excecoes.get(iso)!;
     if (feriados.has(iso)) return 0;
-    return excecoes.has(iso) ? excecoes.get(iso)! : p.jornadaSemanal[diaSemana(iso)];
+    return p.jornadaSemanal[diaSemana(iso)];
   };
 
   const rejeitadas: FolgaRejeitada[] = [];
