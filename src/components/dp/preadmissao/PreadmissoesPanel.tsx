@@ -23,7 +23,8 @@ import { PreadmissaoRevisaoDialog } from "@/components/dp/preadmissao/Preadmissa
 import { notifyError } from "@/lib/notifyError";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
 import {
-  PREADMISSAO_STATUS_LABEL, useDpPreadmissaoConvite, useDpPreadmissoes,
+  PREADMISSAO_STATUS_LABEL, diasAguardandoRegistro, rotinaDaPreadmissao,
+  useDpPreadmissaoConvite, useDpPreadmissoes,
   type PreadmissaoStatus,
 } from "@/hooks/dp/useDpPreadmissoes";
 import { DpFilters, DpFilterField, type DpFilterChip } from "@/components/dp/DpFilters";
