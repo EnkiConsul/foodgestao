@@ -224,6 +224,35 @@ export default function DpOcorrencias() {
 
   const acoes = useDpOcorrencias(filtros);
   const qc = useQueryClient();
+  // Vindo de uma notificação (?id=): filtra o dia/colaborador e abre a tratativa pendente.
+  const idParam = searchParams.get("id");
+  const [idAlvo, setIdAlvo] = useState<string | null>(idParam);
+  useEffect(() => {
+    if (!idParam) return;
+    let vivo = true;
+    supabase
+      .from("dp_ocorrencias")
+      .select("colaborador_id, data_operacional")
+      .eq("id", idParam)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!vivo || !data) return;
+        setFiltros((f) => ({
+          ...f,
+          colaboradorId: data.colaborador_id ?? "all",
+          data: data.data_operacional,
+          somentePendentes: false,
+        }));
+      });
+    return () => { vivo = false; };
+  }, [idParam]);
+  useEffect(() => {
+    if (!idAlvo) return;
+    const alvo = acoes.ocorrencias.find((o) => o.id === idAlvo);
+    if (!alvo) return;
+    setIdAlvo(null);
+    if (alvo.tratativa_status === "pendente" && alvo.estado !== "cancelada") setTratativa(alvo);
+  }, [idAlvo, acoes.ocorrencias]);
   const { data: colaboradores = [] } = useDpColaboradores();
   const { data: unidades = [] } = useDpUnidades();
   const { setores } = useDpSetores(filtros.unidadeId === "all" ? null : filtros.unidadeId);
