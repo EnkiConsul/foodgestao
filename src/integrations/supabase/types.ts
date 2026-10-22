@@ -19750,7 +19750,9 @@ export type Database = {
         Returns: Json
       }
       dp_desligamento_registrar_aviso: { Args: { p: Json }; Returns: Json }
+      dp_desligamento_termino_guard: { Args: { p: Json }; Returns: undefined }
       dp_desligamento_transicao: { Args: { p: Json }; Returns: Json }
+      dp_desligamento_transicao_nucleo: { Args: { p: Json }; Returns: Json }
       dp_desligar_colaborador: {
         Args: {
           p_colaborador_id: string

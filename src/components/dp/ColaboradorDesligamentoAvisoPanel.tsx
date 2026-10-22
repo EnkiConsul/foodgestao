@@ -223,6 +223,8 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
   // ---------- Aviso em andamento
   if (p) {
     const pausado = p.status !== "aviso_em_curso";
+    // Antecipação só com as duas declarações; sem elas vira ocorrência pausada para revisão.
+    const termino = ocTipo === "novo_emprego" && ocPedido && ocComprovado && p.modalidade === "trabalhado";
     return secao("Aviso prévio em andamento",
       <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs">{pausado ? `Pausado: ${PAUSA[p.revisao_motivo ?? ""] ?? "em revisão"}` : `Colaborador ativo até ${br(p.data_efetiva)}`}</span>, <>
       <DatasDesligamento r={p} />
