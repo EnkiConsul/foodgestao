@@ -196,11 +196,15 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
   });
   const recarregar = () => qc.invalidateQueries({ queryKey: ["dp_desligamento_processo", colaboradorId] });
 
-  const [cond, setCondState] = useState({
-    motivo: "dispensa_sem_justa_causa",
+  const [cond, setCondState] = useState<CondicoesValor>({
+    motivo: rascunho?.motivo ?? "dispensa_sem_justa_causa",
     modalidade: (rascunho?.modalidade ?? "trabalhado") as "trabalhado" | "indenizado",
     reducao: (rascunho?.reducao ?? "duas_horas") as "duas_horas" | "sete_dias",
     comunicacao: rascunho?.data_comunicacao ?? hojeIsoLocal(),
+    terminoAcordado: rascunho?.data_termino_acordada ?? "",
+    descontar: rascunho?.descontar_aviso ?? false,
+    pedidoEscrito: false,
+    aceiteEmpresa: false,
   });
   const [previa, setPrevia] = useState<Resultado | null>(null);
   const [mensagem, setMensagem] = useState<{ texto: string; erro: boolean } | null>(null);
@@ -217,8 +221,16 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
   const [retConf, setRetConf] = useState(false);
 
   const limpar = () => { setPrevia(null); setMensagem(null); setFormal(false); };
-  const setCond = (p: Partial<typeof cond>) => { setCondState((c) => ({ ...c, ...p })); limpar(); };
-  const condBody = () => ({ motivo: cond.motivo, modalidade: cond.modalidade, reducao: cond.modalidade === "trabalhado" ? cond.reducao : null, data_comunicacao: cond.comunicacao });
+  const setCond = (p: Partial<CondicoesValor>) => { setCondState((c) => ({ ...c, ...p })); limpar(); };
+  const condBody = () => ({
+    motivo: cond.motivo, modalidade: cond.modalidade,
+    reducao: cond.modalidade === "trabalhado" && cond.motivo !== "pedido_demissao" ? cond.reducao : null,
+    data_comunicacao: cond.comunicacao,
+    data_termino_acordada: cond.motivo === "pedido_demissao" && cond.modalidade === "indenizado" && cond.terminoAcordado ? cond.terminoAcordado : null,
+    descontar_aviso: cond.motivo === "pedido_demissao" && cond.modalidade === "indenizado" ? cond.descontar : undefined,
+    pedido_escrito: cond.pedidoEscrito, aceite_empresa: cond.aceiteEmpresa,
+  });
+  const pedidoDispensadoPendente = cond.motivo === "pedido_demissao" && cond.modalidade === "indenizado" && (!cond.pedidoEscrito || !cond.aceiteEmpresa);
   const fechar = () => { setAcao(null); limpar(); setNota(""); setChave(novaChave()); };
 
   const executar = async (body: Record<string, unknown>, sucesso: string) => {
