@@ -17,7 +17,7 @@ export function RaioXOperacaoDia({ companyId, colaboradorId, data }: { companyId
       const sb = supabase as any;
       const { data: me } = await sb.from("dp_colaboradores").select("unidade_id").eq("id", colaboradorId).maybeSingle();
       const unidade = me?.unidade_id ?? null;
-      let colabsQ = sb.from("dp_colaboradores").select("id, nome").eq("company_id", companyId).eq("ativo", true).is("removido_em", null);
+      let colabsQ = sb.from("dp_colaboradores").select("id, nome").eq("company_id", companyId).eq("ativo", true);
       if (unidade) colabsQ = colabsQ.eq("unidade_id", unidade);
       const [colabs, folgas, ferias, ocorr] = await Promise.all([
         colabsQ,
