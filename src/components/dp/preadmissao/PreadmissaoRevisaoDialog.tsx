@@ -1775,6 +1775,55 @@ function cargaSemanal(j: JornadaRascunho | null): number | null {
   return horas >= 1 && horas <= 60 ? horas : null;
 }
 
+/**
+ * Consolida a jornada da ficha: deriva o horário principal dos dias
+ * trabalhados quando o campo-base está vazio e completa os dias com o
+ * horário principal. Devolve null quando não há dia trabalhado; lança erro
+ * claro quando um dia trabalhado ficou sem horário — nunca grava jornada
+ * vazia nem finge sucesso com dados incompletos.
+ */
+function consolidarJornada(j: JornadaRascunho | null): JornadaRascunho | null {
+  if (!j) return null;
+  const dias = (j.dias ?? []).map((d) => ({ ...d }));
+  const trabalhados = dias.filter((d) => d.trabalha);
+  if (!trabalhados.length) return null;
+  let horario = { ...(j.horario ?? {}) };
+  if (!horario.entrada || !horario.saida) {
+    const comHora = trabalhados.find((d) => d.entrada && d.saida);
+    if (comHora) {
+      horario = {
+        entrada: comHora.entrada!,
+        saida: comHora.saida!,
+        intervalo_minutos: comHora.intervalo_minutos ?? horario.intervalo_minutos ?? 0,
+      };
+    }
+  }
+  const diasCompletos = dias.map((d) =>
+    d.trabalha
+      ? {
+          ...d,
+          entrada: d.entrada || horario.entrada || null,
+          saida: d.saida || horario.saida || null,
+          intervalo_minutos: d.intervalo_minutos ?? horario.intervalo_minutos ?? 0,
+        }
+      : d,
+  );
+  const incompleto = diasCompletos.some((d) => d.trabalha && (!d.entrada || !d.saida));
+  if (incompleto) {
+    throw new Error("Informe a entrada e a saída de todos os dias trabalhados na aba Horário antes de salvar.");
+  }
+  return { horario, dias: diasCompletos, folga_variavel: j.folga_variavel === true };
+}
+
+/** Jornada consolidada sem lançar erro (para habilitar/descrever a ativação). */
+function jornadaConsolidadaOuNull(j: JornadaRascunho | null): JornadaRascunho | null {
+  try {
+    return consolidarJornada(j);
+  } catch {
+    return null;
+  }
+}
+
 function descricaoJornada(j: JornadaRascunho | null): string {
   if (!j?.horario?.entrada || !j.horario.saida) return "";
   const dias = (j.dias ?? []).filter((d) => d.trabalha).length;
