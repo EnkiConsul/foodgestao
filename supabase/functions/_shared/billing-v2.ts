@@ -379,8 +379,27 @@ export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: 
     throw new BillingError(502, ok ? MSG_FALHA_DESFEITA : MSG_FALHA_COMPENSACAO, { subscription_id: sub.id, compensacao_pendente: !ok, desfazimento_incompleto: falhas.length > 0 });
   }
   await admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "contratacao_v2", actor_id: actorId ?? null, payload: { quote: q, forma: p.forma, parcelas: p.parcelas ?? 1, parcelamento: parc, empresas: cobertas } });
+  await eventoConta(admin, { ...sub, billing_account_id: conta.id }, "contratacao_concluida", actorId ?? conta.titular_user_id,
+    { subscription_id: sub.id, plano: p.plano, ciclo: p.ciclo, forma: p.forma, total_cents: q.total_ciclo_cents, empresas: cobertas });
   return { subscription_id: sub.id, total_cents: q.total_ciclo_cents, empresas_cobertas: cobertas.length, parcelamento: parc };
 }
+
+/** Grava em billing_account_events com o autor. `estrito` = falha interrompe a operação. */
+async function eventoConta(admin: SupabaseClient, sub: any, tipo: string, actorId: string | null | undefined, payload: Record<string, unknown>, estrito = false) {
+  let contaId = sub?.billing_account_id ?? null;
+  if (!contaId && sub?.id) {
+    const { data } = await admin.from("subscriptions").select("billing_account_id").eq("id", sub.id).maybeSingle();
+    contaId = (data as any)?.billing_account_id ?? null;
+  }
+  if (!contaId) { console.warn(`[billing] evento ${tipo} sem conta de cobrança`, sub?.id); return; }
+  const { error } = await admin.from("billing_account_events").insert({ billing_account_id: contaId, tipo_evento: tipo, actor_id: actorId ?? null,
+    payload: { subscription_id: sub?.id ?? null, ...payload } });
+  if (error) {
+    console.error(`[billing] evento ${tipo} falhou`, error.message);
+    if (estrito) throw new BillingError(500, "Falha ao registrar o histórico da operação. Fale com o suporte.", error.message);
+  }
+}
+
 
 async function atualizarValorAsaas(admin: SupabaseClient, sub: any, criados: Criados | null, extra: Record<string, unknown> = {}) {
   const v = await valorRecorrente(admin, sub.id);
@@ -439,6 +458,7 @@ export async function contratarAdicional(admin: SupabaseClient, sub: any, code: 
     await admin.from("subscription_addons").update({ prorata_billed_at: prorataCobranca === "imediata" || somadaAgora ? new Date().toISOString() : null, notes: `pró-rata R$ ${reais(prorata).toFixed(2)} — ${prorataCobranca}` }).eq("id", row.id);
     await admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "prorata_adicional", actor_id: actorId ?? null, payload: { code, qtd, prorata_cents: prorata, cobranca: prorataCobranca } });
   }
+  await eventoConta(admin, sub, "adicional_contratado", actorId, { code, qtd, prorata_cents: prorata, prorata_cobranca: prorataCobranca, novo_valor_cents: v.cents });
   return { addon_row: row.id, prorata_cents: prorata, prorata_cobranca: prorataCobranca, novo_valor_cents: v.cents };
 }
 
@@ -449,6 +469,7 @@ export async function trocarPlano(admin: SupabaseClient, sub: any, plano: string
   if (!q.imediato) {
     const { error: e2 } = await admin.rpc("billing_v2_plan_change_schedule", { _subscription_id: sub.id, _plan_slug: plano, _billing_cycle: ciclo, _actor: actorId ?? null });
     if (e2) throw new BillingError(422, e2.message);
+    await eventoConta(admin, sub, "troca_plano_agendada", actorId, { plano, ciclo, tipo: q.tipo, efetivo_em: q.efetivo_em });
     return { agendado: true, quote: q };
   }
   const env = parseAsaasEnv(sub.asaas_env);
@@ -462,15 +483,18 @@ export async function trocarPlano(admin: SupabaseClient, sub: any, plano: string
     criados.push({ tipo: "cobrança avulsa", id: requireAsaasId(pg, "a cobrança da diferença"), descricao: `${q.tipo} — diferença` });
     await registrarFatura(admin, sub, pg, forma, `Diferença ${q.tipo}`);
   }
-  await admin.rpc("billing_v2_apply_change", { _subscription_id: sub.id, _plan_slug: plano, _ciclo: ciclo, _origem: "imediata", _actor: actorId ?? null });
+  const { error: eA } = await admin.rpc("billing_v2_apply_change", { _subscription_id: sub.id, _plan_slug: plano, _ciclo: ciclo, _origem: "imediata", _actor: actorId ?? null });
+  if (eA) throw new BillingError(500, "Falha ao aplicar a troca de plano.", eA.message);
   const extra = q.tipo === "troca_ciclo_anual" ? { nextDueDate: new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10) } : {};
   const v = await atualizarValorAsaas(admin, sub, criados, extra);
+  await eventoConta(admin, sub, "troca_plano_aplicada", actorId, { plano, ciclo, tipo: q.tipo, cobrar_agora_cents: q.cobrar_agora_cents, novo_valor_cents: v.cents });
   return { agendado: false, quote: q, novo_valor_cents: v.cents };
 }
 
 export async function cancelarAgendamento(admin: SupabaseClient, sub: any, actorId?: string) {
   const { error } = await admin.rpc("billing_v2_plan_change_cancel", { _subscription_id: sub.id, _actor: actorId ?? null });
   if (error) throw new BillingError(422, error.message);
+  await eventoConta(admin, sub, "troca_plano_agendamento_cancelado", actorId, { pendente: sub.pending_plan_change ?? null });
   return { ok: true };
 }
 
@@ -505,7 +529,18 @@ export async function desfazerUpgrade(admin: SupabaseClient, sub: any, criados: 
   if (fat.external_invoice_id) {
     const pg = await asaasFetch(`/payments/${fat.external_invoice_id}`, {}, env);
     if (["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH"].includes(pg?.status)) throw new BillingError(409, "Essa diferença já foi paga e não pode ser desfeita por aqui. Fale com o suporte.");
-    if (!pg?.deleted) await asaasFetch(`/payments/${fat.external_invoice_id}`, { method: "DELETE" }, env);
+    let erroDel = "";
+    if (!pg?.deleted) {
+      try { await asaasFetch(`/payments/${fat.external_invoice_id}`, { method: "DELETE" }, env); }
+      catch (e) { erroDel = String((e as Error).message ?? e); }
+    }
+    // Confere por GET que a cobrança está apagada/cancelada antes de seguir.
+    const ativo = await conferirInativo({ tipo: "cobranca", id: fat.external_invoice_id }, env);
+    if (ativo) {
+      await eventoConta(admin, sub, "compensacao_pendente", actorId, { origem: "desfazer_upgrade", invoice_id: fat.id,
+        cobranca_asaas: fat.external_invoice_id, motivo: erroDel ? `${erroDel} | ${ativo}` : ativo });
+      throw new BillingError(502, "Não conseguimos confirmar o cancelamento da cobrança no provedor. Nada foi alterado no seu plano; nossa equipe foi avisada.");
+    }
     criados.push({ tipo: "cobrança cancelada", id: fat.external_invoice_id, descricao: "diferença do upgrade" });
   }
   const { error: eF } = await admin.from("invoices").update({ status: "canceled", notes: `${fat.notes} — desfeita pelo cliente` }).eq("id", fat.id);
@@ -513,8 +548,10 @@ export async function desfazerUpgrade(admin: SupabaseClient, sub: any, criados: 
   const { error: eA } = await admin.rpc("billing_v2_apply_change", { _subscription_id: sub.id, _plan_slug: ant.plano, _ciclo: ant.ciclo, _origem: "desfeita", _actor: actorId ?? null });
   if (eA) throw new BillingError(500, "Falha ao voltar ao plano anterior.", eA.message);
   const v = await atualizarValorAsaas(admin, sub, criados);
-  await admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "upgrade_desfeito", actor_id: actorId ?? null,
-    payload: { invoice_id: fat.id, valor_cents: fat.amount_cents, plano_restaurado: ant.plano, novo_valor_cents: v.cents } });
+  const payload = { invoice_id: fat.id, valor_cents: fat.amount_cents, plano_restaurado: ant.plano, novo_valor_cents: v.cents };
+  const { error: eEv } = await admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "upgrade_desfeito", actor_id: actorId ?? null, payload });
+  if (eEv) throw new BillingError(500, "O plano voltou, mas o registro da desistência falhou. Fale com o suporte.", eEv.message);
+  await eventoConta(admin, sub, "upgrade_desfeito", actorId, payload, true);
   return { ok: true, plano: ant.plano, novo_valor_cents: v.cents };
 }
 

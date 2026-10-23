@@ -228,7 +228,7 @@ async function processEvent(admin: Admin, env: Env, eventType: string, payload: 
     if (!inv && payment.subscription) {
       const { data: subRow } = await admin
         .from("subscriptions")
-        .select("id, user_id")
+        .select("id, user_id, billing_account_id")
         .eq("asaas_env", env)
         .eq("external_subscription_id", payment.subscription)
         .maybeSingle();
@@ -248,6 +248,8 @@ async function processEvent(admin: Admin, env: Env, eventType: string, payload: 
           external_payment_url: payment.invoiceUrl ?? null,
           payment_method: method as any,
           asaas_env: env,
+          billing_account_id: (subRow as any).billing_account_id ?? null,
+          notes: (() => { const d = String(payment.dueDate ?? new Date().toISOString().slice(0, 10)); return `Mensalidade ${d.slice(5, 7)}/${d.slice(0, 4)}`; })(),
         }).select().single();
         if (insErr && insErr.code !== "23505") throw new Error(`invoice_insert: ${insErr.message}`);
         if (inserted) {

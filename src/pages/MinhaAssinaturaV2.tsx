@@ -137,6 +137,41 @@ export default function MinhaAssinaturaV2() {
 
       {subs.map((s) => <AssinaturaCard key={s.id} s={s} onAcao={setAcao} />)}
 
+      {(() => {
+        const hojeIso = new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10);
+        const abertas = faturas.filter((f) => ["open", "overdue"].includes(f.status));
+        const futuras = abertas.filter((f) => f.status === "open" && String(f.vencimento) > hojeIso && !String(f.notas ?? "").startsWith("Diferença"));
+        const pendentes = abertas.filter((f) => !futuras.includes(f));
+        const rotulo = (f: Json) => String(f.notas ?? "").startsWith("Diferença")
+          ? { nome: "Diferença de upgrade", motivo: "Valor proporcional da troca para um plano maior até a próxima renovação." }
+          : { nome: f.notas || "Mensalidade", motivo: null as string | null };
+        if (!abertas.length) return null;
+        return (
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-base">Cobranças</CardTitle></CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              {pendentes.map((f) => { const r = rotulo(f); return (
+                <div key={f.id} className="rounded-md border border-destructive/40 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-medium">{r.nome} · {MODULO[f.modulo] ?? "—"}</span>
+                    <span className="font-medium">{formatCents(f.valor_cents)}</span>
+                  </div>
+                  {r.motivo && <p className="text-xs text-muted-foreground">{r.motivo}</p>}
+                  <p className="text-xs">{f.status === "overdue" ? "Vencida em" : "Vence em"} {data(f.vencimento)}
+                    {f.link && <> · <a className="text-primary underline" href={f.link} target="_blank" rel="noreferrer">Pagar</a></>}</p>
+                </div>
+              ); })}
+              {futuras.map((f) => (
+                <div key={f.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3">
+                  <span>Próxima cobrança — vence em {data(f.vencimento)} · {MODULO[f.modulo] ?? "—"}</span>
+                  <span className="font-medium">{formatCents(f.valor_cents)}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-base">Histórico de Pagamentos e Notas Fiscais</CardTitle></CardHeader>
         <CardContent>

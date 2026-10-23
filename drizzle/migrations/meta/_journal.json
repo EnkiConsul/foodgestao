@@ -911,6 +911,13 @@
       "when": 1792717030620,
       "tag": "0129_billing_v2_revoke_public_apply_change",
       "breakpoints": true
+    },
+    {
+      "idx": 130,
+      "version": "7",
+      "when": 1792717178917,
+      "tag": "0130_minha_assinatura_faturas_notas",
+      "breakpoints": true
     }
   ]
 }
