@@ -7,7 +7,10 @@ import { assinarTroca } from "@/lib/dp/troca-assinatura";
 import { CienciaFaltaTrocaBox, TEXTO_CIENCIA_FALTA_TROCA } from "@/components/dp/CienciaFaltaTrocaBox";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Helmet } from "react-helmet-async";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { SolicitacaoCorrigirDialog, type SolicitacaoCorrigir } from "@/components/dp/portal/SolicitacaoCorrigirDialog";
+
+type Devolvido = SolicitacaoCorrigir & { devolvido_motivo: string | null };
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { addDays, eachDayOfInterval, endOfMonth, startOfMonth } from "date-fns";
 import {
@@ -222,6 +225,28 @@ export default function DpMeuCalendario() {
       const { data: c, error } = await supabase.from("dp_colaboradores").select(semDif).eq("id", data).single();
       if (error) throw error;
       return c as unknown as MeuVinculo;
+    },
+  });
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  /** Pedido pendente que será substituído pelo novo envio (devolvido ou duplicado). */
+  const [substituirId, setSubstituirId] = useState<string | null>(null);
+  const [conflitoPedido, setConflitoPedido] = useState<{ id: string; devolvido_motivo: string | null } | null>(null);
+  const [corrigirAlvo, setCorrigirAlvo] = useState<Devolvido | null>(null);
+  const meusDevolvidos = useQuery({
+    queryKey: ["dp_meus_devolvidos", meRef.data?.id],
+    enabled: !!meRef.data?.id,
+    queryFn: async (): Promise<Devolvido[]> => {
+      const { data, error } = await supabase
+        .from("dp_solicitacoes")
+        .select("id, company_id, colaborador_id, tipo, data_alvo, data_fim, motivo, devolvido_motivo, arquivo_path")
+        .eq("colaborador_id", meRef.data!.id)
+        .eq("status", "pendente")
+        .is("removido_em", null)
+        .not("devolvido_em", "is", null)
+        .order("data_alvo");
+      if (error) throw error;
+      return (data ?? []) as Devolvido[];
     },
   });
 
@@ -1116,7 +1141,7 @@ export default function DpMeuCalendario() {
   });
 
   const enviarExcecao = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (substituir?: string | null) => {
       if (!meRef.data || !selectedDay) throw new Error("Sem contexto");
       const troca = excecaoModo === "troca_semanal";
       if (troca && !excecaoDiaTrabalho) negarRegra("Escolha qual dia da sua folga semanal você vai trabalhar.");
@@ -1127,7 +1152,15 @@ export default function DpMeuCalendario() {
           : excecaoModo === "compensacao"
             ? MOTIVO_COMPENSACAO_FERIADO
             : "Folga extra solicitada ao gestor");
-      const { error } = troca
+      const { error } = substituir
+        ? await supabase.rpc("dp_folga_substituir_pedido", {
+            p_id: substituir,
+            p_modo: troca ? "troca" : "folga",
+            p_data: selectedDay.iso,
+            p_data_trabalho: troca ? excecaoDiaTrabalho : null,
+            p_motivo: motivo,
+          } as never)
+        : troca
         ? await supabase.rpc("dp_folga_troca_fds_solicitar", {
             p_data_folga: selectedDay.iso,
             p_data_trabalho: excecaoDiaTrabalho,
@@ -1138,6 +1171,26 @@ export default function DpMeuCalendario() {
             p_motivo: motivo,
             p_fora_da_janela: true,
           });
+      if (error && (error.message ?? "").includes("DUPLICATE_REQUEST") && !substituir) {
+        // Em vez de só recusar: mostra o pedido existente e oferece trocar por este.
+        const datas = [selectedDay.iso, ...(troca && excecaoDiaTrabalho ? [excecaoDiaTrabalho] : [])];
+        const { data: exist } = await supabase
+          .from("dp_solicitacoes")
+          .select("id, devolvido_motivo")
+          .eq("colaborador_id", meRef.data.id)
+          .eq("tipo", "folga")
+          .eq("status", "pendente")
+          .is("removido_em", null)
+          .or(`data_alvo.in.(${datas.join(",")}),data_fim.in.(${datas.join(",")})`)
+          .limit(1)
+          .maybeSingle();
+        if (exist) {
+          setConflitoPedido({ id: exist.id, devolvido_motivo: exist.devolvido_motivo ?? null });
+          return "conflito" as const;
+        }
+      }
+      if (error && (error.message ?? "").includes("STATUS_INVALIDO"))
+        negarRegra("Esse pedido já foi respondido pelo gestor. Atualize a tela.");
       if (error) {
         const raw0 = error.message ?? "";
         if (raw0.includes("TROCA_DIA_TRABALHO_INVALIDO"))
@@ -1165,18 +1218,64 @@ export default function DpMeuCalendario() {
         throw new Error("Não foi possível enviar a solicitação. Tente novamente.");
       }
     },
-    onSuccess: () => {
+    onSuccess: (r, substituir) => {
+      if (r === "conflito") return;
       if (riscoDsrExcecao)
         void registrarCienciaDsr({ papel: "colaborador", tabela: "dp_solicitacoes", data: riscoDsrExcecao.data, dias: riscoDsrExcecao.sequencia });
-      toast.success("Pedido enviado. Fica pendente até o gestor aprovar.");
+      toast.success(
+        substituir
+          ? "Pedido atualizado e reenviado. Fica pendente até o gestor aprovar."
+          : "Pedido enviado. Fica pendente até o gestor aprovar.",
+      );
       setExceptionOpen(false);
       setExceptionMotivo("");
       setSelectedDay(null);
       qc.invalidateQueries({ queryKey: ["dp_solic_meu_cal"] });
+      qc.invalidateQueries({ queryKey: ["dp_meus_devolvidos"] });
       invalidarRotinaLoja();
     },
     onError: (e: any) => notifyError(e, { surface: "Meu calendário", action: "concluir a ação", fallback: "Erro ao enviar exceção" }),
   });
+
+  /** Abre o ajuste do pedido devolvido: folga reabre o pedido de exceção; atestado abre a correção. */
+  const ajustarDevolvido = (d: Devolvido) => {
+    if (d.tipo !== "folga") {
+      setCorrigirAlvo(d);
+      return;
+    }
+    const [y, m] = d.data_alvo.split("-").map(Number);
+    setAno(y);
+    setMes(m);
+    setSelectedDay({ iso: d.data_alvo, status: "available" });
+    setConflitoPedido({ id: d.id, devolvido_motivo: d.devolvido_motivo });
+    setSubstituirId(d.id);
+    setExcecaoDiaTrabalho("");
+    setExceptionMotivo("");
+    setExcecaoModo(
+      temCompensacao && /compensa/i.test(`${d.devolvido_motivo ?? ""} ${d.motivo ?? ""}`) ? "compensacao" : "extra",
+    );
+    setExceptionOpen(true);
+  };
+
+  useEffect(() => {
+    const id = searchParams.get("solicitacao");
+    if (!id || !meusDevolvidos.data) return;
+    const d = meusDevolvidos.data.find((x) => x.id === id);
+    const next = new URLSearchParams(searchParams);
+    next.delete("solicitacao");
+    setSearchParams(next, { replace: true });
+    if (d) ajustarDevolvido(d);
+    else toast.info("Esse pedido já foi ajustado ou respondido pelo gestor.");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, meusDevolvidos.data]);
+
+  useEffect(() => {
+    if (!exceptionOpen) {
+      setSubstituirId(null);
+      setConflitoPedido(null);
+    }
+  }, [exceptionOpen]);
+
 
 
   const solicitarTroca = useMutation({
@@ -1594,6 +1693,30 @@ export default function DpMeuCalendario() {
           </Button>
         }
       />
+
+      {(meusDevolvidos.data ?? []).length > 0 && (
+        <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 space-y-3">
+          <p className="text-sm font-semibold">
+            {meusDevolvidos.data!.length === 1
+              ? "Você tem 1 pedido devolvido pelo gestor aguardando ajuste"
+              : `Você tem ${meusDevolvidos.data!.length} pedidos devolvidos pelo gestor aguardando ajuste`}
+          </p>
+          {meusDevolvidos.data!.map((d) => (
+            <div key={d.id} className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-xl bg-background/70 p-3">
+              <div className="min-w-0 flex-1 text-sm">
+                <p className="font-medium">
+                  {d.tipo === "folga" ? "Folga" : "Atestado/licença"} em {descreverDia(d.data_alvo)}
+                </p>
+                {d.devolvido_motivo && <p className="text-xs text-muted-foreground">Recado: “{d.devolvido_motivo}”</p>}
+              </div>
+              <Button size="sm" className="min-h-9" onClick={() => ajustarDevolvido(d)}>
+                Ajustar e reenviar
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
 
       {!convocavel && vinculoCarregado && <div className="space-y-2">
         <p className="text-sm font-medium">Clique no dia desejado para visualizar, solicitar ou trocar folga.</p>
@@ -2101,13 +2224,18 @@ export default function DpMeuCalendario() {
           <DialogHeader>
             <DialogTitle className="text-2xl font-black flex items-center gap-3">
               <AlertCircle className="size-6 text-amber-500" />
-              Solicitar exceção ao gestor
+              {substituirId ? "Ajustar pedido devolvido" : "Solicitar exceção ao gestor"}
             </DialogTitle>
             <DialogDescription>
               Peça ao gestor para folgar em {selectedDay && descreverDia(selectedDay.iso)}. O pedido só vale depois da
               aprovação.
             </DialogDescription>
           </DialogHeader>
+          {substituirId && conflitoPedido?.devolvido_motivo && (
+            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+              <span className="font-medium">Recado do gestor:</span> “{conflitoPedido.devolvido_motivo}”
+            </div>
+          )}
           <div className="space-y-3">
             <div>
               <Label>Tipo de pedido</Label>
@@ -2200,23 +2328,60 @@ export default function DpMeuCalendario() {
                 onChange={(e) => setExceptionMotivo(e.target.value)}
               />
             </div>
+            {conflitoPedido && !substituirId && (
+              <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm space-y-2">
+                <p className="font-medium">Você já tem um pedido para este dia.</p>
+                {conflitoPedido.devolvido_motivo && (
+                  <p className="text-xs">Recado do gestor: “{conflitoPedido.devolvido_motivo}”</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Quer trocar o pedido anterior por este novo? O anterior é encerrado e o novo vai para o gestor.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    size="sm"
+                    className="min-h-9"
+                    disabled={enviarExcecao.isPending}
+                    onClick={() => {
+                      setSubstituirId(conflitoPedido.id);
+                      enviarExcecao.mutate(conflitoPedido.id);
+                    }}
+                  >
+                    Trocar pelo novo pedido
+                  </Button>
+                  <Button size="sm" variant="ghost" className="min-h-9" onClick={() => setExceptionOpen(false)}>
+                    Manter o pedido anterior
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
             <Button variant="ghost" onClick={() => setExceptionOpen(false)} className="min-h-10 w-full sm:w-auto">
               Cancelar
             </Button>
-            <Button onClick={() => enviarExcecao.mutate()} disabled={enviarExcecao.isPending || (!!riscoDsrExcecao && !cienteDsr)} className="min-h-10 w-full sm:w-auto">
+            <Button onClick={() => enviarExcecao.mutate(substituirId)} disabled={enviarExcecao.isPending || (!!riscoDsrExcecao && !cienteDsr)} className="min-h-10 w-full sm:w-auto">
               {enviarExcecao.isPending ? (
                 "Enviando..."
               ) : (
                 <>
-                  <Send className="h-4 w-4 mr-2" /> Enviar
+                  <Send className="h-4 w-4 mr-2" /> {substituirId ? "Atualizar e reenviar ao gestor" : "Enviar"}
                 </>
               )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SolicitacaoCorrigirDialog
+        alvo={corrigirAlvo}
+        onOpenChange={(o) => !o && setCorrigirAlvo(null)}
+        onDone={() => {
+          setCorrigirAlvo(null);
+          qc.invalidateQueries({ queryKey: ["dp_meus_devolvidos"] });
+        }}
+      />
+
 
       {/* Dialog troca */}
       <Dialog open={!!tradeOpen} onOpenChange={(o) => !o && setTradeOpen(null)}>

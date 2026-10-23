@@ -20462,6 +20462,16 @@ export type Database = {
         Args: { p_data: string; p_fora_da_janela?: boolean; p_motivo?: string }
         Returns: Json
       }
+      dp_folga_substituir_pedido: {
+        Args: {
+          p_data: string
+          p_data_trabalho: string
+          p_id: string
+          p_modo: string
+          p_motivo: string
+        }
+        Returns: undefined
+      }
       dp_folga_troca_fds_solicitar: {
         Args: {
           p_data_folga: string

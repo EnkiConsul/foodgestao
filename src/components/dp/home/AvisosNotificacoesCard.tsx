@@ -41,7 +41,7 @@ export function AvisosNotificacoesCard() {
           .limit(6),
         supabase
           .from("dp_notificacoes")
-          .select("id, titulo, descricao, ref_table, created_at, lida_em")
+          .select("id, titulo, descricao, ref_table, ref_id, created_at, lida_em")
           .eq("user_id", user!.id)
           .order("created_at", { ascending: false })
           .limit(6),
@@ -79,7 +79,7 @@ export function AvisosNotificacoesCard() {
         texto: n.descricao,
         data: n.created_at,
         lido: !!n.lida_em,
-        to: notificacaoPathPortal(n.ref_table),
+        to: notificacaoPathPortal(n.ref_table, (n as { ref_id?: string | null }).ref_id),
         origemLabel: notificacaoOrigemLabel(n.ref_table),
       }));
 

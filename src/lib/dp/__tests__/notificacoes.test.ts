@@ -61,3 +61,9 @@ describe("destinos (deep links)", () => {
     expect(notificacaoPathPortal(null)).toBe("/dp/meu");
   });
 });
+
+describe("notificação de solicitação no portal", () => {
+  it("abre o calendário direto no pedido", () => {
+    expect(notificacaoPathPortal("dp_solicitacoes", "abc")).toBe("/dp/meu/calendario?solicitacao=abc");
+  });
+});
