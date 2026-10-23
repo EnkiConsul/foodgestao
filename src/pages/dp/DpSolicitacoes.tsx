@@ -1,5 +1,5 @@
 import { TIPOS_LICENCA_CURTA, TIPO_AFASTAMENTO_LABEL } from "@/lib/dp/licencas";
-import { diasDeAntecedencia, ehCompensacaoFeriado } from "@/lib/dp/termos-compensacao";
+import { diasDeAntecedencia, ehCompensacaoFeriado, motivoLegivel, MOTIVO_COMPENSACAO_FERIADO } from "@/lib/dp/termos-compensacao";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
@@ -379,7 +379,12 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
                   </div>
                 )}
 
-                {s.tipo === "folga" && !s.data_fim && s.fora_da_janela && (
+                {s.tipo === "folga" && !s.data_fim && ehCompensacaoFeriado(s.motivo) && (
+                  <div className="rounded-lg border border-border bg-muted/40 p-2 text-xs text-muted-foreground">
+                    Compensação de feriado trabalhado: folga devida ao colaborador por ter trabalhado no feriado.
+                  </div>
+                )}
+                {s.tipo === "folga" && !s.data_fim && s.fora_da_janela && !ehCompensacaoFeriado(s.motivo) && (
                   <div className="rounded-lg border border-border bg-muted/40 p-2 text-xs text-muted-foreground">
                     Folga adicional: não conta como folga de fim de semana nem substitui a folga semanal fixa.
                   </div>
@@ -395,8 +400,11 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
                     Alerta de DSR: {riscoDsr(s)} dias seguidos sem descanso. O colaborador deu ciência.
                   </div>
                 )}
-                {s.motivo && (
-                  <div className="text-sm bg-muted/40 rounded-lg p-3 line-clamp-2 md:line-clamp-none">{s.motivo}</div>
+                {motivoLegivel(s.motivo) && !(ehCompensacaoFeriado(s.motivo) && motivoLegivel(s.motivo).toLowerCase() === MOTIVO_COMPENSACAO_FERIADO.toLowerCase()) && (
+                  <div className="text-sm bg-muted/40 rounded-lg p-3 line-clamp-2 md:line-clamp-none">
+                    <span className="text-xs text-muted-foreground block">Motivo informado</span>
+                    {motivoLegivel(s.motivo)}
+                  </div>
                 )}
                 {s.devolvido_em && (
                   <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-2 text-xs">
