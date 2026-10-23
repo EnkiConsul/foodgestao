@@ -1830,7 +1830,7 @@ function consolidarJornada(j: JornadaRascunho | null): JornadaRascunho | null {
       : d,
   );
   const incompleto = diasCompletos.some((d) => d.trabalha && (!d.entrada || !d.saida));
-  if (incompleto) {
+  if (incompleto || !horario) {
     throw new Error("Informe a entrada e a saída de todos os dias trabalhados na aba Horário antes de salvar.");
   }
   return { horario, dias: diasCompletos, folga_variavel: j.folga_variavel === true };
