@@ -383,10 +383,6 @@ export function ColaboradorJornadaPanel({
   }, [active, rascunhoInicial, assinaturaRascunho, colaborador?.id, vigente, isLoading]);
 
   useEffect(() => {
-    onRascunho?.({ horario: horarioReferencia, dias, folga_variavel: folgaVariavel });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [horarioReferencia, dias, folgaVariavel]);
-  useEffect(() => {
     if (!active) return;
     const id = vigente?.turno_padrao_id ?? null;
     if (!id || horarioAplicadoRef.current === id) return;
