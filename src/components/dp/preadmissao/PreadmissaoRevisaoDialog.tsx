@@ -58,6 +58,7 @@ import {
   ColaboradorFormDialog, type ModoAdmissao, type SalvarAdmissaoEntrada,
 } from "@/components/dp/ColaboradorFormDialog";
 import type { JornadaRascunho } from "@/components/dp/ColaboradorJornadaPanel";
+import type { HorarioSimples } from "@/lib/dp/config-trabalho";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
 import { CargoSelectItems, CargoSelectAviso } from "@/components/dp/cargos/CargoSelectItems";
