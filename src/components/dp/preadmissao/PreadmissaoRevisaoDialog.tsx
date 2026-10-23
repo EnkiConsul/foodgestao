@@ -1308,10 +1308,10 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                     onChange={(e) => setDataInicioRotina(e.target.value)}
                   />
                 </div>
-                {jornadaAdmissao ? (
+                {jornadaAtivacao ? (
                   <p className="rounded-md border bg-muted/30 p-2 text-xs">
-                    Horário que vai para a rotina: <strong>{descricaoJornada(jornadaAdmissao)}</strong>.
-                    Para ajustar, use a aba Horário antes de ativar.
+                    Horário que vai para a rotina: <strong>{descricaoJornada(jornadaAtivacao)}</strong>.
+                    Para ajustar, edite os dias nesta aba e salve a ficha antes de ativar.
                   </p>
                 ) : (
                   <p className="rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-xs text-amber-700 dark:text-amber-500">
@@ -1324,7 +1324,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              disabled={ativandoRotina || !jornadaAdmissao || !dataInicioRotina}
+              disabled={ativandoRotina || !jornadaAtivacao || !dataInicioRotina}
               onClick={(e) => {
                 e.preventDefault();
                 void ativarRotina();
