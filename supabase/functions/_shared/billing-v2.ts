@@ -491,13 +491,9 @@ async function planoAntesDaTroca(admin: SupabaseClient, sub: any): Promise<{ pla
   return null;
 }
 
-/** Desiste de um upgrade imediato ainda não pago: cancela a cobrança da diferença e volta ao plano anterior. Máximo 1 por ciclo. */
+/** Desiste de um upgrade imediato ainda não pago: cancela a cobrança da diferença e volta ao plano anterior.
+ * Sem limite de tentativas: enquanto houver diferença em aberto (não paga), o cliente sempre pode desistir. */
 export async function desfazerUpgrade(admin: SupabaseClient, sub: any, criados: Criados, actorId?: string) {
-  // Um desfazimento por ciclo de cobrança: se já houve neste ciclo, recusa.
-  const { data: jaDesfeito } = await admin.from("subscription_events").select("id")
-    .eq("subscription_id", sub.id).eq("tipo_evento", "upgrade_desfeito")
-    .gte("created_at", sub.current_period_start ?? "1970-01-01T00:00:00Z").limit(1);
-  if (jaDesfeito?.length) throw new BillingError(409, "O upgrade deste ciclo não pode mais ser desfeito.");
   const { data: fat } = await admin.from("invoices").select("id,external_invoice_id,status,notes,amount_cents")
     .eq("subscription_id", sub.id).in("status", ["open", "overdue"]).like("notes", "Diferença%")
     .order("created_at", { ascending: false }).limit(1).maybeSingle();
