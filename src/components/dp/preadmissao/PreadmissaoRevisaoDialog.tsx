@@ -1808,14 +1808,14 @@ function consolidarJornada(j: JornadaRascunho | null): JornadaRascunho | null {
   const dias = (j.dias ?? []).map((d) => ({ ...d }));
   const trabalhados = dias.filter((d) => d.trabalha);
   if (!trabalhados.length) return null;
-  let horario = { ...(j.horario ?? {}) };
-  if (!horario.entrada || !horario.saida) {
+  let horario: HorarioSimples | null = j.horario ? { ...j.horario } : null;
+  if (!horario?.entrada || !horario?.saida) {
     const comHora = trabalhados.find((d) => d.entrada && d.saida);
     if (comHora) {
       horario = {
         entrada: comHora.entrada!,
         saida: comHora.saida!,
-        intervalo_minutos: comHora.intervalo_minutos ?? horario.intervalo_minutos ?? 0,
+        intervalo_minutos: comHora.intervalo_minutos ?? horario?.intervalo_minutos ?? 0,
       };
     }
   }
