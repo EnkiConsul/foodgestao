@@ -2085,9 +2085,32 @@ export default function DpMeuCalendario() {
                 {selectedDay.status === "taken" && (
                   <p className="text-xs text-muted-foreground">Limite de folgas atingido neste dia.</p>
                 )}
-                {selectedDay.status === "pending" && (
-                  <p className="text-xs text-muted-foreground">Solicitação pendente de aprovação.</p>
-                )}
+                {(() => {
+                  const dev = meusDevolvidos.data?.find((d) => d.data_alvo === selectedDay.iso);
+                  if (dev) {
+                    return (
+                      <div className="rounded-md border border-warning/40 bg-warning/10 p-3 space-y-2">
+                        <p className="text-sm font-medium">Pedido devolvido pelo gestor</p>
+                        {dev.devolvido_motivo && (
+                          <p className="text-xs text-muted-foreground">Recado: “{dev.devolvido_motivo}”</p>
+                        )}
+                        <Button
+                          size="sm"
+                          className="min-h-9 w-full sm:w-auto"
+                          onClick={() => {
+                            setSelectedDay(null);
+                            ajustarDevolvido(dev);
+                          }}
+                        >
+                          Ajustar e reenviar
+                        </Button>
+                      </div>
+                    );
+                  }
+                  return selectedDay.status === "pending" ? (
+                    <p className="text-xs text-muted-foreground">Solicitação pendente de aprovação.</p>
+                  ) : null;
+                })()}
                 {selectedDay.status === "birthday" && (
                   <p className="text-xs text-muted-foreground">Data reservada para aniversariante.</p>
                 )}
@@ -2360,12 +2383,21 @@ export default function DpMeuCalendario() {
             <Button variant="ghost" onClick={() => setExceptionOpen(false)} className="min-h-10 w-full sm:w-auto">
               Cancelar
             </Button>
-            <Button onClick={() => enviarExcecao.mutate(substituirId)} disabled={enviarExcecao.isPending || (!!riscoDsrExcecao && !cienteDsr)} className="min-h-10 w-full sm:w-auto">
+            <Button
+              onClick={() => {
+                const alvo = substituirId ?? conflitoPedido?.id ?? null;
+                if (alvo && !substituirId) setSubstituirId(alvo);
+                enviarExcecao.mutate(alvo);
+              }}
+              disabled={enviarExcecao.isPending || (!!riscoDsrExcecao && !cienteDsr)}
+              className="min-h-10 w-full sm:w-auto"
+            >
               {enviarExcecao.isPending ? (
                 "Enviando..."
               ) : (
                 <>
-                  <Send className="h-4 w-4 mr-2" /> {substituirId ? "Atualizar e reenviar ao gestor" : "Enviar"}
+                  <Send className="h-4 w-4 mr-2" />{" "}
+                  {substituirId ? "Atualizar e reenviar ao gestor" : conflitoPedido ? "Trocar pelo novo pedido" : "Enviar"}
                 </>
               )}
             </Button>
