@@ -958,7 +958,10 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
 
       const num = (v: string | undefined) => Number(String(v ?? "0").replace(/\./g, "").replace(",", ".")) || 0;
       const regime = VINCULO_PARA_REGIME[String(f.tipo_vinculo ?? "")] ?? admin.regime_trabalho ?? "";
-      const carga = cargaSemanal(e.jornada);
+      // Jornada consolidada dos dias trabalhados: nunca grava vazia e avisa
+      // com clareza quando algum dia ficou sem horário.
+      const jornadaConsolidada = consolidarJornada(e.jornada);
+      const carga = cargaSemanal(jornadaConsolidada);
       await acoes.salvarAdmin.mutateAsync({
         data_admissao: String(f.data_admissao ?? ""),
         regime_trabalho: regime,
