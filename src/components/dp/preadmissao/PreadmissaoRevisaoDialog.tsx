@@ -822,6 +822,8 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   );
   const adminBruto = (pa?.admin_dados ?? {}) as Record<string, unknown>;
   const jornadaAdmissao = (adminBruto.jornada ?? null) as JornadaRascunho | null;
+  /** Jornada consolidada dos dias (horário derivado) usada na ativação. */
+  const jornadaAtivacao = jornadaConsolidadaOuNull(jornadaAdmissao);
   /** Ativação operacional já feita (freelancer provisório na rotina da loja). */
   const rotinaInfo = rotinaDaPreadmissao(adminBruto);
   const podeAtivarRotina =
@@ -847,13 +849,13 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
 
   const ativarRotina = async () => {
     const id = pa?.id;
-    if (!id || !jornadaAdmissao) return;
+    if (!id || !jornadaAtivacao) return;
     setAtivandoRotina(true);
     try {
       const { error } = await supabase.rpc("dp_preadmissao_ativar_rotina", {
         p_preadmissao_id: id,
         p_data_inicio: dataInicioRotina,
-        p_jornada: JSON.parse(JSON.stringify(jornadaParaRotina(jornadaAdmissao))),
+        p_jornada: JSON.parse(JSON.stringify(jornadaParaRotina(jornadaAtivacao))),
       });
       if (error) throw error;
       toast.success(
