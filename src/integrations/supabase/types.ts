@@ -20911,6 +20911,13 @@ export type Database = {
           via_assinada_path: string
         }[]
       }
+      dp_portal_minha_regra_compensacao: {
+        Args: never
+        Returns: {
+          antecedencia_dias: number
+          compensa_feriados: boolean
+        }[]
+      }
       dp_portal_minha_situacao_dia: {
         Args: { p_data: string }
         Returns: string
