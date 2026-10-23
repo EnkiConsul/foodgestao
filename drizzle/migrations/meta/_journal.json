@@ -939,6 +939,13 @@
       "when": 1792785777812,
       "tag": "0133_folga_substituir_pedido",
       "breakpoints": true
+    },
+    {
+      "idx": 134,
+      "version": "7",
+      "when": 1792797709221,
+      "tag": "0134_preadmissao_ativar_rotina_consolida_jornada",
+      "breakpoints": true
     }
   ]
 }

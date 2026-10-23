@@ -383,10 +383,6 @@ export function ColaboradorJornadaPanel({
   }, [active, rascunhoInicial, assinaturaRascunho, colaborador?.id, vigente, isLoading]);
 
   useEffect(() => {
-    onRascunho?.({ horario: horarioReferencia, dias, folga_variavel: folgaVariavel });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [horarioReferencia, dias, folgaVariavel]);
-  useEffect(() => {
     if (!active) return;
     const id = vigente?.turno_padrao_id ?? null;
     if (!id || horarioAplicadoRef.current === id) return;
@@ -406,6 +402,16 @@ export function ColaboradorJornadaPanel({
     () => horarioPadraoDaSemana(dias, horarioReferencia),
     [dias, horarioReferencia],
   );
+
+  /**
+   * A ficha de admissão recebe o horário APURADO dos dias (não a referência
+   * crua): preencher os dias direto deixava a referência vazia e a jornada
+   * era gravada como nula — o que bloqueava a ativação na rotina da loja.
+   */
+  useEffect(() => {
+    onRascunho?.({ horario, dias, folga_variavel: folgaVariavel });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [horario, dias, folgaVariavel]);
 
   /**
    * Todo dia trabalhado mostra o horário preenchido: nada fica "herdando" em

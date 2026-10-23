@@ -10,4 +10,9 @@
 - [x] Provas no banco em transação desfeita: ativação, idempotência, conversão CLT — nada gravado em dados reais
 - [x] Rótulo "Aguardando admissão" em todos os selos (lista, ficha e Operação do Dia)
 - [x] Desistência da admissão: excluir a ficha ou cancelar o link encerra o cadastro provisório (inativa com data de saída, cancela folgas/solicitações/trocas futuras) preservando todo o histórico — migração 0128 + Edge dp-preadmissao-convite
+- [x] Jornada nunca gravada vazia: rascunho envia o horário apurado dos dias; `consolidarJornada` deriva o horário principal, completa os dias e bloqueia o "Ficha salva" com mensagem clara se algum dia trabalhado ficar sem horário
+- [x] Ativação na rotina sai da aba Documentos e passa a viver na aba Horário de Trabalho (`jornadaExtra` no modo admissão); Documentos fica 100% documental
+- [x] Migração oficial 0134: `dp_preadmissao_ativar_rotina` consolida a jornada na ficha (`admin_dados.jornada`) na mesma transação da ativação — ficha e rotina nunca divergem
 - [ ] Homologação visual pelo gestor na ficha da Verônica (aguarda uso real)
+- [ ] Publicação desta leva (aguarda pedido explícito)
+- [ ] Teste pré-existente falhando, fora do escopo: `calendario-rotina-p1.test.ts` › "folgas fixas do dia são o piso mesmo com exceção da data" (já falhava antes desta leva)

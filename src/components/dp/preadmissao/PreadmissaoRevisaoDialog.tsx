@@ -58,6 +58,7 @@ import {
   ColaboradorFormDialog, type ModoAdmissao, type SalvarAdmissaoEntrada,
 } from "@/components/dp/ColaboradorFormDialog";
 import type { JornadaRascunho } from "@/components/dp/ColaboradorJornadaPanel";
+import type { HorarioSimples } from "@/lib/dp/turno-resolver";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
 import { CargoSelectItems, CargoSelectAviso } from "@/components/dp/cargos/CargoSelectItems";
@@ -822,6 +823,8 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   );
   const adminBruto = (pa?.admin_dados ?? {}) as Record<string, unknown>;
   const jornadaAdmissao = (adminBruto.jornada ?? null) as JornadaRascunho | null;
+  /** Jornada consolidada dos dias (horário derivado) usada na ativação. */
+  const jornadaAtivacao = jornadaConsolidadaOuNull(jornadaAdmissao);
   /** Ativação operacional já feita (freelancer provisório na rotina da loja). */
   const rotinaInfo = rotinaDaPreadmissao(adminBruto);
   const podeAtivarRotina =
@@ -847,13 +850,13 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
 
   const ativarRotina = async () => {
     const id = pa?.id;
-    if (!id || !jornadaAdmissao) return;
+    if (!id || !jornadaAtivacao) return;
     setAtivandoRotina(true);
     try {
       const { error } = await supabase.rpc("dp_preadmissao_ativar_rotina", {
         p_preadmissao_id: id,
         p_data_inicio: dataInicioRotina,
-        p_jornada: JSON.parse(JSON.stringify(jornadaParaRotina(jornadaAdmissao))),
+        p_jornada: JSON.parse(JSON.stringify(jornadaParaRotina(jornadaAtivacao))),
       });
       if (error) throw error;
       toast.success(
@@ -958,7 +961,10 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
 
       const num = (v: string | undefined) => Number(String(v ?? "0").replace(/\./g, "").replace(",", ".")) || 0;
       const regime = VINCULO_PARA_REGIME[String(f.tipo_vinculo ?? "")] ?? admin.regime_trabalho ?? "";
-      const carga = cargaSemanal(e.jornada);
+      // Jornada consolidada dos dias trabalhados: nunca grava vazia e avisa
+      // com clareza quando algum dia ficou sem horário.
+      const jornadaConsolidada = consolidarJornada(e.jornada);
+      const carga = cargaSemanal(jornadaConsolidada);
       await acoes.salvarAdmin.mutateAsync({
         data_admissao: String(f.data_admissao ?? ""),
         regime_trabalho: regime,
@@ -972,8 +978,8 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
         adicional_periculosidade: num(e.rem.periculosidade_percentual) > 0,
         observacoes: admin.observacoes ?? "",
         experiencia_dias: admin.experiencia_dias ?? "",
-        jornada: e.jornada && e.jornada.horario?.entrada ? e.jornada : null,
-        jornada_descricao: descricaoJornada(e.jornada) || admin.jornada_descricao || "",
+        jornada: jornadaConsolidada,
+        jornada_descricao: descricaoJornada(jornadaConsolidada) || admin.jornada_descricao || "",
         carga_horaria_semanal: carga ? String(carga) : (admin.carga_horaria_semanal ?? ""),
       });
       toast.success("Ficha salva.");
@@ -1303,10 +1309,10 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                     onChange={(e) => setDataInicioRotina(e.target.value)}
                   />
                 </div>
-                {jornadaAdmissao ? (
+                {jornadaAtivacao ? (
                   <p className="rounded-md border bg-muted/30 p-2 text-xs">
-                    Horário que vai para a rotina: <strong>{descricaoJornada(jornadaAdmissao)}</strong>.
-                    Para ajustar, use a aba Horário antes de ativar.
+                    Horário que vai para a rotina: <strong>{descricaoJornada(jornadaAtivacao)}</strong>.
+                    Para ajustar, edite os dias nesta aba e salve a ficha antes de ativar.
                   </p>
                 ) : (
                   <p className="rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-xs text-amber-700 dark:text-amber-500">
@@ -1319,7 +1325,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              disabled={ativandoRotina || !jornadaAdmissao || !dataInicioRotina}
+              disabled={ativandoRotina || !jornadaAtivacao || !dataInicioRotina}
               onClick={(e) => {
                 e.preventDefault();
                 void ativarRotina();
@@ -1332,6 +1338,54 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+
+  /**
+   * Ativação operacional na rotina da loja: vive na aba Horário (jornada),
+   * nunca em Documentos — a decisão depende da grade semanal que acabou de
+   * ser definida.
+   */
+  const ativacaoNode = (
+    <div className="space-y-3">
+      {rotinaInfo && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 space-y-1">
+          <p className="text-sm font-semibold flex items-center gap-2">
+            <Store className="h-4 w-4 text-amber-600" aria-hidden="true" />
+            Na rotina da loja · aguardando admissão há {diasAguardandoRegistro(rotinaInfo.iniciou_em)}{" "}
+            {diasAguardandoRegistro(rotinaInfo.iniciou_em) === 1 ? "dia" : "dias"}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Atua na loja desde{" "}
+            {rotinaInfo.iniciou_em
+              ? new Date(`${rotinaInfo.iniciou_em}T00:00:00`).toLocaleDateString("pt-BR")
+              : "—"}{" "}
+            como {rotinaInfo.forma_provisoria === "diarista" ? "freelancer diarista" : "freelancer mensalista"} —
+            sem acesso ao portal e sem efeito CLT. Ao efetivar, o mesmo cadastro vira o vínculo oficial
+            e a data de admissão formal passa a valer para férias e demais direitos.
+          </p>
+        </div>
+      )}
+
+      {podeAtivarRotina && (
+        <div className="rounded-lg border p-3 space-y-2">
+          <p className="text-sm font-semibold">Já está trabalhando na loja?</p>
+          <p className="text-xs text-muted-foreground">
+            Ative na rotina para escala, folgas e plantões enquanto o registro não sai. O sistema trata
+            como {regimeAtual === "intermitente" ? "freelancer diarista" : "freelancer mensalista"} —
+            sem portal, sem férias e sem efeito CLT até a efetivação.
+            {!jornadaAtivacao && " Defina e salve o horário acima para liberar a ativação."}
+          </p>
+          <Button
+            variant="outline"
+            disabled={!jornadaAtivacao}
+            title={jornadaAtivacao ? undefined : "Defina e salve o horário de trabalho antes de ativar."}
+            onClick={() => setAtivarRotinaAberto(true)}
+          >
+            <Store className="h-4 w-4 mr-2" /> Ativar na Rotina da Loja
+          </Button>
+        </div>
+      )}
+    </div>
   );
 
   const documentosNode = (
@@ -1404,39 +1458,6 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
       <Separator />
       <div className="space-y-4">
         <h3 className="text-sm font-semibold">Admissão</h3>
-
-                {rotinaInfo && (
-                  <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 space-y-1">
-                    <p className="text-sm font-semibold flex items-center gap-2">
-                      <Store className="h-4 w-4 text-amber-600" aria-hidden="true" />
-                      Na rotina da loja · aguardando admissão há {diasAguardandoRegistro(rotinaInfo.iniciou_em)}{" "}
-                      {diasAguardandoRegistro(rotinaInfo.iniciou_em) === 1 ? "dia" : "dias"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Atua na loja desde{" "}
-                      {rotinaInfo.iniciou_em
-                        ? new Date(`${rotinaInfo.iniciou_em}T00:00:00`).toLocaleDateString("pt-BR")
-                        : "—"}{" "}
-                      como {rotinaInfo.forma_provisoria === "diarista" ? "freelancer diarista" : "freelancer mensalista"} —
-                      sem acesso ao portal e sem efeito CLT. Ao efetivar, o mesmo cadastro vira o vínculo oficial
-                      e a data de admissão formal passa a valer para férias e demais direitos.
-                    </p>
-                  </div>
-                )}
-
-                {podeAtivarRotina && (
-                  <div className="rounded-lg border p-3 space-y-2">
-                    <p className="text-sm font-semibold">Já está trabalhando na loja?</p>
-                    <p className="text-xs text-muted-foreground">
-                      Ative na rotina para escala, folgas e plantões enquanto o registro não sai. O sistema trata
-                      como {regimeAtual === "intermitente" ? "freelancer diarista" : "freelancer mensalista"} —
-                      sem portal, sem férias e sem efeito CLT até a efetivação.
-                    </p>
-                    <Button variant="outline" onClick={() => setAtivarRotinaAberto(true)}>
-                      <Store className="h-4 w-4 mr-2" /> Ativar na Rotina da Loja
-                    </Button>
-                  </div>
-                )}
 
                 {["aguardando_revisao", "aguardando_nova_versao", "em_preenchimento"].includes(status) && (
                   <div className="space-y-2">
@@ -1694,6 +1715,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
             ...(admin.vale_transporte ? { vale_transporte: admin.vale_transporte === "sim" } : {}),
           },
           jornada: jornadaAdmissao,
+          jornadaExtra: ativacaoNode,
           complementares: complementaresNode,
           etapa,
           acoes: acoesRodape,
@@ -1773,6 +1795,55 @@ function cargaSemanal(j: JornadaRascunho | null): number | null {
   }
   const horas = Math.round(total / 60);
   return horas >= 1 && horas <= 60 ? horas : null;
+}
+
+/**
+ * Consolida a jornada da ficha: deriva o horário principal dos dias
+ * trabalhados quando o campo-base está vazio e completa os dias com o
+ * horário principal. Devolve null quando não há dia trabalhado; lança erro
+ * claro quando um dia trabalhado ficou sem horário — nunca grava jornada
+ * vazia nem finge sucesso com dados incompletos.
+ */
+function consolidarJornada(j: JornadaRascunho | null): JornadaRascunho | null {
+  if (!j) return null;
+  const dias = (j.dias ?? []).map((d) => ({ ...d }));
+  const trabalhados = dias.filter((d) => d.trabalha);
+  if (!trabalhados.length) return null;
+  let horario: HorarioSimples | null = j.horario ? { ...j.horario } : null;
+  if (!horario?.entrada || !horario?.saida) {
+    const comHora = trabalhados.find((d) => d.entrada && d.saida);
+    if (comHora) {
+      horario = {
+        entrada: comHora.entrada!,
+        saida: comHora.saida!,
+        intervalo_minutos: comHora.intervalo_minutos ?? horario?.intervalo_minutos ?? 0,
+      };
+    }
+  }
+  const diasCompletos = dias.map((d) =>
+    d.trabalha
+      ? {
+          ...d,
+          entrada: d.entrada || horario.entrada || null,
+          saida: d.saida || horario.saida || null,
+          intervalo_minutos: d.intervalo_minutos ?? horario.intervalo_minutos ?? 0,
+        }
+      : d,
+  );
+  const incompleto = diasCompletos.some((d) => d.trabalha && (!d.entrada || !d.saida));
+  if (incompleto || !horario) {
+    throw new Error("Informe a entrada e a saída de todos os dias trabalhados na aba Horário antes de salvar.");
+  }
+  return { horario, dias: diasCompletos, folga_variavel: j.folga_variavel === true };
+}
+
+/** Jornada consolidada sem lançar erro (para habilitar/descrever a ativação). */
+function jornadaConsolidadaOuNull(j: JornadaRascunho | null): JornadaRascunho | null {
+  try {
+    return consolidarJornada(j);
+  } catch {
+    return null;
+  }
 }
 
 function descricaoJornada(j: JornadaRascunho | null): string {
