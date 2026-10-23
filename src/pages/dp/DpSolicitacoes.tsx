@@ -559,10 +559,10 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
                 <div className="min-w-0 flex-1">
                   <div className="font-bold">
                     {formatBR(dataRef(s))}
-                    <span className="ml-2 text-xs font-medium text-muted-foreground">{tipoLabel(s.tipo)}</span>
+                    <span className="ml-2 text-xs font-medium text-muted-foreground">{s.tipo === "folga" && s.data_fim ? "Troca de folga" : s.tipo === "folga" && ehCompensacaoFeriado(s.motivo) ? "Compensação de Feriado" : s.tipo === "folga" && s.fora_da_janela ? "Folga extra (exceção)" : tipoLabel(s.tipo)}</span>
                   </div>
                   <div className="truncate text-muted-foreground">{s.dp_colaboradores?.nome ?? "—"}</div>
-                  {s.motivo && <div className="text-muted-foreground mt-0.5 line-clamp-1 md:line-clamp-none">{s.motivo}</div>}
+                  {motivoLegivel(s.motivo) && <div className="text-muted-foreground mt-0.5 line-clamp-1 md:line-clamp-none">{motivoLegivel(s.motivo)}</div>}
                   {s.resposta_admin && (
                     <div className="text-xs text-muted-foreground mt-1 line-clamp-1 md:line-clamp-none">
                       <b>Resposta:</b> {s.resposta_admin}

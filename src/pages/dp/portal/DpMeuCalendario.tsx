@@ -2144,7 +2144,7 @@ export default function DpMeuCalendario() {
                           <b>{descreverDia(trocaPendenteDoDia.data_proposta)}</b> e oferece a folga de{" "}
                           <b>{descreverDia(trocaPendenteDoDia.data_original)}</b>.
                         </p>
-                        {trocaPendenteDoDia.motivo && <p>Motivo: {trocaPendenteDoDia.motivo}</p>}
+                        {motivoLegivel(trocaPendenteDoDia.motivo) && <p>Motivo: {motivoLegivel(trocaPendenteDoDia.motivo)}</p>}
                         {trocaPendenteDoDia.status === "pendente_colega" && (
                           <div className="grid grid-cols-2 gap-2 pt-1">
                             <ConfirmarAcaoDialog
