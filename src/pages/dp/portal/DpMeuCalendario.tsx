@@ -904,22 +904,24 @@ export default function DpMeuCalendario() {
   /** Exceção ao gestor: folga extra ou troca de um dia da folga semanal. */
   const [excecaoModo, setExcecaoModo] = useState<"extra" | "troca_semanal" | "compensacao">("extra");
   const regraUnidade = useQuery({
-    queryKey: ["dp_unidade_compensacao", meRef.data?.unidade_id],
-    enabled: !!meRef.data?.unidade_id,
+    queryKey: ["dp_portal_minha_regra_compensacao", meRef.data?.id],
+    enabled: !!meRef.data,
     queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("dp_unidades").select("compensa_feriados, compensacao_feriado_antecedencia_dias")
-        .eq("id", meRef.data!.unidade_id).maybeSingle();
-      return (data ?? null) as { compensa_feriados: boolean; compensacao_feriado_antecedencia_dias: number } | null;
+      // Leitura segura pelo servidor: o colaborador não lê a unidade direto.
+      const { data, error } = await (supabase as any).rpc("dp_portal_minha_regra_compensacao");
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      return row
+        ? { compensa_feriados: !!row.compensa_feriados, compensacao_feriado_antecedencia_dias: row.antecedencia_dias ?? 2 }
+        : null;
     },
   });
   const temCompensacao = !!regraUnidade.data?.compensa_feriados
     && vinculoAdmiteCompensacao((meRef.data as any)?.regime, (meRef.data as any)?.vinculo_label);
   const antecedenciaMin = regraUnidade.data?.compensacao_feriado_antecedencia_dias ?? 2;
-  const modoExtra = temCompensacao ? "compensacao" : "extra";
   useEffect(() => {
-    if (excecaoModo !== "troca_semanal" && excecaoModo !== modoExtra) setExcecaoModo(modoExtra);
-  }, [modoExtra, excecaoModo]);
+    if (excecaoModo === "compensacao" && !temCompensacao && !regraUnidade.isLoading) setExcecaoModo("extra");
+  }, [temCompensacao, excecaoModo, regraUnidade.isLoading]);
   const [excecaoDiaTrabalho, setExcecaoDiaTrabalho] = useState("");
   const fixasParaExcecao = useMemo(() => {
     if (!selectedDay) return [];
@@ -2123,20 +2125,34 @@ export default function DpMeuCalendario() {
                   <SelectItem value="troca_semanal" disabled={fixasParaExcecao.length === 0}>
                     Troca da folga semanal
                   </SelectItem>
-                  {temCompensacao ? (
-                    <SelectItem value="compensacao">Compensação de Feriado</SelectItem>
-                  ) : (
-                    <SelectItem value="extra">Folga extra</SelectItem>
-                  )}
+                  {temCompensacao && <SelectItem value="compensacao">Compensação de Feriado</SelectItem>}
+                  <SelectItem value="extra">Folga extra</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
                 {excecaoModo === "troca_semanal"
                   ? "Você trabalha em um dia da sua folga semanal e folga neste dia no lugar dele."
                   : excecaoModo === "compensacao"
-                    ? `Folga para compensar um feriado trabalhado. Peça com pelo menos ${antecedenciaMin} dia(s) de antecedência.`
-                    : "Um dia de folga a mais, sem mudar sua folga semanal."}
+                    ? `Folga de direito por ter trabalhado em um feriado. Peça com pelo menos ${antecedenciaMin} dia(s) de antecedência.`
+                    : "Dia de folga a mais, sem ligação com feriado ou troca, concedido conforme avaliação do gestor."}
               </p>
+              {excecaoModo === "extra" && temCompensacao && (
+                <div className="mt-2 rounded-xl border border-primary/40 bg-primary/10 px-3 py-2 text-xs">
+                  <p className="font-medium text-foreground">
+                    Você tem compensação de feriados. Se esta folga é por um feriado que você trabalhou, o certo é
+                    escolher Compensação de Feriado.
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="mt-2 rounded-xl"
+                    onClick={() => setExcecaoModo("compensacao")}
+                  >
+                    Mudar para Compensação de Feriado
+                  </Button>
+                </div>
+              )}
               {excecaoModo === "compensacao" && selectedDay &&
                 diasDeAntecedencia(selectedDay.iso, hojeLocalIso()) < antecedenciaMin && (
                   <p className="mt-2 rounded-xl border border-amber-300 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-800">
