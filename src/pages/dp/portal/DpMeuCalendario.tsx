@@ -1158,13 +1158,15 @@ export default function DpMeuCalendario() {
           negarRegra("Você já tem uma solicitação pendente para este dia.");
         if (raw.includes("PAST_DATE_NOT_EDITABLE"))
           negarRegra("Não é possível solicitar folga em datas passadas.");
+        if (raw.includes("TROCA_MOTIVO_OBRIGATORIO")) negarRegra("Escreva o motivo da troca.");
+        if (raw.includes("FORBIDDEN")) negarRegra("Seu cadastro não está ativo para enviar pedidos. Fale com o DP.");
         throw new Error("Não foi possível enviar a solicitação. Tente novamente.");
       }
     },
     onSuccess: () => {
       if (riscoDsrExcecao)
         void registrarCienciaDsr({ papel: "colaborador", tabela: "dp_solicitacoes", data: riscoDsrExcecao.data, dias: riscoDsrExcecao.sequencia });
-      toast.success("Solicitação de exceção enviada.");
+      toast.success("Pedido enviado. Fica pendente até o gestor aprovar.");
       setExceptionOpen(false);
       setExceptionMotivo("");
       setSelectedDay(null);
