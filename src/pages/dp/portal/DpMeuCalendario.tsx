@@ -1193,18 +1193,64 @@ export default function DpMeuCalendario() {
         throw new Error("Não foi possível enviar a solicitação. Tente novamente.");
       }
     },
-    onSuccess: () => {
+    onSuccess: (r, substituir) => {
+      if (r === "conflito") return;
       if (riscoDsrExcecao)
         void registrarCienciaDsr({ papel: "colaborador", tabela: "dp_solicitacoes", data: riscoDsrExcecao.data, dias: riscoDsrExcecao.sequencia });
-      toast.success("Pedido enviado. Fica pendente até o gestor aprovar.");
+      toast.success(
+        substituir
+          ? "Pedido atualizado e reenviado. Fica pendente até o gestor aprovar."
+          : "Pedido enviado. Fica pendente até o gestor aprovar.",
+      );
       setExceptionOpen(false);
       setExceptionMotivo("");
       setSelectedDay(null);
       qc.invalidateQueries({ queryKey: ["dp_solic_meu_cal"] });
+      qc.invalidateQueries({ queryKey: ["dp_meus_devolvidos"] });
       invalidarRotinaLoja();
     },
     onError: (e: any) => notifyError(e, { surface: "Meu calendário", action: "concluir a ação", fallback: "Erro ao enviar exceção" }),
   });
+
+  /** Abre o ajuste do pedido devolvido: folga reabre o pedido de exceção; atestado abre a correção. */
+  const ajustarDevolvido = (d: Devolvido) => {
+    if (d.tipo !== "folga") {
+      setCorrigirAlvo(d);
+      return;
+    }
+    const [y, m] = d.data_alvo.split("-").map(Number);
+    setAno(y);
+    setMes(m);
+    setSelectedDay({ iso: d.data_alvo, status: "available" });
+    setConflitoPedido({ id: d.id, devolvido_motivo: d.devolvido_motivo });
+    setSubstituirId(d.id);
+    setExcecaoDiaTrabalho("");
+    setExceptionMotivo("");
+    setExcecaoModo(
+      temCompensacao && /compensa/i.test(`${d.devolvido_motivo ?? ""} ${d.motivo ?? ""}`) ? "compensacao" : "extra",
+    );
+    setExceptionOpen(true);
+  };
+
+  useEffect(() => {
+    const id = searchParams.get("solicitacao");
+    if (!id || !meusDevolvidos.data) return;
+    const d = meusDevolvidos.data.find((x) => x.id === id);
+    const next = new URLSearchParams(searchParams);
+    next.delete("solicitacao");
+    setSearchParams(next, { replace: true });
+    if (d) ajustarDevolvido(d);
+    else toast.info("Esse pedido já foi ajustado ou respondido pelo gestor.");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, meusDevolvidos.data]);
+
+  useEffect(() => {
+    if (!exceptionOpen) {
+      setSubstituirId(null);
+      setConflitoPedido(null);
+    }
+  }, [exceptionOpen]);
+
 
 
   const solicitarTroca = useMutation({
