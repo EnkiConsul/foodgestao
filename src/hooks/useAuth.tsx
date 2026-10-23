@@ -80,7 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Exceção liberada pelo servidor: login simultâneo em vários aparelhos.
     const assumirSessao = async () => {
       try {
-        if (await permiteMultiplos()) return;
+        // Só assume a sessão única quando o servidor CONFIRMOU que a conta não é liberada.
+        if ((await permiteMultiplos()) !== false) return;
         await supabase.rpc("auth_sessao_assumir", {
           _session_id: obterSessionIdLocal(),
           _device: descreverAparelho(),
@@ -149,6 +150,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const local = obterSessionIdLocal();
 
     const derrubar = async () => {
+      // Reconfirma no servidor antes de desconectar: conta liberada nunca cai.
+      if ((await permiteMultiplos(user.id)) !== false) return;
       try {
         sessionStorage.removeItem(`audit_resume_${user.id}`);
       } catch {
