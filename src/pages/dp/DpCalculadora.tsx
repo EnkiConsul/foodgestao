@@ -65,7 +65,7 @@ function CalculadoraGestor() {
   [lista.data, regras.data, aba]);
   const trocarAba = (a: string) => { setAba(a); setColabId(null); };
   const procAberto = useQuery({
-    queryKey: ["dp_desligamento_processo", colabId],
+    queryKey: ["dp_desligamento_processo_aberto", colabId],
     enabled: !!colabId && aba === "desligamento",
     queryFn: async () => {
       const { data } = await supabase.from("dp_desligamento_processos").select("id")
