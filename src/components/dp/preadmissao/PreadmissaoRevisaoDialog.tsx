@@ -972,8 +972,8 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
         adicional_periculosidade: num(e.rem.periculosidade_percentual) > 0,
         observacoes: admin.observacoes ?? "",
         experiencia_dias: admin.experiencia_dias ?? "",
-        jornada: e.jornada && e.jornada.horario?.entrada ? e.jornada : null,
-        jornada_descricao: descricaoJornada(e.jornada) || admin.jornada_descricao || "",
+        jornada: jornadaConsolidada,
+        jornada_descricao: descricaoJornada(jornadaConsolidada) || admin.jornada_descricao || "",
         carga_horaria_semanal: carga ? String(carga) : (admin.carga_horaria_semanal ?? ""),
       });
       toast.success("Ficha salva.");
