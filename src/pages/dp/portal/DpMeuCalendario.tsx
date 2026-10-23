@@ -1116,7 +1116,7 @@ export default function DpMeuCalendario() {
   });
 
   const enviarExcecao = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (substituir?: string | null) => {
       if (!meRef.data || !selectedDay) throw new Error("Sem contexto");
       const troca = excecaoModo === "troca_semanal";
       if (troca && !excecaoDiaTrabalho) negarRegra("Escolha qual dia da sua folga semanal você vai trabalhar.");
@@ -1127,7 +1127,15 @@ export default function DpMeuCalendario() {
           : excecaoModo === "compensacao"
             ? MOTIVO_COMPENSACAO_FERIADO
             : "Folga extra solicitada ao gestor");
-      const { error } = troca
+      const { error } = substituir
+        ? await supabase.rpc("dp_folga_substituir_pedido", {
+            p_id: substituir,
+            p_modo: troca ? "troca" : "folga",
+            p_data: selectedDay.iso,
+            p_data_trabalho: troca ? excecaoDiaTrabalho : null,
+            p_motivo: motivo,
+          } as never)
+        : troca
         ? await supabase.rpc("dp_folga_troca_fds_solicitar", {
             p_data_folga: selectedDay.iso,
             p_data_trabalho: excecaoDiaTrabalho,
@@ -1138,6 +1146,26 @@ export default function DpMeuCalendario() {
             p_motivo: motivo,
             p_fora_da_janela: true,
           });
+      if (error && (error.message ?? "").includes("DUPLICATE_REQUEST") && !substituir) {
+        // Em vez de só recusar: mostra o pedido existente e oferece trocar por este.
+        const datas = [selectedDay.iso, ...(troca && excecaoDiaTrabalho ? [excecaoDiaTrabalho] : [])];
+        const { data: exist } = await supabase
+          .from("dp_solicitacoes")
+          .select("id, devolvido_motivo")
+          .eq("colaborador_id", meRef.data.id)
+          .eq("tipo", "folga")
+          .eq("status", "pendente")
+          .is("removido_em", null)
+          .or(`data_alvo.in.(${datas.join(",")}),data_fim.in.(${datas.join(",")})`)
+          .limit(1)
+          .maybeSingle();
+        if (exist) {
+          setConflitoPedido({ id: exist.id, devolvido_motivo: exist.devolvido_motivo ?? null });
+          return "conflito" as const;
+        }
+      }
+      if (error && (error.message ?? "").includes("STATUS_INVALIDO"))
+        negarRegra("Esse pedido já foi respondido pelo gestor. Atualize a tela.");
       if (error) {
         const raw0 = error.message ?? "";
         if (raw0.includes("TROCA_DIA_TRABALHO_INVALIDO"))
