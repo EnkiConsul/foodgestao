@@ -255,6 +255,8 @@ export interface ModoAdmissao {
   pagamento?: Partial<DadosPagamento>;
   rem?: Partial<RemuneracaoFormState>;
   jornada?: JornadaRascunho | null;
+  /** Bloco extra ao final da aba Horário (ex.: ativação na rotina da loja). */
+  jornadaExtra?: ReactNode;
   /** Barra de etapas exibida abaixo do título. */
   etapa?: ReactNode;
   /** Botões do fluxo da contabilidade, no rodapé. */
@@ -3172,6 +3174,7 @@ export function ColaboradorFormDialog({
                 ? "Defina o horário agora: ele segue na ficha para a contabilidade e é gravado no cadastro ao efetivar a admissão."
                 : undefined}
             />
+            {admissao?.jornadaExtra}
           </TabsContent>
 
 
