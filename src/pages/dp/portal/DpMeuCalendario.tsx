@@ -2101,13 +2101,18 @@ export default function DpMeuCalendario() {
           <DialogHeader>
             <DialogTitle className="text-2xl font-black flex items-center gap-3">
               <AlertCircle className="size-6 text-amber-500" />
-              Solicitar exceção ao gestor
+              {substituirId ? "Ajustar pedido devolvido" : "Solicitar exceção ao gestor"}
             </DialogTitle>
             <DialogDescription>
               Peça ao gestor para folgar em {selectedDay && descreverDia(selectedDay.iso)}. O pedido só vale depois da
               aprovação.
             </DialogDescription>
           </DialogHeader>
+          {substituirId && conflitoPedido?.devolvido_motivo && (
+            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+              <span className="font-medium">Recado do gestor:</span> “{conflitoPedido.devolvido_motivo}”
+            </div>
+          )}
           <div className="space-y-3">
             <div>
               <Label>Tipo de pedido</Label>
@@ -2200,23 +2205,60 @@ export default function DpMeuCalendario() {
                 onChange={(e) => setExceptionMotivo(e.target.value)}
               />
             </div>
+            {conflitoPedido && !substituirId && (
+              <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm space-y-2">
+                <p className="font-medium">Você já tem um pedido para este dia.</p>
+                {conflitoPedido.devolvido_motivo && (
+                  <p className="text-xs">Recado do gestor: “{conflitoPedido.devolvido_motivo}”</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Quer trocar o pedido anterior por este novo? O anterior é encerrado e o novo vai para o gestor.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    size="sm"
+                    className="min-h-9"
+                    disabled={enviarExcecao.isPending}
+                    onClick={() => {
+                      setSubstituirId(conflitoPedido.id);
+                      enviarExcecao.mutate(conflitoPedido.id);
+                    }}
+                  >
+                    Trocar pelo novo pedido
+                  </Button>
+                  <Button size="sm" variant="ghost" className="min-h-9" onClick={() => setExceptionOpen(false)}>
+                    Manter o pedido anterior
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
             <Button variant="ghost" onClick={() => setExceptionOpen(false)} className="min-h-10 w-full sm:w-auto">
               Cancelar
             </Button>
-            <Button onClick={() => enviarExcecao.mutate()} disabled={enviarExcecao.isPending || (!!riscoDsrExcecao && !cienteDsr)} className="min-h-10 w-full sm:w-auto">
+            <Button onClick={() => enviarExcecao.mutate(substituirId)} disabled={enviarExcecao.isPending || (!!riscoDsrExcecao && !cienteDsr)} className="min-h-10 w-full sm:w-auto">
               {enviarExcecao.isPending ? (
                 "Enviando..."
               ) : (
                 <>
-                  <Send className="h-4 w-4 mr-2" /> Enviar
+                  <Send className="h-4 w-4 mr-2" /> {substituirId ? "Atualizar e reenviar ao gestor" : "Enviar"}
                 </>
               )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SolicitacaoCorrigirDialog
+        alvo={corrigirAlvo}
+        onOpenChange={(o) => !o && setCorrigirAlvo(null)}
+        onDone={() => {
+          setCorrigirAlvo(null);
+          qc.invalidateQueries({ queryKey: ["dp_meus_devolvidos"] });
+        }}
+      />
+
 
       {/* Dialog troca */}
       <Dialog open={!!tradeOpen} onOpenChange={(o) => !o && setTradeOpen(null)}>
