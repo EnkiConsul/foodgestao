@@ -706,7 +706,7 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
         title={detailsRow?.dp_colaboradores?.nome ?? "Solicitação"}
         description={detailsRow ? STATUS_META[detailsRow.status].label : undefined}
         meta={detailsRow ? [
-          { label: "Tipo", value: <span className="capitalize">{detailsRow.tipo}</span> },
+          { label: "Tipo", value: <span className="capitalize">{detailsRow.tipo === "folga" && detailsRow.data_fim ? "Troca de folga" : detailsRow.tipo === "folga" && ehCompensacaoFeriado(detailsRow.motivo) ? "Compensação de Feriado" : detailsRow.tipo === "folga" && detailsRow.fora_da_janela ? "Folga extra (exceção)" : detailsRow.tipo}</span> },
           { label: "Data alvo", value: formatBR(detailsRow.data_alvo) },
           ...(detailsRow.data_fim ? [{ label: "Data fim", value: formatBR(detailsRow.data_fim) }] : []),
           { label: "Criada em", value: new Date(detailsRow.created_at).toLocaleString("pt-BR") },
@@ -714,7 +714,7 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
             label: "Prazo",
             value: `Antecedência não atendida: ${prazoCompensacao(detailsRow)!.dias} dia(s) (mínimo da unidade: ${prazoCompensacao(detailsRow)!.minimo}). Pode ser recusado conforme a necessidade da escala.`,
           }] : []),
-          ...(detailsRow.motivo ? [{ label: "Motivo", value: detailsRow.motivo }] : []),
+          ...(motivoLegivel(detailsRow.motivo) ? [{ label: "Motivo", value: motivoLegivel(detailsRow.motivo) }] : []),
           ...(detailsRow.resposta_admin ? [{ label: "Resposta", value: detailsRow.resposta_admin }] : []),
         ] : []}
         footer={detailsRow && detailsRow.status === "pendente" ? (
