@@ -28,6 +28,7 @@ import { registrarCienciaDsr } from "@/lib/dp/dsr-ciencia";
 import { avisoDsrGestor } from "@/lib/dp/dsr-consecutivo";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AtestadoAprovarDialog } from "@/components/dp/AtestadoAprovarDialog";
+import { RaioXOperacaoDia } from "@/components/dp/RaioXOperacaoDia";
 import { LiberacaoDesfazerDialog, ehLiberacaoGestor } from "@/components/dp/LiberacaoDesfazerDialog";
 import { AtestadoAnexoDialog, type AtestadoAnexoAlvo } from "@/components/dp/AtestadoAnexoDialog";
 import { RecusaDialog } from "@/components/dp/RecusaDialog";
@@ -382,6 +383,10 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
                   <div className="rounded-lg border border-border bg-muted/40 p-2 text-xs text-muted-foreground">
                     Folga adicional: não conta como folga de fim de semana nem substitui a folga semanal fixa.
                   </div>
+                )}
+
+                {s.tipo === "folga" && s.data_alvo && (
+                  <RaioXOperacaoDia companyId={s.company_id} colaboradorId={s.colaborador_id} data={s.data_alvo} />
                 )}
 
                 {riscoDsr(s) && (
