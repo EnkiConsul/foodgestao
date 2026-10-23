@@ -1339,6 +1339,54 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     </>
   );
 
+  /**
+   * Ativação operacional na rotina da loja: vive na aba Horário (jornada),
+   * nunca em Documentos — a decisão depende da grade semanal que acabou de
+   * ser definida.
+   */
+  const ativacaoNode = (
+    <div className="space-y-3">
+      {rotinaInfo && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 space-y-1">
+          <p className="text-sm font-semibold flex items-center gap-2">
+            <Store className="h-4 w-4 text-amber-600" aria-hidden="true" />
+            Na rotina da loja · aguardando admissão há {diasAguardandoRegistro(rotinaInfo.iniciou_em)}{" "}
+            {diasAguardandoRegistro(rotinaInfo.iniciou_em) === 1 ? "dia" : "dias"}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Atua na loja desde{" "}
+            {rotinaInfo.iniciou_em
+              ? new Date(`${rotinaInfo.iniciou_em}T00:00:00`).toLocaleDateString("pt-BR")
+              : "—"}{" "}
+            como {rotinaInfo.forma_provisoria === "diarista" ? "freelancer diarista" : "freelancer mensalista"} —
+            sem acesso ao portal e sem efeito CLT. Ao efetivar, o mesmo cadastro vira o vínculo oficial
+            e a data de admissão formal passa a valer para férias e demais direitos.
+          </p>
+        </div>
+      )}
+
+      {podeAtivarRotina && (
+        <div className="rounded-lg border p-3 space-y-2">
+          <p className="text-sm font-semibold">Já está trabalhando na loja?</p>
+          <p className="text-xs text-muted-foreground">
+            Ative na rotina para escala, folgas e plantões enquanto o registro não sai. O sistema trata
+            como {regimeAtual === "intermitente" ? "freelancer diarista" : "freelancer mensalista"} —
+            sem portal, sem férias e sem efeito CLT até a efetivação.
+            {!jornadaAtivacao && " Defina e salve o horário acima para liberar a ativação."}
+          </p>
+          <Button
+            variant="outline"
+            disabled={!jornadaAtivacao}
+            title={jornadaAtivacao ? undefined : "Defina e salve o horário de trabalho antes de ativar."}
+            onClick={() => setAtivarRotinaAberto(true)}
+          >
+            <Store className="h-4 w-4 mr-2" /> Ativar na Rotina da Loja
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+
   const documentosNode = (
     <div className="space-y-6">
       <div className="space-y-3">
