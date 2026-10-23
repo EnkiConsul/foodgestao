@@ -38,8 +38,11 @@ export function diasDeAntecedencia(dataIso: string, hojeIso: string): number {
 }
 
 export const MOTIVO_COMPENSACAO_FERIADO = "Compensação de feriado trabalhado";
+/** Remove o prefixo técnico gravado pelo servidor em pedidos fora da janela. */
+export const motivoLegivel = (motivo?: string | null): string =>
+  (motivo ?? "").replace(/^\s*FORA_DA_JANELA_DE_MARCACAO\s*(—\s*)?/i, "").trim();
 export const ehCompensacaoFeriado = (motivo?: string | null) =>
-  !!motivo && motivo.trim().toLowerCase().startsWith("compensação de feriado");
+  motivoLegivel(motivo).toLowerCase().startsWith("compensação de feriado");
 
 export function termoCompensacaoParagrafos(
   tipo: TermoCompensacaoTipo,
