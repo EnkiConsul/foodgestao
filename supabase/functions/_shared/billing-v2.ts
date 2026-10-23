@@ -548,6 +548,12 @@ export async function desfazerUpgrade(admin: SupabaseClient, sub: any, criados: 
   const { error: eA } = await admin.rpc("billing_v2_apply_change", { _subscription_id: sub.id, _plan_slug: ant.plano, _ciclo: ant.ciclo, _origem: "desfeita", _actor: actorId ?? null });
   if (eA) throw new BillingError(500, "Falha ao voltar ao plano anterior.", eA.message);
   const v = await atualizarValorAsaas(admin, sub, criados);
+  // Se o atraso vinha só dessa diferença, a assinatura volta a ficar ativa.
+  if (sub.status === "past_due") {
+    const { count } = await admin.from("invoices").select("id", { count: "exact", head: true })
+      .eq("subscription_id", sub.id).eq("status", "overdue");
+    if (!count) await admin.from("subscriptions").update({ status: "active" }).eq("id", sub.id);
+  }
   const payload = { invoice_id: fat.id, valor_cents: fat.amount_cents, plano_restaurado: ant.plano, novo_valor_cents: v.cents };
   const { error: eEv } = await admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "upgrade_desfeito", actor_id: actorId ?? null, payload });
   if (eEv) throw new BillingError(500, "O plano voltou, mas o registro da desistência falhou. Fale com o suporte.", eEv.message);
