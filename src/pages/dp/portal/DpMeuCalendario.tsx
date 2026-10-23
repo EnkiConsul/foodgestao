@@ -1595,6 +1595,30 @@ export default function DpMeuCalendario() {
         }
       />
 
+      {(meusDevolvidos.data ?? []).length > 0 && (
+        <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 space-y-3">
+          <p className="text-sm font-semibold">
+            {meusDevolvidos.data!.length === 1
+              ? "Você tem 1 pedido devolvido pelo gestor aguardando ajuste"
+              : `Você tem ${meusDevolvidos.data!.length} pedidos devolvidos pelo gestor aguardando ajuste`}
+          </p>
+          {meusDevolvidos.data!.map((d) => (
+            <div key={d.id} className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-xl bg-background/70 p-3">
+              <div className="min-w-0 flex-1 text-sm">
+                <p className="font-medium">
+                  {d.tipo === "folga" ? "Folga" : "Atestado/licença"} em {descreverDia(d.data_alvo)}
+                </p>
+                {d.devolvido_motivo && <p className="text-xs text-muted-foreground">Recado: “{d.devolvido_motivo}”</p>}
+              </div>
+              <Button size="sm" className="min-h-9" onClick={() => ajustarDevolvido(d)}>
+                Ajustar e reenviar
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+
       {!convocavel && vinculoCarregado && <div className="space-y-2">
         <p className="text-sm font-medium">Clique no dia desejado para visualizar, solicitar ou trocar folga.</p>
         {!/já está marcada|folga fixa/.test(resumoDomingos) && (
