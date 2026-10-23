@@ -67,8 +67,10 @@ export const NOTIFICACAO_PATH_PORTAL: Record<string, string> = {
   dp_elogios: "/dp/meu/documentos?tipo=disciplinar",
 };
 
-export function notificacaoPathPortal(refTable: string | null | undefined): string {
+export function notificacaoPathPortal(refTable: string | null | undefined, refId?: string | null): string {
   if (!refTable) return "/dp/meu";
+  // Solicitação: abre o calendário já no pedido (ex.: ajustar pedido devolvido).
+  if (refTable === "dp_solicitacoes" && refId) return `/dp/meu/calendario?solicitacao=${encodeURIComponent(refId)}`;
   return NOTIFICACAO_PATH_PORTAL[refTable] ?? "/dp/meu";
 }
 

@@ -7,7 +7,10 @@ import { assinarTroca } from "@/lib/dp/troca-assinatura";
 import { CienciaFaltaTrocaBox, TEXTO_CIENCIA_FALTA_TROCA } from "@/components/dp/CienciaFaltaTrocaBox";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Helmet } from "react-helmet-async";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { SolicitacaoCorrigirDialog, type SolicitacaoCorrigir } from "@/components/dp/portal/SolicitacaoCorrigirDialog";
+
+type Devolvido = SolicitacaoCorrigir & { devolvido_motivo: string | null };
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { addDays, eachDayOfInterval, endOfMonth, startOfMonth } from "date-fns";
 import {
@@ -222,6 +225,28 @@ export default function DpMeuCalendario() {
       const { data: c, error } = await supabase.from("dp_colaboradores").select(semDif).eq("id", data).single();
       if (error) throw error;
       return c as unknown as MeuVinculo;
+    },
+  });
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  /** Pedido pendente que será substituído pelo novo envio (devolvido ou duplicado). */
+  const [substituirId, setSubstituirId] = useState<string | null>(null);
+  const [conflitoPedido, setConflitoPedido] = useState<{ id: string; devolvido_motivo: string | null } | null>(null);
+  const [corrigirAlvo, setCorrigirAlvo] = useState<Devolvido | null>(null);
+  const meusDevolvidos = useQuery({
+    queryKey: ["dp_meus_devolvidos", meRef.data?.id],
+    enabled: !!meRef.data?.id,
+    queryFn: async (): Promise<Devolvido[]> => {
+      const { data, error } = await supabase
+        .from("dp_solicitacoes")
+        .select("id, company_id, colaborador_id, tipo, data_alvo, data_fim, motivo, devolvido_motivo, arquivo_path")
+        .eq("colaborador_id", meRef.data!.id)
+        .eq("status", "pendente")
+        .is("removido_em", null)
+        .not("devolvido_em", "is", null)
+        .order("data_alvo");
+      if (error) throw error;
+      return (data ?? []) as Devolvido[];
     },
   });
 
