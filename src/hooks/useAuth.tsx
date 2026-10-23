@@ -24,15 +24,26 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-async function permiteMultiplos(): Promise<boolean> {
-  const { data: u } = await supabase.auth.getUser();
-  if (!u.user) return false;
-  const { data } = await supabase
-    .from("auth_user_security_state")
-    .select("permite_multiplos_dispositivos")
-    .eq("user_id", u.user.id)
-    .maybeSingle();
-  return data?.permite_multiplos_dispositivos === true;
+// Retorna true/false só quando o servidor respondeu; null se não deu para confirmar.
+// Sem confirmação, nunca derrubamos outros aparelhos (falha não pode desconectar ninguém).
+async function permiteMultiplos(userId?: string): Promise<boolean | null> {
+  try {
+    let id = userId;
+    if (!id) {
+      const { data: s } = await supabase.auth.getSession();
+      id = s.session?.user?.id;
+    }
+    if (!id) return null;
+    const { data, error } = await supabase
+      .from("auth_user_security_state")
+      .select("permite_multiplos_dispositivos")
+      .eq("user_id", id)
+      .maybeSingle();
+    if (error || !data) return null;
+    return data.permite_multiplos_dispositivos === true;
+  } catch {
+    return null;
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
