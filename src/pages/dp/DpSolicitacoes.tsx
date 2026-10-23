@@ -385,7 +385,7 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
                   </div>
                 )}
 
-                {s.tipo === "folga" && s.data_alvo && (
+                {(s.tipo === "folga" || ehAtestadoLike(s)) && s.data_alvo && s.status === "pendente" && (
                   <RaioXOperacaoDia companyId={s.company_id} colaboradorId={s.colaborador_id} data={s.data_alvo} />
                 )}
 
