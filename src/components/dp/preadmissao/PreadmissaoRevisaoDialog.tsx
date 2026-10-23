@@ -1714,6 +1714,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
             ...(admin.vale_transporte ? { vale_transporte: admin.vale_transporte === "sim" } : {}),
           },
           jornada: jornadaAdmissao,
+          jornadaExtra: ativacaoNode,
           complementares: complementaresNode,
           etapa,
           acoes: acoesRodape,
