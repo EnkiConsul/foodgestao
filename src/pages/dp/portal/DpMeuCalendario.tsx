@@ -1166,7 +1166,7 @@ export default function DpMeuCalendario() {
     onSuccess: () => {
       if (riscoDsrExcecao)
         void registrarCienciaDsr({ papel: "colaborador", tabela: "dp_solicitacoes", data: riscoDsrExcecao.data, dias: riscoDsrExcecao.sequencia });
-      toast.success("Solicitação de exceção enviada.");
+      toast.success("Pedido enviado. Fica pendente até o gestor aprovar.");
       setExceptionOpen(false);
       setExceptionMotivo("");
       setSelectedDay(null);
