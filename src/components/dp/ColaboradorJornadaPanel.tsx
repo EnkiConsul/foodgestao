@@ -404,6 +404,16 @@ export function ColaboradorJornadaPanel({
   );
 
   /**
+   * A ficha de admissão recebe o horário APURADO dos dias (não a referência
+   * crua): preencher os dias direto deixava a referência vazia e a jornada
+   * era gravada como nula — o que bloqueava a ativação na rotina da loja.
+   */
+  useEffect(() => {
+    onRascunho?.({ horario, dias, folga_variavel: folgaVariavel });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [horario, dias, folgaVariavel]);
+
+  /**
    * Todo dia trabalhado mostra o horário preenchido: nada fica "herdando" em
    * silêncio. Só roda depois que a referência é resolvida (turno da vigência,
    * cópia de colega ou grade da unidade).
