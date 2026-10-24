@@ -1016,6 +1016,20 @@
       "when": 1792859208487,
       "tag": "0144_preadmissao_correcao_retomada_atomica",
       "breakpoints": true
+    },
+    {
+      "idx": 145,
+      "version": "7",
+      "when": 1792860752785,
+      "tag": "0145_desligamento_banco_folgas_atomicas",
+      "breakpoints": true
+    },
+    {
+      "idx": 146,
+      "version": "7",
+      "when": 1792860876636,
+      "tag": "0146_desligamento_compensacao_cancelamento_seguro",
+      "breakpoints": true
     }
   ]
 }

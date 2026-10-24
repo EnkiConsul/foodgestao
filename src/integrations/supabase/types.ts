@@ -8291,6 +8291,7 @@ export type Database = {
           dias_indenizados: number | null
           dispensado_desde: string | null
           encerrado_admin_em: string | null
+          folgas_compensatorias: Json
           id: string
           idempotency_key: string | null
           inicio_aviso: string | null
@@ -8309,6 +8310,8 @@ export type Database = {
           regra_validada: boolean
           regra_versao: string | null
           revisao_motivo: string | null
+          saldo_banco_minutos: number
+          saldo_residual_minutos: number
           status: string
           sugestao_pagamento: string | null
           ultimo_comparecimento: string | null
@@ -8333,6 +8336,7 @@ export type Database = {
           dias_indenizados?: number | null
           dispensado_desde?: string | null
           encerrado_admin_em?: string | null
+          folgas_compensatorias?: Json
           id?: string
           idempotency_key?: string | null
           inicio_aviso?: string | null
@@ -8351,6 +8355,8 @@ export type Database = {
           regra_validada?: boolean
           regra_versao?: string | null
           revisao_motivo?: string | null
+          saldo_banco_minutos?: number
+          saldo_residual_minutos?: number
           status?: string
           sugestao_pagamento?: string | null
           ultimo_comparecimento?: string | null
@@ -8375,6 +8381,7 @@ export type Database = {
           dias_indenizados?: number | null
           dispensado_desde?: string | null
           encerrado_admin_em?: string | null
+          folgas_compensatorias?: Json
           id?: string
           idempotency_key?: string | null
           inicio_aviso?: string | null
@@ -8393,6 +8400,8 @@ export type Database = {
           regra_validada?: boolean
           regra_versao?: string | null
           revisao_motivo?: string | null
+          saldo_banco_minutos?: number
+          saldo_residual_minutos?: number
           status?: string
           sugestao_pagamento?: string | null
           ultimo_comparecimento?: string | null
@@ -10346,6 +10355,7 @@ export type Database = {
           created_at: string
           criado_por: string | null
           data: string
+          desligamento_processo_id: string | null
           direito_origem: string | null
           extra: boolean
           id: string
@@ -10362,6 +10372,7 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           data: string
+          desligamento_processo_id?: string | null
           direito_origem?: string | null
           extra?: boolean
           id?: string
@@ -10378,6 +10389,7 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           data?: string
+          desligamento_processo_id?: string | null
           direito_origem?: string | null
           extra?: boolean
           id?: string
@@ -10408,6 +10420,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_folgas_desligamento_processo_id_fkey"
+            columns: ["desligamento_processo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_desligamento_processos"
             referencedColumns: ["id"]
           },
           {
@@ -19761,6 +19780,10 @@ export type Database = {
         Args: { p_hoje?: string; p_processo: string }
         Returns: number
       }
+      dp_desligamento_banco_aplicar: {
+        Args: { p: Json; p_id: string }
+        Returns: undefined
+      }
       dp_desligamento_cancelar: {
         Args: { p_ator: string; p_justificativa: string; p_processo: string }
         Returns: undefined
@@ -19788,6 +19811,10 @@ export type Database = {
         Returns: Json
       }
       dp_desligamento_registrar_aviso: { Args: { p: Json }; Returns: Json }
+      dp_desligamento_registrar_aviso_sem_banco: {
+        Args: { p: Json }
+        Returns: Json
+      }
       dp_desligamento_termino_guard: { Args: { p: Json }; Returns: undefined }
       dp_desligamento_transicao: { Args: { p: Json }; Returns: Json }
       dp_desligamento_transicao_nucleo: { Args: { p: Json }; Returns: Json }

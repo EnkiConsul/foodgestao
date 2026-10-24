@@ -1,5 +1,7 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 
+- [x] Unificar planejamento e registro de desligamento: condições e banco compartilhados, saldo em horas/dias, concentração no final, transferência de saldo/folgas e confirmação oficial atômica com recálculo. 61 testes passaram; fluxo autenticado calculadora → ficha → confirmação validado com cadastro e resposta fictícios, sem gravar colaboradores reais; build OK. Interface não publicada; registro real não exercitado por restrição do usuário.
+
 - [x] Implementar correção com renovação de 7 dias do mesmo convite, retomada explícita/auditada pelo gestor, aviso WhatsApp sem inventar token, atalho a documentos e resumo frente/verso consistente; 81 testes passaram e pedido/retomada e tela da candidata foram validados por simulação sem gravar dados reais. Serviço atualizado; interface não publicada.
 
 - [x] Preparar correções da auditoria: avisos por códigos oficiais no calendário/Pix, isolamento completo de anexos do certificado e recuperação de versão com guarda de 30 segundos; testes focados aprovados. Revisão individual dos 13 grupos em `docs/auditoria-erros-revisao-2026-10-24.md`; nenhum encerramento em lote, colaborador alterado ou publicação.
