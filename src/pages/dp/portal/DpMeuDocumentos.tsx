@@ -144,7 +144,9 @@ export default function DpMeuDocumentos() {
     if (!alvo) return;
     abriuFoco.current = true;
     setTab("all");
-    setPreview(alvo);
+    // Pendência de assinatura abre direto na tela de leitura e assinatura.
+    if (alvo.aceite === false) setAssinando(alvo);
+    else setPreview(alvo);
   }, [docFoco, isLoading, documentos]);
 
   const changeTab = (v: string) => {
