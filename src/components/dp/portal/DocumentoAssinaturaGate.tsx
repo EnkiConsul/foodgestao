@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Eye, PenLine, FileText, Clock } from "lucide-react";
+import { PenLine, FileText, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { DOCUMENTO_CONFIRMACAO_TEXTO } from "@/lib/dp/documento-titulo";
 import { assinarDocumento } from "@/lib/dp/documentoAceite";
 import { assinarTroca } from "@/lib/dp/troca-assinatura";
@@ -20,7 +19,7 @@ import {
 } from "@/hooks/portal/useDocumentosAguardandoAssinatura";
 import { notifyError } from "@/lib/notifyError";
 import { AssinaturaCaptura } from "@/components/dp/AssinaturaCaptura";
-import { AssinaturaConfirmarDialog } from "@/components/dp/portal/AssinaturaConfirmarDialog";
+import { DocumentoAssinarViewer } from "@/components/dp/portal/DocumentoAssinarViewer";
 
 const BUCKET = "dp-documentos";
 /** Se o colaborador fechar sem assinar, o aviso volta depois deste intervalo. */
