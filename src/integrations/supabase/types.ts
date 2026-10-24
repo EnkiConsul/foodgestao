@@ -21072,6 +21072,16 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_preadmissao_correcao_gestor: {
+        Args: {
+          p_acao: string
+          p_ator: string
+          p_motivo: string
+          p_preadmissao_id: string
+          p_versao: number
+        }
+        Returns: Json
+      }
       dp_preadmissao_documento_registrar: {
         Args: {
           p_file_name: string
