@@ -170,6 +170,7 @@ export function useDpPreadmissoes() {
   return useQuery({
     queryKey: ["dp_preadmissoes", selectedCompanyId],
     enabled: !!selectedCompanyId,
+    refetchInterval: 30_000,
     queryFn: async () => {
       const r = await chamar<{ preadmissoes: PreadmissaoResumo[] }>("dp-preadmissao-gestor", {
         action: "listar",
@@ -263,6 +264,9 @@ export function useDpPreadmissaoGestor(id: string | null) {
     qc.invalidateQueries({ queryKey: ["dp_preadmissao", id] });
     qc.invalidateQueries({ queryKey: ["dp_preadmissoes"] });
     qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
+    for (const key of ["dp_colaboradores", "dp_colaborador_config_trabalho", "dp_operacao", "dp_operacao_panorama", "dp_calendario"]) {
+      qc.invalidateQueries({ queryKey: [key] });
+    }
   };
   const acao = <T,>(body: Record<string, unknown>) =>
     chamar<T>("dp-preadmissao-gestor", { preadmissao_id: id, ...body });
