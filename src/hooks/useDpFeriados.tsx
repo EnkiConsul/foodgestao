@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { FERIADOS_MOVEIS_LABEL, nomeFeriado } from "@/lib/dp/feriados-apresentacao";
 import {
   FERIADOS_NACIONAIS_FIXOS,
   type FeriadoRegra,
@@ -46,7 +47,7 @@ export function feriadosParaInclusao(atuais: FeriadoRegra[], incluirSextaSanta =
     nome: f.nome, tipo: "anual", dia: f.dia, mes: f.mes, ativo: true,
   }));
   if (incluirSextaSanta) candidatos.push({
-    nome: "Sexta-feira Santa", tipo: "movel", codigo_movel: "sexta_feira_santa", ativo: true,
+    nome: FERIADOS_MOVEIS_LABEL.sexta_feira_santa.nome, tipo: "movel", codigo_movel: "sexta_feira_santa", ativo: true,
   });
   return candidatos.filter((f) => !atuais.some((a) => chaveFeriado(a) === chaveFeriado({ ...f, id: "" })));
 }
@@ -81,7 +82,7 @@ export function useDpFeriados(unidadeId?: string | null) {
       if (error) throw error;
       return (data ?? []).map((r) => ({
         id: r.id,
-        nome: r.nome,
+        nome: nomeFeriado({ ...r, tipo: r.tipo as FeriadoTipo, codigo_movel: r.codigo_movel as FeriadoMovel | null }),
         tipo: r.tipo as FeriadoTipo,
         codigo_movel: r.codigo_movel as FeriadoMovel | null,
         data: r.data,

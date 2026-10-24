@@ -10,10 +10,11 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  DIAS_SEMANA, FERIADO_TIPO_LABEL, FERIADOS_MOVEIS, MESES, ORDINAIS,
+  DIAS_SEMANA, FERIADO_TIPO_LABEL, MESES, ORDINAIS,
   dataFeriadoMovel, descricaoRegra, type FeriadoRegra, type FeriadoTipo, type FeriadoMovel,
 } from "@/lib/dp/feriados";
 import type { FeriadoInput } from "@/hooks/useDpFeriados";
+import { FERIADOS_MOVEIS_LABEL as FERIADOS_MOVEIS, nomeFeriado } from "@/lib/dp/feriados-apresentacao";
 
 interface Props {
   open: boolean;
@@ -38,7 +39,7 @@ export function FeriadoFormDialog({ open, onOpenChange, feriado = null, saving, 
 
   useEffect(() => {
     if (!open) return;
-    setNome(feriado?.nome ?? "");
+    setNome(feriado ? nomeFeriado(feriado) : "");
     setTipo(feriado?.tipo ?? "anual");
     setMovel(feriado?.codigo_movel ?? "carnaval");
     setData(feriado?.data ?? "");

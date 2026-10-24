@@ -20,6 +20,7 @@
 - Troca de plano/ciclo só por `billing_v2_plan_change_quote/schedule/cancel`: upgrade e mensal→anual são imediatos com crédito proporcional; downgrade e anual→mensal ficam em `pending_plan_change` e `billing_v2_apply_scheduled_changes` revalida uso na renovação — valor calculado no banco.
 - Read subdirectory `AGENTS.md` before edits.
 - Unit holiday registration uses the frontend date-order helper with the selected year; retain inactive and non-occurring rules for editing separately from the active annual agenda.
+- Unit tabs use a dedicated horizontal scroller with edge controls and active-tab visibility; holiday presentation labels and counts stay in the frontend adapter to preserve stored identifiers and records.
 - Movable holidays use explicit unit-selected codes and Gregorian computus in the shared helper and database resolver; include the code in reads and replication to keep annual dates consistent without scheduled jobs or automatic holiday enrollment.
 - National holiday enrollment defaults to federal fixed dates; its confirmation dialog may include Good Friday only through explicit local opt-in, using the movable code and preserving existing/inactive rules, because Law 9,093/1995, article 2 requires municipal legislation.
 - Recrutamento 360 rules live in `src/pages/recrutamento/AGENTS.md`.
