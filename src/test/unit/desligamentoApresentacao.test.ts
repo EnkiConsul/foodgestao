@@ -1,8 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { situacaoPagamento, avisoEmAndamento, caminhoDesligamento } from "@/lib/dp/desligamento-apresentacao";
+import { situacaoPagamento, avisoEmAndamento, caminhoDesligamento, diasAtePrazo } from "@/lib/dp/desligamento-apresentacao";
 import { rotuloFolga } from "@/lib/dp/folga-apresentacao";
 
 describe("apresentação das compensações e do prazo rescisório", () => {
+  it("contagem do prazo considera dias corridos", () => {
+    expect(diasAtePrazo("2026-11-16", "2026-11-13")).toBe(3);
+    expect(diasAtePrazo("2026-11-16", "2026-11-16")).toBe(0);
+    expect(diasAtePrazo("2026-11-16", "2026-11-17")).toBe(-1);
+  });
   it("compensação do aviso não vira extra por causa do registro legado", () => {
     expect(rotuloFolga({ tipo: "extra", extra: true, subtipo: "banco_horas_aviso" })).toBe("Folga compensatória (banco no aviso)");
   });
