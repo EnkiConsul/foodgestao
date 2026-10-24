@@ -86,7 +86,7 @@ export function useDpFeriados(unidadeId?: string | null) {
       if (error) throw error;
       return (data ?? []).map((r) => ({
         id: r.id,
-        nome: nomeFeriado({ ...r, tipo: r.tipo as FeriadoTipo, codigo_movel: r.codigo_movel as FeriadoMovel | null }),
+        nome: nomeFeriado({ ...r, categoria: r.categoria as FeriadoCategoria, tipo: r.tipo as FeriadoTipo, codigo_movel: r.codigo_movel as FeriadoMovel | null }),
         tipo: r.tipo as FeriadoTipo,
         categoria: r.categoria as FeriadoCategoria,
         codigo_movel: r.codigo_movel as FeriadoMovel | null,
