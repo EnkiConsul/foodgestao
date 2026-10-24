@@ -15,4 +15,8 @@ describe("integridade da correção documental", () => {
   it("documento recusado não satisfaz o resumo", () => {
     expect(pendenciaDocumento("foto_3x4", [{ parte: 1, status: "recusado" }])).toBe("Reenviar documento recusado");
   });
+  it("aceita arquivo único mesmo enviado no espaço do verso", () => {
+    expect(pendenciaDocumento("identidade", [{ parte: 2, mime_type: "application/pdf" }])).toBeNull();
+    expect(pendenciaDocumento("identidade", [{ parte: 2, parte_rotulo: "Frente e verso" }])).toBeNull();
+  });
 });
