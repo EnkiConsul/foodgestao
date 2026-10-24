@@ -53,3 +53,4 @@
 - Termination calendar diagnostics and terminal bank concentration use one shared pure helper; read-only projections never persist agenda changes, and compensation updates cannot change the process legal end or settlement deadline, preventing simulation from becoming attendance accounting.
 - Termination notifications identify employees in the shared server notifier and navigate with collaborator_id, never the process ref_id; this covers every producer without duplicating identity logic.
 - Pre-admission activation inherits the reviewed habitual sector into the employee and empty worked-day slots, preserving explicit daily sectors and validating company scope.
+- Provisional employee cards resolve admission by company-scoped routine ID and open the official review form; admission updates synchronize operational fields transactionally without formalizing the regime or replacing past schedule configurations.

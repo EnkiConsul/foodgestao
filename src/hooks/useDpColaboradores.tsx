@@ -6,12 +6,14 @@ import type { Database } from "@/integrations/supabase/types";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { salvarColaborador } from "@/lib/dp/colaborador-oficial";
 import { COLUNAS_COLABORADOR_PUBLICAS, mesclarConfidencial } from "@/lib/dp/confidencial";
+import type { PreadmissaoResumo } from "@/hooks/dp/useDpPreadmissoes";
 
 export type DpColaborador = Database["public"]["Tables"]["dp_colaboradores"]["Row"] & {
   cargo_nome?: string | null;
   unidade_nome?: string | null;
   setor_nome?: string | null;
   setor_ativo?: boolean | null;
+  admissao?: PreadmissaoResumo | null;
 };
 export type DpColaboradorInsert = Database["public"]["Tables"]["dp_colaboradores"]["Insert"];
 

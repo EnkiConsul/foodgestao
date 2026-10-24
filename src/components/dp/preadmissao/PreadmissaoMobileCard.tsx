@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { DpActionsMenu } from "@/components/dp/DpActions";
 import { PREADMISSAO_STATUS_LABEL, type PreadmissaoResumo } from "@/hooks/dp/useDpPreadmissoes";
 import { maskPhone } from "@/lib/phone";
+import { etapaDaPreadmissao } from "@/lib/dp/admissao-apresentacao";
 
 const PROXIMA_ACAO: Record<string, string> = {
   aguardando_preenchimento: "Aguardando os dados e documentos do candidato",
@@ -44,7 +45,7 @@ export function PreadmissaoMobileCard({ ficha: p, cargo, unidade, prorrogando, o
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 space-y-2">
           <h3 className="break-words text-sm font-semibold leading-snug">{p.candidato_nome}</h3>
-          <Badge variant="outline" className="max-w-full whitespace-normal text-left text-[11px] leading-snug">{PREADMISSAO_STATUS_LABEL[p.status]}</Badge>
+          <Badge variant="outline" className="max-w-full whitespace-normal text-left text-[11px] leading-snug">{etapaDaPreadmissao(p)}</Badge>
         </div>
         <DpActionsMenu vertical className="min-h-11 min-w-11 shrink-0" actions={[
           { key: "link", label: "Gerar e copiar novo link", icon: Copy, hidden: !ativa, onSelect: onNovoLink },

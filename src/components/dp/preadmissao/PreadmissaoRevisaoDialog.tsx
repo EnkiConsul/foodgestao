@@ -36,7 +36,7 @@ import { notifyError } from "@/lib/notifyError";
 import { gerarFichaAdmissaoPdf } from "@/lib/dp/ficha-admissao-pdf";
 import { AsoAdmissionalCard } from "./AsoAdmissionalCard";
 import { asoLiberaContabilidade, BASES_LEGAIS_DISPENSA, type AsoDados } from "@/lib/dp/aso-admissional";
-import { passoAdmissao, pontoNaAdmissao } from "@/lib/dp/admissao-apresentacao";
+import { passoAdmissao, pontoNaAdmissao, situacaoAdmissao } from "@/lib/dp/admissao-apresentacao";
 import { efetivacaoDisponivel, inicioJornadaAdmissao } from "@/lib/dp/admissao-fluxo";
 import { ColaboradorDocumentosPanel } from "@/components/dp/documentos/ColaboradorDocumentosPanel";
 import { documentoPorVinculo } from "@/lib/dp/vinculo-documento";
@@ -1320,7 +1320,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
         </li>)}
       </ol>
       <p className="text-xs text-muted-foreground">
-        <strong className="text-foreground">{status === "concluido" ? "Admissão efetivada" : status === "cancelado" ? "Admissão cancelada" : passoAtual === 0 ? "Ficha ainda não finalizada" : passoAtual === 1 && isClt ? "Ficha conferida · aguardando ASO" : passoAtual === 2 && isClt ? "Ficha e ASO conferidos · contabilidade" : "Aguardando efetivação"}</strong>
+        <strong className="text-foreground">{situacaoAdmissao(status, isClt, asoLiberaContabilidade(asoAtual))}</strong>
         {passoAtual === 0 && " · alterações salvas não significam aprovação da ficha."}
       </p>
       {admin.data_admissao && <p className="text-xs text-muted-foreground">Admissão prevista: {admin.data_admissao.split("-").reverse().join("/")}. A data poderá ser ajustada antes da efetivação, conforme o ASO e o registro.</p>}

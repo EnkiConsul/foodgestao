@@ -1,5 +1,8 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 
+- [x] Unificar cards e edição do cadastro provisório com a pré-admissão, exibindo etapa real e vínculo previsto, sem segunda ficha independente. Verônica conferida em computador/celular; ambos abrem a conferência oficial.
+- [x] Sincronizar dados operacionais ao salvar a pré-admissão, preservando identidade, início na loja, histórico e setores diários explícitos. Migrações 0152–0153 aplicadas sem alterar fichas reais; 22 testes isolados passaram. Gravação real não exercitada para preservar colaboradores; interface não publicada.
+
 - [x] Unificar apresentação de folgas compensatórias na ficha, rotina e portal sem mudar os registros. Rosângela e Karen conferidas no dossiê autenticado; portal atualizado sem sessão de colaborador para conferência.
 - [x] Destacar aviso prévio e abrir as datas do processo pela lista e pelo dossiê. Filtro, lista, celular e acesso à aba de desligamento conferidos em leitura.
 - [x] Mostrar prazo legal da rescisão no calendário operacional/Início com card por colaborador. Marcador de 16/11 e card da Rosângela conferidos no calendário e detalhe do dia; atalho abriu processo. Sem publicação ou gravações reais.
