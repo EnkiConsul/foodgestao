@@ -21,7 +21,6 @@ import { notifyError } from "@/lib/notifyError";
 import { AssinaturaCaptura } from "@/components/dp/AssinaturaCaptura";
 import { DocumentoAssinarViewer } from "@/components/dp/portal/DocumentoAssinarViewer";
 
-const BUCKET = "dp-documentos";
 /** Se o colaborador fechar sem assinar, o aviso volta depois deste intervalo. */
 export const REABRIR_APOS_MS = 10 * 60 * 1000;
 /** Trava o portal (sem "Ver depois") a partir destes limites. */

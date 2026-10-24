@@ -35,7 +35,7 @@ import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import type { Database } from "@/integrations/supabase/types";
 import { notifyError } from "@/lib/notifyError";
 import { assinarDocumento } from "@/lib/dp/documentoAceite";
-import { AssinaturaConfirmarDialog } from "@/components/dp/portal/AssinaturaConfirmarDialog";
+import { DocumentoAssinarViewer } from "@/components/dp/portal/DocumentoAssinarViewer";
 import { excluirDocumento, registrarDocumento } from "@/lib/dp/documentos-oficial";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
