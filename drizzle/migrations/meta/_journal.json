@@ -1072,6 +1072,13 @@
       "when": 1792883067327,
       "tag": "0152_preadmissao_sincronizar_cadastro_provisorio",
       "breakpoints": true
+    },
+    {
+      "idx": 153,
+      "version": "7",
+      "when": 1792883193589,
+      "tag": "0153_preadmissao_sincronizacao_salario_decimal",
+      "breakpoints": true
     }
   ]
 }
