@@ -241,8 +241,11 @@ async function calcular(admin: any, c: Colab, b: Cond, previa = false, processoI
     const escalaAnt = (escAnt ?? []) as { data: string; tipo: string }[];
     const anteriores = new Set<string>((flAnt ?? []).map((f: { data: string }) => f.data));
     for (const it of escalaAnt) if (it.tipo !== "trabalho") anteriores.add(it.data);
+    // Descanso habitual já tirado antes do aviso conta na cota do mês: não só
+    // domingos — qualquer dia elegível pela regra (ex.: sábado na Pakerê).
     for (let d = inicioMes; d <= b.data_comunicacao; d = somar(d, 1)) {
-      if (semana[new Date(`${d}T00:00:00Z`).getUTCDay()] === 0 && !escalaAnt.some((it) => it.data === d && it.tipo === "trabalho")) anteriores.add(d);
+      const dow = new Date(`${d}T00:00:00Z`).getUTCDay();
+      if (regra.dias.includes(dow) && semana[dow] === 0 && !escalaAnt.some((it) => it.data === d && it.tipo === "trabalho")) anteriores.add(d);
     }
     diagnostico = diagnosticarEscalaAviso(base, regra, folgasAgenda, confirmados, [...anteriores]);
     }
