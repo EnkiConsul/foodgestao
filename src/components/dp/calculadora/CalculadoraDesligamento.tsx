@@ -15,6 +15,7 @@ import { useDpFeriados } from "@/hooks/useDpFeriados";
 import { BancoDesligamento, saldoDesligamento, concentrarNoFinal } from "../BancoDesligamento";
 import { CondicoesDesligamento, SEM_AVISO, type CondicoesValor } from "../CondicoesDesligamento";
 import { datasDeFeriados } from "@/lib/dp/feriados";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 /**
  * Simulação de aviso prévio e término de vínculo (CLT).
@@ -286,6 +287,7 @@ function Resultado({ r, b, onAlternar }: { r: ResultadoDesligamento; b: Resultad
                 {r.ultimoComparecimento ? `${br(r.ultimoComparecimento)} (${semana(r.ultimoComparecimento)})` : "Sem jornadas no período"}</p>}
           {!indenizado && b.ultimoComparecimento !== r.ultimoComparecimento && (
             <p className="text-xs text-muted-foreground">Sem compensação seria {br(b.ultimoComparecimento)}. O término do contrato não muda.</p>)}
+          {!indenizado && <p className="text-sm">Limite sem banco: <strong>{br(b.ultimoComparecimento)}</strong> · término do vínculo: <strong>{br(r.dataEfetiva)}</strong>. A previsão com banco pode mudar após revisão das folgas ou do saldo.</p>}
           {r.avisoDispensado && (
             <p className="text-xs text-muted-foreground">Término do vínculo: <strong>{br(r.dataEfetiva)}</strong>{r.descontarAviso ? " · com desconto do aviso (confirmar com a contabilidade)" : " · sem desconto do aviso"}.</p>)}
         </CardContent>
@@ -305,7 +307,7 @@ function Resultado({ r, b, onAlternar }: { r: ResultadoDesligamento; b: Resultad
             <div>Jornadas restantes: <strong>{r.jornadasRestantes}</strong></div>
             <div>Folgas simuladas: <strong>{r.folgasAceitas.length}</strong></div>
             <div>Horas compensadas: <strong>{formatarMinutos(r.minutosCompensados)}</strong></div>
-            <div>Saldo residual: <strong>{formatarMinutos(r.saldoResidualMinutos)}</strong></div>
+            <div>Sobra para conferir e quitar na rescisão: <strong>{formatarMinutos(r.saldoResidualMinutos)}</strong></div>
           </>}
         </CardContent>
       </Card>
@@ -349,29 +351,25 @@ function Resultado({ r, b, onAlternar }: { r: ResultadoDesligamento; b: Resultad
       )}
 
       {!indenizado && (
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Calendário do aviso</CardTitle>
-            <CardDescription>Toque num dia de trabalho para simular folga; toque de novo para desfazer.</CardDescription></CardHeader>
-          <CardContent>
-            <ul className="max-h-96 space-y-1 overflow-y-auto" aria-label="Calendário do aviso">
+        <Accordion type="single" collapsible defaultValue="aviso"><AccordionItem value="aviso"><AccordionTrigger>Calendário do aviso</AccordionTrigger><AccordionContent>
+            <ul className="space-y-1" aria-label="Calendário do aviso">
               {r.calendario.map((d) => {
                 const clicavel = d.classificacao === "trabalho_previsto" || d.classificacao === "folga_compensatoria";
                 const ultimo = d.data === r.ultimoComparecimento;
                 return (
                   <li key={d.data}>
-                    <button type="button" disabled={!clicavel} onClick={() => onAlternar(d.data)} data-dia={d.data} data-classe={d.classificacao}
-                      className={`flex w-full items-center justify-between gap-2 rounded-md border px-2 py-1.5 text-left text-xs ${CLASSE[d.classificacao].cls} ${ultimo ? "ring-2 ring-primary" : ""} disabled:cursor-default`}>
+                    <Button variant="outline" type="button" disabled={!clicavel} onClick={() => onAlternar(d.data)} data-dia={d.data} data-classe={d.classificacao}
+                      className={`h-auto w-full justify-between gap-2 whitespace-normal px-2 py-1.5 text-left text-xs ${CLASSE[d.classificacao].cls} ${ultimo ? "ring-2 ring-primary" : ""} disabled:cursor-default`}>
                       <span className="font-medium">{br(d.data)} · {semana(d.data)}</span>
                       <span className="text-right">{CLASSE[d.classificacao].rotulo}
                         {d.jornadaPrevista > 0 && ` · ${formatarMinutos(d.jornadaPrevista)}`}
                         {d.minutosCompensados > 0 && ` · −${formatarMinutos(d.minutosCompensados)}`}</span>
-                    </button>
+                    </Button>
                   </li>
                 );
               })}
             </ul>
-          </CardContent>
-        </Card>
+        </AccordionContent></AccordionItem></Accordion>
       )}
     </>
   );
