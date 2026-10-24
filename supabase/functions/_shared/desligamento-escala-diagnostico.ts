@@ -18,11 +18,11 @@ export type DiagnosticoEscalaAviso = {
 const dow = (data: string) => new Date(`${data}T00:00:00Z`).getUTCDay();
 
 /** Only confirmed calendar rests count. Bank days and Art. 488 never fulfil the unit rule. */
-export function diagnosticarEscalaAviso(base: ResultadoDesligamento, regra: RegraDescansoAviso, folgasAgendadas: string[]): DiagnosticoEscalaAviso {
+export function diagnosticarEscalaAviso(base: ResultadoDesligamento, regra: RegraDescansoAviso, folgasAgendadas: string[], descansosConfirmados?: string[]): DiagnosticoEscalaAviso {
   const limite = base.ultimoComparecimento;
   const dias = regra.dias.length ? regra.dias : [0];
   const calendario = base.calendario.filter((d) => limite && d.data <= limite);
-  const descansos = calendario.filter((d) => d.classificacao === "folga_regular" && d.jornadaHabitual === 0 && dias.includes(dow(d.data))).map((d) => d.data);
+  const descansos = calendario.filter((d) => d.classificacao === "folga_regular" && d.jornadaHabitual === 0 && dias.includes(dow(d.data)) && (!descansosConfirmados || descansosConfirmados.includes(d.data))).map((d) => d.data);
   const posteriores = limite ? folgasAgendadas.filter((d) => d > limite && dias.includes(dow(d))).sort() : [];
   const pendencias: string[] = [];
   if (posteriores.length) pendencias.push("Há descanso dominical ou negociado marcado depois do limite de trabalho sem banco. Revise a data no calendário; ele não cobre os descansos deste aviso.");

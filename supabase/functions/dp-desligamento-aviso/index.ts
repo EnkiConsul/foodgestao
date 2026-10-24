@@ -206,7 +206,10 @@ async function calcular(admin: any, c: Colab, b: Cond, previa = false, processoI
     return revisao("Não há jornadas previstas no período do aviso. Revise a jornada antes de registrar.");
   let diagnostico = null;
   if (precisaJornada) {
-    const { data: config, error: errRegra } = await admin.rpc("dp_config_resolvida", { _company_id: c.company_id, _unidade_id: c.unidade_id });
+    // Actor was authorized before calculating. Service-only read avoids auth.uid()-scoped RPCs.
+    let consulta = admin.from("dp_config_dp").select("*").eq("company_id", c.company_id);
+    consulta = c.unidade_id ? consulta.or(`unidade_id.eq.${c.unidade_id},unidade_id.is.null`) : consulta.is("unidade_id", null);
+    const { data: config, error: errRegra } = await consulta.order("unidade_id", { ascending: true, nullsFirst: false }).limit(1).maybeSingle();
     if (errRegra) return revisao("Não foi possível conferir a regra de folgas da unidade. Tente novamente antes de compensar.");
     const cfg = Array.isArray(config) ? config[0] : config;
     if (!cfg) return revisao("Confira a regra de folgas da unidade antes de compensar.");
@@ -219,7 +222,11 @@ async function calcular(admin: any, c: Colab, b: Cond, previa = false, processoI
       ? { origem: "colaborador", modo: "por_mes", semanas: 0, porMes: c.domingos_folga_mes, dias: c.folga_dif_dias ?? (acordo ? cfg.dias_descanso_negociados : [0]) ?? [0] }
       : cargo ? { origem: "cargo", modo: cargo.modo_frequencia === "semanas" ? "semanas" : "por_mes", semanas: Number(cargo.periodicidade_semanas ?? 4), porMes: Number(cargo.domingos_mes), dias: cargo.dias_descanso ?? (acordo ? cfg.dias_descanso_negociados : [0]) ?? [0] }
       : { origem: "unidade", modo: acordo ? "por_mes" : (feminino ? cfg.modo_frequencia_domingo_mulher : cfg.modo_frequencia_domingo) === "por_mes" ? "por_mes" : "semanas", semanas: Number(feminino ? cfg.periodicidade_domingo_mulher : cfg.periodicidade_domingo), porMes: Number(acordo ? cfg.folgas_fds_por_mes : feminino ? cfg.domingos_por_mes_mulher : cfg.domingos_por_mes), dias: acordo ? cfg.dias_descanso_negociados ?? [0] : [0] };
-    diagnostico = diagnosticarEscalaAviso(base, regra, folgasAgenda);
+    const confirmados = base.calendario.filter((d) => {
+      const ex = excecoes.find((e) => e.data === d.data);
+      return ex ? ex.minutos === 0 : semana[new Date(`${d.data}T00:00:00Z`).getUTCDay()] === 0;
+    }).map((d) => d.data);
+    diagnostico = diagnosticarEscalaAviso(base, regra, folgasAgenda, confirmados);
   }
   const datasBanco = diagnostico && !diagnostico.apto ? [] : b.concentrar_final ? concentrarBancoNoFinal(base, b.saldo_banco_minutos ?? 0) : b.folgas_compensatorias ?? [];
   const simulacao = simularDesligamento({ dataAdmissao: String(c.data_admissao).slice(0, 10), dataComunicacao: b.data_comunicacao, motivo: b.motivo, modalidade: b.modalidade, reducao: b.modalidade === "trabalhado" ? b.reducao ?? null : null, dataTerminoAcordada: pedidoDispensado ? b.data_termino_acordada ?? null : null, descontarAviso: pedidoDispensado ? b.descontar_aviso : undefined, jornadaSemanal: semana, excecoesJornada: excecoes, feriados, saldoBancoMinutos: b.saldo_banco_minutos ?? 0, folgasCompensatorias: datasBanco });
