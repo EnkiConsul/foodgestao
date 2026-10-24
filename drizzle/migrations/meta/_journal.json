@@ -995,6 +995,13 @@
       "when": 1792819722931,
       "tag": "0141_feriados_categorias_abrangencia",
       "breakpoints": true
+    },
+    {
+      "idx": 142,
+      "version": "7",
+      "when": 1792854828623,
+      "tag": "0142_preadmissao_documento_gestor_e_ponto_clt",
+      "breakpoints": true
     }
   ]
 }
