@@ -139,6 +139,8 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           supabase
             .from("dp_ferias_gozos")
             .select("colaborador_id, data_inicio, data_fim, status")
+            .in("status", ["aprovado", "em_gozo"])
+            .is("cancelado_em", null)
             .eq("company_id", selectedCompanyId!)
             .lte("data_inicio", fim)
             .gte("data_fim", janelaInicio),
@@ -176,7 +178,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           // de serem efetivados em dp_folgas (mesma regra do calendário de folgas).
           supabase
             .from("dp_solicitacoes")
-            .select("colaborador_id, data_alvo")
+            .select("colaborador_id, data_alvo, fora_da_janela")
             .is("removido_em", null)
             .eq("company_id", selectedCompanyId!)
             .eq("tipo", "folga")
@@ -225,6 +227,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
             .eq("company_id", selectedCompanyId!)
             .gte("data_operacional", janelaInicio)
             .lte("data_operacional", fim)
+            .is("cancelado_em", null)
             .not("estado", "eq", "cancelada"),
         ]);
 
@@ -597,7 +600,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         colaborador_id: s.colaborador_id,
         data: s.data_alvo!,
         tipo: "normal",
-        extra: false,
+        extra: s.fora_da_janela === true,
       }));
     return [...efetivadas, ...aprovadas];
   }, [base.data]);

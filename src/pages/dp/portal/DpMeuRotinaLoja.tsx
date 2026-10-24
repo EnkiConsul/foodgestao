@@ -43,6 +43,7 @@ export default function DpMeuRotinaLoja() {
   const escala = useQuery({
     queryKey: ["dp_meu_rotina_loja", vinculo?.unidadeId, data],
     enabled: !!vinculo?.unidadeId,
+    refetchInterval: 30_000,
     queryFn: async (): Promise<Pessoa[]> => {
       // Uma única consulta segura: usa a escala publicada e, quando o mês ainda
       // não foi publicado, monta a equipe pelo horário habitual de cada colega.

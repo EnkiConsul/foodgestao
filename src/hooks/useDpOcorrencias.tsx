@@ -1,4 +1,5 @@
 import { tratativaPendente } from "@/lib/dp/ocorrencias";
+import { invalidarRotina } from "@/lib/dp/rotina-cache";
 import { intervaloDePeriodo } from "@/lib/dp/ocorrenciasPeriodo";
 import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -187,7 +188,7 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["dp_ocorrencias"] });
-    qc.invalidateQueries({ queryKey: ["dp_operacao_panorama"] });
+    void invalidarRotina(qc);
   };
 
   const lista = useQuery({

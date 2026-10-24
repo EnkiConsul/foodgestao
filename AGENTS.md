@@ -24,6 +24,7 @@
 - Ações do Dia: decide documents only; other requests use dedicated DSR/release-undo screens.
 
 - Leave previews retain the request row to open its exact details.
+- Portal operation uses server-scoped RPCs; approved leave and confirmed absences override work in every source, with shared cache invalidation after decisions and periodic portal refresh to reflect other devices.
 <!-- LOVABLE:BEGIN -->
 - Home calendar details reuse the official operation controller via lazyWithRetry; semantic calendar tokens preserve themed absence colors and deploy recovery.
 - Document management hosts import and history in a modal; confirmed session completion refreshes the unified list without scrolling the page.

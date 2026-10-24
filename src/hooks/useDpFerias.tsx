@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { invalidarRotina } from "@/lib/dp/rotina-cache";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { regimeTemFeriasLegais, textoErroFerias } from "@/lib/dp/ferias-direito";
 import { isSocio } from "@/lib/dp/contrato-policy";
@@ -51,6 +52,7 @@ export function useDpFerias(colaboradorFilter: string) {
     void resolverPendencias(qc, { companyId: selectedCompanyId });
     qc.invalidateQueries({ queryKey: ["dp_ferias_periodos"] });
     qc.invalidateQueries({ queryKey: ["dp_ferias_gozos"] });
+    void invalidarRotina(qc);
   };
 
 
