@@ -119,6 +119,7 @@ export interface PreadmissaoDocumento {
   /** Frente, verso ou fotos extras do mesmo documento (1 a 10). */
   parte?: number | null;
   parte_rotulo?: string | null;
+  mime_type?: string | null;
 }
 
 export interface PreadmissaoDetalhe {
