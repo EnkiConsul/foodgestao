@@ -26,6 +26,7 @@
 - Leave previews retain the request row to open its exact details.
 - Portal operation uses server-scoped RPCs; approved leave and confirmed absences override work in every source, with shared cache invalidation after decisions and periodic portal refresh to reflect other devices.
 - Exceptional leave occurrence evidence is generated transactionally from linked leave/request/swap records; source cancellation retires evidence and server triggers protect its impact fields, while point treatment remains independently pending for external accounting.
+- Occurrence quick filters use the shared type-query helper before the result limit; leave/swap filtering uses source links instead of labels so both absence and worked-day evidence remain visible.
 <!-- LOVABLE:BEGIN -->
 - Home calendar details reuse the official operation controller via lazyWithRetry; semantic calendar tokens preserve themed absence colors and deploy recovery.
 - Document management hosts import and history in a modal; confirmed session completion refreshes the unified list without scrolling the page.
