@@ -282,7 +282,7 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
     texto={saldoTxt} unidade={saldoUnidade} horasDia={horasDia} base={baseCalendario} resultado={calendario} calculando={carregando}
     set={(v) => { if (v.texto !== undefined) setSaldoTxt(v.texto); if (v.unidade) setSaldoUnidade(v.unidade); if (v.horasDia !== undefined) setHorasDia(v.horasDia); setCalendario(null); limpar(); }} />;
   // Reactive registration preview: no "calculate" button; recompute shortly after any change.
-  const chavePrevia = !p && ativo && cond.comunicacao && saldo.minutos !== null ? JSON.stringify(condBody()) : null;
+  const chavePrevia = !proc.isLoading && !proc.data && ativo && cond.comunicacao && saldo.minutos !== null ? JSON.stringify(condBody()) : null;
   useEffect(() => {
     if (!chavePrevia) return;
     const t = setTimeout(() => { void calcular({ acao: "previa", colaborador_id: colaboradorId }); }, 600);
