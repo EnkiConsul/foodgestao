@@ -119,11 +119,6 @@ export function DocumentoAssinaturaGate() {
   const naTelaTroca = !!atual?.troca_id && pathname.startsWith("/dp/meu/trocas");
   const open = !!atual && !naTelaTroca && (bloqueado || !adiado);
 
-  // Ao trocar de documento, exige nova visualização.
-  useEffect(() => {
-    if (atual && visualizou && visualizou !== atual.id) setVisualizou(null);
-  }, [atual, visualizou]);
-
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
   const adiar = () => {
