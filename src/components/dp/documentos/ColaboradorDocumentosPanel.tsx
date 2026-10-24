@@ -32,7 +32,7 @@ export function ColaboradorDocumentosPanel({
     for (const item of doc.itens) {
       const key = item.requisito.categoria ?? "geral";
       if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(item);
+      map.get(key)?.push(item);
     }
     return [...map.entries()];
   }, [doc.itens]);
@@ -67,15 +67,15 @@ export function ColaboradorDocumentosPanel({
 
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4">
       <Card>
-        <CardHeader className="flex-row items-center justify-between gap-3 pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <FileCheck2 className="size-4 text-primary" />
+        <CardHeader className="flex-col items-start gap-3 pb-3 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle className="flex min-w-0 items-center gap-2 text-base">
+            <FileCheck2 className="size-4 shrink-0 text-primary" />
             Documentos {somenteEnvio ? "exigidos" : "de admissão"}
           </CardTitle>
           {!somenteEnvio && !ocultarConfig && (
-            <Button asChild size="sm" variant="ghost">
+            <Button asChild size="sm" variant="ghost" className="h-auto min-h-10 max-w-full whitespace-normal text-left">
               <Link to="/dp/cadastros/cargos?aba=documentos">
                 <Settings2 className="mr-1 size-4" /> Gerenciar Documentos Obrigatórios
               </Link>
