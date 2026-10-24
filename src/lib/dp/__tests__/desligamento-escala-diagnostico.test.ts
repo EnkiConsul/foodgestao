@@ -22,7 +22,7 @@ describe("Folga dominical no desligamento (mês civil)", () => {
     const d = diagnosticarEscalaAviso(rosangela(), pakere, [], undefined, ["2026-10-04"]);
     expect(d.apto).toBe(true);
   });
-  it("folga de SÁBADo tirada antes do aviso também cumpre outubro na regra da Pakerê", () => {
+  it("folga de SÁBADO tirada antes do aviso também cumpre outubro na regra da Pakerê", () => {
     // 2026-10-03 é sábado; comunicação em 07/10.
     expect(diagnosticarEscalaAviso(rosangela(), pakere, [], undefined, ["2026-10-03"]).apto).toBe(true);
   });
