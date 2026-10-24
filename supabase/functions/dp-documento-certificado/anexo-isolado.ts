@@ -6,6 +6,7 @@ export async function incorporarAnexoIsolado(
   montar: (temporario: PDFDocument) => Promise<string | null>,
   avisoFalha: string,
 ): Promise<string | null> {
+  const paginasAntes = destino.getPageCount();
   try {
     const temporario = await PDFDocument.create();
     const aviso = await montar(temporario);
@@ -16,6 +17,7 @@ export async function incorporarAnexoIsolado(
     paginas.forEach((pagina) => destino.addPage(pagina));
     return null;
   } catch {
+    while (destino.getPageCount() > paginasAntes) destino.removePage(destino.getPageCount() - 1);
     return avisoFalha;
   }
 }

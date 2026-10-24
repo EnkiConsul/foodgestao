@@ -40,3 +40,23 @@ Deno.test("anexo válido transfere todas as páginas sem alterar bytes de entrad
   await destino.save();
   if (!bytes.every((v, i) => v === copia[i])) throw new Error("Original modificado");
 });
+
+Deno.test("falha durante transferência desfaz páginas parcialmente anexadas", async () => {
+  const destino = await PDFDocument.create();
+  destino.addPage();
+  const addPage = destino.addPage.bind(destino);
+  let chamadas = 0;
+  destino.addPage = ((...args: Parameters<typeof destino.addPage>) => {
+    chamadas++;
+    if (chamadas === 2) throw new Error("Falha na transferência");
+    return addPage(...args);
+  }) as typeof destino.addPage;
+  const aviso = await incorporarAnexoIsolado(destino, async (tmp) => {
+    const fonte = await tmp.embedFont(StandardFonts.Helvetica);
+    tmp.addPage().drawText("Página 1", { font: fonte });
+    tmp.addPage().drawText("Página 2", { font: fonte });
+    return null;
+  }, "Original preservado");
+  if (aviso !== "Original preservado" || destino.getPageCount() !== 1) throw new Error("Restaram páginas parciais");
+  await destino.save();
+});
