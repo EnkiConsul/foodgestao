@@ -12,7 +12,7 @@ import {
   type ResultadoDesligamento, type MotivoRejeicao, type MotivoDesligamentoCalc,
 } from "@/lib/dp/compensacao/desligamentoMotor";
 import { useDpFeriados } from "@/hooks/useDpFeriados";
-import { BancoDesligamento, saldoDesligamento } from "../BancoDesligamento";
+import { BancoDesligamento, saldoDesligamento, concentrarNoFinal } from "../BancoDesligamento";
 import { CondicoesDesligamento, SEM_AVISO, type CondicoesValor } from "../CondicoesDesligamento";
 import { datasDeFeriados } from "@/lib/dp/feriados";
 
@@ -59,17 +59,6 @@ const br = (iso: string | null) => (iso ? iso.split("-").reverse().join("/") : "
 const semana = (iso: string) => DIAS[new Date(`${iso}T00:00:00Z`).getUTCDay()];
 
 /** Concentra folgas nas últimas jornadas efetivas, enquanto o saldo cobre a jornada inteira. */
-function concentrarNoFinal(base: ResultadoDesligamento, saldoMin: number): string[] {
-  const out: string[] = [];
-  let resto = saldoMin;
-  const trab = base.calendario.filter((d) => d.classificacao === "trabalho_previsto");
-  for (let i = trab.length - 1; i >= 0; i--) {
-    if (trab[i].jornadaPrevista > resto) break;
-    resto -= trab[i].jornadaPrevista;
-    out.push(trab[i].data);
-  }
-  return out.sort();
-}
 
 /** Atalho opcional para a ficha: só leva decisões, nunca grava. */
 export type RegistrarDesligamento = {
@@ -161,6 +150,11 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
   const erro = sim && "erro" in sim ? sim.erro : null;
   const r = sim && !("erro" in sim) ? sim : null;
   const b = base && !("erro" in base) ? base : null;
+  useEffect(() => {
+    if (b && saldoMin && saldoMin > 0) setFolgas(concentrarNoFinal(b, saldoMin));
+    // Recompute when the input calendar changes, not after manual selection.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(params)]);
 
   const alternar = (d: string) => setFolgas((fs) => (fs.includes(d) ? fs.filter((x) => x !== d) : [...fs, d].sort()));
 
