@@ -12,6 +12,8 @@ import {
   type ResultadoDesligamento, type MotivoRejeicao, type MotivoDesligamentoCalc,
 } from "@/lib/dp/compensacao/desligamentoMotor";
 import { useDpFeriados } from "@/hooks/useDpFeriados";
+import { BancoDesligamento, saldoDesligamento } from "../BancoDesligamento";
+import { CondicoesDesligamento, SEM_AVISO, type CondicoesValor } from "../CondicoesDesligamento";
 import { datasDeFeriados } from "@/lib/dp/feriados";
 
 /**
@@ -41,8 +43,8 @@ const MOTIVO: Record<MotivoRejeicao, string> = {
 };
 
 /** Grupos de motivo da calculadora: os sem aviso usam "outro" como representante. */
-type MotivoCalc = "dispensa_sem_justa_causa" | "pedido_demissao" | "acordo_mutuo" | "outro";
-const MOTIVO_ROTULO: Record<MotivoCalc, string> = {
+type MotivoCalc = MotivoDesligamentoCalc;
+const MOTIVO_ROTULO: Partial<Record<MotivoCalc, string>> = {
   dispensa_sem_justa_causa: "Dispensa sem justa causa (empresa)",
   pedido_demissao: "Pedido de demissão (colaborador)",
   acordo_mutuo: "Acordo mútuo (art. 484-A)",
@@ -76,6 +78,7 @@ export type RegistrarDesligamento = {
   abrir: (r: {
     data_comunicacao: string; modalidade: ModalidadeAviso; reducao: ReducaoArt488 | null;
     motivo: MotivoDesligamentoCalc; data_termino_acordada?: string | null; descontar_aviso?: boolean;
+    saldo_banco_minutos: number; folgas_compensatorias: string[];
     simulado: { ultimo: string | null; prazo: string; comFolgas: boolean };
   }) => void;
 };
@@ -95,6 +98,9 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
   const [feriadosManuais, setFeriados] = useState<string[]>([]);
   const [novoFeriado, setNovoFeriado] = useState("");
   const [saldoTxt, setSaldoTxt] = useState("");
+  const [saldoUnidade, setSaldoUnidade] = useState<"horas" | "dias">("horas");
+  const [horasDia, setHorasDia] = useState("");
+  const [declaracoes, setDeclaracoes] = useState({ pedidoEscrito: false, aceiteEmpresa: false, confirmacaoSemAviso: false });
   const [folgas, setFolgas] = useState<string[]>([]);
   // Feriados cadastrados na unidade do colaborador entram sozinhos (ano da comunicação e seguinte).
   const [feriadosUnidade, setFeriadosUnidade] = useState<string[]>([]);
@@ -110,7 +116,7 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chave, admissaoInicial, jornadaKey]);
 
-  const semAviso = motivo === "outro";
+  const semAviso = SEM_AVISO.has(motivo);
   const pedidoDispensado = motivo === "pedido_demissao" && modalidade === "indenizado";
   const comJornadas = !semAviso && modalidade === "trabalhado";
 
@@ -120,13 +126,20 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
     return r.ok && r.minutos >= 0 ? r.minutos : null;
   });
   const jornadaOk = jornadaMin.every((m) => m !== null);
-  const saldoParse = parseHoras(saldoTxt);
-  const saldoVazio = !saldoTxt.trim();
-  // Vazio = 0. Negativo ou inválido bloqueia a simulação — nunca vira 0 em silêncio.
-  const saldoMin = saldoVazio ? 0 : saldoParse.ok && saldoParse.minutos >= 0 ? saldoParse.minutos : null;
-  const saldoErro = saldoVazio || saldoMin !== null ? null
-    : !saldoParse.ok ? ("erro" in saldoParse ? saldoParse.erro : "Saldo inválido.")
-    : "Informe apenas saldo positivo.";
+  const saldo = saldoDesligamento(saldoTxt, saldoUnidade, horasDia);
+  const saldoMin = saldo.minutos;
+  const saldoErro = saldo.erro;
+  const cond: CondicoesValor = { motivo, modalidade, reducao, comunicacao, terminoAcordado, descontar, ...declaracoes };
+  const setCond = (p: Partial<CondicoesValor>) => {
+    if (p.motivo !== undefined) setMotivo(p.motivo as MotivoCalc);
+    if (p.modalidade !== undefined) setModalidade(p.modalidade);
+    if (p.reducao !== undefined) setReducao(p.reducao);
+    if (p.comunicacao !== undefined) setComunicacao(p.comunicacao);
+    if (p.terminoAcordado !== undefined) setTerminoAcordado(p.terminoAcordado);
+    if (p.descontar !== undefined) setDescontar(p.descontar);
+    setDeclaracoes((v) => ({ ...v, ...Object.fromEntries(Object.entries(p).filter(([k]) => ['pedidoEscrito', 'aceiteEmpresa', 'confirmacaoSemAviso'].includes(k))) }));
+    setFolgas([]);
+  };
 
   const params = admissao && comunicacao && (semAviso || (jornadaOk && saldoMin !== null)) ? {
     dataAdmissao: admissao, dataComunicacao: comunicacao, modalidade,
@@ -159,62 +172,10 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
           <CardHeader><CardTitle className="text-base">Aviso prévio</CardTitle>
             <CardDescription>Motivo e condições do desligamento (regime CLT).</CardDescription></CardHeader>
           <CardContent className="space-y-3">
-            <div>
-              <Label className="mb-1 block">Motivo</Label>
-              <RadioGroup value={motivo} onValueChange={(v) => { setMotivo(v as MotivoCalc); setFolgas([]); }} className="grid gap-2">
-                {(Object.keys(MOTIVO_ROTULO) as MotivoCalc[]).map((m) => (
-                  <div key={m} className="flex items-center gap-2"><RadioGroupItem value={m} id={`mot-${m}`} /><Label htmlFor={`mot-${m}`}>{MOTIVO_ROTULO[m]}</Label></div>
-                ))}
-              </RadioGroup>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div><Label htmlFor="dsl-adm">Data de admissão</Label>
-                <Input id="dsl-adm" type="date" value={admissao} onChange={(e) => { setAdmissao(e.target.value); setFolgas([]); }} /></div>
-              <div><Label htmlFor="dsl-com">{semAviso ? "Data do término" : "Comunicação (simulada)"}</Label>
-                <Input id="dsl-com" type="date" value={comunicacao} onChange={(e) => { setComunicacao(e.target.value); setFolgas([]); }} /></div>
-            </div>
-            {!semAviso && (
-              <div>
-                <Label className="mb-1 block">{motivo === "pedido_demissao" ? "Cumprimento do aviso (30 dias)" : "Modalidade"}</Label>
-                <RadioGroup value={modalidade} onValueChange={(v) => { setModalidade(v as ModalidadeAviso); setFolgas([]); }} className="flex flex-wrap gap-4">
-                  <div className="flex items-center gap-2"><RadioGroupItem value="trabalhado" id="m-trab" /><Label htmlFor="m-trab">Trabalhado</Label></div>
-                  <div className="flex items-center gap-2"><RadioGroupItem value="indenizado" id="m-ind" />
-                    <Label htmlFor="m-ind">{motivo === "pedido_demissao" ? "Empresa dispensa o cumprimento" : "Indenizado"}</Label></div>
-                </RadioGroup>
-              </div>
-            )}
-            {modalidade === "trabalhado" && motivo === "dispensa_sem_justa_causa" && (
-              <div>
-                <Label className="mb-1 block">Redução legal (art. 488 — escolha do colaborador)</Label>
-                <RadioGroup value={reducao} onValueChange={(v) => { setReducao(v as ReducaoArt488); setFolgas([]); }} className="flex flex-wrap gap-4">
-                  <div className="flex items-center gap-2"><RadioGroupItem value="duas_horas" id="r-2h" /><Label htmlFor="r-2h">2 horas por dia</Label></div>
-                  <div className="flex items-center gap-2"><RadioGroupItem value="sete_dias" id="r-7d" /><Label htmlFor="r-7d">7 dias corridos no final</Label></div>
-                </RadioGroup>
-              </div>
-            )}
-            {motivo === "pedido_demissao" && modalidade === "trabalhado" && (
-              <p className="text-xs text-muted-foreground">No pedido de demissão não há redução de 2 horas nem de 7 dias (o art. 488 só vale para aviso dado pela empresa).</p>
-            )}
-            {motivo === "acordo_mutuo" && modalidade === "trabalhado" && (
-              <p className="text-xs text-muted-foreground">No acordo mútuo, a redução pela metade (art. 484-A) vale só para o aviso indenizado. Trabalhado: 30 dias cumpridos, sem redução automática de 2 horas ou 7 dias; se as partes combinaram algo diferente, valide com o jurídico.</p>
-            )}
-            {motivo === "acordo_mutuo" && modalidade === "indenizado" && (
-              <p className="text-xs text-muted-foreground">Acordo mútuo com aviso indenizado: a lei reduz o aviso pela metade (art. 484-A, I, “a”).</p>
-            )}
-            {pedidoDispensado && (
-              <div className="space-y-3 rounded-md border p-3">
-                <div><Label htmlFor="dsl-term">Término acordado (vazio = na data do pedido)</Label>
-                  <Input id="dsl-term" type="date" value={terminoAcordado} min={comunicacao} onChange={(e) => setTerminoAcordado(e.target.value)} /></div>
-                <div>
-                  <Label className="mb-1 block">Desconto do aviso</Label>
-                  <RadioGroup value={descontar ? "com" : "sem"} onValueChange={(v) => setDescontar(v === "com")} className="flex flex-wrap gap-4">
-                    <div className="flex items-center gap-2"><RadioGroupItem value="sem" id="d-sem" /><Label htmlFor="d-sem">Sem descontar</Label></div>
-                    <div className="flex items-center gap-2"><RadioGroupItem value="com" id="d-com" /><Label htmlFor="d-com">Descontar</Label></div>
-                  </RadioGroup>
-                  <p className="mt-1 text-xs text-muted-foreground">Dispensar o cumprimento é liberalidade da empresa e não exige prova de novo emprego. O desconto do aviso no pedido de demissão é tema controverso: confirme com a contabilidade ou o jurídico.</p>
-                </div>
-              </div>
-            )}
+            <div><Label htmlFor="dsl-adm">Data de admissão</Label>
+              <Input id="dsl-adm" type="date" value={admissao} onChange={(e) => { setAdmissao(e.target.value); setFolgas([]); }} /></div>
+            <CondicoesDesligamento v={cond} set={setCond} comMotivo planejamento />
+
           </CardContent>
         </Card>
 
@@ -252,23 +213,11 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
           </Card>
         )}
 
-        {comJornadas && (
-          <Card>
-            <CardHeader><CardTitle className="text-base">Banco de horas (simulação)</CardTitle>
-              <CardDescription>Saldo positivo. Toque nos dias de trabalho do calendário para simular folgas.</CardDescription></CardHeader>
-            <CardContent className="space-y-2">
-              <Input aria-label="Saldo do banco de horas" inputMode="decimal" placeholder="Ex.: 16 ou 24:30" value={saldoTxt}
-                onChange={(e) => { setSaldoTxt(e.target.value); setFolgas([]); }} />
-              {saldoErro && <p role="alert" className="text-sm text-destructive">{saldoErro}</p>}
-              <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="outline" size="sm" disabled={!b || modalidade !== "trabalhado" || !saldoMin}
-                  onClick={() => b && saldoMin && setFolgas(concentrarNoFinal(b, saldoMin))}>Concentrar no final</Button>
-                <Button type="button" variant="ghost" size="sm" disabled={!folgas.length} onClick={() => setFolgas([])}>Limpar folgas</Button>
-              </div>
-              <p className="text-xs text-muted-foreground">Concentra folgas consecutivas nas últimas jornadas para antecipar o último dia de trabalho. Para simular folgas intercaladas, selecione os dias diretamente no calendário.</p>
-            </CardContent>
-          </Card>
-        )}
+        {comJornadas && <Card><CardContent className="pt-4">
+          <BancoDesligamento texto={saldoTxt} unidade={saldoUnidade} horasDia={horasDia} planejamento base={b} folgas={folgas}
+            set={(v) => { if (v.texto !== undefined) setSaldoTxt(v.texto); if (v.unidade) setSaldoUnidade(v.unidade); if (v.horasDia !== undefined) setHorasDia(v.horasDia); setFolgas([]); }} onFolgas={setFolgas} />
+        </CardContent></Card>}
+
       </div>
 
       <div className="space-y-4">
@@ -278,17 +227,18 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
         {r && b && (r.semAviso ? <ResultadoSemAviso r={r} /> : <Resultado r={r} b={b} onAlternar={alternar} />)}
         {registrar && (
           <Card><CardContent className="space-y-2 py-4">
-            <Button className="w-full sm:w-auto" disabled={!r || !!registrar.bloqueio}
+            <Button className="w-full sm:w-auto" disabled={!r || r.folgasRejeitadas.length > 0 || !!registrar.bloqueio}
               onClick={() => r && registrar.abrir({
                 data_comunicacao: comunicacao, modalidade, reducao: modalidade === "trabalhado" && motivo === "dispensa_sem_justa_causa" ? reducao : null,
                 motivo: motivo as MotivoDesligamentoCalc,
                 data_termino_acordada: pedidoDispensado && terminoAcordado ? terminoAcordado : null,
                 descontar_aviso: pedidoDispensado ? descontar : undefined,
-                simulado: { ultimo: r.ultimoComparecimento, prazo: r.prazoQuitacao, comFolgas: r.folgasAceitas.length > 0 },
+                saldo_banco_minutos: number; folgas_compensatorias: string[];
+    simulado: { ultimo: r.ultimoComparecimento, prazo: r.prazoQuitacao, comFolgas: r.folgasAceitas.length > 0 },
               })}>
               {registrar.rotulo}
             </Button>
-            <p className="text-xs text-muted-foreground">{registrar.bloqueio ?? "Abre a ficha na aba Desligamento com estes dados para conferência. Nada é gravado até você confirmar lá; folgas simuladas, saldo e jornada editada aqui não são levados."}</p>
+            <p className="text-xs text-muted-foreground">{registrar.bloqueio ?? "Abre a ficha na aba Desligamento com estes dados para conferência. Nada é gravado até você confirmar lá; saldo e folgas são levados; a jornada e os feriados são recalculados pelo cadastro oficial."}</p>
           </CardContent></Card>
         )}
       </div>
@@ -307,7 +257,7 @@ function ResultadoSemAviso({ r }: { r: ResultadoDesligamento }) {
     <>
       <Card className="border-primary">
         <CardContent className="space-y-1 py-5">
-          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <p className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
             <CalendarCheck className="h-4 w-4" /> Término do vínculo</p>
           <p className="text-2xl font-bold" data-testid="ultimo-comparecimento">{br(r.dataEfetiva)} ({semana(r.dataEfetiva)})</p>
           <p className="text-xs text-muted-foreground">Sem aviso prévio neste motivo: a data informada é o término.</p>
@@ -334,10 +284,10 @@ function Resultado({ r, b, onAlternar }: { r: ResultadoDesligamento; b: Resultad
     <>
       <Card className="border-primary">
         <CardContent className="space-y-1 py-5">
-          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <p className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
             <CalendarCheck className="h-4 w-4" /> Último dia previsto de comparecimento à loja</p>
           {indenizado
-            ? <p className="text-lg font-semibold" data-testid="ultimo-comparecimento">Dispensado de comparecer a partir de {br(r.dispensadoDeComparecerDesde)} ({semana(r.dispensadoDeComparecerDesde!)})</p>
+            ? <p className="text-lg font-semibold" data-testid="ultimo-comparecimento">Dispensado de comparecer a partir de {br(r.dispensadoDeComparecerDesde)} ({r.dispensadoDeComparecerDesde ? semana(r.dispensadoDeComparecerDesde) : "—"})</p>
             : <p className="text-2xl font-bold" data-testid="ultimo-comparecimento">
                 {r.ultimoComparecimento ? `${br(r.ultimoComparecimento)} (${semana(r.ultimoComparecimento)})` : "Sem jornadas no período"}</p>}
           {!indenizado && b.ultimoComparecimento !== r.ultimoComparecimento && (
