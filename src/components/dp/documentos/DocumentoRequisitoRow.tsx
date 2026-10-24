@@ -2,6 +2,9 @@ import { exigeFrenteVerso } from "@/lib/dp/documento-frente-verso";
 import { AvisoViaFisica } from "@/components/dp/documentos/AvisoViaFisica";
 import { acionarInput, useConferenciaDigitalizacao } from "@/components/dp/documentos/ConferenciaDigitalizacao";
 import { useRef, useState } from "react";
+import { ImagemEnquadrarDialog } from "@/components/dp/documentos/ImagemEnquadrarDialog";
+import { linkDocumentoAssinado } from "@/lib/documentoArquivo";
+import { toast } from "sonner";
 import {
   Upload,
   Eye,
@@ -100,6 +103,24 @@ export function DocumentoRequisitoRow({
   const [dispensaAberta, setDispensaAberta] = useState(false);
   const [virarPadrao, setVirarPadrao] = useState(false);
   const [motivo, setMotivo] = useState("");
+  /** Foto 3x4/cadastro passa pela moldura de crachá antes de gravar. */
+  const ehFoto = /foto/i.test(item.requisito.nome ?? "");
+  const [enquadrar, setEnquadrar] = useState<{ fonte: File | string; novaParte: boolean } | null>(null);
+  const enviarComEnquadramento = (f: File, novaParte: boolean) => {
+    if (ehFoto && f.type.startsWith("image/") && !/heic|heif/i.test(f.type)) setEnquadrar({ fonte: f, novaParte });
+    else onEnviar(f, validade || null, novaParte || undefined);
+  };
+  const ajustarFoto = async (anexo: Anexo) => {
+    try {
+      const link = anexo.documento_id ? await linkDocumentoAssinado(anexo.documento_id, 120) : null;
+      if (!link) throw new Error("Foto indisponível.");
+      const r = await fetch(link.url);
+      if (!r.ok) throw new Error("Foto indisponível.");
+      setEnquadrar({ fonte: URL.createObjectURL(await r.blob()), novaParte: false });
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
 
   const anexos = (item.anexos ?? []).filter((a) => !!a.documento_id) as Anexo[];
   const temArquivo = anexos.length > 0;
@@ -193,6 +214,18 @@ export function DocumentoRequisitoRow({
             />
           )}
           {conf.dialogo}
+          <ImagemEnquadrarDialog
+            fonte={enquadrar?.fonte ?? null}
+            modo="retrato"
+            titulo="Ajustar Foto"
+            onCancelar={() => { if (typeof enquadrar?.fonte === "string") URL.revokeObjectURL(enquadrar.fonte); setEnquadrar(null); }}
+            onConfirmar={(f) => {
+              const e = enquadrar;
+              setEnquadrar(null);
+              if (typeof e?.fonte === "string") URL.revokeObjectURL(e.fonte);
+              onEnviar(f, validade || null, e?.novaParte || undefined);
+            }}
+          />
           {confParte.dialogo}
           <input
             ref={inputRef}
@@ -205,7 +238,7 @@ export function DocumentoRequisitoRow({
               if (f)
                 void conf
                   .conferir(f)
-                  .then((ok) => ok && onEnviar(ok, validade || null));
+                  .then((ok) => ok && enviarComEnquadramento(ok, false));
             }}
           />
           <input
@@ -219,7 +252,7 @@ export function DocumentoRequisitoRow({
               if (f)
                 void confParte
                   .conferir(f)
-                  .then((ok) => ok && onEnviar(ok, validade || null, true));
+                  .then((ok) => ok && enviarComEnquadramento(ok, true));
             }}
           />
           <Button
@@ -327,6 +360,11 @@ export function DocumentoRequisitoRow({
                   >
                     <Eye className="mr-1 size-4" /> Ver
                   </Button>
+                  {ehFoto && !item.multiplos && /\.(jpe?g|png|webp)$/i.test(doc?.file_name ?? "") && (
+                    <Button size="sm" variant="ghost" disabled={ocupado} onClick={() => void ajustarFoto(anexo)}>
+                      <PenLine className="mr-1 size-4" /> Ajustar
+                    </Button>
+                  )}
                   {somenteEnvio && aguardaAceite && (
                     <Button
                       size="sm"
