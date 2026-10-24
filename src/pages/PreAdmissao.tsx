@@ -742,12 +742,9 @@ export default function PreAdmissao() {
   }, [form, pessoas, estado, enviado, salvando]);
 
   /** Documentos de dois lados enviados só com a frente. */
-  const semVerso = useMemo(() => (estado?.checklist ?? []).filter((item) =>
-    faltaVerso(item.codigo, documentoPorChave.get(`${item.codigo}:${item.pessoa_id ?? ""}`) ?? [])),
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  [estado?.checklist, estado?.documentos]);
-
   const enviar = async () => {
+    const semVerso = (estado?.checklist ?? []).filter((item) =>
+      faltaVerso(item.codigo, documentoPorChave.get(`${item.codigo}:${item.pessoa_id ?? ""}`) ?? []));
     if (semVerso.length) {
       const lista = semVerso.map((i) => `${i.titulo}${i.pessoa_nome ? ` — ${i.pessoa_nome}` : ""}: falta o verso`);
       setFaltando(lista);
