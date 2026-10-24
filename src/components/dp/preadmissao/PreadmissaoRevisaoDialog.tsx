@@ -810,7 +810,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
       if (novos.length) {
         setFicha((f) => {
           const prox = { ...f };
-          for (const k of novos) if (!String(f[k] ?? "").trim()) prox[k] = CAIXA_ALTA.has(k as CampoFicha) ? String(r.campos[k]).toUpperCase() : r.campos[k];
+          for (const k of novos) if (!String(f[k] ?? "").trim()) prox[k] = CAIXA_ALTA.has(k) ? String(r.campos[k]).toUpperCase() : r.campos[k];
           return prox;
         });
         toast.success(`Preenchemos ${novos.length} ${novos.length === 1 ? "campo vazio" : "campos vazios"} da ficha. Confira e salve.`);
