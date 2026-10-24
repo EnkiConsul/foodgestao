@@ -4,7 +4,7 @@
 - [x] Corrigir cancelamento/exclusão e estorno dos dois participantes; separar evidência documental da ausência operacional; validar em PostgreSQL isolado sem alterar colaboradores reais.
 - [ ] Publicação das justificativas e tela de Ocorrências: aguarda autorização explícita; aprovações anteriores não foram retroativamente alteradas.
 
-- [ ] Integrar folga extra, compensação de feriado e trocas às justificativas em Ocorrências, com rastreabilidade, cancelamento e testes sem alterar colaboradores reais; sem publicação.
+- [x] Integrar folga extra, compensação de feriado e trocas às justificativas em Ocorrências: 96 testes passaram; leitura autenticada da tela validada, sem aprovação real ou publicação.
 
 - [x] Corrigir Rotina da Loja: respeitar folgas e afastamentos aprovados, faltas confirmadas e trabalho por troca em todos os caminhos.
 - [x] Validar sem alterar registros reais: 69 testes focados passaram; gestor autenticado abriu solicitações e rotina do dia 23/10 sem erro. Aprovação real e portal de colaborador não exercitados.
