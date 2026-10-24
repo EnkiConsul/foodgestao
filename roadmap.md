@@ -1,5 +1,9 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 
+- [ ] Corrigir Rotina da Loja: respeitar folgas e afastamentos aprovados, faltas confirmadas e trabalho por troca em todos os caminhos.
+- [ ] Validar a rotina sem alterar pedidos ou registros reais de colaboradores.
+- [ ] Publicar correções autorizadas após verificações de liberação.
+
 - [x] Sugestão de horário: horário base mais repetido do cargo, uniforme em todos os dias, sem variação de sex/sáb/dom (`sugerirSemanaBaseCargo` + `montarSemanaUniforme`)
 - [x] Nunca sugerir 7 dias trabalhados: folga semanal garantida (mais comum do cargo ou dia menos trabalhado)
 - [x] Botão "Horário padrão do cargo" na aba Horário de Trabalho (corrige a ficha da Verônica)
