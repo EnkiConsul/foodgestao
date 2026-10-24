@@ -15,7 +15,7 @@ import {
 } from "@/lib/dp/admissao-rascunho";
 
 import { toast } from "sonner";
-import { salvarAntesDeAvancar } from "@/lib/dp/admissao-fluxo";
+import { finalizarDepoisDeSalvar, salvarAntesDeAvancar } from "@/lib/dp/admissao-fluxo";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -278,7 +278,6 @@ export interface ModoAdmissao {
   salvando?: boolean;
   /** Finaliza a conferência somente depois do salvamento do formulário. */
   onFinalizar?: () => Promise<void>;
-  podeFinalizar?: boolean;
   inicioLoja?: string;
   edicaoExtra?: string;
   onSalvar: (e: SalvarAdmissaoEntrada) => Promise<void>;
@@ -1772,7 +1771,9 @@ export function ColaboradorFormDialog({
         });
         if (alvo === "close") onOpenChange(false);
         else if (!abaSeguinte(tab)) {
-          await admissao.onFinalizar?.();
+          await finalizarDepoisDeSalvar(async () => { await admissao.onFinalizar?.(); }, (e) => {
+            toast.warning("Ficha salva. A conferência ainda não foi finalizada.", { description: mensagemErro(e), duration: 10000 });
+          });
         }
       } catch (e) {
         toast.error("Erro ao salvar", { description: mensagemErro(e) });
@@ -3451,7 +3452,7 @@ export function ColaboradorFormDialog({
                   <Button
                     className="h-11 flex-1 sm:h-10 sm:flex-none"
                     onClick={() => void submit("stay")}
-                    disabled={admissao.salvando || salvandoAdmissao || (!abaSeguinte(tab) && admissao.podeFinalizar === false)}
+                    disabled={admissao.salvando || salvandoAdmissao}
                   >
                     {admissao.salvando || salvandoAdmissao ? "Salvando..." : abaSeguinte(tab) ? "Salvar e Avançar" : "Salvar e Finalizar"}
                   </Button>
