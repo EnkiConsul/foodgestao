@@ -10,3 +10,4 @@
 - Documents of two sides (`exigeVerso` in `src/lib/dp/documentoPartes.ts`) need front+back unless a single PDF or a part labeled "Frente e verso"; the candidate cannot send the form with a back missing, and the manager may attach/replace/reframe via `upload_gestor` (new version, previous kept, event `documento_ajustado_gestor`). Files open only in the in-app `ArquivoVisualizadorDialog`; download is explicit.
 - Selfie 3x4 always passes through `ImagemEnquadrarDialog` (oval badge mask) for candidate and manager.
 - Employment regimes (CLT/intermitente) in a unit with a time clock get `possui_folha_ponto = true` by trigger `trg_dp_colab_ponto_clt_padrao`, unless a dispensation justification exists.
+- Manager re-read (`ler_documento_gestor`) follows the same OCR rule: fills only empty form fields, never name/CPF, never saves by itself.
