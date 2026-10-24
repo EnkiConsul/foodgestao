@@ -222,7 +222,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           supabase
             .from("dp_ocorrencias")
             .select(
-              "id, colaborador_id, data_operacional, tipo, estado, minutos, horario_estimado, horario_real, unidade_id",
+              "id, colaborador_id, data_operacional, tipo, estado, minutos, horario_estimado, horario_real, unidade_id, folga_id, troca_id",
             )
             .eq("company_id", selectedCompanyId!)
             .gte("data_operacional", janelaInicio)
@@ -669,6 +669,8 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           id: o.id,
           colaborador_id: o.colaborador_id,
           data: o.data_operacional,
+          folga_id: o.folga_id,
+          troca_id: o.troca_id,
           tipo: o.tipo as OcorrenciaPanorama["tipo"],
           estado: o.estado as OcorrenciaPanorama["estado"],
           minutos: o.minutos ?? null,

@@ -102,6 +102,8 @@ export interface AusenciaPanorama {
 }
 
 export interface OcorrenciaPanorama {
+  folga_id?: string | null;
+  troca_id?: string | null;
   id: string;
   colaborador_id: string;
   data: string;
@@ -394,7 +396,8 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
   // Ocorrências do dia (falta, atraso, saída antecipada) agrupadas por colaborador.
   const ocorrenciasPor = new Map<string, OcorrenciaPanorama[]>();
   for (const o of input.ocorrencias ?? []) {
-    if (o.data !== data) continue;
+    // Linked evidence documents an authorized schedule change, not a new absence.
+    if (o.data !== data || o.folga_id || o.troca_id) continue;
     const lista = ocorrenciasPor.get(o.colaborador_id) ?? [];
     lista.push(o);
     ocorrenciasPor.set(o.colaborador_id, lista);
@@ -679,7 +682,7 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
     // Ausência registrada vence também a folga padrão: quem avisou que ia
     // faltar não pode aparecer como folga do dia.
     const categoriasTrabalho: CategoriaDia[] = [
-      "fixo", "convocado_aceito", "convocado_pendente", "coberto", "folga_padrao",
+      "fixo", "convocado_aceito", "convocado_pendente", "coberto", "folga_padrao", "folga_extra",
     ];
     // Falta e atestado/ausência justificada vencem a categoria de trabalho:
     // quem faltou ou está afastado não conta como trabalhando.
