@@ -22,6 +22,10 @@ describe("Folga dominical no desligamento (mês civil)", () => {
     const d = diagnosticarEscalaAviso(rosangela(), pakere, [], undefined, ["2026-10-04"]);
     expect(d.apto).toBe(true);
   });
+  it("folga de SÁBADo tirada antes do aviso também cumpre outubro na regra da Pakerê", () => {
+    // 2026-10-03 é sábado; comunicação em 07/10.
+    expect(diagnosticarEscalaAviso(rosangela(), pakere, [], undefined, ["2026-10-03"]).apto).toBe(true);
+  });
   it("mês sem trabalho (novembro, coberto pelos 7 dias) não exige folga e folga marcada lá não é pendência", () => {
     const d = diagnosticarEscalaAviso(rosangela(), pakere, ["2026-11-01"], undefined, ["2026-10-04"]);
     expect(d.mesesIsentos).toContain("2026-11");
