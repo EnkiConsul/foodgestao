@@ -1,5 +1,7 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 
+- [ ] Implementar correção com renovação de 7 dias do mesmo convite, retomada explícita/auditada pelo gestor, aviso WhatsApp sem inventar token, atalho a documentos e resumo frente/verso consistente; validar sem alterar dados reais e sem publicar.
+
 - [x] Preparar correções da auditoria: avisos por códigos oficiais no calendário/Pix, isolamento completo de anexos do certificado e recuperação de versão com guarda de 30 segundos; testes focados aprovados. Revisão individual dos 13 grupos em `docs/auditoria-erros-revisao-2026-10-24.md`; nenhum encerramento em lote, colaborador alterado ou publicação.
 - [ ] Disponibilizar e validar as correções da auditoria no site: aguarda autorização de publicação; conferência administrativa aguarda sessão com segundo fator. Timeout de onboarding, assinatura de troca e falha de transporte não têm resolução comprovada; manter registros abertos e não encerrar automaticamente.
 
