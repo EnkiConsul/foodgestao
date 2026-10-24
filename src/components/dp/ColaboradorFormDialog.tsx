@@ -257,6 +257,8 @@ export interface ModoAdmissao {
   jornada?: JornadaRascunho | null;
   /** Bloco extra ao final da aba Horário (ex.: ativação na rotina da loja). */
   jornadaExtra?: ReactNode;
+  /** Avisa a jornada em edição na tela (antes de salvar a ficha). */
+  onJornadaChange?: (r: JornadaRascunho) => void;
   /** Barra de etapas exibida abaixo do título. */
   etapa?: ReactNode;
   /** Botões do fluxo da contabilidade, no rodapé. */
@@ -3169,7 +3171,7 @@ export function ColaboradorFormDialog({
                   : { entrada: j.entrada, saida: j.saida, intervalo_minutos: j.intervalo_minutos };
               })()}
               rascunhoInicial={admissao ? (admissao.jornada ?? null) : jornadaInicial}
-              onRascunho={admissao ? (r) => { jornadaAdmissaoRef.current = r; } : undefined}
+              onRascunho={admissao ? (r) => { jornadaAdmissaoRef.current = r; admissao.onJornadaChange?.(r); } : undefined}
               avisoSemCadastro={admissao
                 ? "Defina o horário agora: ele segue na ficha para a contabilidade e é gravado no cadastro ao efetivar a admissão."
                 : undefined}

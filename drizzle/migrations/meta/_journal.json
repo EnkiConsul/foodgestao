@@ -946,6 +946,13 @@
       "when": 1792797709221,
       "tag": "0134_preadmissao_ativar_rotina_consolida_jornada",
       "breakpoints": true
+    },
+    {
+      "idx": 135,
+      "version": "7",
+      "when": 1792800518327,
+      "tag": "0135_preadmissao_efetivar_com_ficha_converte_rotina",
+      "breakpoints": true
     }
   ]
 }
