@@ -1,6 +1,6 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 
-- [ ] Adicionar filtro rápido “Folgas e trocas” em Ocorrências e validar sem alterar registros reais nem publicar.
+- [x] Adicionar filtro rápido “Folgas e trocas” em Ocorrências: 15 testes passaram; ativação/desativação e consulta autenticada validadas (nenhum registro vinculado no período); sem alterar registros reais nem publicar.
 
 - [x] Justificativas automáticas de folgas extras, compensatórias e trocas: vinculadas à origem, sem impacto em assiduidade/férias, com tratativa externa pendente.
 - [x] Corrigir cancelamento/exclusão e estorno dos dois participantes; separar evidência documental da ausência operacional; validar em PostgreSQL isolado sem alterar colaboradores reais.
