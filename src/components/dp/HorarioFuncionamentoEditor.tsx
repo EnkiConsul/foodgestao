@@ -206,7 +206,7 @@ export function HorarioFuncionamentoEditor({ unidadeId, semRodape = false, onReg
   }
 
   return (
-    <div className="space-y-3">
+    <div className="min-w-0 space-y-3">
       <p className="flex items-start gap-2 text-xs text-muted-foreground">
         <Store className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         Quando a loja está aberta. Pode ter mais de um período no mesmo dia (ex.: almoço e jantar).
@@ -216,12 +216,12 @@ export function HorarioFuncionamentoEditor({ unidadeId, semRodape = false, onReg
       {dias.map((d) => {
         const periodos = d.periodos ?? [];
         return (
-          <Card key={d.dia_semana}>
-            <CardContent className="space-y-3 p-4">
+          <section key={d.dia_semana} className="min-w-0 border-b pb-3 last:border-b-0">
+            <div className="min-w-0 space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-medium">{DIA_LONGO[d.dia_semana]}</p>
-                  <p className="text-xs text-muted-foreground">{formatarFuncionamento(d)}</p>
+                  <p className="break-words text-xs text-muted-foreground">{formatarFuncionamento(d)}</p>
                 </div>
                 <Switch
                   checked={d.aberto}
@@ -231,12 +231,12 @@ export function HorarioFuncionamentoEditor({ unidadeId, semRodape = false, onReg
               </div>
 
               {d.aberto && (
-                <div className="space-y-3">
+                <div className="min-w-0 space-y-3">
                   {periodos.map((p, i) => (
                     <div key={i} className="space-y-2 rounded-lg border p-3">
                       <div className="flex items-center gap-2">
                         <Input
-                          className="h-10"
+                          className="h-11 min-w-0"
                           placeholder={`Nome do período (ex.: ${i === 0 ? "Almoço" : "Jantar"})`}
                           aria-label={`Nome do período ${i + 1} de ${DIA_LONGO[d.dia_semana]}`}
                           value={p.nome ?? ""}
@@ -246,7 +246,7 @@ export function HorarioFuncionamentoEditor({ unidadeId, semRodape = false, onReg
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="h-10 w-10 shrink-0 text-destructive"
+                          className="h-11 w-11 shrink-0 text-destructive"
                           aria-label="Remover período"
                           disabled={periodos.length === 1}
                           onClick={() => removerPeriodo(d.dia_semana, i)}
@@ -254,25 +254,25 @@ export function HorarioFuncionamentoEditor({ unidadeId, semRodape = false, onReg
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="min-w-0 space-y-1.5">
                           <Label htmlFor={`abre-${d.dia_semana}-${i}`} className="text-xs">Abre</Label>
                           <Input
                             id={`abre-${d.dia_semana}-${i}`}
                             type="time"
-                            className="h-11"
+                            className="h-11 min-w-0 max-w-full text-base"
                             value={p.hora_abertura ?? ""}
                             onChange={(e) =>
                               atualizarPeriodo(d.dia_semana, i, { hora_abertura: e.target.value || null })
                             }
                           />
                         </div>
-                        <div className="space-y-1.5">
+                        <div className="min-w-0 space-y-1.5">
                           <Label htmlFor={`fecha-${d.dia_semana}-${i}`} className="text-xs">Fecha</Label>
                           <Input
                             id={`fecha-${d.dia_semana}-${i}`}
                             type="time"
-                            className="h-11"
+                            className="h-11 min-w-0 max-w-full text-base"
                             value={p.hora_fechamento ?? ""}
                             onChange={(e) =>
                               atualizarPeriodo(d.dia_semana, i, { hora_fechamento: e.target.value || null })
@@ -299,7 +299,7 @@ export function HorarioFuncionamentoEditor({ unidadeId, semRodape = false, onReg
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-10"
+                    className="h-11 min-w-0"
                     onClick={() => adicionarPeriodo(d.dia_semana)}
                   >
                     <Plus className="mr-1.5 h-4 w-4" aria-hidden="true" />
@@ -307,8 +307,8 @@ export function HorarioFuncionamentoEditor({ unidadeId, semRodape = false, onReg
                   </Button>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </section>
         );
       })}
 
@@ -344,17 +344,17 @@ function AplicarEmDiasBotao({
           type="button"
           variant="ghost"
           size="sm"
-          className="h-9"
+          className="h-auto min-h-11 w-full whitespace-normal sm:w-auto"
           disabled={!periodo.hora_abertura || !periodo.hora_fechamento}
         >
           <CopyPlus className="mr-1.5 h-4 w-4" aria-hidden="true" />
           Aplicar em outros dias
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-64 space-y-2" align="start">
+      <PopoverContent className="w-72 max-w-[calc(100vw-2rem)] max-h-[70dvh] overflow-y-auto space-y-2" align="start">
         <p className="text-xs text-muted-foreground">Aplicar este horário em:</p>
         {ORDEM_EXIBICAO.filter((d) => d !== origem).map((d) => (
-          <label key={d} className="flex items-center gap-2 text-sm">
+          <label key={d} className="flex min-h-11 items-center gap-2 text-sm">
             <Checkbox
               checked={marcados.includes(d)}
               onCheckedChange={(v) => alternar(d, v === true)}
