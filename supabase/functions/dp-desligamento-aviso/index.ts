@@ -323,6 +323,9 @@ Deno.serve(async (req) => {
       const { avisos: _a, usou_escala: _u, simulacao: _s, base_simulacao: _bs, diagnostico_escala: _de, termino_passado, prazo_vencido: _pv, ...gravar } = resultado;
       const { data, error } = await admin.rpc("dp_desligamento_registrar_aviso", { p: { ...gravar, colaborador_id: c.id, idempotency_key: b.idempotency_key, ator: user.id } });
       if (error) return json(409, { error: error.message });
+      // No work after the last attendance: later scheduled rests are simply removed.
+      const novoId = (data as { id?: string })?.id;
+      if (novoId) await admin.rpc("dp_desligamento_folgas_pos_trabalho", { p_id: novoId, p_ator: user.id });
       // Registro tardio: o término já passou, então efetiva agora pelo mesmo
       // processo do robô diário (idempotente; confere férias e cadastro).
       let efetivado = false;
@@ -387,6 +390,7 @@ Deno.serve(async (req) => {
       p: { ...resto, ...extra, acao, processo_id, idempotency_key, ator: user.id },
     });
     if (error) return json(409, { error: error.message });
+    if (acao === "alterar") await admin.rpc("dp_desligamento_folgas_pos_trabalho", { p_id: proc.id, p_ator: user.id });
     const alertas = await alertarAgora(proc.id);
     return json(200, { ok: true, ...(data as Record<string, unknown>), alertas });
   } catch (_e) {
