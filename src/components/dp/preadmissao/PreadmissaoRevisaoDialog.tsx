@@ -287,6 +287,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const [enviandoFicha, setEnviandoFicha] = useState(false);
   const [excluir, setExcluir] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const gravandoFichaRef = useRef(false);
   const { companies } = useCompanyContext();
   /** Conta de terceiro aprovada: o termo abre logo após a efetivação. */
   const [termoTerceiroDe, setTermoTerceiroDe] = useState<string | null>(null);
@@ -331,7 +332,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const encerrada = ["concluido", "cancelado", "expirado"].includes(status);
 
   useEffect(() => {
-    if (salvando) return;
+    if (gravandoFichaRef.current) return;
     const a = (pa?.admin_dados ?? {}) as Record<string, unknown>;
     const txt = (v: unknown) => (v === null || v === undefined ? "" : String(v));
     const bool = (v: unknown) => (v === true ? "sim" : v === false ? "nao" : "");
@@ -355,6 +356,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
 
   /** Preenche os campos da ficha com o que o candidato enviou. */
   useEffect(() => {
+    if (gravandoFichaRef.current) return;
     const d = (pa?.dados ?? {}) as Record<string, unknown>;
     const out: Record<string, string> = {};
     for (const campo of CAMPOS_FICHA_EDITAVEIS) {
@@ -382,6 +384,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   }, [pa?.id, pa?.dados, pa?.candidato_nome, pa?.cpf]);
 
   useEffect(() => {
+    if (gravandoFichaRef.current) return;
     setPessoas(
       (data?.pessoas ?? []).map((p) => {
         const salvas = Array.isArray((p as { finalidades?: string[] }).finalidades)
@@ -919,7 +922,8 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
 
   /** Grava a ficha única: dados pessoais + dependentes, depois dados da empresa. */
   const salvarUnificado = async (e: SalvarAdmissaoEntrada) => {
-    if (encerrada) return;
+    if (encerrada || gravandoFichaRef.current) return;
+    gravandoFichaRef.current = true;
     setSalvando(true);
     try {
       const f = e.form as Record<string, string>;
@@ -956,6 +960,8 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
         "nome_pai", "nome_mae", "nacionalidade", "naturalidade", "raca_cor", "deficiencia",
       ]) dadosFicha[c] = String(f[c] ?? "");
 
+      // Valida a jornada antes da primeira gravação para reduzir salvamento parcial.
+      const jornadaConsolidada = consolidarJornada(e.jornada);
       await acoes.salvarFicha.mutateAsync({
         dados: dadosFicha,
         pessoas: pessoas
@@ -977,7 +983,6 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
       const regime = VINCULO_PARA_REGIME[String(f.tipo_vinculo ?? "")] ?? admin.regime_trabalho ?? "";
       // Jornada consolidada dos dias trabalhados: nunca grava vazia e avisa
       // com clareza quando algum dia ficou sem horário.
-      const jornadaConsolidada = consolidarJornada(e.jornada);
       const carga = cargaSemanal(jornadaConsolidada);
       await acoes.salvarAdmin.mutateAsync({
         data_admissao: String(f.data_admissao ?? ""),
@@ -999,6 +1004,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
       toast.success("Ficha salva.");
       await refetch();
     } finally {
+      gravandoFichaRef.current = false;
       setSalvando(false);
     }
   };
@@ -1184,7 +1190,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
         <li className="ml-auto text-muted-foreground">{PREADMISSAO_STATUS_LABEL[status]}</li>
       </ol>
       {emConferencia && (
-        <div className="flex flex-wrap gap-1 text-[11px]" aria-label="Conferência das abas">
+        <div className="hidden flex-wrap gap-1 text-[11px] sm:flex" aria-label="Conferência das abas">
           {ABAS_CONFERENCIA.map((a) => {
             const div = a.aba === "dados" && divergenciasOcr.length > 0;
             const ok = vistas.has(a.aba) && !div;
@@ -1229,7 +1235,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                 </div>
               )}
 
-              {data.cpf_existente && (
+              {data.cpf_existente && !rotinaInfo && !pa.colaborador_id && (
                 <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm ">
                   <p className="font-semibold text-amber-700">CPF já cadastrado nesta empresa</p>
                   <p className="text-muted-foreground">
@@ -1691,7 +1697,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
         open={!!preadmissaoId}
         onOpenChange={(v) => !v && onOpenChange(false)}
         admissao={{
-          chave: `${fichaDe ?? "carregando"}:${(pa as { versao?: number }).versao ?? ""}:${pa.admin_dados ? JSON.stringify(pa.admin_dados).length : 0}`,
+          chave: pa.id,
           form: modo,
           endereco: {
             cep: ficha.cep ?? "", logradouro: ficha.endereco ?? "", numero: ficha.numero ?? "",
@@ -1727,7 +1733,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
           onFinalizar: finalizarConferencia,
           podeFinalizar: !emConferencia || podeAprovar,
           inicioLoja: inicioJornadaAdmissao(rotinaInfo?.iniciou_em || dataInicioRotina, admin.data_admissao),
-          edicaoExtra: JSON.stringify({ pessoas, ficha, admin, jornadaTela }),
+          edicaoExtra: JSON.stringify({ pessoas, ficha, admin }),
         }}
       />
       <AlertDialog open={proximoPasso} onOpenChange={setProximoPasso}>
