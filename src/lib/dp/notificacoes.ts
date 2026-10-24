@@ -17,6 +17,7 @@ export const NOTIFICACAO_ORIGEM_LABEL: Record<string, string> = {
   dp_folgas: "Folgas",
   companies: "Disponibilidade",
   dp_elogios: "Reconhecimento",
+  dp_desligamento_processos: "Desligamento",
 };
 
 export function notificacaoOrigemLabel(refTable: string | null | undefined): string {
@@ -37,11 +38,16 @@ export const NOTIFICACAO_PATH_GESTOR: Record<string, string> = {
   dp_ferias_periodos: "/dp/ferias",
   dp_ferias_gozos: "/dp/ferias",
   dp_folgas: "/dp/folgas",
+  dp_desligamento_processos: "/dp/colaboradores",
 };
 
-export function notificacaoPathGestor(refTable: string | null | undefined, refId?: string | null): string {
+export function notificacaoPathGestor(refTable: string | null | undefined, refId?: string | null, colaboradorId?: string | null): string {
   if (!refTable) return "/dp/notificacoes";
   const base = NOTIFICACAO_PATH_GESTOR[refTable] ?? "/dp/notificacoes";
+  // ref_id identifica o processo, não o colaborador.
+  if (refTable === "dp_desligamento_processos" && colaboradorId) {
+    return `${base}?editar=${encodeURIComponent(colaboradorId)}&aba=desligamento`;
+  }
   // Troca: abre direto o detalhe da troca envolvida.
   if (refTable === "dp_trocas" && refId) return `${base}&troca_id=${encodeURIComponent(refId)}`;
   // Ocorrência: abre direto o dia/colaborador e a tratativa da ocorrência.
