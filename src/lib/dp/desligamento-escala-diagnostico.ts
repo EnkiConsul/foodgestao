@@ -1,0 +1,1 @@
+export * from "../../../supabase/functions/_shared/desligamento-escala-diagnostico.ts";

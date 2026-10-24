@@ -91,11 +91,9 @@ describe("Aba Desligamento", () => {
     render(<CalculadoraDesligamento />);
     preencher();
     fireEvent.change(screen.getByLabelText("Saldo do banco de horas"), { target: { value: "8" } });
-    fireEvent.click(dia("2026-10-31")); // sábado 2h
-    expect(ultimo()).toContain("30/10/2026");
-    expect(screen.getByText(/Sem compensação seria 31\/10\/2026/)).toBeTruthy();
-    fireEvent.click(dia("2026-10-30")); // 6h, saldo 6h restante → aceita
+    // Automatic terminal concentration: Saturday 2h + Friday 6h.
     expect(ultimo()).toContain("29/10/2026");
+    expect(screen.getByText(/Sem compensação seria 31\/10\/2026/)).toBeTruthy();
     fireEvent.click(dia("2026-10-29")); // 6h, saldo 0 → rejeita
     expect(screen.getByText(/saldo insuficiente/)).toBeTruthy();
     fireEvent.click(dia("2026-10-31")); // desfaz
@@ -109,7 +107,8 @@ describe("Aba Desligamento", () => {
     fireEvent.click(screen.getByText("Concentrar no final"));
     // 31/10 (2h) + 30/10 (6h) + 29/10 (6h) = 14h
     expect(ultimo()).toContain("28/10/2026");
-    const cen = screen.getByText("Com compensação").parentElement!;
+    const cen = screen.getByText("Com compensação").parentElement;
+    if (!cen) throw new Error("Cenário não encontrado");
     expect(within(cen).getByText("0h")).toBeTruthy();
   });
   it("feriado e jornada variável viram dia sem expediente", () => {

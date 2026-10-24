@@ -4,6 +4,8 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { formatarMinutos, parseHoras } from "@/lib/dp/compensacao/motor";
 import type { ResultadoDesligamento } from "@/lib/dp/compensacao/desligamentoMotor";
+import { concentrarBancoNoFinal, mediaJornadaAviso } from "@/lib/dp/desligamento-escala-diagnostico";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 export function saldoDesligamento(texto: string, unidade: "horas" | "dias", horasDia: string) {
   if (!texto.trim()) return { minutos: 0, erro: null };
@@ -18,14 +20,7 @@ export function saldoDesligamento(texto: string, unidade: "horas" | "dias", hora
 }
 
 export function concentrarNoFinal(base: ResultadoDesligamento, saldo: number) {
-  const datas: string[] = [];
-  for (const dia of [...base.calendario].reverse()) {
-    if (dia.classificacao !== "trabalho_previsto") continue;
-    if (dia.jornadaPrevista > saldo) break;
-    saldo -= dia.jornadaPrevista;
-    datas.push(dia.data);
-  }
-  return datas.sort();
+  return concentrarBancoNoFinal(base, saldo);
 }
 
 export function simularBancoSobreCalendario(base: ResultadoDesligamento, saldo: number, folgas: string[]): ResultadoDesligamento {
@@ -45,16 +40,18 @@ export function simularBancoSobreCalendario(base: ResultadoDesligamento, saldo: 
   return { ...base, calendario, folgasAceitas: aceitas, folgasRejeitadas: rejeitadas, saldoResidualMinutos: restante, minutosCompensados: saldo - restante, ultimoComparecimento: trabalho.at(-1)?.data ?? null, jornadasRestantes: trabalho.length };
 }
 
-export function BancoDesligamento({ texto, unidade, horasDia, set, base, resultado, folgas, onFolgas, planejamento = false }: {
+export function BancoDesligamento({ texto, unidade, horasDia, set, base, resultado, folgas, onFolgas, planejamento = false, bloqueado = false, limiteOriginal }: {
   texto: string; unidade: "horas" | "dias"; horasDia: string;
   set: (v: { texto?: string; unidade?: "horas" | "dias"; horasDia?: string }) => void;
   base?: ResultadoDesligamento | null; resultado?: ResultadoDesligamento | null; folgas: string[];
   onFolgas: (datas: string[]) => void; planejamento?: boolean;
+  bloqueado?: boolean;
+  limiteOriginal?: string | null;
 }) {
   const saldo = saldoDesligamento(texto, unidade, horasDia);
   return <div className="space-y-3">
     <h4 className="text-sm font-semibold">Banco de horas{planejamento ? " (planejamento)" : ""}</h4>
-    <RadioGroup aria-label="Unidade do saldo" value={unidade} onValueChange={(v) => set({ unidade: v as "horas" | "dias" })} className="flex gap-4">
+    <RadioGroup aria-label="Unidade do saldo" value={unidade} onValueChange={(v) => { const media = base ? mediaJornadaAviso(base) : 0; set({ unidade: v as "horas" | "dias", ...(v === "dias" && !horasDia && media > 0 ? { horasDia: `${Math.floor(media / 60)}:${String(media % 60).padStart(2, "0")}` } : {}) }); }} className="flex gap-4">
       <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="horas" /> Horas</label>
       <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="dias" /> Dias</label>
     </RadioGroup>
@@ -63,18 +60,25 @@ export function BancoDesligamento({ texto, unidade, horasDia, set, base, resulta
       <p className="text-xs text-muted-foreground">Equivalência informada pela contabilidade; cada folga utiliza a jornada efetiva daquela data.</p></div>}
     {saldo.erro && <p role="alert" className="text-sm text-destructive">{saldo.erro}</p>}
     <div className="flex flex-wrap gap-2">
-      <Button type="button" variant="outline" size="sm" disabled={!base || !saldo.minutos} onClick={() => base && saldo.minutos && onFolgas(concentrarNoFinal(base, saldo.minutos))}>Concentrar no final</Button>
+      <Button type="button" variant="outline" size="sm" disabled={bloqueado || !base || !saldo.minutos} onClick={() => base && saldo.minutos && onFolgas(concentrarNoFinal(base, saldo.minutos))}>Concentrar no final</Button>
       <Button type="button" variant="ghost" size="sm" disabled={!folgas.length} onClick={() => onFolgas([])}>Limpar folgas</Button>
     </div>
     {resultado && <>
-      <div className="grid grid-cols-2 gap-2 text-sm"><span>Compensado: <strong>{formatarMinutos(resultado.minutosCompensados)}</strong></span><span>Saldo residual: <strong>{formatarMinutos(resultado.saldoResidualMinutos)}</strong></span></div>
-      <ul aria-label="Calendário de compensação" className="max-h-80 space-y-1 overflow-y-auto">
-        {resultado.calendario.map((dia) => <li key={dia.data}><Button type="button" variant="outline" className="h-auto w-full justify-between gap-2 whitespace-normal text-xs" disabled={!['trabalho_previsto', 'folga_compensatoria'].includes(dia.classificacao)} onClick={() => onFolgas(folgas.includes(dia.data) ? folgas.filter((d) => d !== dia.data) : [...folgas, dia.data].sort())}>
+      <div className="grid gap-2 text-sm sm:grid-cols-2"><span>Compensado: <strong>{formatarMinutos(resultado.minutosCompensados)}</strong></span><span>Sobra para conferir e quitar na rescisão: <strong>{formatarMinutos(resultado.saldoResidualMinutos)}</strong></span></div>
+      <div className="grid gap-2 rounded-md bg-muted p-3 text-sm sm:grid-cols-2">
+        <p>Limite de trabalho sem banco: <strong>{(limiteOriginal ?? base?.ultimoComparecimento)?.split('-').reverse().join('/') ?? '—'}</strong></p>
+        <p>Comparecimento estimado com banco: <strong>{resultado.ultimoComparecimento?.split('-').reverse().join('/') ?? 'Sem jornadas'}</strong></p>
+        <p className="sm:col-span-2">Término do vínculo: <strong>{resultado.dataEfetiva.split('-').reverse().join('/')}</strong> · não muda com a compensação.</p>
+      </div>
+      <Accordion type="single" collapsible><AccordionItem value="calendario"><AccordionTrigger>Ver dias do aviso / compensação ({resultado.folgasAceitas.length} dias)</AccordionTrigger><AccordionContent>
+      <ul aria-label="Calendário de compensação" className="space-y-1">
+        {resultado.calendario.map((dia) => <li key={dia.data}><Button type="button" variant="outline" className="h-auto w-full justify-between gap-2 whitespace-normal text-xs" disabled={bloqueado || !['trabalho_previsto', 'folga_compensatoria'].includes(dia.classificacao)} onClick={() => onFolgas(folgas.includes(dia.data) ? folgas.filter((d) => d !== dia.data) : [...folgas, dia.data].sort())}>
           <span>{dia.data.split('-').reverse().join('/')}</span><span>{dia.classificacao === 'folga_compensatoria' ? 'Folga compensatória' : dia.classificacao === 'trabalho_previsto' ? `Trabalho · ${formatarMinutos(dia.jornadaPrevista)}` : dia.classificacao === 'ausencia_legal_aviso' ? 'Ausência legal' : 'DSR / sem expediente'}</span>
         </Button></li>)}
       </ul>
+      </AccordionContent></AccordionItem></Accordion>
       {resultado.folgasRejeitadas.length > 0 && <p role="alert" className="text-sm text-destructive">Há folgas incompatíveis com a jornada ou saldo insuficiente. Desmarque essas datas antes de confirmar.</p>}
     </>}
-    <p className="text-xs text-muted-foreground">Compensação depende de acordo e conferência da contabilidade. Não altera o término legal nem quita automaticamente o banco.</p>
+    <p className="text-xs text-muted-foreground">Saldo e comparecimento são estimativas. Trocas de folga podem mudar a previsão. Após faltas, atrasos ou horas extras, informe o saldo atualizado pela contabilidade. A sobra não é quitada automaticamente.</p>
   </div>;
 }

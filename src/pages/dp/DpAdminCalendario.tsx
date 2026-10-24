@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -99,8 +100,11 @@ export default function DpAdminCalendario() {
   const colabsQ = useDpColaboradores();
 
   const today = new Date();
-  const [ano, setAno] = useState(today.getFullYear());
-  const [mes, setMes] = useState(today.getMonth() + 1);
+  const [searchParams] = useSearchParams();
+  const mesInicial = searchParams.get("mes");
+  const valido = mesInicial && /^\d{4}-(0[1-9]|1[0-2])$/.test(mesInicial);
+  const [ano, setAno] = useState(valido ? Number(mesInicial.slice(0, 4)) : today.getFullYear());
+  const [mes, setMes] = useState(valido ? Number(mesInicial.slice(5, 7)) : today.getMonth() + 1);
 
   const [filterUnidade, setFilterUnidade] = useState("all");
   const [filterUser, setFilterUser] = useState("all");

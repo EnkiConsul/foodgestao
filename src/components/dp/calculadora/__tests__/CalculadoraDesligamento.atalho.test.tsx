@@ -23,7 +23,6 @@ describe("Atalho Registrar desligamento", () => {
     render(<CalculadoraDesligamento registrar={{ rotulo: "Registrar desligamento", abrir }} />);
     preencher();
     fireEvent.change(screen.getByLabelText("Saldo do banco de horas"), { target: { value: "8" } });
-    fireEvent.click(document.querySelector('[data-dia="2026-10-31"]') as HTMLButtonElement); // folga simulada
     fireEvent.click(screen.getByRole("button", { name: "Registrar desligamento" }));
     expect(abrir).toHaveBeenCalledTimes(1);
     const arg = abrir.mock.calls[0][0];
@@ -32,7 +31,7 @@ describe("Atalho Registrar desligamento", () => {
     // Referência = cenário simulado COM a folga escolhida (último dia antecipado), sem levar folgas/saldo.
     expect(arg.data_comunicacao).toBe("2026-10-01");
     expect(arg.saldo_banco_minutos).toBe(480);
-    expect(arg.folgas_compensatorias).toEqual(["2026-10-31"]);
+    expect(arg.folgas_compensatorias).toEqual(["2026-10-30", "2026-10-31"]);
     expect(arg.simulado.comFolgas).toBe(true);
     expect(arg.simulado.ultimo).not.toBe("2026-10-31");
     expect(arg.simulado.ultimo < "2026-10-31").toBe(true);

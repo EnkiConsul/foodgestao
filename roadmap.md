@@ -1,5 +1,8 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 
+- [x] Preparar revisão de folgas pela regra resolvida antes do banco, atalho ao mês sem gravação automática, concentração terminal em dias inteiros sem negativo, comparação de datas e saldo residual. 93 testes passaram; calculadora autenticada conferida em 1280/407, sem gravações reais; build OK. Função do servidor alterada somente na fonte, não implantada.
+- [ ] Disponibilizar e validar registro e projeção do aviso no servidor: aguarda autorização de implantação/publicação. Portal mantém a última data confirmada e explica seu caráter estimado; ainda não recebe a projeção dinâmica. Registros antigos não têm referência original sem banco e não recebem data inventada. Fluxo oficial não exercitado com colaboradores reais por restrição do usuário.
+
 - [x] Unificar planejamento e registro de desligamento: condições e banco compartilhados, saldo em horas/dias, concentração no final, transferência de saldo/folgas e confirmação oficial atômica com recálculo. 61 testes passaram; fluxo autenticado calculadora → ficha → confirmação validado com cadastro e resposta fictícios, sem gravar colaboradores reais; build OK. Interface não publicada; registro real não exercitado por restrição do usuário.
 
 - [x] Implementar correção com renovação de 7 dias do mesmo convite, retomada explícita/auditada pelo gestor, aviso WhatsApp sem inventar token, atalho a documentos e resumo frente/verso consistente; 81 testes passaram e pedido/retomada e tela da candidata foram validados por simulação sem gravar dados reais. Serviço atualizado; interface não publicada.
