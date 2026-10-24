@@ -8,12 +8,14 @@ import {
   type FeriadoRegra,
   type FeriadoTipo,
   type FeriadoMovel,
+  type FeriadoCategoria,
 } from "@/lib/dp/feriados";
 
 export type FeriadoInput = {
   id?: string;
   nome: string;
   tipo: FeriadoTipo;
+  categoria?: FeriadoCategoria;
   codigo_movel?: FeriadoMovel | null;
   data?: string | null;
   dia?: number | null;
@@ -44,10 +46,10 @@ export type ReplicarResumo = { unidades: number; copiados: number; existentes: n
 /** Nacionais fixos; Sexta-feira Santa somente mediante escolha explícita da unidade. */
 export function feriadosParaInclusao(atuais: FeriadoRegra[], incluirSextaSanta = false): FeriadoInput[] {
   const candidatos: FeriadoInput[] = FERIADOS_NACIONAIS_FIXOS.map((f) => ({
-    nome: f.nome, tipo: "anual", dia: f.dia, mes: f.mes, ativo: true,
+    nome: f.nome, categoria: "nacional", tipo: "anual", dia: f.dia, mes: f.mes, ativo: true,
   }));
   if (incluirSextaSanta) candidatos.push({
-    nome: FERIADOS_MOVEIS_LABEL.sexta_feira_santa.nome, tipo: "movel", codigo_movel: "sexta_feira_santa", ativo: true,
+    nome: FERIADOS_MOVEIS_LABEL.sexta_feira_santa.nome, categoria: "municipal", tipo: "movel", codigo_movel: "sexta_feira_santa", ativo: true,
   });
   return candidatos.filter((f) => !atuais.some((a) => chaveFeriado(a) === chaveFeriado({ ...f, id: "" })));
 }
@@ -67,6 +69,8 @@ export function useDpFeriados(unidadeId?: string | null) {
 
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: ["dp_unidade_feriados"] });
+    void qc.invalidateQueries({ queryKey: ["dp_panorama_feriados"] });
+    void qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
   };
 
   const query = useQuery({
@@ -76,7 +80,7 @@ export function useDpFeriados(unidadeId?: string | null) {
       if (!unidadeId) return [];
       const { data, error } = await supabase
         .from("dp_unidade_feriados")
-        .select("id, nome, tipo, codigo_movel, data, dia, mes, ordinal, dia_semana, ano_inicio, ativo, observacao")
+        .select("id, nome, tipo, categoria, codigo_movel, data, dia, mes, ordinal, dia_semana, ano_inicio, ativo, observacao")
         .eq("unidade_id", unidadeId)
         .order("nome");
       if (error) throw error;
@@ -84,6 +88,7 @@ export function useDpFeriados(unidadeId?: string | null) {
         id: r.id,
         nome: nomeFeriado({ ...r, tipo: r.tipo as FeriadoTipo, codigo_movel: r.codigo_movel as FeriadoMovel | null }),
         tipo: r.tipo as FeriadoTipo,
+        categoria: r.categoria as FeriadoCategoria,
         codigo_movel: r.codigo_movel as FeriadoMovel | null,
         data: r.data,
         dia: r.dia,
@@ -105,6 +110,7 @@ export function useDpFeriados(unidadeId?: string | null) {
         unidade_id: unidadeId,
         nome: input.nome.trim(),
         tipo: input.tipo,
+        categoria: input.categoria ?? "municipal",
         codigo_movel: input.tipo === "movel" ? input.codigo_movel ?? null : null,
         data: input.tipo === "especifica" ? input.data || null : null,
         dia: input.tipo === "anual" ? input.dia ?? null : null,
@@ -159,7 +165,7 @@ export function useDpFeriados(unidadeId?: string | null) {
     mutationFn: async (incluirSextaSanta: boolean = false) => {
       if (!selectedCompanyId || !unidadeId) throw new Error("Salve a unidade primeiro.");
       const { data: atuais, error: readError } = await supabase.from("dp_unidade_feriados")
-        .select("id, nome, tipo, codigo_movel, data, dia, mes, ordinal, dia_semana, ativo")
+        .select("id, nome, tipo, categoria, codigo_movel, data, dia, mes, ordinal, dia_semana, ativo")
         .eq("unidade_id", unidadeId);
       if (readError) throw readError;
       const faltantes = feriadosParaInclusao((atuais ?? []) as FeriadoRegra[], incluirSextaSanta);
@@ -202,6 +208,7 @@ export function useDpFeriados(unidadeId?: string | null) {
         unidade_id: unidade,
         nome: f.nome,
         tipo: f.tipo,
+        categoria: f.categoria ?? "municipal",
         codigo_movel: f.tipo === "movel" ? f.codigo_movel ?? null : null,
         data: f.tipo === "especifica" ? f.data ?? null : null,
         dia: f.tipo === "anual" ? f.dia ?? null : null,

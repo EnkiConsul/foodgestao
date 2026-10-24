@@ -10,7 +10,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  DIAS_SEMANA, FERIADO_TIPO_LABEL, MESES, ORDINAIS,
+  DIAS_SEMANA, FERIADO_TIPO_LABEL, FERIADO_CATEGORIA_LABEL, categoriaFeriado, type FeriadoCategoria, MESES, ORDINAIS,
   dataFeriadoMovel, descricaoRegra, type FeriadoRegra, type FeriadoTipo, type FeriadoMovel,
 } from "@/lib/dp/feriados";
 import type { FeriadoInput } from "@/hooks/useDpFeriados";
@@ -26,6 +26,7 @@ interface Props {
 
 /** Cadastro de um feriado da unidade nos três formatos possíveis. */
 export function FeriadoFormDialog({ open, onOpenChange, feriado = null, saving, onSubmit }: Props) {
+  const [categoria, setCategoria] = useState<FeriadoCategoria>("municipal");
   const [nome, setNome] = useState("");
   const [tipo, setTipo] = useState<FeriadoTipo>("anual");
   const [movel, setMovel] = useState<FeriadoMovel>("carnaval");
@@ -39,6 +40,7 @@ export function FeriadoFormDialog({ open, onOpenChange, feriado = null, saving, 
 
   useEffect(() => {
     if (!open) return;
+    setCategoria(feriado ? categoriaFeriado(feriado) : "municipal");
     setNome(feriado ? nomeFeriado(feriado) : "");
     setTipo(feriado?.tipo ?? "anual");
     setMovel(feriado?.codigo_movel ?? "carnaval");
@@ -76,6 +78,13 @@ export function FeriadoFormDialog({ open, onOpenChange, feriado = null, saving, 
         </DialogHeader>
 
         <div className="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4 [&_input]:min-w-0 [&_input]:max-w-full [&_input]:min-h-11 [&_input]:text-base [&_textarea]:text-base [&_button[role=combobox]]:min-h-11 [&_button[role=combobox]]:min-w-0 [&_button[role=combobox]>span]:truncate">
+          <div className="space-y-1.5">
+            <Label htmlFor="feriado-categoria">Categoria *</Label>
+            <Select value={categoria} onValueChange={(v) => setCategoria(v as FeriadoCategoria)}>
+              <SelectTrigger id="feriado-categoria"><SelectValue /></SelectTrigger>
+              <SelectContent>{(Object.entries(FERIADO_CATEGORIA_LABEL) as [FeriadoCategoria, string][]).map(([valor, label]) => <SelectItem key={valor} value={valor}>{label}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
           {tipo !== "movel" && <div className="space-y-1.5">
             <Label>Nome *</Label>
             <Input
@@ -228,6 +237,7 @@ export function FeriadoFormDialog({ open, onOpenChange, feriado = null, saving, 
                 id: feriado?.id,
                 nome: tipo === "movel" ? FERIADOS_MOVEIS[movel].nome : nome,
                 tipo,
+                categoria,
                 codigo_movel: tipo === "movel" ? movel : null,
                 data: tipo === "especifica" ? data : null,
                 dia: tipo === "anual" ? Number(dia) : null,

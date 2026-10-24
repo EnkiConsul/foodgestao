@@ -18,9 +18,10 @@ import {
 } from "@/components/ui/select";
 import { useDpFeriados } from "@/hooks/useDpFeriados";
 import {
-  descricaoRegra, ehFeriadoLocal, faltaFeriadoLocal, feriadosDoAno, type FeriadoRegra,
+  categoriaFeriado, FERIADO_CATEGORIA_LABEL, type FeriadoCategoria, descricaoRegra, ehFeriadoLocal, faltaFeriadoLocal, feriadosDoAno, type FeriadoRegra,
 } from "@/lib/dp/feriados";
 import { ordenarFeriadosCadastro } from "@/lib/dp/feriados-ordenacao";
+import { FeriadoCategoriaBadge } from "@/components/dp/FeriadoCategoriaBadge";
 import { nomeFeriado, resumoFeriados } from "@/lib/dp/feriados-apresentacao";
 import { dataDoFeriadoNoAno } from "@/lib/dp/feriados";
 import { FeriadoFormDialog } from "@/components/dp/unidades/FeriadoFormDialog";
@@ -74,6 +75,7 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
   const [incluirSextaSanta, setIncluirSextaSanta] = useState(false);
   const [editando, setEditando] = useState<FeriadoRegra | null>(null);
   const anoAtual = new Date().getFullYear();
+  const [categoriaFiltro, setCategoriaFiltro] = useState("todas");
   const [ano, setAno] = useState(String(anoAtual));
 
   const ordenados = useMemo(() => ordenarFeriadosCadastro(feriados, Number(ano)), [feriados, ano]);
@@ -96,6 +98,7 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
             <p className="text-sm font-medium">Feriados desta unidade</p>
             {!isLoading && <Badge variant="secondary">{resumo.cadastrados} {resumo.cadastrados === 1 ? "cadastrado" : "cadastrados"}{resumo.ativos !== resumo.cadastrados && ` • ${resumo.ativos} ativos`}</Badge>}
           </div>
+          <p className="mt-1 text-xs text-muted-foreground">{(Object.entries(resumo.categorias) as [FeriadoCategoria, number][]).filter(([, n]) => n > 0).map(([c, n]) => `${n} ${FERIADO_CATEGORIA_LABEL[c]}`).join(" • ")}</p>
           <p className="text-xs text-muted-foreground">
             Usados nas férias e na rotina. Cada unidade tem o seu próprio calendário.
           </p>
@@ -142,6 +145,10 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
         </p>
       )}
 
+      <Select value={categoriaFiltro} onValueChange={setCategoriaFiltro}>
+        <SelectTrigger className="min-h-11 w-full sm:w-56" aria-label="Filtrar categoria de feriado"><SelectValue /></SelectTrigger>
+        <SelectContent><SelectItem value="todas">Todas as categorias</SelectItem>{Object.entries(FERIADO_CATEGORIA_LABEL).map(([c, label]) => <SelectItem key={c} value={c}>{label}</SelectItem>)}</SelectContent>
+      </Select>
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando…</p>
       ) : feriados.length === 0 ? (
@@ -150,11 +157,12 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
         </div>
       ) : (
         <ul className="divide-y rounded-xl border">
-          {ordenados.map((f) => (
+          {ordenados.filter((f) => categoriaFiltro === "todas" || categoriaFeriado(f) === categoriaFiltro).map((f) => (
             <li key={f.id} className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start gap-2 p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
               <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
               <div className="min-w-0 flex-1">
-                <p className="break-words text-sm font-medium">{nomeFeriado(f)}</p>
+                <FeriadoCategoriaBadge categoria={categoriaFeriado(f)} />
+                <p className="mt-1 break-words text-sm font-medium">{nomeFeriado(f)}</p>
                 <p className="mt-1 whitespace-nowrap text-sm font-medium tabular-nums">{dataDoFeriadoNoAno(f, Number(ano)) ? fmt(dataDoFeriadoNoAno(f, Number(ano)) ?? "") : f.tipo === "especifica" && f.data ? fmt(f.data) : `Sem ocorrência em ${ano}`}</p>
                 <p className="mt-1 break-words text-xs text-muted-foreground">{descricaoRegra(f)}</p>
               </div>
@@ -208,10 +216,10 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
           <p className="text-xs text-muted-foreground">Nenhum feriado neste ano.</p>
         ) : (
           <ul className="space-y-1">
-            {doAno.map((f) => (
+            {doAno.filter((f) => categoriaFiltro === "todas" || f.categoria === categoriaFiltro).map((f) => (
               <li key={`${f.regraId}-${f.data}`} className="grid grid-cols-[7rem_minmax(0,1fr)] items-start gap-2 py-1 text-sm">
                 <span className="whitespace-nowrap tabular-nums text-muted-foreground">{fmt(f.data)}</span>
-                <span className="break-words">{f.nome.replace(/sexta-feira santa/gi, "Sexta-feira da Paixão")}</span>
+                <span className="flex min-w-0 flex-wrap items-center gap-1"><FeriadoCategoriaBadge categoria={f.categoria ?? "municipal"} /><span className="break-words">{f.nome.replace(/sexta-feira santa/gi, "Sexta-feira da Paixão")}</span></span>
               </li>
             ))}
           </ul>
