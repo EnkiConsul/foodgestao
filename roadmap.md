@@ -1,6 +1,7 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 
-- [ ] Corrigir auditoria: avisos de regras no calendário/Pix, isolamento de comprovantes incompatíveis no certificado, recuperação de versão com guarda de 30 segundos e revisão individual dos chamados antigos antes de encerrar. Sem publicar frontend nem alterar colaboradores.
+- [x] Preparar correções da auditoria: avisos por códigos oficiais no calendário/Pix, isolamento completo de anexos do certificado e recuperação de versão com guarda de 30 segundos; testes focados aprovados. Revisão individual dos 13 grupos em `docs/auditoria-erros-revisao-2026-10-24.md`; nenhum encerramento em lote, colaborador alterado ou publicação.
+- [ ] Disponibilizar e validar as correções da auditoria no site: aguarda autorização de publicação; conferência administrativa aguarda sessão com segundo fator. Timeout de onboarding, assinatura de troca e falha de transporte não têm resolução comprovada; manter registros abertos e não encerrar automaticamente.
 
 - [x] Aplicar revisão da admissão: salvar sem bloqueio silencioso, separar pendências de finalização, permitir efetivação CLT com ciência expressa sem ficha retornada após ASO válido/envio confirmado, rolar ao ASO e mostrar etapas compactas. 26 testes passaram; fluxo autenticado no celular validou pendências, finalização, foco no ASO, ciência obrigatória e abertura de documentos por simulação; janela documental sem corte lateral. Build OK; sem gravações reais ou publicação.
 
