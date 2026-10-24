@@ -121,12 +121,36 @@ export default function DpUnidades() {
     setToDelete(null);
   };
 
-  const handleToggle = async (u: DpUnidadeWithCounts) => {
+  const aplicarToggle = async (u: DpUnidadeWithCounts, ativo: boolean) => {
+    if (togglingId) return;
+    setTogglingId(u.id);
     try {
-      await toggle.mutateAsync({ id: u.id, ativo: !u.ativo });
+      await toggle.mutateAsync({ id: u.id, ativo });
+      toast.success(ativo ? `Unidade "${u.nome}" ativada` : `Unidade "${u.nome}" desativada`);
     } catch (e) {
       toast.error("Erro ao atualizar status", { description: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setTogglingId(null);
     }
+  };
+
+  /**
+   * Ativar é imediato; desativar exige confirmação, pois retira a unidade
+   * da rotina da loja, das escalas e das pendências operacionais.
+   */
+  const handleToggle = (u: DpUnidadeWithCounts) => {
+    if (u.ativo) {
+      setToDeactivate(u);
+      return;
+    }
+    void aplicarToggle(u, true);
+  };
+
+  const confirmarDesativacao = async () => {
+    if (!toDeactivate) return;
+    const u = toDeactivate;
+    setToDeactivate(null);
+    await aplicarToggle(u, false);
   };
 
   const rows = useMemo(() => {
