@@ -18,4 +18,8 @@ describe("Admissão: ponto e progresso oficial", () => {
     expect(passoAdmissao("pronto_contabilidade", true, true)).toBe(2);
     expect(passoAdmissao("registro_recebido", true, true)).toBe(3);
   });
+  it("dispensa de ponto exige justificativa com dez caracteres", () => {
+    expect(validarAdminDados({ folha_ponto_dispensa_justificativa: "curta" }).erros.folha_ponto_dispensa_justificativa).toBeTruthy();
+    expect(validarAdminDados({ folha_ponto_dispensa_justificativa: "Dispensa formal" }).erros).toEqual({});
+  });
 });
