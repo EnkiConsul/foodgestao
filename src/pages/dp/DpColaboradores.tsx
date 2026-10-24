@@ -554,7 +554,7 @@ export default function DpColaboradores() {
       label: "Colaborador", sortKey: "nome",
       value: (c) => c.nome,
       render: (c) => {
-        const folha = (c as any).possui_folha_ponto as boolean | null;
+        const folha = typeof c.admissao?.admin_dados?.possui_folha_ponto === "boolean" ? c.admissao.admin_dados.possui_folha_ponto : c.possui_folha_ponto;
         const adiantamento = (c as any).optante_adiantamento as boolean | null;
         return (
           <>
@@ -1031,7 +1031,7 @@ export default function DpColaboradores() {
             )}
             {!list.isLoading && filtered.map((c) => {
               const perfil = (c as any).perfil_acesso as string | null;
-              const folha = (c as any).possui_folha_ponto as boolean | null;
+              const folha = typeof c.admissao?.admin_dados?.possui_folha_ponto === "boolean" ? c.admissao.admin_dados.possui_folha_ponto : c.possui_folha_ponto;
               return (
                 <DpListCard
                   key={c.id}
@@ -1047,7 +1047,7 @@ export default function DpColaboradores() {
                   }
                   badges={
                     <>
-                      {c.admissao ? <Badge variant="outline" className="text-[11px] border-warning/40 bg-warning/10 text-warning-foreground">Em admissão</Badge> : c.ativo ? (
+                      {c.admissao ? null : c.ativo ? (
                         <Badge variant="outline" className="text-[11px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
                           Ativo
                         </Badge>
@@ -1235,7 +1235,7 @@ export default function DpColaboradores() {
                             <TableCell className="align-top"><Badge variant="outline" className="text-[11px]">{c.admissao ? "Em admissão" : "Colaborador"}</Badge></TableCell>
                             <TableCell className="align-top">{c.cargo_nome ?? c.cargo ?? "—"}{c.unidade_nome ? <span className="text-muted-foreground"> • {c.unidade_nome}</span> : null}</TableCell>
                             <TableCell className="align-top">
-                              {c.admissao ? <Badge variant="outline" className="text-[11px] border-warning/40 bg-warning/10 text-warning-foreground">Em admissão</Badge> : c.ativo ? (
+                              {c.admissao ? <Badge variant="outline" className="text-[11px] border-warning/40 bg-warning/10 text-warning-foreground">Aguardando admissão</Badge> : c.ativo ? (
                                 <Badge variant="outline" className="text-[11px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
                                   Ativo
                                 </Badge>
@@ -1357,7 +1357,7 @@ export default function DpColaboradores() {
             {!list.isLoading && !pessoasApoio.isLoading && todosVisiveis.map((item) => {
               if (item.tipo === "colaborador") {
                 const c = item.item;
-                const folha = (c as any).possui_folha_ponto as boolean | null;
+                const folha = typeof c.admissao?.admin_dados?.possui_folha_ponto === "boolean" ? c.admissao.admin_dados.possui_folha_ponto : c.possui_folha_ponto;
                 return (
                   <DpListCard
                     key={c.id}
@@ -1373,7 +1373,7 @@ export default function DpColaboradores() {
                     badges={
                       <>
                         <Badge variant="outline" className="text-[11px]">{c.admissao ? "Em admissão" : "Colaborador"}</Badge>
-                        {c.admissao ? <Badge variant="outline" className="text-[11px] border-warning/40 bg-warning/10 text-warning-foreground">Em admissão</Badge> : c.ativo ? (
+                        {c.admissao ? null : c.ativo ? (
                           <Badge variant="outline" className="text-[11px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
                             Ativo
                           </Badge>
