@@ -19,7 +19,7 @@
 - Tokens: `:root`/`.dark`, mapped in `tailwind.config.ts`; never route-scoped.
 - Troca de plano/ciclo só por `billing_v2_plan_change_quote/schedule/cancel`: upgrade e mensal→anual são imediatos com crédito proporcional; downgrade e anual→mensal ficam em `pending_plan_change` e `billing_v2_apply_scheduled_changes` revalida uso na renovação — valor calculado no banco.
 - Read subdirectory `AGENTS.md` before edits.
-- Admission review submits through the shared collaborator form before navigation; post-review actions reuse official ASO and document workflows, with regime-specific eligibility kept in a tested presentation helper and server authorization preserved.
+- Admission review saves through the shared form before navigation and reports finalization failures separately; post-review actions reuse official ASO and document workflows. CLT effectivation without a returned registration uses the official audited confirmation only after valid ASO and confirmed accounting dispatch; preserve server authorization and keep the document dialog mounted after effectivation.
 - Unit holiday registration uses the frontend date-order helper with the selected year; retain inactive and non-occurring rules for editing separately from the active annual agenda.
 - Unit tabs use a dedicated horizontal scroller with edge controls and active-tab visibility; holiday presentation labels and counts stay in the frontend adapter to preserve stored identifiers and records.
 - Holiday category is independent of date calculation; the additive v2 resolver keeps the legacy RPC compatible, and calendars retain all same-day categories through shared presentation helpers (Pessoas/Escala).

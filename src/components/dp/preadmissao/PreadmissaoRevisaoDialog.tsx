@@ -26,6 +26,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -503,6 +504,20 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const [confirmarClt, setConfirmarClt] = useState(false);
   const [proximoPasso, setProximoPasso] = useState(false);
   const [documentosDe, setDocumentosDe] = useState<string | null>(null);
+  const [cienciaSemFicha, setCienciaSemFicha] = useState(false);
+  const asoDestinoRef = useRef<HTMLDivElement>(null);
+  const [irAoAso, setIrAoAso] = useState(false);
+  useEffect(() => {
+    if (!irAoAso || proximoPasso || abaConf !== "documentos") return;
+    const frame = requestAnimationFrame(() => {
+      const destino = asoDestinoRef.current;
+      if (!destino) return;
+      destino.focus({ preventScroll: true });
+      destino.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+      setIrAoAso(false);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [irAoAso, proximoPasso, abaConf, status]);
   /** Ativação operacional na rotina da loja (antes do registro formal). */
   const [ativarRotinaAberto, setAtivarRotinaAberto] = useState(false);
   const [jornadaEmEdicao, setJornadaEmEdicao] = useState<{ id: string; j: JornadaRascunho } | null>(null);
@@ -511,16 +526,17 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const regimeAtual = admin.regime_trabalho || data?.preadmissao?.regime_previsto || "clt";
   const isClt = regimeAtual === "clt" || regimeAtual === "intermitente";
   const statusAtual = data?.preadmissao?.status as string | undefined;
-  const podeEfetivar = efetivacaoDisponivel(regimeAtual, statusAtual ?? "", asoLiberaContabilidade((pa?.admin_dados?.aso ?? null) as AsoDados | null), !!pa?.ficha_oficial_conferida_em);
+  const semFichaOficial = isClt && !pa?.ficha_oficial_conferida_em;
+  const podeEfetivar = efetivacaoDisponivel(regimeAtual, statusAtual ?? "", asoLiberaContabilidade((pa?.admin_dados?.aso ?? null) as AsoDados | null), !!pa?.ficha_oficial_conferida_em, true);
   const efetivarDireto = async () => {
     const id = data?.preadmissao?.id;
-    if (!id || !podeEfetivar || efetivando) return;
+    if (!id || !podeEfetivar || efetivando || (semFichaOficial && !cienciaSemFicha)) return;
     setEfetivando(true);
     try {
       const { data: res, error } = await supabase.rpc("dp_preadmissao_efetivar_direto", {
         p_preadmissao_id: id,
         p_data_admissao: admin.data_admissao || undefined,
-        p_confirmo_sem_ficha: false,
+        p_confirmo_sem_ficha: semFichaOficial && cienciaSemFicha,
       });
       if (error) throw error;
       toast.success("Colaborador efetivado com os dados, documentos e dependentes da pré-admissão.");
@@ -536,7 +552,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     }
   };
   const pedirEfetivacao = () => {
-    if (podeEfetivar) setConfirmarClt(true);
+    if (podeEfetivar) { setCienciaSemFicha(false); setConfirmarClt(true); }
   };
   const [gerando, setGerando] = useState(false);
   const gerarFicha = async () => {
@@ -1119,7 +1135,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const etapaAtual = Math.max(0, ETAPAS.findIndex((e) => e.status.includes(status)));
 
   // Admissão efetivada: a mesma ficha passa a ser o cadastro do colaborador.
-  if (status === "concluido" && colaboradorEfetivado) {
+  if (status === "concluido" && colaboradorEfetivado && !documentosDe) {
     return (
       <ColaboradorFormDialog
         open={!!preadmissaoId}
@@ -1152,19 +1168,32 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const podeAprovar = faltamAbas.length === 0 && divergenciasOcr.length === 0;
   const finalizarConferencia = async () => {
     if (emConferencia) {
-      if (!podeAprovar) throw new Error("Confira todas as abas e resolva as divergências antes de finalizar.");
+      if (!podeAprovar) throw new Error([
+        faltamAbas.length ? `Falta conferir: ${faltamAbas.map((a) => a.rotulo).join(", ")}.` : "",
+        divergenciasOcr.length ? "Resolva as divergências do documento na aba Dados." : "",
+      ].filter(Boolean).join(" "));
       await acoes.prepararContabilidade.mutateAsync();
       await refetch();
     }
-    if (isClt || ["freelancer", "pj", "mei"].includes(regimeAtual)) setProximoPasso(true);
+    setProximoPasso(true);
   };
 
   const asoAtual = ((pa.admin_dados ?? {}) as { aso?: AsoDados }).aso ?? null;
   const fichaOficialPronta = ["pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido", "concluido"]
     .includes(status) && (!isClt || asoLiberaContabilidade(asoAtual));
+  const passos = isClt ? ["Ficha", "ASO", "Contabilidade", "Efetivar"] : ["Ficha", "Efetivar"];
+  const passoAtual = status === "concluido" ? passos.length : emConferencia || etapaAtual === 0 ? 0
+    : !isClt ? 1 : !asoLiberaContabilidade(asoAtual) ? 1
+    : ["enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"].includes(status) ? 3 : 2;
 
   const etapa = (
     <div className="space-y-2">
+      <ol className={`grid gap-1 text-[11px] ${isClt ? "grid-cols-4" : "grid-cols-2"}`} aria-label="Próximas etapas da admissão">
+        {passos.map((passo, i) => <li key={passo} aria-current={i === passoAtual ? "step" : undefined}
+          className={`min-w-0 border-b-2 pb-1 ${i <= passoAtual ? "border-primary text-primary" : "border-border text-muted-foreground"}`}>
+          <span className="flex items-center gap-1">{i < passoAtual ? <CheckCircle2 className="h-3 w-3 shrink-0" /> : `${i + 1}.`}<span>{passo}</span></span>
+        </li>)}
+      </ol>
       <p className="text-xs text-muted-foreground sm:hidden">
         Etapa {Math.min(etapaAtual + 1, ETAPAS.length)} de {ETAPAS.length}:{" "}
         <span className="font-medium text-foreground">{ETAPAS[Math.min(etapaAtual, ETAPAS.length - 1)]?.rotulo}</span>
@@ -1278,10 +1307,17 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
             <AlertDialogDescription>
               O cadastro será efetivado com os dados conferidos. Em seguida você poderá anexar contratos, aditivos e outros documentos para assinatura.
             </AlertDialogDescription>
+            {semFichaOficial && <div className="space-y-3 text-sm">
+              <p className="text-muted-foreground">A ficha de registro ainda não foi recebida ou conferida. Esta decisão será registrada e não substitui as obrigações de registro pela contabilidade.</p>
+              <Label className="flex items-start gap-2" htmlFor="ciencia-efetivar-sem-ficha">
+                <Checkbox id="ciencia-efetivar-sem-ficha" checked={cienciaSemFicha} onCheckedChange={(v) => setCienciaSemFicha(v === true)} />
+                <span>Confirmo a efetivação com os dados da pré-admissão, sem a ficha de registro conferida.</span>
+              </Label>
+            </div>}
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void efetivarDireto()}>Confirmar e Efetivar</AlertDialogAction>
+            <AlertDialogAction disabled={efetivando || (semFichaOficial && !cienciaSemFicha)} onClick={() => void efetivarDireto()}>Confirmar e Efetivar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1481,18 +1517,19 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                 {status === "aguardando_revisao" && (
                   <p className="rounded-lg border p-3 text-xs text-muted-foreground">
                     Confira os dados e os documentos e clique em <span className="font-medium text-foreground">Salvar e Finalizar</span>.
-                    Depois anexe aqui a ficha de registro oficial e efetive o colaborador.
+                    {isClt ? " Depois registre o ASO e confirme o envio à contabilidade." : " Depois você poderá efetivar o colaborador."}
                   </p>
                 )}
 
                 {status === "aguardando_revisao" && !podeAprovar && (
                   <p className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs">
                     {divergenciasOcr.length
-                      ? "Há divergência entre o documento e o cadastro: resolva na aba Dados antes de aprovar."
-                      : `Para aprovar, abra e confira: ${faltamAbas.map((a) => a.rotulo).join(", ")}.`}
+                      ? "Resolva a divergência na aba Dados antes de finalizar. As alterações podem ser salvas."
+                      : `Falta conferir: ${faltamAbas.map((a) => a.rotulo).join(", ")}. As alterações podem ser salvas.`}
                   </p>
                 )}
                 {isClt && ["pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"].includes(status) && (
+                  <div ref={asoDestinoRef} tabIndex={-1} aria-label="ASO admissional" className="scroll-mt-4 outline-none">
                   <AsoAdmissionalCard
                     preadmissaoId={pa.id}
                     aso={asoAtual}
@@ -1503,6 +1540,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                     encerrada={encerrada}
                     onSalvo={() => { void refetch(); }}
                   />
+                  </div>
                 )}
                 {/* "Registro recebido" também entra aqui: quando a contabilidade
                     envia uma versão nova, a conferência anterior deixa de valer e
@@ -1558,7 +1596,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                     <p className="text-sm font-semibold">Concluir a admissão</p>
                     <p className="text-xs text-muted-foreground">
                       {isClt && !pa.ficha_oficial_conferida_em
-                        ? "Aguarde a ficha oficial da contabilidade e registre sua conferência antes de efetivar."
+                        ? "O envio à contabilidade foi confirmado. Você pode aguardar a ficha oficial ou efetivar com ciência expressa, registrando a decisão."
                         : "O cadastro é criado com os dados conferidos, dependentes e documentos já enviados."}
                     </p>
                     <Button disabled={efetivando} onClick={pedirEfetivacao}>Efetivar Colaborador</Button>
@@ -1731,7 +1769,6 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
           salvando,
           onSalvar: salvarUnificado,
           onFinalizar: finalizarConferencia,
-          podeFinalizar: !emConferencia || podeAprovar,
           inicioLoja: inicioJornadaAdmissao(rotinaInfo?.iniciou_em || dataInicioRotina, admin.data_admissao),
           edicaoExtra: JSON.stringify({ pessoas }),
         }}
@@ -1744,7 +1781,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Fazer depois</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { if (isClt) setAbaPedida({ aba: "documentos", n: Date.now() }); else pedirEfetivacao(); }}>{isClt ? "Ir para documentos" : "Efetivar colaborador"}</AlertDialogAction>
+            <AlertDialogAction onClick={() => { if (isClt) { setIrAoAso(true); setAbaPedida({ aba: "documentos", n: Date.now() }); } else pedirEfetivacao(); }}>{isClt ? "Ir para documentos" : "Efetivar colaborador"}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
