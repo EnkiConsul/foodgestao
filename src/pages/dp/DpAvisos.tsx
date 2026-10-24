@@ -1,4 +1,5 @@
 import { Helmet } from "react-helmet-async";
+import { abrirNoApp } from "@/lib/visualizadorGlobal";
 import { prepararUpload } from "@/lib/storage/uploadPolicy";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
@@ -323,7 +324,7 @@ export default function DpAvisos() {
   const openAnexo = async (path: string) => {
     const { data, error } = await supabase.storage.from("dp-documentos").createSignedUrl(path, 60);
     if (error) return notifyError(error, { surface: "Avisos", action: "concluir a ação" });
-    window.open(data.signedUrl, "_blank", "noopener");
+    abrirNoApp({ url: data.signedUrl, titulo: "Anexo" }) || window.open(data.signedUrl, "_blank", "noopener");
   };
 
   const destinoLabel = (a: DpAviso) => {

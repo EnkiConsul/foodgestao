@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { abrirNoApp } from "@/lib/visualizadorGlobal";
 import { Helmet } from "react-helmet-async";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -341,7 +342,7 @@ export default function DpRecibos() {
       if (r.via_assinada_path) {
         const { data, error } = await supabase.storage.from(DP_DOCUMENTOS_BUCKET).createSignedUrl(r.via_assinada_path, 300);
         if (error || !data?.signedUrl) throw new Error("Não foi possível abrir a via assinada. Tente de novo em instantes.");
-        window.open(data.signedUrl, "_blank", "noopener");
+        abrirNoApp({ url: data.signedUrl, titulo: "Recibo" }) || window.open(data.signedUrl, "_blank", "noopener");
         return;
       }
       const url = await reciboPdfUrl(r.id);

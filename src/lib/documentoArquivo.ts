@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { abrirNoApp } from "@/lib/visualizadorGlobal";
 
 export const DP_DOCUMENTOS_BUCKET = "dp-documentos";
 
@@ -44,20 +45,26 @@ export async function linkDocumentoAssinado(
   return { url: data.signedUrl, fileName: arquivo.file_name, mimeType: arquivo.mime_type ?? null };
 }
 
-/** Abre (ou baixa) o documento em nova aba usando link temporário. */
+/** Abre o documento no visualizador do app; com `download`, só baixa. Nada abre em outra aba. */
 export async function abrirDocumento(
   documentoId: string,
-  opts: { download?: boolean; segundos?: number; variante?: VarianteArquivo } = {},
+  opts: { download?: boolean; segundos?: number; variante?: VarianteArquivo; titulo?: string } = {},
 ): Promise<boolean> {
-  const link = await linkDocumentoAssinado(documentoId, opts.segundos ?? 60, opts.variante ?? "documento");
+  const link = await linkDocumentoAssinado(documentoId, opts.segundos ?? 120, opts.variante ?? "documento");
   if (!link) return false;
+  if (!opts.download && abrirNoApp({ titulo: opts.titulo ?? link.fileName ?? "Documento", url: link.url, mime: link.mimeType, nome: link.fileName })) {
+    return true;
+  }
+  const r = await fetch(link.url);
+  if (!r.ok) return false;
+  const blob = await r.blob();
+  const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = link.url;
-  a.target = "_blank";
-  a.rel = "noopener";
-  if (opts.download) a.download = link.fileName ?? "";
+  a.href = url;
+  a.download = link.fileName ?? "documento";
   document.body.appendChild(a);
   a.click();
   a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
   return true;
 }

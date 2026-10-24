@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { abrirNoApp } from "@/lib/visualizadorGlobal";
 import { aprovarEmBlocos } from "@/lib/dp/bulkApproveChunks";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -659,7 +660,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
   const openInNewTab = async () => {
     if (!current?.page_file_path) return;
     const signed = await getSignedUrl(current.page_file_path);
-    if (signed) window.open(signed, "_blank", "noopener,noreferrer");
+    if (signed) abrirNoApp({ url: signed, titulo: "Documento" }) || window.open(signed, "_blank", "noopener,noreferrer");
   };
 
   const matchedColab = colaboradores.find((c: any) => c.id === current?.matched_colaborador_id);

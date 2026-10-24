@@ -168,7 +168,7 @@ export function AsoAdmissionalCard({ preadmissaoId, aso, candidatoNome, whatsapp
             </Button>
             {aso?.arquivo_path && (
               <Button variant="ghost" onClick={async () => {
-                try { window.open((await abrirAsoPreadmissao(preadmissaoId)).url, "_blank", "noopener"); }
+                try { const r = await abrirAsoPreadmissao(preadmissaoId); abrirNoApp({ url: r.url, mime: r.mime_type ?? null, titulo: "ASO Admissional" }) || window.open(r.url, "_blank", "noopener"); }
                 catch (e) { notifyError(e as Error, { surface: "Pessoas 360°", action: "abrir o ASO" }); }
               }}><ExternalLink className="mr-2 h-4 w-4" /> Ver ASO</Button>
             )}

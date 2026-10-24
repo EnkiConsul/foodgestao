@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { abrirNoApp } from "@/lib/visualizadorGlobal";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Link, useSearchParams } from "react-router-dom";
@@ -158,7 +159,7 @@ export default function DpFichaRegistroImportar() {
       toast.error("Não foi possível abrir o arquivo");
       return;
     }
-    window.open(data.signedUrl, "_blank", "noopener");
+    abrirNoApp({ url: data.signedUrl, titulo: "Ficha de registro" }) || window.open(data.signedUrl, "_blank", "noopener");
   };
 
   const enviarArquivo = () => {

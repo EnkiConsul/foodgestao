@@ -1,4 +1,5 @@
 import { TIPOS_LICENCA_CURTA, TIPO_AFASTAMENTO_LABEL } from "@/lib/dp/licencas";
+import { abrirNoApp } from "@/lib/visualizadorGlobal";
 import { diasDeAntecedencia, ehCompensacaoFeriado, motivoLegivel, MOTIVO_COMPENSACAO_FERIADO } from "@/lib/dp/termos-compensacao";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { invalidarRotina } from "@/lib/dp/rotina-cache";
@@ -275,7 +276,7 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
   const openArquivo = async (path: string) => {
     const { data, error } = await supabase.storage.from("dp-documentos").createSignedUrl(path, 60);
     if (error) return notifyError(error, { surface: "Pessoas 360°", action: "concluir a ação" });
-    window.open(data.signedUrl, "_blank");
+    abrirNoApp({ url: data.signedUrl, titulo: "Anexo" }) || window.open(data.signedUrl, "_blank");
   };
 
   const decide = (r: RowWithColab, approve: boolean) => {

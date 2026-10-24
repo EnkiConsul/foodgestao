@@ -1,4 +1,5 @@
 import { AvisoViaFisica } from "@/components/dp/documentos/AvisoViaFisica";
+import { abrirNoApp } from "@/lib/visualizadorGlobal";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { prepararUpload } from "@/lib/storage/uploadPolicy";
 import { Helmet } from "react-helmet-async";
@@ -583,7 +584,7 @@ export default function DpDisciplinar() {
     },
     onSuccess: (data) => {
       toast.success("Modelo gerado. Imprima e colha as assinaturas.");
-      if (data.signed_url) window.open(data.signed_url, "_blank");
+      if (data.signed_url) abrirNoApp({ url: data.signed_url, titulo: "Documento disciplinar" }) || window.open(data.signed_url, "_blank");
       qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
     },
     onError: (e: any) => notifyError(e, { surface: "Medidas disciplinares", action: "concluir a ação", fallback: "Erro ao gerar PDF" }),

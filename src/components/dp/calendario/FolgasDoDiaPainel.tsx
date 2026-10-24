@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { abrirNoApp } from "@/lib/visualizadorGlobal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -125,7 +126,7 @@ function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito }: { co
       });
       if (assinatura === "manual") {
         const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }));
-        window.open(url, "_blank");
+        abrirNoApp({ url, titulo: "Anexo" }) || window.open(url, "_blank");
       }
     },
     onSuccess: () => {
