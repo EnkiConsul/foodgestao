@@ -58,6 +58,8 @@ export default function DpUnidades() {
   const [abaForm, setAbaForm] = useState<UnidadeAba>("dados");
   const [editing, setEditing] = useState<DpUnidadeWithCounts | null>(null);
   const [toDelete, setToDelete] = useState<DpUnidadeWithCounts | null>(null);
+  const [toDeactivate, setToDeactivate] = useState<DpUnidadeWithCounts | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "ativa" | "inativa">("all");
 
