@@ -42,6 +42,7 @@ type Resultado = {
   simulacao?: ResultadoDesligamento; base_simulacao?: ResultadoDesligamento; saldo_banco_minutos?: number; folgas_compensatorias?: string[];
   termino_passado?: boolean; prazo_vencido?: boolean;
   diagnostico_escala?: DiagnosticoEscalaAviso | null; saldo_residual_minutos?: number;
+  limite_sem_banco?: string | null;
 };
 type Processo = Resultado & {
   id: string; status: string; motivo: string; revisao_motivo: string | null; comunicacao_confirmada_em: string | null;
@@ -156,7 +157,7 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
       return r.corpo.resultado as Resultado;
     },
   });
-  const recarregar = () => qc.invalidateQueries({ queryKey: ["dp_desligamento_processo", colaboradorId] });
+  const recarregar = () => { void qc.invalidateQueries({ queryKey: ["dp_desligamento_processo", colaboradorId] }); void qc.invalidateQueries({ queryKey: ["dp_desligamento_projecao", colaboradorId] }); };
 
   const [cond, setCondState] = useState<CondicoesValor>({
     motivo: rascunho?.motivo ?? "dispensa_sem_justa_causa",
@@ -308,7 +309,8 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
       {projecao.data && <>
         <RevisaoCalendario r={projecao.data} />
         <BancoResumo r={projecao.data} />
-        <p className="text-sm">Previsão atual com banco: <strong>{br(projecao.data.ultimo_comparecimento)}</strong> · limite sem banco: <strong>{br(projecao.data.base_simulacao?.ultimoComparecimento)}</strong>.</p>
+        <p className="text-sm">Simulação atual de concentração no final: <strong>{br(projecao.data.ultimo_comparecimento)}</strong> · limite original sem banco: <strong>{br(projecao.data.limite_sem_banco)}</strong>.</p>
+        {!projecao.data.limite_sem_banco && <p className="text-xs text-muted-foreground">Registro anterior: a referência original sem banco não foi guardada. Confira a comunicação do aviso; o sistema não inventa essa data.</p>}
         {projecao.data.ultimo_comparecimento !== p.ultimo_comparecimento && <Alert><AlertDescription>A previsão mudou com o calendário. As folgas compensatórias registradas continuam como estavam; confira e confirme o ajuste em Alterar condições antes de mudar o comparecimento combinado.</AlertDescription></Alert>}
       </>}
       {projecao.isError && <Alert><AlertDescription>Não foi possível atualizar a simulação do banco. A data acima é a última registrada; revise o calendário antes de combinar o comparecimento.</AlertDescription></Alert>}

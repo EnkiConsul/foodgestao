@@ -255,7 +255,7 @@ async function calcular(admin: any, c: Colab, b: Cond, previa = false, processoI
     dias_aviso: r.duracaoLegalDias, dias_indenizados: r.diasProjetadosIndenizados,
     regra_versao: REGRA_VERSAO, avisos, usou_escala: excecoes.length > 0,
     saldo_banco_minutos: b.saldo_banco_minutos ?? 0, folgas_compensatorias: simulacao.folgasAceitas,
-    saldo_residual_minutos: simulacao.saldoResidualMinutos, simulacao, base_simulacao: base, diagnostico_escala: diagnostico,
+    saldo_residual_minutos: simulacao.saldoResidualMinutos, limite_sem_banco: base.ultimoComparecimento, simulacao, base_simulacao: base, diagnostico_escala: diagnostico,
   };
   return { resultado: { ...resultado, termino_passado: efetiva < hoje, prazo_vencido: r.prazoQuitacao < hoje } };
 }
@@ -319,6 +319,8 @@ Deno.serve(async (req) => {
 
     const { data: proc } = await admin.from("dp_desligamento_processos").select("*").eq("id", b.processo_id).maybeSingle();
     if (!proc || !(await autorizado(proc.company_id))) return json(403, { error: "Sem permissão" });
+    const { data: abertura } = await admin.from("dp_desligamento_eventos").select("depois").eq("processo_id", proc.id).eq("tipo", "aberto").order("created_at").limit(1).maybeSingle();
+    const limiteOriginal = abertura?.depois?.limite_sem_banco ?? null;
 
     if (b.acao === "projecao") {
       const c = await carregarColab(proc.colaborador_id);
@@ -326,7 +328,7 @@ Deno.serve(async (req) => {
       const { resultado, resp } = await calcular(admin, c, { ...proc, modalidade: "trabalhado", concentrar_final: true }, true, proc.id);
       if (resp) return resp;
       // Read-only prediction: official legal dates and persisted agenda remain untouched.
-      return json(200, { resultado: { ...resultado, data_efetiva: proc.data_efetiva, base_quitacao: proc.base_quitacao, prazo_10_dias: proc.prazo_10_dias } });
+      return json(200, { resultado: { ...resultado, limite_sem_banco: limiteOriginal, data_efetiva: proc.data_efetiva, base_quitacao: proc.base_quitacao, prazo_10_dias: proc.prazo_10_dias } });
     }
 
     if (b.acao === "cancelar") {
@@ -345,6 +347,7 @@ Deno.serve(async (req) => {
       if (!resultado) return json(500, { error: "Não foi possível calcular." });
       if (resultado.data_efetiva !== proc.data_efetiva || resultado.prazo_10_dias !== proc.prazo_10_dias)
         return json(409, { error: "A compensação não pode alterar o término do vínculo nem o prazo de pagamento. Mantenha as condições legais originais." });
+      if (limiteOriginal) resultado.limite_sem_banco = limiteOriginal;
       if (diverge(b.esperado, resultado)) return json(409, { divergente: true, error: "As datas oficiais mudaram. Revise e confirme de novo.", resultado });
       const { avisos: _a, usou_escala: _u, simulacao: _s, base_simulacao: _bs, diagnostico_escala: _de, motivo: _m, termino_passado: _tp, prazo_vencido: _pv, ...gravar } = resultado;
       extra = gravar;
