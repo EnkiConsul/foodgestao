@@ -91,14 +91,15 @@ export function ReplicarFeriadosDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Replicar para outras unidades</DialogTitle>
+      <DialogContent className="flex h-[100dvh] w-full min-w-0 max-w-full flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-auto sm:max-h-[92dvh] sm:max-w-lg sm:rounded-lg">
+        <DialogHeader className="shrink-0 border-b p-4 pr-12 text-left">
+          <DialogTitle className="break-words">Replicar para outras unidades</DialogTitle>
           <DialogDescription>
             Copia os {totalOrigem} feriado(s) desta unidade para as unidades escolhidas.
           </DialogDescription>
         </DialogHeader>
 
+        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain p-4">
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Carregando unidades…</p>
         ) : unidades.length === 0 ? (
@@ -127,7 +128,7 @@ export function ReplicarFeriadosDialog({
                         onCheckedChange={(v) => alternar(u.id, v === true)}
                         aria-label={`Selecionar ${u.nome}`}
                       />
-                      <span className="min-w-0 flex-1 truncate">{u.nome}</span>
+                      <span className="min-w-0 flex-1 break-words">{u.nome}</span>
                       <span className="shrink-0 text-xs text-muted-foreground">
                         {u.total} feriado(s)
                       </span>
@@ -177,7 +178,8 @@ export function ReplicarFeriadosDialog({
           </div>
         )}
 
-        <DialogFooter>
+        </div>
+        <DialogFooter className="shrink-0 flex-row gap-2 border-t p-4 pb-[max(1rem,env(safe-area-inset-bottom))] [&>button]:min-h-11 [&>button]:flex-1 [&>button]:whitespace-normal sm:[&>button]:flex-none">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
