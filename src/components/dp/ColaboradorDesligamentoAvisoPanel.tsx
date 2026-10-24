@@ -4,6 +4,9 @@ import { BancoDesligamento, saldoDesligamento, simularBancoSobreCalendario } fro
 import type { ResultadoDesligamento } from "@/lib/dp/compensacao/desligamentoMotor";
 import { ehDispensaCumprimento } from "@/lib/dp/compensacao/desligamentoMotor";
 import { useState, type ReactNode } from "react";
+import type { DiagnosticoEscalaAviso } from "@/lib/dp/desligamento-escala-diagnostico";
+import { formatarMinutos } from "@/lib/dp/compensacao/motor";
+import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AlertTriangle, CalendarCheck, Wallet } from "lucide-react";
@@ -38,6 +41,7 @@ type Resultado = {
   sem_aviso?: boolean; aviso_dispensado?: boolean; descontar_aviso?: boolean | null;
   simulacao?: ResultadoDesligamento; base_simulacao?: ResultadoDesligamento; saldo_banco_minutos?: number; folgas_compensatorias?: string[];
   termino_passado?: boolean; prazo_vencido?: boolean;
+  diagnostico_escala?: DiagnosticoEscalaAviso | null; saldo_residual_minutos?: number;
 };
 type Processo = Resultado & {
   id: string; status: string; motivo: string; revisao_motivo: string | null; comunicacao_confirmada_em: string | null;
@@ -83,7 +87,7 @@ export function DatasDesligamento({ r, gestor = true }: {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <Card className="border-primary"><CardContent className="space-y-1 py-4">
-        <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><CalendarCheck className="h-4 w-4" /> {r.sem_aviso ? "Término do vínculo" : "Último dia de trabalho"}</p>
+        <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><CalendarCheck className="h-4 w-4" /> {r.sem_aviso ? "Término do vínculo" : "Último comparecimento previsto"}</p>
         {r.sem_aviso
           ? <p className="text-2xl font-bold" data-testid="aviso-ultimo">{br(r.data_efetiva ?? null)} <span className="text-sm font-normal">({r.data_efetiva ? semana(r.data_efetiva) : ""})</span></p>
           : r.ultimo_comparecimento
@@ -139,6 +143,19 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
       return data as unknown as Processo | null;
     },
   });
+  const projecao = useQuery({
+    queryKey: ["dp_desligamento_projecao", colaboradorId, proc.data?.id],
+    enabled: proc.data?.status === "aviso_em_curso" && (proc.data?.saldo_banco_minutos ?? 0) > 0,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      const id = proc.data?.id;
+      if (!id) return null;
+      const r = await chamar({ acao: "projecao", processo_id: id });
+      if (!r.ok) throw new Error("Não foi possível atualizar a previsão. Confira o calendário e recalcule com o gestor.");
+      return r.corpo.resultado as Resultado;
+    },
+  });
   const recarregar = () => qc.invalidateQueries({ queryKey: ["dp_desligamento_processo", colaboradorId] });
 
   const [cond, setCondState] = useState<CondicoesValor>({
@@ -183,6 +200,7 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
     descontar_aviso: cond.motivo === "pedido_demissao" && cond.modalidade === "indenizado" ? cond.descontar : undefined,
     saldo_banco_minutos: !SEM_AVISO.has(cond.motivo) && cond.modalidade === "trabalhado" ? saldo.minutos ?? 0 : 0,
     folgas_compensatorias: !SEM_AVISO.has(cond.motivo) && cond.modalidade === "trabalhado" ? folgas : [],
+    concentrar_final: folgas.length === 0,
     pedido_escrito: cond.pedidoEscrito, aceite_empresa: cond.aceiteEmpresa,
     confirmacao_sem_aviso: SEM_AVISO_ASSISTIDO.has(cond.motivo) ? cond.confirmacaoSemAviso : undefined,
   });
@@ -240,7 +258,7 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
     setCarregando(true); limpar();
     const r = await chamar({ ...extra, ...condBody() });
     setCarregando(false);
-    if (r.ok) { setPrevia(r.corpo.resultado); setCalendario(r.corpo.resultado.simulacao ?? null); setBaseCalendario(r.corpo.resultado.base_simulacao ?? null); }
+    if (r.ok) { setPrevia(r.corpo.resultado); setCalendario(r.corpo.resultado.simulacao ?? null); setBaseCalendario(r.corpo.resultado.base_simulacao ?? null); setFolgas(r.corpo.resultado.folgas_compensatorias ?? []); }
     else setMensagem({ texto: r.corpo?.error ?? "Não foi possível calcular.", erro: true });
   };
   const esperado = previa ? { ultimo: previa.ultimo_comparecimento, prazo: previa.prazo_10_dias, efetiva: previa.data_efetiva } : undefined;
@@ -252,11 +270,12 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
       {rascunho.simulado.comFolgas && " A simulação usava folgas compensatórias hipotéticas: elas serão conferidas e lançadas somente ao confirmar este registro."}
     </AlertDescription></Alert>
   );
+  const Diagnostico = previa?.diagnostico_escala && <RevisaoCalendario r={previa} />;
 
   const Banco = !SEM_AVISO.has(cond.motivo) && cond.modalidade === "trabalhado" && <BancoDesligamento
-    texto={saldoTxt} unidade={saldoUnidade} horasDia={horasDia} folgas={folgas} base={baseCalendario} resultado={baseCalendario && saldo.minutos !== null ? simularBancoSobreCalendario(baseCalendario, saldo.minutos, folgas) : calendario}
+    texto={saldoTxt} unidade={saldoUnidade} horasDia={horasDia} folgas={folgas} base={baseCalendario} bloqueado={previa?.diagnostico_escala?.apto === false} resultado={baseCalendario && saldo.minutos !== null ? simularBancoSobreCalendario(baseCalendario, saldo.minutos, folgas) : calendario}
     set={(v) => { if (v.texto !== undefined) setSaldoTxt(v.texto); if (v.unidade) setSaldoUnidade(v.unidade); if (v.horasDia !== undefined) setHorasDia(v.horasDia); setFolgas([]); setCalendario(null); setBaseCalendario(null); limpar(); }}
-    onFolgas={(datas) => { setFolgas(datas); limpar(); }} />;
+    onFolgas={(datas) => { setFolgas(datas); setFormal(false); setPrevia(null); }} />;
 
   if (proc.isLoading) return <p className="text-sm text-muted-foreground">Carregando…</p>;
   if (proc.isError) return <Alert variant="destructive"><AlertDescription>Não foi possível carregar o desligamento.</AlertDescription></Alert>;
@@ -286,6 +305,13 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
       <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs">{pausado ? `Pausado: ${PAUSA[p.revisao_motivo ?? ""] ?? "em revisão"}` : `Colaborador ativo até ${br(p.data_efetiva)}`}</span>, <>
       <DatasDesligamento r={p} />
       <Detalhes r={p} />
+      {projecao.data && <>
+        <RevisaoCalendario r={projecao.data} />
+        <BancoResumo r={projecao.data} />
+        <p className="text-sm">Previsão atual com banco: <strong>{br(projecao.data.ultimo_comparecimento)}</strong> · limite sem banco: <strong>{br(projecao.data.base_simulacao?.ultimoComparecimento)}</strong>.</p>
+        {projecao.data.ultimo_comparecimento !== p.ultimo_comparecimento && <Alert><AlertDescription>A previsão mudou com o calendário. As folgas compensatórias registradas continuam como estavam; confira e confirme o ajuste em Alterar condições antes de mudar o comparecimento combinado.</AlertDescription></Alert>}
+      </>}
+      {projecao.isError && <Alert><AlertDescription>Não foi possível atualizar a simulação do banco. A data acima é a última registrada; revise o calendário antes de combinar o comparecimento.</AlertDescription></Alert>}
       {pausado
         ? <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>
             A efetivação automática está pausada até a revisão.
@@ -331,11 +357,12 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
           <Condicoes v={cond} set={setCond} comMotivo={false} />
           {Banco}
           <Button size="sm" disabled={carregando || saldo.minutos === null} onClick={() => calcular({ acao: "alterar", processo_id: p.id, idempotency_key: chave, previa: true })}>Calcular novas datas</Button>
+          {Diagnostico}
           {Msg}
           {previa && <>
             <DatasDesligamento r={previa} />
             <p className="text-xs text-muted-foreground">O colaborador será avisado no portal das novas datas.</p>
-            <Button size="sm" disabled={carregando} onClick={() => executar({ acao: "alterar", processo_id: p.id, idempotency_key: chave, ...condBody(), esperado }, "Condições atualizadas.")}>Confirmar alteração</Button>
+            <Button size="sm" disabled={carregando || ((saldo.minutos ?? 0) > 0 && previa.diagnostico_escala?.apto === false)} onClick={() => executar({ acao: "alterar", processo_id: p.id, idempotency_key: chave, ...condBody(), esperado }, "Condições atualizadas.")}>Confirmar alteração</Button>
           </>}
           <Button size="sm" variant="ghost" onClick={fechar}>Voltar</Button>
         </div>
@@ -427,6 +454,7 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
     {Banco}
     <Button onClick={() => calcular({ acao: "previa", colaborador_id: colaboradorId })} disabled={carregando || !cond.comunicacao || saldo.minutos === null}>{carregando ? "Calculando…" : "Calcular datas oficiais"}</Button>
     {Msg}
+    {Diagnostico}
     {previa && (
       <div className="space-y-3">
         <DatasDesligamento r={previa} />
@@ -456,7 +484,7 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
         </label>
         {pedidoDispensadoPendente && <p className="text-xs text-destructive">Marque as duas declarações (pedido escrito e aceite da empresa) para confirmar.</p>}
         {semAvisoPendente && <p className="text-xs text-destructive">Confirme a validação da data de término para este motivo.</p>}
-        <Button onClick={() => void confirmarRegistro()} disabled={carregando || !formal || pedidoDispensadoPendente || semAvisoPendente}>{carregando ? "Registrando…" : "Confirmar registro"}</Button>
+        <Button onClick={() => void confirmarRegistro()} disabled={carregando || !formal || pedidoDispensadoPendente || semAvisoPendente || ((saldo.minutos ?? 0) > 0 && previa.diagnostico_escala?.apto === false)}>{carregando ? "Registrando…" : "Confirmar registro"}</Button>
       </div>
     )}
   </>);
@@ -480,6 +508,7 @@ function PosDesligamento({ p, carregando, executar }: { p: Processo; carregando:
   return (
     <div className="space-y-3 rounded-md border p-3">
       <h4 className="text-sm font-semibold">Pagamento e pendências</h4>
+      <BancoResumo r={p} />
       {encerrado && <p className="text-xs text-muted-foreground">Fechado administrativamente em {new Date(p.encerrado_admin_em!).toLocaleDateString("pt-BR")}.</p>}
       <fieldset disabled={encerrado || carregando} className="space-y-3">
         <div className="grid gap-2 sm:grid-cols-2">
@@ -515,4 +544,24 @@ function PosDesligamento({ p, carregando, executar }: { p: Processo; carregando:
       </fieldset>
     </div>
   );
+}
+
+function BancoResumo({ r }: { r: Resultado }) {
+  const saldo = r.saldo_banco_minutos ?? 0;
+  const residual = r.saldo_residual_minutos ?? r.simulacao?.saldoResidualMinutos ?? saldo;
+  if (!saldo) return null;
+  return <p className="rounded-md bg-muted p-3 text-sm">Banco de horas simulado: <strong>{formatarMinutos(saldo - residual)}</strong> compensadas no aviso · <strong>{formatarMinutos(residual)}</strong> residuais para conferir e quitar na rescisão. Confirme o saldo final com a contabilidade; este registro não comprova pagamento.</p>;
+}
+
+function RevisaoCalendario({ r }: { r: Resultado }) {
+  const d = r.diagnostico_escala;
+  if (!d) return null;
+  return <Alert><AlertTriangle className="h-4 w-4" /><AlertDescription className="space-y-2">
+    <p className="font-medium">Conferência das folgas antes da compensação</p>
+    <p>Defina as folgas semanais e dominicais até {br(d.limiteSemBanco)} (limite sem banco). Regra aplicada: {d.origem}.</p>
+    {d.pendencias.map((p) => <p key={p}>{p}</p>)}
+    {d.apto && <p>Os descansos cadastrados cobrem a regra neste intervalo. A análise não substitui a conferência de períodos anteriores à comunicação.</p>}
+    <Button asChild size="sm" variant="outline"><Link to={`/dp/calendario?mes=${r.inicio_aviso.slice(0, 7)}`}>Revisar calendário do mês</Link></Button>
+    <p className="text-xs">O atalho não marca nem remarca folgas. Volte e calcule novamente depois de ajustar.</p>
+  </AlertDescription></Alert>;
 }
