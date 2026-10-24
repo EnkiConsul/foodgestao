@@ -1,11 +1,10 @@
 // Runs the actual migration against an isolated in-memory PostgreSQL database.
 import { readFileSync } from "node:fs";
 import { Blob as NodeBlob } from "node:buffer";
-import { gzipSync } from "node:zlib";
 import { PGlite } from "@electric-sql/pglite";
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
 
-const db = new PGlite({ fsBundle: new NodeBlob([gzipSync(readFileSync("node_modules/@electric-sql/pglite/dist/pglite.data"))]) as unknown as Blob });
+const db = new PGlite({ fsBundle: new NodeBlob([readFileSync("node_modules/@electric-sql/pglite/dist/pglite.data")]) as unknown as Blob });
 const company = "00000000-0000-4000-8000-000000000001";
 const person = "00000000-0000-4000-8000-000000000002";
 const colleague = "00000000-0000-4000-8000-000000000003";
