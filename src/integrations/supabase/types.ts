@@ -10351,6 +10351,7 @@ export type Database = {
           id: string
           observacao: string | null
           origem: Database["public"]["Enums"]["dp_folga_origem"]
+          solicitacao_id: string | null
           status: Database["public"]["Enums"]["dp_folga_status"]
           tipo: Database["public"]["Enums"]["dp_folga_tipo"]
           updated_at: string
@@ -10366,6 +10367,7 @@ export type Database = {
           id?: string
           observacao?: string | null
           origem?: Database["public"]["Enums"]["dp_folga_origem"]
+          solicitacao_id?: string | null
           status?: Database["public"]["Enums"]["dp_folga_status"]
           tipo?: Database["public"]["Enums"]["dp_folga_tipo"]
           updated_at?: string
@@ -10381,6 +10383,7 @@ export type Database = {
           id?: string
           observacao?: string | null
           origem?: Database["public"]["Enums"]["dp_folga_origem"]
+          solicitacao_id?: string | null
           status?: Database["public"]["Enums"]["dp_folga_status"]
           tipo?: Database["public"]["Enums"]["dp_folga_tipo"]
           updated_at?: string
@@ -10405,6 +10408,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_folgas_solicitacao_id_fkey"
+            columns: ["solicitacao_id"]
+            isOneToOne: false
+            referencedRelation: "dp_solicitacoes"
             referencedColumns: ["id"]
           },
         ]
@@ -11394,6 +11404,7 @@ export type Database = {
           data_operacional: string
           documento_id: string | null
           estado: Database["public"]["Enums"]["dp_ocorrencia_estado"]
+          folga_id: string | null
           horario_estimado: string | null
           horario_previsto: string | null
           horario_real: string | null
@@ -11416,6 +11427,7 @@ export type Database = {
           relevancia_operacional: boolean
           setor_id: string | null
           solicitacao_id: string | null
+          subtipo: string | null
           tipo: Database["public"]["Enums"]["dp_ocorrencia_tipo"]
           tratativa_decisao: string | null
           tratativa_observacao: string | null
@@ -11444,6 +11456,7 @@ export type Database = {
           data_operacional: string
           documento_id?: string | null
           estado?: Database["public"]["Enums"]["dp_ocorrencia_estado"]
+          folga_id?: string | null
           horario_estimado?: string | null
           horario_previsto?: string | null
           horario_real?: string | null
@@ -11466,6 +11479,7 @@ export type Database = {
           relevancia_operacional?: boolean
           setor_id?: string | null
           solicitacao_id?: string | null
+          subtipo?: string | null
           tipo: Database["public"]["Enums"]["dp_ocorrencia_tipo"]
           tratativa_decisao?: string | null
           tratativa_observacao?: string | null
@@ -11494,6 +11508,7 @@ export type Database = {
           data_operacional?: string
           documento_id?: string | null
           estado?: Database["public"]["Enums"]["dp_ocorrencia_estado"]
+          folga_id?: string | null
           horario_estimado?: string | null
           horario_previsto?: string | null
           horario_real?: string | null
@@ -11516,6 +11531,7 @@ export type Database = {
           relevancia_operacional?: boolean
           setor_id?: string | null
           solicitacao_id?: string | null
+          subtipo?: string | null
           tipo?: Database["public"]["Enums"]["dp_ocorrencia_tipo"]
           tratativa_decisao?: string | null
           tratativa_observacao?: string | null
@@ -11552,6 +11568,13 @@ export type Database = {
             columns: ["documento_id"]
             isOneToOne: false
             referencedRelation: "dp_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ocorrencias_folga_id_fkey"
+            columns: ["folga_id"]
+            isOneToOne: false
+            referencedRelation: "dp_folgas"
             referencedColumns: ["id"]
           },
           {

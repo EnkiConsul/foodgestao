@@ -10,6 +10,7 @@ import {
 } from "@/lib/dp/trocas-filtros";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { mensagemErroTroca } from "@/lib/dp/trocas-erros";
+import { invalidarRotina } from "@/lib/dp/rotina-cache";
 
 export type DpTrocaModo = "direta" | "aprovacao_admin" | "proibida";
 
@@ -115,6 +116,7 @@ export function useDpTrocas(filtros: TrocaFiltros = FILTROS_TROCA_PADRAO) {
 
 
   const invalidate = () => {
+    void invalidarRotina(qc);
     qc.invalidateQueries({ queryKey: ["dp_trocas"] });
     qc.invalidateQueries({ queryKey: ["dp_folgas"] });
     void resolverPendencias(qc, { companyId: selectedCompanyId });

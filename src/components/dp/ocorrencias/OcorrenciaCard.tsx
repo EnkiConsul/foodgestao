@@ -1,4 +1,4 @@
-import { tratativaPendente, tratativaJaDecididaPorAtestado } from "@/lib/dp/ocorrencias";
+import { tratativaPendente, tratativaJaDecididaPorAtestado, ocorrenciaDeFolga, diretrizPonto, DIRETRIZ_LABEL } from "@/lib/dp/ocorrencias";
 import { nomeExibicao } from "@/lib/dp/nomeExibicao";
 import { useState } from "react";
 import {
@@ -84,6 +84,8 @@ export function OcorrenciaCard({
 
   const r = resumoTratativa(o);
   const cancelada = o.estado === "cancelada";
+  const folgaAutorizada = ocorrenciaDeFolga(o);
+  const diretriz = diretrizPonto(o);
   const tratarPendente = tratativaPendente(o);
   const abonoAtestado = !cancelada && tratativaJaDecididaPorAtestado(o) && o.tratativa_status === "pendente";
   const conferirPendente = !tratarPendente && o.analise_status === "pendente" && !cancelada;
@@ -148,6 +150,11 @@ export function OcorrenciaCard({
           {abonoAtestado && (
             <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
               <CheckCircle2 className="h-3 w-3" /> Atestado aprovado · abonar o dia no ponto
+            </p>
+          )}
+          {folgaAutorizada && !cancelada && diretriz && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {DIRETRIZ_LABEL[diretriz]} · Sem impacto na assiduidade ou férias
             </p>
           )}
           {!tratarPendente && o.tratativa_status !== "pendente" && o.tratativa_ponto && (
@@ -230,7 +237,7 @@ export function OcorrenciaCard({
                 <Select
                   value={campo === "assiduidade" ? o.impacta_assiduidade : o.impacta_ferias}
                   onValueChange={(v) => onImpacto(campo, v as OcorrenciaImpacto)}
-                  disabled={cancelada}
+                  disabled={cancelada || folgaAutorizada}
                 >
                   <SelectTrigger className="h-7 w-[130px] text-xs">
                     <SelectValue />
@@ -255,7 +262,7 @@ export function OcorrenciaCard({
                 <HistoryIcon className="mr-1 h-3.5 w-3.5" /> Histórico
               </Button>
             )}
-            {!cancelada && (
+            {!cancelada && !folgaAutorizada && (
               <Button size="sm" variant="ghost" onClick={onCancelar}>
                 <XCircle className="mr-1 h-3.5 w-3.5" /> Cancelar ocorrência
               </Button>

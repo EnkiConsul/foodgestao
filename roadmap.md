@@ -1,5 +1,11 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 
+- [x] Justificativas automáticas de folgas extras, compensatórias e trocas: vinculadas à origem, sem impacto em assiduidade/férias, com tratativa externa pendente.
+- [x] Corrigir cancelamento/exclusão e estorno dos dois participantes; separar evidência documental da ausência operacional; validar em PostgreSQL isolado sem alterar colaboradores reais.
+- [ ] Publicação das justificativas e tela de Ocorrências: aguarda autorização explícita; aprovações anteriores não foram retroativamente alteradas.
+
+- [x] Integrar folga extra, compensação de feriado e trocas às justificativas em Ocorrências: 96 testes passaram; leitura autenticada da tela validada, sem aprovação real ou publicação.
+
 - [x] Corrigir Rotina da Loja: respeitar folgas e afastamentos aprovados, faltas confirmadas e trabalho por troca em todos os caminhos.
 - [x] Validar sem alterar registros reais: 69 testes focados passaram; gestor autenticado abriu solicitações e rotina do dia 23/10 sem erro. Aprovação real e portal de colaborador não exercitados.
 - [ ] Publicar correções autorizadas: bloqueada por falhas de regressão em authEmailConfirmation.test.tsx e calendario-rotina-p1.test.ts; não houve publicação.

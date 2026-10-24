@@ -134,8 +134,15 @@ export const COR_BADGE: Record<OcorrenciaCor, string> = {
 
 /** Texto curto para a rotina, deixando claro previsto x confirmado. */
 /** Rótulo do tipo; ocorrência gerada por troca de folga aparece como "Troca de folga". */
-export function rotuloTipoOcorrencia(o: { tipo: OcorrenciaTipo; troca_id?: string | null }): string {
-  return o.troca_id ? "Troca de folga" : TIPO_LABEL[o.tipo];
+export function ocorrenciaDeFolga(o: { folga_id?: string | null; troca_id?: string | null }): boolean {
+  return !!(o.folga_id || o.troca_id);
+}
+
+export function rotuloTipoOcorrencia(o: { tipo: OcorrenciaTipo; troca_id?: string | null; subtipo?: string | null }): string {
+  if (o.subtipo === "compensacao_feriado") return "Compensação de feriado";
+  if (o.subtipo === "folga_extra") return "Folga extra autorizada";
+  if (o.subtipo === "troca_trabalho") return "Trabalho por troca de folga";
+  return o.troca_id || o.subtipo === "troca_folga" ? "Troca de folga" : TIPO_LABEL[o.tipo];
 }
 
 export function resumoOperacional(o: {
@@ -145,9 +152,11 @@ export function resumoOperacional(o: {
   horario_estimado: string | null;
   horario_real: string | null;
   troca_id?: string | null;
+  folga_id?: string | null;
+  subtipo?: string | null;
 }): string {
   const hora = (v: string | null) => (v ? v.slice(0, 5) : "");
-  if (o.troca_id) return "⇄ Troca de folga";
+  if (ocorrenciaDeFolga(o)) return rotuloTipoOcorrencia(o);
   switch (o.tipo) {
     case "previsao_atraso":
       return `Atraso previsto ~${o.minutos ?? 0} min`;
@@ -262,8 +271,11 @@ export function tratativaJaDecididaPorAtestado(o: {
   origem?: string | null;
   analise_status?: string | null;
   impacta_assiduidade?: string | null;
+  folga_id?: string | null;
+  troca_id?: string | null;
 }): boolean {
   return (
+    !ocorrenciaDeFolga(o) &&
     o.tipo === "ausencia_justificada" &&
     o.origem === "sistema" &&
     o.analise_status === "analisada" &&
@@ -280,6 +292,9 @@ export function tratativaPendente(o: {
   impacta_assiduidade?: string | null;
   tratativa_ponto?: boolean | null;
   tratativa_status?: string | null;
+  folga_id?: string | null;
+  troca_id?: string | null;
+  subtipo?: string | null;
 }): boolean {
   return (
     !!o.tratativa_ponto &&
@@ -302,6 +317,7 @@ export const DIRETRIZ_LABEL: Record<DiretrizPonto, string> = {
 /** O que o gestor deve fazer no sistema de ponto com esta ocorrência. */
 export function diretrizPonto(o: Parameters<typeof tratativaPendente>[0]): DiretrizPonto | null {
   if (o.estado === "cancelada") return null;
+  if (ocorrenciaDeFolga(o)) return o.subtipo === "troca_trabalho" ? "ajustar" : "abonar";
   if (tratativaJaDecididaPorAtestado(o)) return "abonar";
   if (o.estado === "aguardando_confirmacao" || TIPOS_PREVISAO.includes(o.tipo as OcorrenciaTipo)) return "decidir";
   if (tratativaPendente(o)) return "decidir";
@@ -320,6 +336,8 @@ export function ocorrenciaPedeAtencao(o: {
   impacta_assiduidade?: string | null;
   tratativa_ponto?: boolean | null;
   tratativa_status?: string | null;
+  folga_id?: string | null;
+  troca_id?: string | null;
 }): boolean {
   if (o.estado === "cancelada") return false;
   if (tratativaJaDecididaPorAtestado(o)) return false;

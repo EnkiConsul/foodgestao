@@ -960,6 +960,27 @@
       "when": 1792804744346,
       "tag": "0136_rotina_loja_folgas_trocas_ausencias",
       "breakpoints": true
+    },
+    {
+      "idx": 137,
+      "version": "7",
+      "when": 1792806287522,
+      "tag": "0137_folgas_trocas_justificativas_vinculadas",
+      "breakpoints": true
+    },
+    {
+      "idx": 138,
+      "version": "7",
+      "when": 1792806476184,
+      "tag": "0138_folga_exclusao_e_troca_estorno_integral",
+      "breakpoints": true
+    },
+    {
+      "idx": 139,
+      "version": "7",
+      "when": 1792806548287,
+      "tag": "0139_rotina_separar_evidencia_folga_de_afastamento",
+      "breakpoints": true
     }
   ]
 }

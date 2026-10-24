@@ -55,7 +55,7 @@ export function useDpOcorrenciasIndicadores(params: {
     queryFn: async () => {
       let q = supabase
         .from("dp_ocorrencias")
-        .select("tipo, minutos, estado, origem, analise_status, impacta_assiduidade, impacta_ferias, tratativa_ponto, tratativa_status")
+        .select("tipo, minutos, estado, origem, analise_status, impacta_assiduidade, impacta_ferias, tratativa_ponto, tratativa_status, folga_id, troca_id, subtipo")
         .eq("company_id", selectedCompanyId!)
         .gte("data_operacional", params.inicio)
         .lte("data_operacional", params.fim)
