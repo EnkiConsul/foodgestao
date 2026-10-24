@@ -6,12 +6,14 @@ import {
   FERIADOS_NACIONAIS_FIXOS,
   type FeriadoRegra,
   type FeriadoTipo,
+  type FeriadoMovel,
 } from "@/lib/dp/feriados";
 
 export type FeriadoInput = {
   id?: string;
   nome: string;
   tipo: FeriadoTipo;
+  codigo_movel?: FeriadoMovel | null;
   data?: string | null;
   dia?: number | null;
   mes?: number | null;
@@ -40,7 +42,7 @@ export type ReplicarResumo = { unidades: number; copiados: number; existentes: n
 
 /** Chave de comparação de uma regra de feriado, para evitar duplicidade. */
 export const chaveFeriado = (f: FeriadoRegra) =>
-  f.tipo === "especifica"
+  f.tipo === "movel" ? `movel:${f.codigo_movel ?? ""}` : f.tipo === "especifica"
     ? `especifica:${f.data ?? ""}`
     : f.tipo === "anual"
       ? `anual:${f.dia ?? ""}-${f.mes ?? ""}`
@@ -59,16 +61,18 @@ export function useDpFeriados(unidadeId?: string | null) {
     queryKey: ["dp_unidade_feriados", unidadeId],
     enabled: !!unidadeId,
     queryFn: async (): Promise<FeriadoRegra[]> => {
+      if (!unidadeId) return [];
       const { data, error } = await supabase
         .from("dp_unidade_feriados")
-        .select("id, nome, tipo, data, dia, mes, ordinal, dia_semana, ano_inicio, ativo, observacao")
-        .eq("unidade_id", unidadeId!)
+        .select("id, nome, tipo, codigo_movel, data, dia, mes, ordinal, dia_semana, ano_inicio, ativo, observacao")
+        .eq("unidade_id", unidadeId)
         .order("nome");
       if (error) throw error;
       return (data ?? []).map((r) => ({
         id: r.id,
         nome: r.nome,
         tipo: r.tipo as FeriadoTipo,
+        codigo_movel: r.codigo_movel as FeriadoMovel | null,
         data: r.data,
         dia: r.dia,
         mes: r.mes,
@@ -89,6 +93,7 @@ export function useDpFeriados(unidadeId?: string | null) {
         unidade_id: unidadeId,
         nome: input.nome.trim(),
         tipo: input.tipo,
+        codigo_movel: input.tipo === "movel" ? input.codigo_movel ?? null : null,
         data: input.tipo === "especifica" ? input.data || null : null,
         dia: input.tipo === "anual" ? input.dia ?? null : null,
         mes: input.tipo === "especifica" ? null : input.mes ?? null,
@@ -188,6 +193,7 @@ export function useDpFeriados(unidadeId?: string | null) {
         unidade_id: unidade,
         nome: f.nome,
         tipo: f.tipo,
+        codigo_movel: f.tipo === "movel" ? f.codigo_movel ?? null : null,
         data: f.tipo === "especifica" ? f.data ?? null : null,
         dia: f.tipo === "anual" ? f.dia ?? null : null,
         mes: f.tipo === "especifica" ? null : f.mes ?? null,
@@ -212,7 +218,7 @@ export function useDpFeriados(unidadeId?: string | null) {
 
       const { data: atuais, error: readErr } = await supabase
         .from("dp_unidade_feriados")
-        .select("unidade_id, tipo, data, dia, mes, ordinal, dia_semana")
+        .select("unidade_id, tipo, codigo_movel, data, dia, mes, ordinal, dia_semana")
         .in("unidade_id", destinos);
       if (readErr) throw readErr;
 

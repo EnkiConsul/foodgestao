@@ -13850,6 +13850,7 @@ export type Database = {
         Row: {
           ano_inicio: number | null
           ativo: boolean
+          codigo_movel: string | null
           company_id: string
           created_at: string
           created_by: string | null
@@ -13868,6 +13869,7 @@ export type Database = {
         Insert: {
           ano_inicio?: number | null
           ativo?: boolean
+          codigo_movel?: string | null
           company_id: string
           created_at?: string
           created_by?: string | null
@@ -13886,6 +13888,7 @@ export type Database = {
         Update: {
           ano_inicio?: number | null
           ativo?: boolean
+          codigo_movel?: string | null
           company_id?: string
           created_at?: string
           created_by?: string | null
@@ -19981,6 +19984,10 @@ export type Database = {
         Returns: undefined
       }
       dp_expirar_trocas: { Args: never; Returns: number }
+      dp_feriado_movel_data: {
+        Args: { _ano: number; _codigo: string }
+        Returns: string
+      }
       dp_feriados_resolver: {
         Args: { _fim: string; _inicio: string; _unidade_id: string }
         Returns: {

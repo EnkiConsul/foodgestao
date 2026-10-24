@@ -5,12 +5,19 @@
  * espelham a mesma matemática para montar a lista da tela sem ida ao servidor.
  */
 
-export type FeriadoTipo = "especifica" | "anual" | "relativa";
+export type FeriadoTipo = "especifica" | "anual" | "relativa" | "movel";
+export type FeriadoMovel = "carnaval" | "corpus_christi" | "sexta_feira_santa";
+export const FERIADOS_MOVEIS: Record<FeriadoMovel, { nome: string; deslocamento: number }> = {
+  carnaval: { nome: "Carnaval", deslocamento: -47 },
+  corpus_christi: { nome: "Corpus Christi", deslocamento: 60 },
+  sexta_feira_santa: { nome: "Sexta-feira Santa", deslocamento: -2 },
+};
 
 export type FeriadoRegra = {
   id: string;
   nome: string;
   tipo: FeriadoTipo;
+  codigo_movel?: FeriadoMovel | null;
   /** Tipo "especifica": data completa ISO (YYYY-MM-DD). */
   data?: string | null;
   /** Tipo "anual": dia do mês. */
@@ -30,7 +37,8 @@ export type FeriadoRegra = {
 export const FERIADO_TIPO_LABEL: Record<FeriadoTipo, string> = {
   especifica: "Data específica",
   anual: "Todo ano na mesma data",
-  relativa: "Data que muda de ano para ano",
+  relativa: "Dia da semana em um mês",
+  movel: "Feriado com data móvel",
 };
 
 export const DIAS_SEMANA = [
@@ -75,6 +83,21 @@ const diasNoMes = (ano: number, mes: number) => new Date(Date.UTC(ano, mes, 0)).
 const dowDe = (ano: number, mes: number, dia: number) =>
   new Date(Date.UTC(ano, mes - 1, dia)).getUTCDay();
 
+/** Cômputo gregoriano de Meeus/Jones/Butcher, sem serviço externo ou tarefa anual. */
+export function dataFeriadoMovel(codigo: FeriadoMovel, ano: number): string | null {
+  if (!Number.isInteger(ano) || ano < 1583 || ano > 9999) return null;
+  const feriado = FERIADOS_MOVEIS[codigo];
+  if (!feriado) return null;
+  const a = ano % 19, b = Math.floor(ano / 100), c = ano % 100;
+  const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451), n = h + l - 7 * m + 114;
+  const data = new Date(Date.UTC(ano, Math.floor(n / 31) - 1, n % 31 + 1));
+  data.setUTCDate(data.getUTCDate() + feriado.deslocamento);
+  return iso(data.getUTCFullYear(), data.getUTCMonth() + 1, data.getUTCDate());
+}
+
 /**
  * Data em que a regra cai no ano informado. Retorna null quando a regra não
  * existe naquele ano (ex.: 29/02 fora de ano bissexto, quinta sexta-feira
@@ -87,6 +110,7 @@ export function dataDoFeriadoNoAno(regra: FeriadoRegra, ano: number): string | n
   }
 
   if (regra.ano_inicio != null && ano < regra.ano_inicio) return null;
+  if (regra.tipo === "movel") return regra.codigo_movel ? dataFeriadoMovel(regra.codigo_movel, ano) : null;
 
   const mes = regra.mes ?? 0;
   if (mes < 1 || mes > 12) return null;
@@ -141,6 +165,7 @@ export function descricaoRegra(regra: FeriadoRegra): string {
   }
   const mes = MESES[(regra.mes ?? 1) - 1] ?? "";
   const desde = regra.ano_inicio ? `, a partir de ${regra.ano_inicio}` : "";
+  if (regra.tipo === "movel") return `Data móvel calculada todo ano${desde}`;
   if (regra.tipo === "anual") return `Todo ano em ${regra.dia} de ${mes}${desde}`;
   const ord = ORDINAIS.find((o) => o.valor === regra.ordinal)?.label ?? "";
   const dow = DIAS_SEMANA[regra.dia_semana ?? 0] ?? "";

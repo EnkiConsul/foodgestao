@@ -1,5 +1,7 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 
+- [x] Cadastrar Carnaval, Corpus Christi e Sexta-feira Santa por nome, com cálculo anual automático na agenda e no servidor (0140); 28 testes passaram, cadastro/resolução/desativação validados em PostgreSQL isolado e seleção/prévias conferidas no celular e computador. Sem cadastro real ou publicação da interface; compatibilidade do serviço de desligamento atualizada.
+
 - [x] Ajustar cadastro de unidades e todas as abas para celular; feriados ordenados por data com datas completas. 17 testes passaram; cinco abas e quatro janelas auxiliares conferidas em telas estreitas, sem rolagem lateral no conteúdo, alterações em dados reais ou publicação.
 
 - [x] Adicionar filtro rápido “Folgas e trocas” em Ocorrências: 15 testes passaram; ativação/desativação e consulta autenticada validadas (nenhum registro vinculado no período); sem alterar registros reais nem publicar.

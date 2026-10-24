@@ -10,8 +10,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  DIAS_SEMANA, FERIADO_TIPO_LABEL, MESES, ORDINAIS,
-  descricaoRegra, type FeriadoRegra, type FeriadoTipo,
+  DIAS_SEMANA, FERIADO_TIPO_LABEL, FERIADOS_MOVEIS, MESES, ORDINAIS,
+  dataFeriadoMovel, descricaoRegra, type FeriadoRegra, type FeriadoTipo, type FeriadoMovel,
 } from "@/lib/dp/feriados";
 import type { FeriadoInput } from "@/hooks/useDpFeriados";
 
@@ -27,6 +27,7 @@ interface Props {
 export function FeriadoFormDialog({ open, onOpenChange, feriado = null, saving, onSubmit }: Props) {
   const [nome, setNome] = useState("");
   const [tipo, setTipo] = useState<FeriadoTipo>("anual");
+  const [movel, setMovel] = useState<FeriadoMovel>("carnaval");
   const [data, setData] = useState("");
   const [dia, setDia] = useState("1");
   const [mes, setMes] = useState("1");
@@ -39,6 +40,7 @@ export function FeriadoFormDialog({ open, onOpenChange, feriado = null, saving, 
     if (!open) return;
     setNome(feriado?.nome ?? "");
     setTipo(feriado?.tipo ?? "anual");
+    setMovel(feriado?.codigo_movel ?? "carnaval");
     setData(feriado?.data ?? "");
     setDia(String(feriado?.dia ?? 1));
     setMes(String(feriado?.mes ?? 1));
@@ -53,6 +55,7 @@ export function FeriadoFormDialog({ open, onOpenChange, feriado = null, saving, 
     id: "previa",
     nome,
     tipo,
+    codigo_movel: movel,
     data: data || null,
     dia: Number(dia),
     mes: Number(mes),
@@ -62,7 +65,7 @@ export function FeriadoFormDialog({ open, onOpenChange, feriado = null, saving, 
   });
 
   const invalido =
-    !nome.trim() || (tipo === "especifica" && !data) || (tipo !== "especifica" && anoInicio !== "" && !anoValido);
+    (tipo !== "movel" && !nome.trim()) || (tipo === "especifica" && !data) || (tipo !== "especifica" && anoInicio !== "" && !anoValido);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -72,14 +75,14 @@ export function FeriadoFormDialog({ open, onOpenChange, feriado = null, saving, 
         </DialogHeader>
 
         <div className="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4 [&_input]:min-w-0 [&_input]:max-w-full [&_input]:min-h-11 [&_input]:text-base [&_textarea]:text-base [&_button[role=combobox]]:min-h-11 [&_button[role=combobox]]:min-w-0 [&_button[role=combobox]>span]:truncate">
-          <div className="space-y-1.5">
+          {tipo !== "movel" && <div className="space-y-1.5">
             <Label>Nome *</Label>
             <Input
               value={nome}
               onChange={(e) => setNome(e.target.value)}
               placeholder="Ex: Aniversário da cidade"
             />
-          </div>
+          </div>}
 
           <div className="space-y-1.5">
             <Label>Como esse feriado acontece</Label>
@@ -97,6 +100,27 @@ export function FeriadoFormDialog({ open, onOpenChange, feriado = null, saving, 
             <div className="space-y-1.5">
               <Label>Data *</Label>
               <Input type="date" value={data} onChange={(e) => setData(e.target.value)} />
+            </div>
+          )}
+
+          {tipo === "movel" && (
+            <div className="space-y-1.5">
+              <Label>Feriado *</Label>
+              <Select value={movel} onValueChange={(v) => setMovel(v as FeriadoMovel)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.entries(FERIADOS_MOVEIS) as [FeriadoMovel, { nome: string }][]).map(([codigo, f]) => (
+                    <SelectItem key={codigo} value={codigo}>{f.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Cadastre somente se a data for adotada como feriado nesta unidade, conforme a legislação local ou convenção aplicável.</p>
+              <div className="space-y-1 text-sm tabular-nums">
+                {[new Date().getFullYear(), new Date().getFullYear() + 1].map((ano) => {
+                  const data = dataFeriadoMovel(movel, ano);
+                  return <p key={ano}>{ano}: {data?.split("-").reverse().join("/")}</p>;
+                })}
+              </div>
             </div>
           )}
 
@@ -201,11 +225,12 @@ export function FeriadoFormDialog({ open, onOpenChange, feriado = null, saving, 
             onClick={() =>
               onSubmit({
                 id: feriado?.id,
-                nome,
+                nome: tipo === "movel" ? FERIADOS_MOVEIS[movel].nome : nome,
                 tipo,
+                codigo_movel: tipo === "movel" ? movel : null,
                 data: tipo === "especifica" ? data : null,
                 dia: tipo === "anual" ? Number(dia) : null,
-                mes: tipo === "especifica" ? null : Number(mes),
+                mes: tipo === "anual" || tipo === "relativa" ? Number(mes) : null,
                 ordinal: tipo === "relativa" ? Number(ordinal) : null,
                 dia_semana: tipo === "relativa" ? Number(diaSemana) : null,
                 ano_inicio: tipo !== "especifica" && anoValido ? Number(anoInicio) : null,
