@@ -28,6 +28,23 @@ export function concentrarNoFinal(base: ResultadoDesligamento, saldo: number) {
   return datas.sort();
 }
 
+export function simularBancoSobreCalendario(base: ResultadoDesligamento, saldo: number, folgas: string[]): ResultadoDesligamento {
+  let restante = saldo;
+  const aceitas: string[] = [];
+  const rejeitadas: ResultadoDesligamento["folgasRejeitadas"] = [];
+  const calendario = base.calendario.map((dia) => {
+    if (!folgas.includes(dia.data)) return { ...dia };
+    if (dia.classificacao !== "trabalho_previsto") { rejeitadas.push({ data: dia.data, motivo: "dia_sem_jornada" }); return { ...dia }; }
+    if (dia.jornadaPrevista > restante) { rejeitadas.push({ data: dia.data, motivo: "excede_saldo" }); return { ...dia }; }
+    restante -= dia.jornadaPrevista;
+    aceitas.push(dia.data);
+    return { ...dia, classificacao: "folga_compensatoria" as const, minutosCompensados: dia.jornadaPrevista, jornadaPrevista: 0 };
+  });
+  for (const data of folgas) if (!base.calendario.some((d) => d.data === data)) rejeitadas.push({ data, motivo: "fora_do_periodo_trabalhado" });
+  const trabalho = calendario.filter((d) => d.classificacao === "trabalho_previsto");
+  return { ...base, calendario, folgasAceitas: aceitas, folgasRejeitadas: rejeitadas, saldoResidualMinutos: restante, minutosCompensados: saldo - restante, ultimoComparecimento: trabalho.at(-1)?.data ?? null, jornadasRestantes: trabalho.length };
+}
+
 export function BancoDesligamento({ texto, unidade, horasDia, set, base, resultado, folgas, onFolgas, planejamento = false }: {
   texto: string; unidade: "horas" | "dias"; horasDia: string;
   set: (v: { texto?: string; unidade?: "horas" | "dias"; horasDia?: string }) => void;
