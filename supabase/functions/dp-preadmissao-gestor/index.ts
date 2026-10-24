@@ -239,7 +239,8 @@ Deno.serve(async (req) => {
 
     if (acao === "solicitar_correcao" || acao === "retomar_conferencia") {
       const motivo = String(body?.motivo ?? "").trim();
-      const versao = body?.versao;
+      // Published clients predating the version field use the freshly authorized row.
+      const versao = body?.versao ?? (paRow as { versao?: number }).versao;
       if (motivo.length < 5 || motivo.length > 1000 || !Number.isInteger(versao) || versao < 1) {
         return jsonResponse(req, 400, { error: "Descreva o motivo (5 a 1.000 caracteres) e atualize a ficha antes de continuar." });
       }
