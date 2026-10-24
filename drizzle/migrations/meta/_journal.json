@@ -960,6 +960,13 @@
       "when": 1792804744346,
       "tag": "0136_rotina_loja_folgas_trocas_ausencias",
       "breakpoints": true
+    },
+    {
+      "idx": 137,
+      "version": "7",
+      "when": 1792806287522,
+      "tag": "0137_folgas_trocas_justificativas_vinculadas",
+      "breakpoints": true
     }
   ]
 }
