@@ -15,6 +15,7 @@
  * necessária" (sem datas inventadas).
  */
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { extratoAviso } from "../_shared/desligamento-extrato.ts";
 import { z } from "npm:zod@3";
 import { requireUser, serviceClient } from "../_shared/authz.ts";
 import { simularDesligamento, modalidadePersistida, MOTIVOS_SEM_AVISO, type MotivoDesligamentoCalc } from "../_shared/desligamento-motor.ts";
@@ -278,7 +279,7 @@ async function calcular(admin: any, c: Colab, b: Cond, previa = false, processoI
     dias_aviso: r.duracaoLegalDias, dias_indenizados: r.diasProjetadosIndenizados,
     regra_versao: REGRA_VERSAO, avisos, usou_escala: excecoes.length > 0,
     saldo_banco_minutos: b.saldo_banco_minutos ?? 0, folgas_compensatorias: simulacao.folgasAceitas,
-    saldo_residual_minutos: simulacao.saldoResidualMinutos, limite_sem_banco: base.ultimoComparecimento, simulacao, base_simulacao: base, diagnostico_escala: diagnostico,
+    saldo_residual_minutos: simulacao.saldoResidualMinutos, limite_sem_banco: base.ultimoComparecimento, extrato_aviso: extratoAviso(simulacao), simulacao, base_simulacao: base, diagnostico_escala: diagnostico,
   };
   return { resultado: { ...resultado, termino_passado: efetiva < hoje, prazo_vencido: r.prazoQuitacao < hoje } };
 }

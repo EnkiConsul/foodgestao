@@ -28,6 +28,7 @@ import { sanitizeStorageFilename } from "@/lib/storage";
 import { DP_DOCUMENTOS_BUCKET } from "@/lib/documentoArquivo";
 import { registrarDocumento } from "@/lib/dp/documentos-oficial";
 import { Paperclip, X } from "lucide-react";
+import { ExtratoAviso, type ExtratoAvisoDados } from "./ExtratoAviso";
 
 /**
  * Desligamento na ficha: Registrar → Aviso em andamento → Desligado + pendências.
@@ -43,6 +44,7 @@ type Resultado = {
   termino_passado?: boolean; prazo_vencido?: boolean;
   diagnostico_escala?: DiagnosticoEscalaAviso | null; saldo_residual_minutos?: number;
   limite_sem_banco?: string | null;
+  extrato_aviso?: ExtratoAvisoDados | null;
 };
 type Processo = Resultado & {
   id: string; status: string; motivo: string; revisao_motivo: string | null; comunicacao_confirmada_em: string | null;
@@ -82,11 +84,11 @@ async function chamar(body: Record<string, unknown>) {
 }
 
 export function DatasDesligamento({ r, gestor = true }: {
-  r: Pick<Resultado, "ultimo_comparecimento" | "dispensado_desde" | "prazo_10_dias" | "base_quitacao"> & { sugestao_pagamento?: string | null; sem_aviso?: boolean; data_efetiva?: string };
+  r: Pick<Resultado, "ultimo_comparecimento" | "dispensado_desde" | "prazo_10_dias" | "base_quitacao"> & { sugestao_pagamento?: string | null; sem_aviso?: boolean; data_efetiva?: string; data_comunicacao?: string; extrato_aviso?: ExtratoAvisoDados | null };
   gestor?: boolean;
 }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
+    <div className="space-y-3"><div className="grid gap-3 sm:grid-cols-3">
       <Card className="border-primary"><CardContent className="space-y-1 py-4">
         <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><CalendarCheck className="h-4 w-4" /> {r.sem_aviso ? "Término do vínculo" : "Último dia de trabalho"}</p>
         {r.sem_aviso
@@ -104,13 +106,13 @@ export function DatasDesligamento({ r, gestor = true }: {
       <Card className="border-primary"><CardContent className="space-y-1 py-4">
         <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><Wallet className="h-4 w-4" /> Prazo para pagamento da rescisão</p>
         <p className="text-2xl font-bold" data-testid="aviso-prazo">{br(r.prazo_10_dias)} <span className="text-sm font-normal">({semana(r.prazo_10_dias)})</span></p>
-        <p className="text-xs text-muted-foreground">10º dia corrido contado de {br(r.base_quitacao)}.</p>
+        <p className="text-xs text-muted-foreground">Até 10 dias corridos após {br(r.base_quitacao)} (Art. 477, §6º, CLT). Prazo para pagamento e entrega dos documentos rescisórios.</p>
         {gestor && r.prazo_10_dias < hojeIsoLocal() && (
           <p className="text-xs font-medium text-destructive" data-testid="aviso-prazo-vencido">Este prazo já passou.</p>)}
         {gestor && r.sugestao_pagamento && r.sugestao_pagamento !== r.prazo_10_dias && (
           <p className="text-xs text-muted-foreground" data-testid="aviso-sugestao">Sugestão para a empresa: pagar até {br(r.sugestao_pagamento)} ({semana(r.sugestao_pagamento)}), último dia útil antes do prazo.</p>)}
       </CardContent></Card>
-    </div>
+    </div><ExtratoAviso extrato={r.extrato_aviso} comunicacao={r.data_comunicacao} ultimo={r.ultimo_comparecimento} /></div>
   );
 }
 

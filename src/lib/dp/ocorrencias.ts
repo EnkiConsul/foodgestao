@@ -139,6 +139,8 @@ export function ocorrenciaDeFolga(o: { folga_id?: string | null; troca_id?: stri
 }
 
 export function rotuloTipoOcorrencia(o: { tipo: OcorrenciaTipo; troca_id?: string | null; subtipo?: string | null }): string {
+  if (o.subtipo === "dispensa_aviso_art488") return "Dispensa do aviso (Art. 488)";
+  if (o.subtipo === "banco_horas_aviso") return "Folga compensatória do aviso";
   if (o.subtipo === "compensacao_feriado") return "Compensação de feriado";
   if (o.subtipo === "folga_extra") return "Folga extra autorizada";
   if (o.subtipo === "troca_trabalho") return "Trabalho por troca de folga";
@@ -156,7 +158,7 @@ export function resumoOperacional(o: {
   subtipo?: string | null;
 }): string {
   const hora = (v: string | null) => (v ? v.slice(0, 5) : "");
-  if (ocorrenciaDeFolga(o)) return rotuloTipoOcorrencia(o);
+  if (ocorrenciaDeFolga(o) || o.subtipo === "dispensa_aviso_art488") return rotuloTipoOcorrencia(o);
   switch (o.tipo) {
     case "previsao_atraso":
       return `Atraso previsto ~${o.minutos ?? 0} min`;
@@ -267,6 +269,7 @@ export function textoErroOcorrencia(message?: string | null): string {
  * tomar — a diretriz para o ponto é abonar o dia com o atestado.
  */
 export function tratativaJaDecididaPorAtestado(o: {
+  subtipo?: string | null;
   tipo: string;
   origem?: string | null;
   analise_status?: string | null;
@@ -275,6 +278,7 @@ export function tratativaJaDecididaPorAtestado(o: {
   troca_id?: string | null;
 }): boolean {
   return (
+    o.subtipo !== "dispensa_aviso_art488" &&
     !ocorrenciaDeFolga(o) &&
     o.tipo === "ausencia_justificada" &&
     o.origem === "sistema" &&
@@ -317,6 +321,7 @@ export const DIRETRIZ_LABEL: Record<DiretrizPonto, string> = {
 /** O que o gestor deve fazer no sistema de ponto com esta ocorrência. */
 export function diretrizPonto(o: Parameters<typeof tratativaPendente>[0]): DiretrizPonto | null {
   if (o.estado === "cancelada") return null;
+  if (o.subtipo === "dispensa_aviso_art488") return "abonar";
   if (ocorrenciaDeFolga(o)) return o.subtipo === "troca_trabalho" ? "ajustar" : "abonar";
   if (tratativaJaDecididaPorAtestado(o)) return "abonar";
   if (o.estado === "aguardando_confirmacao" || TIPOS_PREVISAO.includes(o.tipo as OcorrenciaTipo)) return "decidir";
