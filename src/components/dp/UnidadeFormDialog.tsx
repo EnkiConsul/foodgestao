@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { UnidadeTabsBar } from "@/components/dp/unidades/UnidadeTabsBar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useUpsertDpUnidade, type DpUnidade } from "@/hooks/useDpCadastros";
@@ -409,15 +410,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
           onValueChange={(v) => setAba(v as UnidadeAba)}
           className="flex min-h-0 min-w-0 flex-1 flex-col gap-0"
         >
-          <div className="min-w-0 max-w-full shrink-0 overflow-x-auto overflow-y-hidden border-b px-4 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <TabsList className="flex h-auto min-h-12 w-max min-w-full shrink-0 justify-start sm:flex sm:w-full">
-              <TabsTrigger value="dados" className="h-11 shrink-0 px-3 sm:flex-1 sm:px-2">Dados</TabsTrigger>
-              <TabsTrigger value="setores" className="h-11 shrink-0 px-3 sm:flex-1 sm:px-2">Setores</TabsTrigger>
-              <TabsTrigger value="funcionamento" className="h-11 shrink-0 px-3 sm:flex-1 sm:px-2">Funcionamento</TabsTrigger>
-              <TabsTrigger value="feriados" className="h-11 shrink-0 px-3 sm:flex-1 sm:px-2">Feriados</TabsTrigger>
-              <TabsTrigger value="sindicato" className="h-11 shrink-0 px-3 sm:flex-1 sm:px-2">Sindicato</TabsTrigger>
-            </TabsList>
-          </div>
+          <UnidadeTabsBar value={aba} />
         <TabsContent value="dados" className="mt-0 min-h-0 min-w-0 w-full flex-1 space-y-4 overflow-y-auto overflow-x-hidden overscroll-contain p-4 [&_input]:min-w-0 [&_input]:max-w-full [&_input]:min-h-11 [&_input]:text-base [&_textarea]:text-base [&_button[role=combobox]]:min-h-11 [&_button[role=combobox]]:min-w-0 [&_button[role=combobox]>span]:truncate">
           <div className="space-y-2">
             <Label>Empresa vinculada *</Label>

@@ -21,6 +21,7 @@ import {
   descricaoRegra, ehFeriadoLocal, faltaFeriadoLocal, feriadosDoAno, type FeriadoRegra,
 } from "@/lib/dp/feriados";
 import { ordenarFeriadosCadastro } from "@/lib/dp/feriados-ordenacao";
+import { nomeFeriado, resumoFeriados } from "@/lib/dp/feriados-apresentacao";
 import { dataDoFeriadoNoAno } from "@/lib/dp/feriados";
 import { FeriadoFormDialog } from "@/components/dp/unidades/FeriadoFormDialog";
 import { ReplicarFeriadosDialog } from "@/components/dp/unidades/ReplicarFeriadosDialog";
@@ -77,6 +78,7 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
 
   const ordenados = useMemo(() => ordenarFeriadosCadastro(feriados, Number(ano)), [feriados, ano]);
   const doAno = useMemo(() => feriadosDoAno(feriados, Number(ano)), [feriados, ano]);
+  const resumo = resumoFeriados(feriados, Number(ano));
 
   if (!unidadeId) {
     return (
@@ -90,7 +92,10 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
     <div className="min-w-0 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="text-sm font-medium">Feriados desta unidade</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-medium">Feriados desta unidade</p>
+            {!isLoading && <Badge variant="secondary">{resumo.cadastrados} {resumo.cadastrados === 1 ? "cadastrado" : "cadastrados"}{resumo.ativos !== resumo.cadastrados && ` • ${resumo.ativos} ativos`}</Badge>}
+          </div>
           <p className="text-xs text-muted-foreground">
             Usados nas férias e na rotina. Cada unidade tem o seu próprio calendário.
           </p>
@@ -149,7 +154,7 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
             <li key={f.id} className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start gap-2 p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
               <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
               <div className="min-w-0 flex-1">
-                <p className="break-words text-sm font-medium">{f.nome}</p>
+                <p className="break-words text-sm font-medium">{nomeFeriado(f)}</p>
                 <p className="mt-1 whitespace-nowrap text-sm font-medium tabular-nums">{dataDoFeriadoNoAno(f, Number(ano)) ? fmt(dataDoFeriadoNoAno(f, Number(ano)) ?? "") : f.tipo === "especifica" && f.data ? fmt(f.data) : `Sem ocorrência em ${ano}`}</p>
                 <p className="mt-1 break-words text-xs text-muted-foreground">{descricaoRegra(f)}</p>
               </div>
@@ -164,7 +169,7 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
                 size="icon"
                 className="h-11 w-11 shrink-0"
                 variant="ghost"
-                aria-label={`Editar ${f.nome}`}
+                aria-label={`Editar ${nomeFeriado(f)}`}
                 onClick={() => { setEditando(f); setOpen(true); }}
               >
                 <Pencil className="h-4 w-4" />
@@ -173,7 +178,7 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
                 size="icon"
                 className="h-11 w-11 shrink-0"
                 variant="ghost"
-                aria-label={`Remover ${f.nome}`}
+                aria-label={`Remover ${nomeFeriado(f)}`}
                 onClick={() => excluir.mutate(f.id)}
               >
                 <Trash2 className="h-4 w-4 text-destructive" />
@@ -186,7 +191,10 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
 
       <div className="space-y-2 rounded-xl border p-3">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-medium">Feriados de {ano}</p>
+          <div className="min-w-0">
+            <p className="text-sm font-medium">Feriados de {ano}</p>
+            {!isLoading && <p className="text-xs text-muted-foreground">{resumo.noAno} {resumo.noAno === 1 ? "feriado" : "feriados"} em {ano}</p>}
+          </div>
           <Select value={ano} onValueChange={setAno}>
             <SelectTrigger className="h-11 w-28 shrink-0"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -203,7 +211,7 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
             {doAno.map((f) => (
               <li key={`${f.regraId}-${f.data}`} className="grid grid-cols-[7rem_minmax(0,1fr)] items-start gap-2 py-1 text-sm">
                 <span className="whitespace-nowrap tabular-nums text-muted-foreground">{fmt(f.data)}</span>
-                <span className="break-words">{f.nome}</span>
+                <span className="break-words">{f.nome.replace(/sexta-feira santa/gi, "Sexta-feira da Paixão")}</span>
               </li>
             ))}
           </ul>
@@ -216,14 +224,14 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
             <AlertDialogTitle>Incluir feriados</AlertDialogTitle>
             <AlertDialogDescription>
               Os nove feriados nacionais de data fixa serão incluídos, sem duplicar os já cadastrados.
-              Sexta-feira Santa depende de lei municipal; não é feriado nacional automático.
+              Sexta-feira da Paixão depende de lei municipal; não é feriado nacional automático.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <label className="flex min-h-11 cursor-pointer items-start gap-3 py-2 text-sm">
             <Checkbox className="mt-0.5" checked={incluirSextaSanta}
               disabled={incluirNacionais.isPending}
               onCheckedChange={(value) => setIncluirSextaSanta(value === true)} />
-            <span className="min-w-0 break-words">Incluir também Sexta-feira Santa nesta unidade, conforme a legislação local</span>
+            <span className="min-w-0 break-words">Incluir também Sexta-feira da Paixão nesta unidade, conforme a legislação local</span>
           </label>
           <AlertDialogFooter>
             <AlertDialogCancel className="min-h-11" disabled={incluirNacionais.isPending}>Cancelar</AlertDialogCancel>
