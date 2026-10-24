@@ -1,6 +1,6 @@
 import { CondicoesDesligamento as Condicoes, SEM_AVISO, SEM_AVISO_ASSISTIDO, type CondicoesValor } from "./CondicoesDesligamento";
 export type { CondicoesValor } from "./CondicoesDesligamento";
-import { BancoDesligamento, saldoDesligamento } from "./BancoDesligamento";
+import { BancoDesligamento, saldoDesligamento, simularBancoSobreCalendario } from "./BancoDesligamento";
 import type { ResultadoDesligamento } from "@/lib/dp/compensacao/desligamentoMotor";
 import { ehDispensaCumprimento } from "@/lib/dp/compensacao/desligamentoMotor";
 import { useState, type ReactNode } from "react";
@@ -254,9 +254,9 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
   );
 
   const Banco = !SEM_AVISO.has(cond.motivo) && cond.modalidade === "trabalhado" && <BancoDesligamento
-    texto={saldoTxt} unidade={saldoUnidade} horasDia={horasDia} folgas={folgas} base={baseCalendario} resultado={calendario}
+    texto={saldoTxt} unidade={saldoUnidade} horasDia={horasDia} folgas={folgas} base={baseCalendario} resultado={baseCalendario && saldo.minutos !== null ? simularBancoSobreCalendario(baseCalendario, saldo.minutos, folgas) : calendario}
     set={(v) => { if (v.texto !== undefined) setSaldoTxt(v.texto); if (v.unidade) setSaldoUnidade(v.unidade); if (v.horasDia !== undefined) setHorasDia(v.horasDia); setFolgas([]); setCalendario(null); setBaseCalendario(null); limpar(); }}
-    onFolgas={(datas) => { setFolgas(datas); setCalendario(null); limpar(); }} />;
+    onFolgas={(datas) => { setFolgas(datas); limpar(); }} />;
 
   if (proc.isLoading) return <p className="text-sm text-muted-foreground">Carregando…</p>;
   if (proc.isError) return <Alert variant="destructive"><AlertDescription>Não foi possível carregar o desligamento.</AlertDescription></Alert>;
@@ -330,7 +330,7 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
         <div className="space-y-3 rounded-md border p-3">
           <Condicoes v={cond} set={setCond} comMotivo={false} />
           {Banco}
-          <Button size="sm" disabled={carregando} onClick={() => calcular({ acao: "alterar", processo_id: p.id, idempotency_key: chave, previa: true })}>Calcular novas datas</Button>
+          <Button size="sm" disabled={carregando || saldo.minutos === null} onClick={() => calcular({ acao: "alterar", processo_id: p.id, idempotency_key: chave, previa: true })}>Calcular novas datas</Button>
           {Msg}
           {previa && <>
             <DatasDesligamento r={previa} />
