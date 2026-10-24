@@ -1,6 +1,6 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 
-- [ ] Facilitar a inclusão de Sexta-feira Santa junto aos nacionais mediante seleção local explícita; validar sem gravar feriados reais e sem publicar.
+- [x] Facilitar a inclusão de Sexta-feira Santa junto aos nacionais mediante seleção local explícita; 24 testes passaram, janela conferida em 320/407/1280 e gravação/leitura simuladas com conta autenticada. Sem gravar feriados reais ou publicar.
 
 - [x] Revisar a classificação legal dos feriados móveis: Sexta-feira Santa permanece local/opcional (Lei 9.093/1995, art. 2º), não adicionada aos nacionais; consulta de pendências inclui codigo_movel e teste de exceção por data alinhado. 66 testes passaram e build OK; sem publicação ou alteração de dados reais.
 
