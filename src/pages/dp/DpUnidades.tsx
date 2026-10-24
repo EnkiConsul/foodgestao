@@ -58,6 +58,8 @@ export default function DpUnidades() {
   const [abaForm, setAbaForm] = useState<UnidadeAba>("dados");
   const [editing, setEditing] = useState<DpUnidadeWithCounts | null>(null);
   const [toDelete, setToDelete] = useState<DpUnidadeWithCounts | null>(null);
+  const [toDeactivate, setToDeactivate] = useState<DpUnidadeWithCounts | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "ativa" | "inativa">("all");
 
@@ -119,12 +121,36 @@ export default function DpUnidades() {
     setToDelete(null);
   };
 
-  const handleToggle = async (u: DpUnidadeWithCounts) => {
+  const aplicarToggle = async (u: DpUnidadeWithCounts, ativo: boolean) => {
+    if (togglingId) return;
+    setTogglingId(u.id);
     try {
-      await toggle.mutateAsync({ id: u.id, ativo: !u.ativo });
+      await toggle.mutateAsync({ id: u.id, ativo });
+      toast.success(ativo ? `Unidade "${u.nome}" ativada` : `Unidade "${u.nome}" desativada`);
     } catch (e) {
       toast.error("Erro ao atualizar status", { description: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setTogglingId(null);
     }
+  };
+
+  /**
+   * Ativar é imediato; desativar exige confirmação, pois retira a unidade
+   * da rotina da loja, das escalas e das pendências operacionais.
+   */
+  const handleToggle = (u: DpUnidadeWithCounts) => {
+    if (u.ativo) {
+      setToDeactivate(u);
+      return;
+    }
+    void aplicarToggle(u, true);
+  };
+
+  const confirmarDesativacao = async () => {
+    if (!toDeactivate) return;
+    const u = toDeactivate;
+    setToDeactivate(null);
+    await aplicarToggle(u, false);
   };
 
   const rows = useMemo(() => {
@@ -239,8 +265,13 @@ export default function DpUnidades() {
                       </button>
                     )}
                   </td>
-                  <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
-                    <Switch checked={u.ativo} onCheckedChange={() => handleToggle(u)} />
+                  <td className="p-4 text-center" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+                    <Switch
+                      checked={u.ativo}
+                      disabled={togglingId === u.id}
+                      aria-label={u.ativo ? `Desativar unidade ${u.nome}` : `Ativar unidade ${u.nome}`}
+                      onCheckedChange={() => handleToggle(u)}
+                    />
                   </td>
                   <td className="p-4 text-right whitespace-nowrap">
                     <div className="flex justify-end gap-1">
@@ -306,8 +337,17 @@ export default function DpUnidades() {
                   <span className="line-clamp-2">{resumos[u.id] ?? "Funcionamento não configurado"}</span>
                 </div>
               </div>
-              <div onClick={(e) => e.stopPropagation()}>
-                <Switch checked={u.ativo} onCheckedChange={() => handleToggle(u)} />
+              <div
+                className="-m-2 flex min-h-11 min-w-11 items-center justify-center p-2"
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <Switch
+                  checked={u.ativo}
+                  disabled={togglingId === u.id}
+                  aria-label={u.ativo ? `Desativar unidade ${u.nome}` : `Ativar unidade ${u.nome}`}
+                  onCheckedChange={() => handleToggle(u)}
+                />
               </div>
             </div>
             <div className="flex flex-wrap gap-1.5 text-[11px]">
@@ -437,6 +477,23 @@ export default function DpUnidades() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Remover</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmação de desativação: evita toque acidental no switch */}
+      <AlertDialog open={!!toDeactivate} onOpenChange={(o) => !o && setToDeactivate(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desativar unidade "{toDeactivate?.nome}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A unidade sairá da rotina da loja, das escalas e das pendências operacionais.
+              Os cadastros e o histórico são preservados e você pode reativar a qualquer momento.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmarDesativacao} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Desativar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
