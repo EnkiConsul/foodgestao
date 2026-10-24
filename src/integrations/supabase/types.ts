@@ -19792,6 +19792,10 @@ export type Database = {
         Args: { p_colab: string; p_data: string }
         Returns: undefined
       }
+      dp_desligamento_folgas_pos_trabalho: {
+        Args: { p_ator: string; p_id: string }
+        Returns: undefined
+      }
       dp_desligamento_limite_agenda: {
         Args: { p_colab: string }
         Returns: string

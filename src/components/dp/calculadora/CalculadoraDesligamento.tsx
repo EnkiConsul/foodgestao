@@ -152,10 +152,10 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
   const r = sim && !("erro" in sim) ? sim : null;
   const b = base && !("erro" in base) ? base : null;
   useEffect(() => {
-    if (b && saldoMin && saldoMin > 0) setFolgas(concentrarNoFinal(b, saldoMin));
-    // Recompute when the input calendar changes, not after manual selection.
+    // Informing a balance always groups it at the end, automatically.
+    setFolgas(b && saldoMin && saldoMin > 0 ? concentrarNoFinal(b, saldoMin) : []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(params)]);
+  }, [JSON.stringify(params), saldoMin]);
 
   const alternar = (d: string) => setFolgas((fs) => (fs.includes(d) ? fs.filter((x) => x !== d) : [...fs, d].sort()));
 
@@ -209,7 +209,7 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
         )}
 
         {comJornadas && <Card><CardContent className="pt-4">
-          <BancoDesligamento texto={saldoTxt} unidade={saldoUnidade} horasDia={horasDia} planejamento base={b} folgas={folgas}
+          <BancoDesligamento texto={saldoTxt} unidade={saldoUnidade} horasDia={horasDia} planejamento base={b} resultado={r} folgas={folgas}
             set={(v) => { if (v.texto !== undefined) setSaldoTxt(v.texto); if (v.unidade) setSaldoUnidade(v.unidade); if (v.horasDia !== undefined) setHorasDia(v.horasDia); setFolgas([]); }} onFolgas={setFolgas} />
         </CardContent></Card>}
 

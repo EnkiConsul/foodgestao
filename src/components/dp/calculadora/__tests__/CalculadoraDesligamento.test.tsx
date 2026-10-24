@@ -51,7 +51,7 @@ describe("Saldo do banco de horas na aba Desligamento", () => {
     saldo("0");
     expect(screen.queryByRole("alert")).toBeNull();
     expect(ultimo()).toContain("31/10/2026");
-    expect((screen.getByText("Concentrar no final") as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByText("Concentrar no final")).toBeNull();
   });
 });
 
@@ -104,7 +104,6 @@ describe("Aba Desligamento", () => {
     render(<CalculadoraDesligamento />);
     preencher();
     fireEvent.change(screen.getByLabelText("Saldo do banco de horas"), { target: { value: "14" } });
-    fireEvent.click(screen.getByText("Concentrar no final"));
     // 31/10 (2h) + 30/10 (6h) + 29/10 (6h) = 14h
     expect(ultimo()).toContain("28/10/2026");
     const cen = screen.getByText("Com compensação").parentElement;

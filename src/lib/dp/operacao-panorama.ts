@@ -1236,3 +1236,23 @@ export function ehSobDemanda(regime?: string | null, formaPagamento?: string | n
   if (regime === "freelancer") return String(formaPagamento ?? "").toLowerCase() !== "mensalista";
   return false;
 }
+
+/** ISO date minus one day (UTC-safe). */
+export function diaAnterior(iso: string): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Last day a person appears on the store schedule: the earlier of the contract end and the
+ * last attendance of a termination notice (bank grouping included). After it they simply
+ * leave the schedule — never shown as "out of operation".
+ */
+export function ultimoDiaNaEscala(dataDesligamento: string | null | undefined, ultimoComparecimento: string | null | undefined): string | null {
+  const a = dataDesligamento ?? null;
+  const b = ultimoComparecimento ?? null;
+  if (!a) return b;
+  if (!b) return a;
+  return a < b ? a : b;
+}

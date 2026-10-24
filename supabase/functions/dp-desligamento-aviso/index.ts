@@ -229,15 +229,31 @@ async function calcular(admin: any, c: Colab, b: Cond, previa = false, processoI
       const ex = excecoes.find((e) => e.data === d.data);
       return ex ? ex.minutos === 0 : semana[new Date(`${d.data}T00:00:00Z`).getUTCDay()] === 0;
     }).map((d) => d.data);
-    diagnostico = diagnosticarEscalaAviso(base, regra, folgasAgenda, confirmados);
+    // Rests already taken earlier in the same civil month (before the communication) count.
+    const inicioMes = `${b.data_comunicacao.slice(0, 7)}-01`;
+    const [{ data: flAnt, error: errAnt }, { data: escAnt, error: errEscAnt }] = await Promise.all([
+      admin.from("dp_folgas").select("data").eq("colaborador_id", c.id).eq("company_id", c.company_id)
+        .in("status", ["agendada", "realizada"]).gte("data", inicioMes).lte("data", b.data_comunicacao),
+      admin.from("dp_escala_itens").select("data, tipo, escala:dp_escalas!inner(status)").eq("colaborador_id", c.id).eq("company_id", c.company_id)
+        .eq("escala.status", "publicada").gte("data", inicioMes).lte("data", b.data_comunicacao),
+    ]);
+    if (errAnt || errEscAnt) return revisao("Não foi possível conferir as folgas já tiradas no mês. Tente novamente.");
+    const escalaAnt = (escAnt ?? []) as { data: string; tipo: string }[];
+    const anteriores = new Set<string>((flAnt ?? []).map((f: { data: string }) => f.data));
+    for (const it of escalaAnt) if (it.tipo !== "trabalho") anteriores.add(it.data);
+    for (let d = inicioMes; d <= b.data_comunicacao; d = somar(d, 1)) {
+      if (semana[new Date(`${d}T00:00:00Z`).getUTCDay()] === 0 && !escalaAnt.some((it) => it.data === d && it.tipo === "trabalho")) anteriores.add(d);
+    }
+    diagnostico = diagnosticarEscalaAviso(base, regra, folgasAgenda, confirmados, [...anteriores]);
     }
   }
-  const datasBanco = diagnostico && !diagnostico.apto ? [] : b.concentrar_final ? concentrarBancoNoFinal(base, b.saldo_banco_minutos ?? 0) : b.folgas_compensatorias ?? [];
+  // Informing a bank balance on termination means grouping it at the end; manual rests go in the calendar.
+  const datasBanco = (b.saldo_banco_minutos ?? 0) > 0 ? concentrarBancoNoFinal(base, b.saldo_banco_minutos ?? 0) : [];
   const simulacao = simularDesligamento({ dataAdmissao: String(c.data_admissao).slice(0, 10), dataComunicacao: b.data_comunicacao, motivo: b.motivo, modalidade: b.modalidade, reducao: b.modalidade === "trabalhado" ? b.reducao ?? null : null, dataTerminoAcordada: pedidoDispensado ? b.data_termino_acordada ?? null : null, descontarAviso: pedidoDispensado ? b.descontar_aviso : undefined, jornadaSemanal: semana, excecoesJornada: excecoes, feriados, saldoBancoMinutos: b.saldo_banco_minutos ?? 0, folgasCompensatorias: datasBanco });
   if ("erro" in simulacao) return { resp: json(400, { error: simulacao.erro }) };
   if (simulacao.folgasRejeitadas.length) return { resp: json(400, { error: "Há folgas incompatíveis com o período, a jornada ou o saldo. Revise as datas escolhidas." }) };
-  if (!previa && diagnostico && !diagnostico.apto && (b.saldo_banco_minutos ?? 0) > 0)
-    return revisao("Revise as folgas no calendário antes de compensar o banco de horas.");
+  if (!previa && diagnostico && !diagnostico.apto)
+    return revisao(diagnostico.pendencias[0] ?? "É necessário remarcar a folga dominical antes de confirmar.");
   const efetiva = r.dataEfetiva;
   const avisos = [...r.avisos];
   if (folgasConsideradas.length)
@@ -307,6 +323,9 @@ Deno.serve(async (req) => {
       const { avisos: _a, usou_escala: _u, simulacao: _s, base_simulacao: _bs, diagnostico_escala: _de, termino_passado, prazo_vencido: _pv, ...gravar } = resultado;
       const { data, error } = await admin.rpc("dp_desligamento_registrar_aviso", { p: { ...gravar, colaborador_id: c.id, idempotency_key: b.idempotency_key, ator: user.id } });
       if (error) return json(409, { error: error.message });
+      // No work after the last attendance: later scheduled rests are simply removed.
+      const novoId = (data as { id?: string })?.id;
+      if (novoId) await admin.rpc("dp_desligamento_folgas_pos_trabalho", { p_id: novoId, p_ator: user.id });
       // Registro tardio: o término já passou, então efetiva agora pelo mesmo
       // processo do robô diário (idempotente; confere férias e cadastro).
       let efetivado = false;
@@ -371,6 +390,7 @@ Deno.serve(async (req) => {
       p: { ...resto, ...extra, acao, processo_id, idempotency_key, ator: user.id },
     });
     if (error) return json(409, { error: error.message });
+    if (acao === "alterar") await admin.rpc("dp_desligamento_folgas_pos_trabalho", { p_id: proc.id, p_ator: user.id });
     const alertas = await alertarAgora(proc.id);
     return json(200, { ok: true, ...(data as Record<string, unknown>), alertas });
   } catch (_e) {

@@ -39,7 +39,6 @@ export function MeuDesligamentoCard() {
         </p>
       </div>
       <DatasDesligamento r={d} gestor={false} />
-      <p className="text-sm">Término do vínculo: <strong>{br(d.data_efetiva)}</strong>. Essa data não muda com a compensação de horas.</p>
       {d.status !== "desligado" && <p className="text-xs text-muted-foreground">O comparecimento com compensação é uma previsão e pode mudar após trocas de folga ou atualização do saldo pela empresa. Confira as datas com o gestor.</p>}
       <div className="text-sm">
         Pagamento da rescisão: <strong>{PAG[d.pagamento_status]}</strong>
