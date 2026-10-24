@@ -589,11 +589,6 @@ export default function DpMeuDocumentos() {
         mime={preview?.mime_type ?? undefined}
         somenteReciboVinculado={!preview?.meta?.comprovante}
         comprovanteDocumentoId={preview?.origem === "dp" && (preview?.meta?.comprovante || preview?.meta?.recibo_id) ? String(preview.meta?.originalId ?? preview.id) : null}
-        acaoRodape={preview?.aceite === false ? (
-          <Button size="sm" onClick={() => { const d = preview; setPreview(null); setAssinando(d); }}>
-            <PenLine className="h-4 w-4 mr-1" /> Assinar documento
-          </Button>
-        ) : undefined}
       />
 
       {/* Comprovante e certificado abrem aqui mesmo: no celular, outra aba é bloqueada. */}
