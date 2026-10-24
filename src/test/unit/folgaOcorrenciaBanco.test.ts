@@ -1,3 +1,4 @@
+// @vitest-environment node
 // Runs the actual migration against an isolated in-memory PostgreSQL database.
 import { readFileSync } from "node:fs";
 import { Blob as NodeBlob } from "node:buffer";
