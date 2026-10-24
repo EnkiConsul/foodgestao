@@ -229,7 +229,14 @@ export function DocumentoAssinarViewer({
                 </div>
               ) : (
                 Array.from({ length: paginas }, (_, i) => i + 1).map((n) => (
-                  <div key={n} className="mb-4">
+                  <div
+                    key={n}
+                    className="mb-4 scroll-mt-2"
+                    ref={(el) => {
+                      if (el) paginaRefs.current.set(n, el);
+                      else paginaRefs.current.delete(n);
+                    }}
+                  >
                     <PaginaPdf doc={pdfDoc} numero={n} zoom={zoom} largura={larguraPagina} />
                     {precisaRubrica && (
                       <div className="mt-1.5 flex items-center justify-center">
