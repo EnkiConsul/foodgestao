@@ -39,11 +39,11 @@ import { asoLiberaContabilidade, BASES_LEGAIS_DISPENSA, type AsoDados } from "@/
 import { efetivacaoDisponivel, inicioJornadaAdmissao } from "@/lib/dp/admissao-fluxo";
 import { ColaboradorDocumentosPanel } from "@/components/dp/documentos/ColaboradorDocumentosPanel";
 import { documentoPorVinculo } from "@/lib/dp/vinculo-documento";
-import { abrirAsoPreadmissao, linkDocumentoPreadmissao, enviarDocumentoGestor } from "@/hooks/dp/useDpPreadmissoes";
+import { abrirAsoPreadmissao, linkDocumentoPreadmissao, enviarDocumentoGestor, relerDocumentoGestor } from "@/hooks/dp/useDpPreadmissoes";
 import { ArquivoVisualizadorDialog, baixarBlob, buscarBlob, type ArquivoCarregado } from "@/components/dp/documentos/ArquivoVisualizadorDialog";
 import { ImagemEnquadrarDialog } from "@/components/dp/documentos/ImagemEnquadrarDialog";
 import { faltaVerso, nomeArquivoPacote } from "@/lib/dp/documentoPartes";
-import { Pencil, Replace } from "lucide-react";
+import { Pencil, Replace, ScanText } from "lucide-react";
 
 /** Ordem da conferência guiada do gestor (abas da ficha). */
 const ABAS_CONFERENCIA: Array<{ aba: string; rotulo: string }> = [
@@ -796,6 +796,35 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
       notifyError(e as Error, { surface: "Pessoas 360°", action: "abrir a foto para ajuste" });
     }
   };
+  const LEITURA = new Set(["identidade", "comprovante_endereco", "ctps", "titulo_eleitor", "reservista"]);
+  const [relendo, setRelendo] = useState<string | null>(null);
+  /** Relê o documento e preenche só campos vazios da ficha (nunca nome/CPF). */
+  const relerDados = async (codigo: string) => {
+    if (!data) return;
+    setRelendo(codigo);
+    try {
+      const r = await relerDocumentoGestor(data.preadmissao.id, codigo);
+      const novos = Object.entries(r.campos ?? {})
+        .filter(([k, v]) => k !== "nome" && k !== "cpf" && !!v && k in ficha && !String(ficha[k] ?? "").trim())
+        .map(([k]) => k);
+      if (novos.length) {
+        setFicha((f) => {
+          const prox = { ...f };
+          for (const k of novos) if (!String(f[k] ?? "").trim()) prox[k] = CAIXA_ALTA.has(k as CampoFicha) ? String(r.campos[k]).toUpperCase() : r.campos[k];
+          return prox;
+        });
+        toast.success(`Preenchemos ${novos.length} ${novos.length === 1 ? "campo vazio" : "campos vazios"} da ficha. Confira e salve.`);
+      } else if (r.indisponivel) {
+        toast.info("A leitura automática não está disponível agora.");
+      } else {
+        toast.info("Nenhum dado novo encontrado. Os campos já preenchidos foram mantidos.");
+      }
+    } catch (e) {
+      notifyError(e as Error, { surface: "Pessoas 360°", action: "reler o documento" });
+    } finally {
+      setRelendo(null);
+    }
+  };
   const ehImagem = (d: { mime_type?: string | null; file_name: string }) =>
     (d.mime_type ?? "").startsWith("image/") || /\.(jpe?g|png|webp)$/i.test(d.file_name);
 
@@ -1530,6 +1559,11 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                         {ehImagem(d) && (
                           <Button size="sm" variant="ghost" aria-label="Editar enquadramento" disabled={gravandoDoc} onClick={() => void abrirEnquadramento(d)}>
                             <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {!d.pessoa_id && LEITURA.has(d.requisito_codigo) && (
+                          <Button size="sm" variant="ghost" aria-label="Reler dados do documento" title="Reler dados do documento" disabled={relendo === d.requisito_codigo} onClick={() => void relerDados(d.requisito_codigo)}>
+                            {relendo === d.requisito_codigo ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanText className="h-4 w-4" />}
                           </Button>
                         )}
                         <Button size="sm" variant="ghost" aria-label="Substituir arquivo" disabled={gravandoDoc}
