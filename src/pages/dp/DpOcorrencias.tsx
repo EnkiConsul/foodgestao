@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { tratativaPendente, diretrizPonto, DIRETRIZ_LABEL, TIPO_LABEL as TIPO_LABEL_D, type DiretrizPonto } from "@/lib/dp/ocorrencias";
+import { tratativaPendente, diretrizPonto, DIRETRIZ_LABEL, rotuloTipoOcorrencia, type DiretrizPonto } from "@/lib/dp/ocorrencias";
 import { Helmet } from "react-helmet-async";
 import { useEffect, useMemo, useState } from "react";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -387,7 +387,7 @@ export default function DpOcorrencias() {
       linhas.push("", `${DIRETRIZ_LABEL[d].toUpperCase()} (${itens.length})`);
       for (const o of itens) {
         const [, m, dd] = o.data_operacional.split("-");
-        linhas.push(`- ${dd}/${m} · ${o.colaborador?.nome ?? "Colaborador"} · ${TIPO_LABEL_D[o.tipo]}${o.minutos ? ` · ${o.minutos} min` : ""}`);
+        linhas.push(`- ${dd}/${m} · ${o.colaborador?.nome ?? "Colaborador"} · ${rotuloTipoOcorrencia(o)}${o.minutos ? ` · ${o.minutos} min` : ""}`);
       }
     }
     try { await navigator.clipboard.writeText(linhas.join("\n")); toast.success("Resumo copiado. Cole no WhatsApp ou e-mail."); }

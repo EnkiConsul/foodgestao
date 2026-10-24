@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { TIPO_LABEL } from "@/lib/dp/ocorrencias";
+import { rotuloTipoOcorrencia, ocorrenciaDeFolga } from "@/lib/dp/ocorrencias";
 import { resumoTratativa } from "@/lib/dp/ocorrencia-resumo";
 import type { Ocorrencia } from "@/hooks/useDpOcorrencias";
 
@@ -44,7 +44,7 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, on
           <div className="rounded-md border border-border p-3">
             <p className="text-sm font-medium">{r.titulo}</p>
             <p className="mt-1 text-lg font-semibold tabular-nums">
-              {r.batida ?? TIPO_LABEL[ocorrencia.tipo]}
+              {r.batida ?? rotuloTipoOcorrencia(ocorrencia)}
               {r.horario ? ` às ${r.horario}` : ""}
               {r.previsto && (
                 <span className="ml-2 text-sm font-normal text-muted-foreground">(previsto {r.previsto})</span>
@@ -80,7 +80,7 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, on
             Pedir ajuste do ponto
           </Button>
           <Button disabled={saving} onClick={() => onSubmit({ decisao: "confirmada", observacao })}>
-            {r.horario ? `Aceitar ${r.horario}` : "Aceitar"}
+            {ocorrenciaDeFolga(ocorrencia) ? "Confirmar justificativa" : r.horario ? `Aceitar ${r.horario}` : "Aceitar"}
           </Button>
         </DialogFooter>
       </DialogContent>
