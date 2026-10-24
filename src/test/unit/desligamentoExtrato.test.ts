@@ -14,3 +14,9 @@ it("dispensa exige tratativa de abono mesmo já analisada", () => {
   const o = { tipo:"ausencia_justificada",estado:"confirmada",origem:"sistema",analise_status:"analisada",impacta_assiduidade:"nao",tratativa_ponto:true,tratativa_status:"pendente",subtipo:"dispensa_aviso_art488" };
   expect(tratativaPendente(o)).toBe(true); expect(diretrizPonto(o)).toBe("abonar");
 });
+it("feriado sem expediente de 02/11 não duplica os sete dias nem gera abono", () => {
+  const r = simularDesligamento({ dataAdmissao: "2026-01-01", dataComunicacao: "2026-10-07", motivo: "dispensa_sem_justa_causa", modalidade: "trabalhado", reducao: "sete_dias", jornadaSemanal: [420,420,0,420,420,420,420], feriados:["2026-11-02"] });
+  if ("erro" in r) throw new Error(r.erro);
+  expect(extratoAviso(r).dias_art488).toEqual(["2026-10-31","2026-11-01","2026-11-04","2026-11-05","2026-11-06"]);
+  expect(extratoAviso(r).dias_sem_expediente).toContain("2026-11-02");
+});

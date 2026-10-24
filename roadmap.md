@@ -1,14 +1,14 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 
-- [ ] Corrigir persistência da folha de ponto, unificar etapas da admissão e retornar ao topo ao trocar abas.
-- [ ] Gerar justificativas do Art. 488 vinculadas ao processo, sem duplicar DSR, com cancelamento e proteção dos impactos.
-- [ ] Exibir extrato de datas e descansos no desligamento e portal, sem saldo residual, com etapas e fundamentos legais; validar com dados fictícios sem publicar.
+- [x] Corrigir persistência da folha de ponto, unificar etapas da admissão e retornar ao topo ao trocar abas. Gravações simuladas no navegador autenticado em computador/celular preservaram a ficha real; etapa continua em revisão e avanço vai ao topo.
+- [x] Gerar justificativas do Art. 488 vinculadas ao processo, sem duplicar DSR/feriado, com cancelamento e proteção dos impactos. Migrações 0148–0151 e funções implantadas. Sincronização auditada de Rosângela gerou cinco abonos (31/10, 01/11, 04–06/11) e identificou quatro folgas bancárias; 02/11 é feriado sem expediente e 03/11 DSR. Datas, saldo e vínculo preservados.
+- [x] Exibir extrato de datas e descansos no desligamento e portal, sem saldo residual, com contagem do aviso e Arts. 477/488. Extrato lido de volta na ficha autenticada; portal usa os mesmos dados persistidos e componente, sem sessão de colaborador para conferência. Testes isolados e build OK; interface não publicada.
 
 - [x] Corrigir herança do setor na ativação e o setor já escolhido da Verônica na ficha e nos dias de trabalho, preservando exceções. Migração 0147 aplicada; correção aprovada auditada; Verônica conferida na rotina da Pakerê em PIZZARIA.
 - [x] Identificar colaboradores nos alertas de desligamento, corrigir o aviso existente da Thais e abrir diretamente a aba Desligamento. 46 testes com dados fictícios passaram; aviso real e abertura da ficha autenticada conferidos sem salvar nem marcar leitura real. Build OK; interface não publicada.
 
 - [x] Preparar revisão de folgas pela regra resolvida antes do banco, atalho ao mês sem gravação automática, concentração terminal em dias inteiros sem negativo, comparação de datas e saldo residual. 93 testes passaram; calculadora autenticada conferida em 1280/407, sem gravações reais; build OK. Função do servidor alterada somente na fonte, não implantada.
-- [ ] Disponibilizar e validar registro e projeção do aviso no servidor: aguarda autorização de implantação/publicação. Portal mantém a última data confirmada e explica seu caráter estimado; ainda não recebe a projeção dinâmica. Registros antigos não têm referência original sem banco e não recebem data inventada. Fluxo oficial não exercitado com colaboradores reais por restrição do usuário.
+- [x] Disponibilizar e validar projeção do aviso no servidor: função implantada e previsão da Rosângela conferida em leitura, preservando datas legais. Portal mantém a última data confirmada, não projeção dinâmica; abertura real de novo desligamento não foi usada como teste.
 
 - [x] Unificar planejamento e registro de desligamento: condições e banco compartilhados, saldo em horas/dias, concentração no final, transferência de saldo/folgas e confirmação oficial atômica com recálculo. 61 testes passaram; fluxo autenticado calculadora → ficha → confirmação validado com cadastro e resposta fictícios, sem gravar colaboradores reais; build OK. Interface não publicada; registro real não exercitado por restrição do usuário.
 

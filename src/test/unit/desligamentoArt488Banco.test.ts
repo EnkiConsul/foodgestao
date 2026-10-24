@@ -27,7 +27,11 @@ beforeAll(async()=>{ await db.exec(`    CREATE ROLE anon; CREATE ROLE authentica
  `);
  await db.exec(readFileSync("drizzle/migrations/0137_folgas_trocas_justificativas_vinculadas.sql","utf8"));
  await db.exec(readFileSync("drizzle/migrations/0148_aviso_extrato_ocorrencias_art488_ponto_admissao.sql","utf8"));
- await db.exec(`INSERT INTO dp_desligamento_processos VALUES('${id}','00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000002','aviso_em_curso','sete_dias','trabalhado','dispensa_sem_justa_causa','2026-10-08','2026-11-06',NULL)`);
+ await db.exec(`ALTER TABLE dp_desligamento_processos ADD COLUMN versao integer DEFAULT 1, ADD COLUMN folgas_compensatorias jsonb DEFAULT '[]';
+ CREATE FUNCTION is_company_admin_or_owner(uuid,uuid) RETURNS boolean LANGUAGE sql AS 'SELECT true';
+ CREATE TABLE dp_desligamento_eventos(id bigint GENERATED ALWAYS AS IDENTITY,processo_id uuid,company_id uuid,tipo text CHECK(tipo IN ('revisao')),idempotency_key text UNIQUE,versao_processo integer,depois jsonb,ator uuid);`);
+ for (const file of ["0149_aviso_extrato_sincronizacao_auditada.sql", "0150_aviso_extrato_preservar_protecao_origem.sql", "0151_aviso_evento_extrato_compativel.sql"]) await db.exec(readFileSync(`drizzle/migrations/${file}`,"utf8"));
+ await db.exec(`INSERT INTO dp_desligamento_processos(id,company_id,colaborador_id,status,reducao,modalidade,motivo,inicio_aviso,data_efetiva) VALUES('${id}','00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000002','aviso_em_curso','sete_dias','trabalhado','dispensa_sem_justa_causa','2026-10-08','2026-11-06')`);
 },30000);
 afterAll(()=>db.close());
 const payload=(dias:string[])=>JSON.stringify({extrato_aviso:{dias_art488:dias,periodo_reducao:{inicio:'2026-10-31',fim:'2026-11-06'}}});
@@ -37,6 +41,11 @@ it('gera seis abonos idempotentes, sem DSR e com impactos protegidos',async()=>{
  await db.query('select dp_desligamento_banco_aplicar($1,$2::jsonb)',[id,payload(dias)]);
  expect((await db.query('select count(*)::int n from dp_ocorrencias')).rows).toEqual([{n:6}]);
  expect((await db.query("select * from dp_ocorrencias where data_operacional='2026-11-03'")).rows).toHaveLength(0);
+ const sync=JSON.stringify({versao:1,extrato_aviso:{dias_art488:dias,folgas_compensatorias:[],periodo_reducao:{inicio:'2026-10-31',fim:'2026-11-06'}}});
+ await db.query('select dp_desligamento_extrato_sincronizar($1,$2::jsonb)',[id,sync]);
+ await db.query('select dp_desligamento_extrato_sincronizar($1,$2::jsonb)',[id,sync]);
+ expect((await db.query('select count(*)::int n from dp_desligamento_eventos')).rows).toEqual([{n:1}]);
+ await expect(db.query('select dp_desligamento_extrato_sincronizar($1,$2::jsonb)',[id,JSON.stringify({...JSON.parse(sync),versao:0})])).rejects.toThrow('Aviso alterado');
  await db.exec("update dp_ocorrencias set impacta_assiduidade='sim',impacta_ferias='sim',assiduidade_risco=true");
  expect((await db.query("select distinct impacta_assiduidade,impacta_ferias,assiduidade_risco,tratativa_status from dp_ocorrencias")).rows).toEqual([{impacta_assiduidade:'nao',impacta_ferias:'nao',assiduidade_risco:false,tratativa_status:'pendente'}]);
  await expect(db.exec("update dp_ocorrencias set data_operacional='2026-11-07'")).rejects.toThrow('Altere o processo');
