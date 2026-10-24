@@ -563,9 +563,9 @@ export default function DpColaboradores() {
             {resumoAdmissao(c)}
             <div className="font-mono text-[11px] text-muted-foreground">{c.cpf ?? "—"}</div>
             <div className="mt-1 flex flex-wrap gap-1">
-              <Badge variant="outline" className="h-4 px-1 text-[10px] border-primary/30 text-primary bg-primary/5">
+              {!c.admissao && <Badge variant="outline" className="h-4 px-1 text-[10px] border-primary/30 text-primary bg-primary/5">
                 {c.admissao || (c.origem_cadastro === "preadmissao_rotina" && c.ativo) ? "Aguardando admissão" : vinculoLabel(c)}
-              </Badge>
+              </Badge>}
               {c.ativo && !c.admissao && (
 <CadastroIncompletoBadge faltando={faltantesDe(c)} className="h-4 px-1 text-[10px]" onCompletar={(aba) => abrirCadastro(c, aba)} />
 )}
@@ -1056,9 +1056,9 @@ export default function DpColaboradores() {
                           Desligado {fmtDate(c.data_desligamento)}
                         </Badge>
                       )}
-                      <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5 text-[11px]">
+                      {!c.admissao && <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5 text-[11px]">
                         {c.admissao || (c.origem_cadastro === "preadmissao_rotina" && c.ativo) ? "Aguardando admissão" : vinculoLabel(c)}
-                      </Badge>
+                      </Badge>}
                       <Badge
                         variant="outline"
                         className={
