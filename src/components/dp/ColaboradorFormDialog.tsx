@@ -15,6 +15,7 @@ import {
 } from "@/lib/dp/admissao-rascunho";
 
 import { toast } from "sonner";
+import { salvarAntesDeAvancar } from "@/lib/dp/admissao-fluxo";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -275,6 +276,11 @@ export interface ModoAdmissao {
   abaPedida?: { aba: string; n: number } | null;
   somenteLeitura?: boolean;
   salvando?: boolean;
+  /** Finaliza a conferência somente depois do salvamento do formulário. */
+  onFinalizar?: () => Promise<void>;
+  podeFinalizar?: boolean;
+  inicioLoja?: string;
+  edicaoExtra?: string;
   onSalvar: (e: SalvarAdmissaoEntrada) => Promise<void>;
 }
 
@@ -373,6 +379,8 @@ export function ColaboradorFormDialog({
   }, [admissao?.abaPedida?.n]);
   /** Intenção do botão acionado: continuar na tela, avançar de aba ou sair. */
   const intencaoRef = useRef<IntencaoSalvar>("stay");
+  const admissaoSubmitRef = useRef(false);
+  const [salvandoAdmissao, setSalvandoAdmissao] = useState(false);
   /** Marco do último estado gravado — base para detectar alterações pendentes. */
   const [baseline, setBaseline] = useState<string | null>(null);
   /** Muda a cada carregamento do colaborador para renovar o marco acima. */
@@ -729,7 +737,7 @@ export function ColaboradorFormDialog({
 
     // Acesso vive na aba Dados (âncora); desligamento tem aba própria.
     const ancora = abaInicial === "acesso" ? "acesso-portal" : null;
-    setTab(ancora ? "dados" : (abaInicial as AbaVisivel));
+    if (!admissao || admissaoResetRef.current === null) setTab(ancora ? "dados" : (abaInicial as AbaVisivel));
     if (ancora) {
       window.setTimeout(() => {
         contentRef.current
@@ -742,7 +750,7 @@ export function ColaboradorFormDialog({
     // Ficha em admissão: limpa só uma vez por candidato. Recarregar a lista de
     // benefícios depois não pode apagar o que o candidato já preencheu.
     if (!colaborador && admissao) {
-      if (admissaoResetRef.current === admissao.chave) return;
+      if (admissaoResetRef.current === admissao.chave || admissaoSubmitRef.current) return;
       admissaoResetRef.current = admissao.chave;
     } else {
       admissaoResetRef.current = null;
@@ -1376,7 +1384,7 @@ export function ColaboradorFormDialog({
 
 
   /** Estado atual das abas, usado para detectar alterações não salvas. */
-  const snapshot = JSON.stringify({ form, rem });
+  const snapshot = JSON.stringify({ form, rem, endereco, pagamento, extra: admissao?.edicaoExtra });
   const dirty = baseline !== null && snapshot !== baseline;
 
   /** Pendências resumidas por aba, exibidas como indicador nos TabsTrigger. */
@@ -1457,7 +1465,7 @@ export function ColaboradorFormDialog({
 
   /** Sincroniza o marco de "sem alterações" após carregar o colaborador. */
   useEffect(() => {
-    setBaseline(JSON.stringify({ form, rem }));
+    setBaseline(JSON.stringify({ form, rem, endereco, pagamento, extra: admissao?.edicaoExtra }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetKey]);
 
@@ -1508,6 +1516,7 @@ export function ColaboradorFormDialog({
 
   /** Fecha o diálogo conferindo alterações pendentes. */
   const tentarFechar = () => {
+    if (admissaoSubmitRef.current || admissao?.salvando) return;
     if (dirty) { setConfirmarSaida(true); return; }
     onOpenChange(false);
   };
@@ -1748,21 +1757,28 @@ export function ColaboradorFormDialog({
     // Admissão: grava na ficha da pré-admissão; o servidor revalida tudo e o
     // cadastro oficial só nasce na efetivação, depois do retorno da contabilidade.
     if (admissao) {
-      if (admissao.somenteLeitura) return;
+      if (admissao.somenteLeitura || admissaoSubmitRef.current) return;
+      admissaoSubmitRef.current = true;
+      setSalvandoAdmissao(true);
       try {
-        await admissao.onSalvar({
+        await salvarAntesDeAvancar(() => admissao.onSalvar({
           form: form as unknown as Record<string, unknown>,
           endereco, pagamento, rem,
           jornada: jornadaAdmissaoRef.current,
-        });
-        setBaseline(null);
-        setResetKey((k) => k + 1);
-        if (alvo === "stay") {
+        }), () => {
+          setBaseline(snapshot);
           const prox = abaSeguinte(tab);
-          if (prox) setTab(prox);
+          if (alvo === "stay" && prox) { setTab(prox); admissao.onAbaChange?.(prox); }
+        });
+        if (alvo === "close") onOpenChange(false);
+        else if (!abaSeguinte(tab)) {
+          await admissao.onFinalizar?.();
         }
       } catch (e) {
         toast.error("Erro ao salvar", { description: mensagemErro(e) });
+      } finally {
+        admissaoSubmitRef.current = false;
+        setSalvandoAdmissao(false);
       }
       return;
     }
@@ -3161,6 +3177,7 @@ export function ColaboradorFormDialog({
                 domingos_folga_mes: domingosFolgaMes,
               }}
               active={tab === "jornada"}
+              inicioLoja={admissao?.inicioLoja}
               showSaveButton={false}
               onRegistrarSalvar={(fn) => { jornadaSalvarRef.current = fn; }}
               horarioFicha={(() => {
@@ -3417,7 +3434,7 @@ export function ColaboradorFormDialog({
               : ""}
           </p>
           <div className={admissao
-            ? "order-1 grid w-full grid-cols-1 gap-2 sm:order-2 sm:flex sm:w-auto sm:items-center [&>button]:w-full sm:[&>button]:w-auto"
+            ? "order-1 flex w-full min-w-0 items-center gap-2 sm:order-2 sm:w-auto"
             : "order-1 flex w-full items-center gap-2 sm:order-2 sm:w-auto"}>
             <Button
               variant="ghost"
@@ -3434,9 +3451,9 @@ export function ColaboradorFormDialog({
                   <Button
                     className="h-11 flex-1 sm:h-10 sm:flex-none"
                     onClick={() => void submit("stay")}
-                    disabled={admissao.salvando}
+                    disabled={admissao.salvando || salvandoAdmissao || (!abaSeguinte(tab) && admissao.podeFinalizar === false)}
                   >
-                    {admissao.salvando ? "Salvando..." : "Salvar Ficha"}
+                    {admissao.salvando || salvandoAdmissao ? "Salvando..." : abaSeguinte(tab) ? "Salvar e Avançar" : "Salvar e Finalizar"}
                   </Button>
                 )}
               </>
