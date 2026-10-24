@@ -512,7 +512,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const isClt = regimeAtual === "clt" || regimeAtual === "intermitente";
   const statusAtual = data?.preadmissao?.status as string | undefined;
   const podeEfetivar = efetivacaoDisponivel(regimeAtual, statusAtual ?? "", asoLiberaContabilidade((pa?.admin_dados?.aso ?? null) as AsoDados | null), !!pa?.ficha_oficial_conferida_em);
-  const efetivarDireto = async (confirmado: boolean) => {
+  const efetivarDireto = async () => {
     const id = data?.preadmissao?.id;
     if (!id || !podeEfetivar || efetivando) return;
     setEfetivando(true);
@@ -520,7 +520,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
       const { data: res, error } = await supabase.rpc("dp_preadmissao_efetivar_direto", {
         p_preadmissao_id: id,
         p_data_admissao: admin.data_admissao || undefined,
-        p_confirmo_sem_ficha: confirmado,
+        p_confirmo_sem_ficha: false,
       });
       if (error) throw error;
       toast.success("Colaborador efetivado com os dados, documentos e dependentes da pré-admissão.");
@@ -1281,7 +1281,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void efetivarDireto(false)}>Confirmar e Efetivar</AlertDialogAction>
+            <AlertDialogAction onClick={() => void efetivarDireto()}>Confirmar e Efetivar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1733,7 +1733,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
           onFinalizar: finalizarConferencia,
           podeFinalizar: !emConferencia || podeAprovar,
           inicioLoja: inicioJornadaAdmissao(rotinaInfo?.iniciou_em || dataInicioRotina, admin.data_admissao),
-          edicaoExtra: JSON.stringify({ pessoas, ficha, admin }),
+          edicaoExtra: JSON.stringify({ pessoas }),
         }}
       />
       <AlertDialog open={proximoPasso} onOpenChange={setProximoPasso}>
