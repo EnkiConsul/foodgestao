@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-const rpc = vi.fn(async () => ({ data: "id-1", error: null }));
+const rpc = vi.fn(async (..._a: unknown[]) => ({ data: "id-1", error: null }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: (...a: unknown[]) => rpc(...a) } }));
 import { __resetErrorLogState, ehFalhaDeRede, reportError } from "@/lib/errorLog";
 
