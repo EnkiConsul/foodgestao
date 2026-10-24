@@ -1,0 +1,70 @@
+// Runs the actual migration against an isolated in-memory PostgreSQL database.
+import { readFileSync } from "node:fs";
+import { PGlite } from "@electric-sql/pglite";
+import { beforeAll, afterAll, describe, expect, it } from "vitest";
+
+const db = new PGlite();
+const company = "00000000-0000-4000-8000-000000000001";
+const person = "00000000-0000-4000-8000-000000000002";
+const colleague = "00000000-0000-4000-8000-000000000003";
+
+beforeAll(async () => {
+  await db.exec(`
+    CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;
+    CREATE SCHEMA private; CREATE SCHEMA auth;
+    CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS 'SELECT NULL::uuid';
+    CREATE TABLE dp_colaboradores(id uuid PRIMARY KEY, company_id uuid, unidade_id uuid, setor_id uuid);
+    CREATE TABLE dp_solicitacoes(id uuid PRIMARY KEY, company_id uuid, colaborador_id uuid, tipo text, status text, removido_em timestamptz, data_alvo date, data_fim date, motivo text);
+    CREATE TABLE dp_trocas(id uuid PRIMARY KEY, company_id uuid, solicitante_id uuid, destino_id uuid, data_original date, data_proposta date, status text);
+    CREATE TABLE dp_folgas(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), company_id uuid, colaborador_id uuid, data date, tipo text DEFAULT 'normal', origem text, status text DEFAULT 'agendada', extra boolean DEFAULT false, direito_origem text, observacao text);
+    CREATE TABLE dp_ocorrencias(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), company_id uuid, colaborador_id uuid, unidade_id uuid, setor_id uuid, data_operacional date, tipo text, estado text, origem text, justificativa_inicial text, impacta_assiduidade text, impacta_ferias text, analise_status text, analisado_em timestamptz, analisado_por uuid, relevancia_operacional boolean, assiduidade_risco boolean, assiduidade_risco_motivo text, tratativa_ponto boolean, tratativa_status text, solicitacao_id uuid, troca_id uuid, cancelado_em timestamptz, cancelado_por uuid, motivo_cancelamento text, marcacao_alvo text);
+    CREATE UNIQUE INDEX idx_dp_ocorrencias_dedup ON dp_ocorrencias(colaborador_id,data_operacional,tipo) WHERE estado<>'cancelada' AND marcacao_alvo IS NULL;
+    INSERT INTO dp_colaboradores(id,company_id) VALUES ('${person}','${company}'),('${colleague}','${company}');
+  `);
+  await db.exec(readFileSync("drizzle/migrations/0137_folgas_trocas_justificativas_vinculadas.sql", "utf8"));
+  await db.exec(`CREATE TRIGGER dp_troca_ocorrencias_aiu AFTER INSERT OR UPDATE OF status ON dp_trocas FOR EACH ROW EXECUTE FUNCTION private.dp_troca_ocorrencias_trg();`);
+}, 30000);
+afterAll(() => db.close());
+
+describe.sequential("geração transacional de justificativas", () => {
+  it("folga semanal habitual não gera ocorrência", async () => {
+    await db.exec(`INSERT INTO dp_folgas(company_id,colaborador_id,data) VALUES('${company}','${person}','2026-10-01')`);
+    expect((await db.query("SELECT * FROM dp_ocorrencias WHERE data_operacional='2026-10-01'")).rows).toHaveLength(0);
+  });
+  it.each([['folga_extra', 'Folga extra autorizada'], ['compensacao_feriado', 'Folga compensatória autorizada']])("%s gera abono pendente, não duplica e protege assiduidade/férias", async (subtipo, observacao) => {
+    const dia = subtipo === 'folga_extra' ? '2026-10-02' : '2026-10-03';
+    const f = await db.query<{id:string}>(`INSERT INTO dp_folgas(company_id,colaborador_id,data,extra,observacao) VALUES($1,$2,$3,true,$4) RETURNING id`, [company,person,dia,observacao]);
+    const fid = f.rows[0]?.id;
+    await db.query(`SELECT private.dp_folga_ocorrencia($1,NULL,NULL)`,[fid]);
+    await db.query(`UPDATE dp_ocorrencias SET impacta_assiduidade='sim',impacta_ferias='sim',assiduidade_risco=true WHERE folga_id=$1`,[fid]);
+    const rows = (await db.query(`SELECT subtipo,impacta_assiduidade,impacta_ferias,assiduidade_risco,analise_status,tratativa_ponto,tratativa_status FROM dp_ocorrencias WHERE folga_id=$1`,[fid])).rows;
+    expect(rows).toEqual([{subtipo,impacta_assiduidade:'nao',impacta_ferias:'nao',assiduidade_risco:false,analise_status:'analisada',tratativa_ponto:true,tratativa_status:'pendente'}]);
+    await db.query(`UPDATE dp_folgas SET status='cancelada' WHERE id=$1`,[fid]);
+    expect((await db.query(`SELECT estado FROM dp_ocorrencias WHERE folga_id=$1`,[fid])).rows).toEqual([{estado:'cancelada'}]);
+  });
+  it("pedido pendente não gera justificativa, aprovação liga pedido e folga, cancelamento cancela evidência", async () => {
+    const sid='00000000-0000-4000-8000-000000000010';
+    await db.exec(`INSERT INTO dp_solicitacoes VALUES('${sid}','${company}','${person}','folga','pendente',NULL,'2026-10-04',NULL,'Compensação de feriado trabalhado')`);
+    expect((await db.query(`SELECT * FROM dp_ocorrencias WHERE solicitacao_id=$1`,[sid])).rows).toHaveLength(0);
+    await db.exec(`INSERT INTO dp_folgas(company_id,colaborador_id,data,extra,observacao) VALUES('${company}','${person}','2026-10-04',true,'Folga compensatória autorizada'); UPDATE dp_solicitacoes SET status='aprovada' WHERE id='${sid}';`);
+    expect((await db.query(`SELECT subtipo FROM dp_ocorrencias WHERE solicitacao_id=$1 AND folga_id IS NOT NULL`,[sid])).rows).toEqual([{subtipo:'compensacao_feriado'}]);
+    await db.exec(`UPDATE dp_solicitacoes SET status='cancelada' WHERE id='${sid}'`);
+    expect((await db.query(`SELECT estado FROM dp_ocorrencias WHERE solicitacao_id=$1`,[sid])).rows).toEqual([{estado:'cancelada'}]);
+  });
+  it("troca fixa deslocada gera justificativa, exclusão cancela antes de perder o vínculo", async () => {
+    const f=await db.query<{id:string}>(`INSERT INTO dp_folgas(company_id,colaborador_id,data,direito_origem) VALUES($1,$2,'2026-10-05','folga_fixa_deslocada') RETURNING id`,[company,person]);
+    const fid=f.rows[0]?.id;
+    const o=await db.query<{id:string}>(`SELECT id FROM dp_ocorrencias WHERE folga_id=$1`,[fid]);
+    expect(o.rows).toHaveLength(1);
+    await db.query(`DELETE FROM dp_folgas WHERE id=$1`,[fid]);
+    expect((await db.query(`SELECT estado FROM dp_ocorrencias WHERE id=$1`,[o.rows[0]?.id])).rows).toEqual([{estado:'cancelada'}]);
+  });
+  it("troca entre colegas justifica dois dias ausentes e dois trabalhados; cancelar retira as quatro evidências", async () => {
+    const tid='00000000-0000-4000-8000-000000000020';
+    await db.exec(`INSERT INTO dp_trocas VALUES('${tid}','${company}','${person}','${colleague}','2026-10-06','2026-10-07','pendente_gestor'); INSERT INTO dp_folgas(company_id,colaborador_id,data,observacao) VALUES('${company}','${person}','2026-10-07','Troca aprovada (id=${tid})'),('${company}','${colleague}','2026-10-06','Troca aprovada (id=${tid})'); UPDATE dp_trocas SET status='aprovada' WHERE id='${tid}';`);
+    const rows=(await db.query(`SELECT subtipo,count(*)::int total FROM dp_ocorrencias WHERE troca_id=$1 GROUP BY subtipo ORDER BY subtipo`,[tid])).rows;
+    expect(rows).toEqual([{subtipo:'troca_folga',total:2},{subtipo:'troca_trabalho',total:2}]);
+    await db.exec(`UPDATE dp_trocas SET status='cancelada' WHERE id='${tid}'`);
+    expect((await db.query(`SELECT * FROM dp_ocorrencias WHERE troca_id=$1 AND estado<>'cancelada'`,[tid])).rows).toHaveLength(0);
+  });
+});
