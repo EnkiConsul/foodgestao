@@ -253,9 +253,10 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
                             "max-w-[140px] truncate rounded-full border px-2 py-0.5 text-[10px] font-medium",
                             tagColors[o.type],
                           )}
-                          title={o.colaboradorNome}
+                          title={`${o.colaboradorNome} · ${o.rotulo ?? o.origin}`}
                         >
                           {o.colaboradorNome.split(" ")[0]}
+                          {o.extra && o.rotulo?.startsWith("Folga compensatória") && " · Compensatória"}
                         </span>
                       ))}
                     </div>
@@ -381,6 +382,7 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
                       title={`${o.colaboradorNome} · ${o.origin}`}
                     >
                       {o.colaboradorNome.split(" ")[0]}
+                      {o.extra && o.rotulo?.startsWith("Folga compensatória") && " · Compensatória"}
                     </span>
                   ))}
                   {c.occupants.length > 4 && (

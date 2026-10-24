@@ -140,8 +140,9 @@ export function ocorrenciaDeFolga(o: { folga_id?: string | null; troca_id?: stri
 
 export function rotuloTipoOcorrencia(o: { tipo: OcorrenciaTipo; troca_id?: string | null; subtipo?: string | null }): string {
   if (o.subtipo === "dispensa_aviso_art488") return "Dispensa do aviso (Art. 488)";
-  if (o.subtipo === "banco_horas_aviso") return "Folga compensatória do aviso";
-  if (o.subtipo === "compensacao_feriado") return "Compensação de feriado";
+  if (o.subtipo === "banco_horas_aviso") return "Folga compensatória (banco no aviso)";
+  if (o.subtipo === "compensacao_feriado") return "Folga compensatória (feriado)";
+  if (o.subtipo === "folga_compensatoria") return "Folga compensatória";
   if (o.subtipo === "folga_extra") return "Folga extra autorizada";
   if (o.subtipo === "troca_trabalho") return "Trabalho por troca de folga";
   return o.troca_id || o.subtipo === "troca_folga" ? "Troca de folga" : TIPO_LABEL[o.tipo];

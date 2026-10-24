@@ -151,7 +151,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
             .gte("data_fim", janelaInicio),
           supabase
             .from("dp_folgas")
-            .select("colaborador_id, data, tipo, extra, status, origem")
+            .select("id, colaborador_id, data, tipo, extra, status, origem, direito_origem")
             .eq("company_id", selectedCompanyId!)
             .neq("status", "cancelada")
             .gte("data", janelaInicio)
@@ -227,7 +227,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           supabase
             .from("dp_ocorrencias")
             .select(
-              "id, colaborador_id, data_operacional, tipo, estado, minutos, horario_estimado, horario_real, unidade_id, folga_id, troca_id",
+              "id, colaborador_id, data_operacional, tipo, subtipo, estado, minutos, horario_estimado, horario_real, unidade_id, folga_id, troca_id",
             )
             .eq("company_id", selectedCompanyId!)
             .gte("data_operacional", janelaInicio)
@@ -615,6 +615,8 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
       tipo: f.tipo,
       extra: f.extra,
       origem: (f as { origem?: string | null }).origem ?? null,
+      direito_origem: f.direito_origem,
+      subtipo: base.data?.ocorrencias.find((o) => o.folga_id === f.id)?.subtipo ?? null,
     }));
     const jaTem = new Set(efetivadas.map((f) => `${f.colaborador_id}|${f.data}`));
     // Pedido de folga aprovado ainda não efetivado também tira a pessoa da escala.

@@ -383,7 +383,7 @@ export default function DpMeuCalendario() {
 
 
   const folgasQuery = useQuery({
-    queryKey: ["dp_folgas_meu_cal", companyId, ano, mes],
+    queryKey: ["dp_folgas_meu_cal", companyId, ano, mes, meRef.data?.id],
     enabled: !!companyId,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -395,7 +395,13 @@ export default function DpMeuCalendario() {
         .gte("data", range.start)
         .lte("data", range.end);
       if (error) throw error;
-      return data ?? [];
+      if (!companyId || !meRef.data?.id) return data ?? [];
+      const evidencias = await supabase.from("dp_ocorrencias").select("folga_id, subtipo")
+        .eq("company_id", companyId).eq("colaborador_id", meRef.data.id)
+        .gte("data_operacional", range.start).lte("data_operacional", range.end)
+        .not("estado", "eq", "cancelada");
+      if (evidencias.error) throw evidencias.error;
+      return (data ?? []).map((f) => ({ ...f, subtipo: evidencias.data?.find((o) => o.folga_id === f.id)?.subtipo ?? null }));
     },
   });
 
@@ -1885,7 +1891,7 @@ export default function DpMeuCalendario() {
                 >
                   <span className="truncate">
                     {isMe ? "Minha folga" : primeiroNomeCal(o.colaboradorNome)}
-                    {o.extra ? " · Extra" : ""}
+                    {o.extra ? ` · ${o.rotulo ?? "Folga extra autorizada"}` : ""}
                   </span>
                 </span>,
               );

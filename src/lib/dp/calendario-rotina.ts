@@ -41,7 +41,7 @@ export interface AusenciaCalendario {
 
 /** Ausências do dia visíveis com os filtros ativos, ordenadas por tipo e nome. */
 export function ausenciasVisiveis(
-  pessoas: (Pick<PessoaPanorama, "colaborador_id" | "nome" | "categoria"> & Partial<Pick<PessoaPanorama, "folga_troca" | "folga_fixa_dows">>)[],
+   pessoas: (Pick<PessoaPanorama, "colaborador_id" | "nome" | "categoria"> & Partial<Pick<PessoaPanorama, "folga_troca" | "folga_fixa_dows" | "folga_rotulo">>)[],
   ativos: TipoAusenciaCalendario[],
 ): AusenciaCalendario[] {
   const set = new Set(ativos);
@@ -53,7 +53,7 @@ export function ausenciasVisiveis(
     const k = `${p.colaborador_id}:${tipo}`;
     if (vistos.has(k)) continue;
     vistos.add(k);
-    out.push({ colaborador_id: p.colaborador_id, nome: p.nome, tipo, troca: !!p.folga_troca, folga_fixa_dows: p.folga_fixa_dows });
+    out.push({ colaborador_id: p.colaborador_id, nome: p.nome, tipo, troca: !!p.folga_troca, folga_fixa_dows: p.folga_fixa_dows, rotulo: p.folga_rotulo });
   }
   return out.sort(
     (a, b) => TIPOS_AUSENCIA.indexOf(a.tipo) - TIPOS_AUSENCIA.indexOf(b.tipo) || a.nome.localeCompare(b.nome, "pt-BR"),

@@ -1,4 +1,7 @@
 import { DOCUMENTOS_PESSOAIS } from "@/lib/dp/documentos-pessoais";
+import { useDpDesligamentosAgenda } from "@/hooks/useDpDesligamentosAgenda";
+import { avisoEmAndamento } from "@/lib/dp/desligamento-apresentacao";
+import { DesligamentoResumo } from "@/components/dp/DesligamentoResumo";
 import { FotoColaborador } from "@/components/dp/FotoColaborador";
 import { useMemo, useRef } from "react";
 import { Printer } from "lucide-react";
@@ -168,6 +171,8 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
 
   const perfil = (colaborador as any)?.perfil_acesso as string | null;
   const isDesligado = !!colaborador?.data_desligamento;
+  const agendaDesligamentos = useDpDesligamentosAgenda();
+  const avisoAtual = agendaDesligamentos.data?.find((p) => p.colaborador_id === colaborador?.id && avisoEmAndamento(p.status));
   // Só RH/dono conseguem ler: para o colaborador a consulta volta vazia.
   const ressalvas = useDpDesligamentoRessalvas(colaborador?.id);
 
@@ -452,6 +457,7 @@ ul{list-style:none;padding:0;margin:0}li{border-bottom:1px solid #ddd;padding:4p
 
 
         <div ref={corpoRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-6 pt-4">
+          {avisoAtual && <DesligamentoResumo processo={avisoAtual} />}
           {faltandoFicha.length > 0 && (
             <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
               <p className="text-sm font-medium text-amber-600 dark:text-amber-400">

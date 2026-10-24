@@ -1,5 +1,9 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 
+- [x] Unificar apresentação de folgas compensatórias na ficha, rotina e portal sem mudar os registros. Rosângela e Karen conferidas no dossiê autenticado; portal atualizado sem sessão de colaborador para conferência.
+- [x] Destacar aviso prévio e abrir as datas do processo pela lista e pelo dossiê. Filtro, lista, celular e acesso à aba de desligamento conferidos em leitura.
+- [x] Mostrar prazo legal da rescisão no calendário operacional/Início com card por colaborador. Marcador de 16/11 e card da Rosângela conferidos no calendário e detalhe do dia; atalho abriu processo. Sem publicação ou gravações reais.
+
 - [x] Corrigir persistência da folha de ponto, unificar etapas da admissão e retornar ao topo ao trocar abas. Gravações simuladas no navegador autenticado em computador/celular preservaram a ficha real; etapa continua em revisão e avanço vai ao topo.
 - [x] Gerar justificativas do Art. 488 vinculadas ao processo, sem duplicar DSR/feriado, com cancelamento e proteção dos impactos. Migrações 0148–0151 e funções implantadas. Sincronização auditada de Rosângela gerou cinco abonos (31/10, 01/11, 04–06/11) e identificou quatro folgas bancárias; 02/11 é feriado sem expediente e 03/11 DSR. Datas, saldo e vínculo preservados.
 - [x] Exibir extrato de datas e descansos no desligamento e portal, sem saldo residual, com contagem do aviso e Arts. 477/488. Extrato lido de volta na ficha autenticada; portal usa os mesmos dados persistidos e componente, sem sessão de colaborador para conferência. Testes isolados e build OK; interface não publicada.

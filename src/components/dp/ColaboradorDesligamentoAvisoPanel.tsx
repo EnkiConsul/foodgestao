@@ -164,7 +164,7 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
       return r.corpo.resultado as Resultado;
     },
   });
-  const recarregar = () => { void qc.invalidateQueries({ queryKey: ["dp_desligamento_processo", colaboradorId] }); void qc.invalidateQueries({ queryKey: ["dp_desligamento_projecao", colaboradorId] }); };
+  const recarregar = () => { void qc.invalidateQueries({ queryKey: ["dp_desligamento_processo", colaboradorId] }); void qc.invalidateQueries({ queryKey: ["dp_desligamento_projecao", colaboradorId] }); void qc.invalidateQueries({ queryKey: ["dp_desligamentos_agenda"] }); };
 
   const [cond, setCondState] = useState<CondicoesValor>({
     motivo: rascunho?.motivo ?? "dispensa_sem_justa_causa",
