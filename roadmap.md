@@ -1,5 +1,7 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 
+- [ ] Integrar folga extra, compensação de feriado e trocas às justificativas em Ocorrências, com rastreabilidade, cancelamento e testes sem alterar colaboradores reais; sem publicação.
+
 - [x] Corrigir Rotina da Loja: respeitar folgas e afastamentos aprovados, faltas confirmadas e trabalho por troca em todos os caminhos.
 - [x] Validar sem alterar registros reais: 69 testes focados passaram; gestor autenticado abriu solicitações e rotina do dia 23/10 sem erro. Aprovação real e portal de colaborador não exercitados.
 - [ ] Publicar correções autorizadas: bloqueada por falhas de regressão em authEmailConfirmation.test.tsx e calendario-rotina-p1.test.ts; não houve publicação.
