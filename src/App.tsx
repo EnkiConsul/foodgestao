@@ -727,6 +727,8 @@ const AppShell = () => {
   );
 };
 
+import { VisualizadorGlobalHost } from "@/components/dp/documentos/VisualizadorGlobalHost";
+
 const App = () => (
   <ErrorBoundary scope="app" title="Falha ao iniciar o Aveto 360">
     <HelmetProvider>
@@ -736,6 +738,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <ExcedenteColaboradoresDialog />
+          <VisualizadorGlobalHost />
           <BrowserRouter>
             <CanonicalUrl />
             <AuthProvider>

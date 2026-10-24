@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { abrirNoApp } from "@/lib/visualizadorGlobal";
 import { useQuery } from "@tanstack/react-query";
 import { FileText, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,7 +54,7 @@ export function FichaImportadaLink({ colaboradorId }: { colaboradorId?: string |
         .from(BUCKET)
         .createSignedUrl(data.arquivo_path!, 60);
       if (error || !url?.signedUrl) throw error ?? new Error("Arquivo não encontrado");
-      window.open(url.signedUrl, "_blank", "noopener");
+      abrirNoApp({ url: url.signedUrl, titulo: "Ficha importada" }) || window.open(url.signedUrl, "_blank", "noopener");
     } catch {
       toast.error("Não foi possível abrir a ficha enviada.");
     } finally {

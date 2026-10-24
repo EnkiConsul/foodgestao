@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { abrirNoApp } from "@/lib/visualizadorGlobal";
 import { aprovarEmBlocos } from "@/lib/dp/bulkApproveChunks";
 import { approvalFullySaved, importSessionComplete } from "./importSessionComplete";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -412,7 +413,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName, onCon
   const openInNewTab = async () => {
     if (!current?.page_file_path) return;
     const { data } = await supabase.storage.from("dp-bulk-import").createSignedUrl(current.page_file_path, 300);
-    if (data?.signedUrl) window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    if (data?.signedUrl) abrirNoApp({ url: data.signedUrl, titulo: "Documento" }) || window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   };
 
   const competenciaLote = competenciaPredominante(

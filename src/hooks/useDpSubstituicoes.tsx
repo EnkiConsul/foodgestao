@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { abrirNoApp } from "@/lib/visualizadorGlobal";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -221,5 +222,5 @@ export async function abrirDocumentoFoto(path: string) {
     toast.error("Não foi possível abrir o documento", { description: error?.message });
     return;
   }
-  window.open(data.signedUrl, "_blank", "noopener");
+  abrirNoApp({ url: data.signedUrl, titulo: "Documento" }) || window.open(data.signedUrl, "_blank", "noopener");
 }

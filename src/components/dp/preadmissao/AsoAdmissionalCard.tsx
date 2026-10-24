@@ -2,6 +2,7 @@
  * Exame admissional (ASO) na revisão do gestor: agendar (com link do Maps e
  * envio por WhatsApp), anexar o ASO feito ou dispensar com base legal.
  */
+import { abrirNoApp } from "@/lib/visualizadorGlobal";
 import { useEffect, useRef, useState } from "react";
 import { CalendarClock, ExternalLink, FileUp, Loader2, MapPin, MessageSquare, ShieldAlert, Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -168,7 +169,7 @@ export function AsoAdmissionalCard({ preadmissaoId, aso, candidatoNome, whatsapp
             </Button>
             {aso?.arquivo_path && (
               <Button variant="ghost" onClick={async () => {
-                try { window.open((await abrirAsoPreadmissao(preadmissaoId)).url, "_blank", "noopener"); }
+                try { const r = await abrirAsoPreadmissao(preadmissaoId); abrirNoApp({ url: r.url, mime: r.mime_type ?? null, titulo: "ASO Admissional" }) || window.open(r.url, "_blank", "noopener"); }
                 catch (e) { notifyError(e as Error, { surface: "Pessoas 360°", action: "abrir o ASO" }); }
               }}><ExternalLink className="mr-2 h-4 w-4" /> Ver ASO</Button>
             )}

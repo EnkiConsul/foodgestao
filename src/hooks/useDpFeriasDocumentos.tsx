@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { abrirNoApp } from "@/lib/visualizadorGlobal";
 import { prepararUpload } from "@/lib/storage/uploadPolicy";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -141,7 +142,7 @@ export function useDpFeriasDocumentos() {
     try {
       const link = await linkDocumentoAssinado(doc.id, 60);
       if (!link) return toast.error("Sem permissão para abrir este documento");
-      window.open(link.url, "_blank", "noopener");
+      abrirNoApp({ url: link.url, mime: link.mimeType, nome: link.fileName, titulo: "Documento de férias" }) || window.open(link.url, "_blank", "noopener");
     } catch {
       toast.error("Erro ao gerar link do arquivo");
     }

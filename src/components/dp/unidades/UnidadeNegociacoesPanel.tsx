@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { abrirNoApp } from "@/lib/visualizadorGlobal";
 import { prepararUpload } from "@/lib/storage/uploadPolicy";
 import { toast } from "sonner";
 import { Calendar, Download, Eye, FileText, Pencil, Plus, Trash2, Users } from "lucide-react";
@@ -240,7 +241,7 @@ export function UnidadeNegociacoesPanel({ unidadeId, unidadeNome }: Props) {
       a.click();
       a.remove();
     } else {
-      window.open(data.signedUrl, "_blank");
+      abrirNoApp({ url: data.signedUrl, titulo: "Documento" }) || window.open(data.signedUrl, "_blank");
     }
   };
 

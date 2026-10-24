@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { abrirNoApp } from "@/lib/visualizadorGlobal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { podeConvocar } from "@/lib/dp/convocacoes";
 import { aceitaIndisponibilidadeConvocacao } from "@/lib/dp/convocacoes-planejamento";
@@ -366,7 +367,7 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
         qc.invalidateQueries({ queryKey: ["dp_documentos"] });
         if (assinaturaNotif === "manual") {
           const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }));
-          window.open(url, "_blank");
+          abrirNoApp({ url, titulo: "Anexo" }) || window.open(url, "_blank");
           toast.success("Notificação gerada para impressão", { description: "Também foi guardada na ficha do colaborador." });
         } else {
           toast.success("Notificação enviada ao Portal", { description: "O colaborador dará ciência pelo Portal." });
