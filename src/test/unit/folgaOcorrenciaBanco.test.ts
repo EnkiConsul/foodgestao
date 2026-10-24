@@ -25,6 +25,15 @@ beforeAll(async () => {
   `);
   await db.exec(readFileSync("drizzle/migrations/0137_folgas_trocas_justificativas_vinculadas.sql", "utf8"));
   await db.exec(`CREATE TRIGGER dp_troca_ocorrencias_aiu AFTER INSERT OR UPDATE OF status ON dp_trocas FOR EACH ROW EXECUTE FUNCTION private.dp_troca_ocorrencias_trg();`);
+  await db.exec(`
+    ALTER TABLE dp_folgas ADD COLUMN updated_at timestamptz;
+    ALTER TABLE dp_trocas ADD COLUMN gestor_resposta text, ADD COLUMN gestor_respondido_em timestamptz, ADD COLUMN gestor_id uuid, ADD COLUMN updated_at timestamptz;
+    CREATE TABLE dp_folgas_canceladas(company_id uuid,colaborador_id uuid,folga_id uuid,data date,motivo text,origem_cancelamento text,cancelado_por uuid);
+    CREATE TABLE dp_dia_trabalho_excepcional(company_id uuid,colaborador_id uuid,data date,origem text);
+    CREATE FUNCTION private.is_company_admin_or_owner(uuid,uuid) RETURNS boolean LANGUAGE sql AS 'SELECT true';
+    CREATE FUNCTION public.is_super_admin(uuid) RETURNS boolean LANGUAGE sql AS 'SELECT false';
+  `);
+  await db.exec(readFileSync("drizzle/migrations/0138_folga_exclusao_e_troca_estorno_integral.sql", "utf8"));
 }, 30000);
 afterAll(() => db.close());
 
@@ -67,6 +76,20 @@ describe.sequential("geração transacional de justificativas", () => {
     const rows=(await db.query(`SELECT subtipo,count(*)::int total FROM dp_ocorrencias WHERE troca_id=$1 GROUP BY subtipo ORDER BY subtipo`,[tid])).rows;
     expect(rows).toEqual([{subtipo:'troca_folga',total:2},{subtipo:'troca_trabalho',total:2}]);
     await db.exec(`UPDATE dp_trocas SET status='cancelada' WHERE id='${tid}'`);
+    expect((await db.query(`SELECT * FROM dp_ocorrencias WHERE troca_id=$1 AND estado<>'cancelada'`,[tid])).rows).toHaveLength(0);
+  });
+  it("estorno oficial restaura ambas as folgas originais e retira os dois dias excepcionais de trabalho", async () => {
+    const tid='00000000-0000-4000-8000-000000000030';
+    await db.exec(`CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS 'SELECT ''${person}''::uuid';
+      INSERT INTO dp_trocas(id,company_id,solicitante_id,destino_id,data_original,data_proposta,status) VALUES('${tid}','${company}','${person}','${colleague}','2026-10-08','2026-10-09','pendente_gestor');
+      INSERT INTO dp_folgas(company_id,colaborador_id,data,status) VALUES('${company}','${person}','2026-10-08','cancelada'),('${company}','${colleague}','2026-10-09','cancelada');
+      INSERT INTO dp_folgas_canceladas(company_id,colaborador_id,folga_id,data,motivo,origem_cancelamento) SELECT company_id,colaborador_id,id,data,'Troca aprovada (id=${tid})','troca' FROM dp_folgas WHERE data IN ('2026-10-08','2026-10-09');
+      INSERT INTO dp_dia_trabalho_excepcional VALUES('${company}','${person}','2026-10-08','troca'),('${company}','${colleague}','2026-10-09','troca');
+      INSERT INTO dp_folgas(company_id,colaborador_id,data,observacao) VALUES('${company}','${person}','2026-10-09','Troca aprovada (id=${tid})'),('${company}','${colleague}','2026-10-08','Troca aprovada (id=${tid})');
+      UPDATE dp_trocas SET status='aprovada' WHERE id='${tid}';
+      SELECT public.dp_cancelar_troca('${tid}','Reconsideração autorizada');`);
+    expect((await db.query(`SELECT colaborador_id,data::text FROM dp_folgas WHERE data IN ('2026-10-08','2026-10-09') AND status='agendada' ORDER BY data`)).rows).toEqual([{colaborador_id:person,data:'2026-10-08'},{colaborador_id:colleague,data:'2026-10-09'}]);
+    expect((await db.query(`SELECT * FROM dp_dia_trabalho_excepcional WHERE data IN ('2026-10-08','2026-10-09')`)).rows).toHaveLength(0);
     expect((await db.query(`SELECT * FROM dp_ocorrencias WHERE troca_id=$1 AND estado<>'cancelada'`,[tid])).rows).toHaveLength(0);
   });
 });
