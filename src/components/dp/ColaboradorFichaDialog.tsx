@@ -457,6 +457,7 @@ ul{list-style:none;padding:0;margin:0}li{border-bottom:1px solid #ddd;padding:4p
 
 
         <div ref={corpoRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-6 pt-4">
+          {avisoAtual && <DesligamentoResumo processo={avisoAtual} />}
           {faltandoFicha.length > 0 && (
             <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
               <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
@@ -831,7 +832,6 @@ ul{list-style:none;padding:0;margin:0}li{border-bottom:1px solid #ddd;padding:4p
           </Section>
 
           {/* Dossiê de jornada: trocas, férias e termos aceitos */}
-          {avisoAtual && <DesligamentoResumo processo={avisoAtual} />}
           <Section icon={Clock} title="Dossiê de Jornada">
             <ColaboradorDossieJornadaCard
               colaboradorId={colaborador?.id ?? null}

@@ -1,4 +1,5 @@
 // Regras de negócio para folgas do Aveto 360.
+import { rotuloFolga } from "@/lib/dp/folga-apresentacao";
 
 export type DateStatusKind =
   | "available"
@@ -27,6 +28,7 @@ export interface FolgaRecord {
   tipo?: string | null;
   extra?: boolean | null;
   direito_origem?: string | null;
+  subtipo?: string | null;
 }
 
 export interface ColaboradorRecord {
@@ -68,6 +70,7 @@ export interface DayOccupant {
   origin: string;
   folgaId?: string;
   extra?: boolean;
+  rotulo?: string;
 }
 
 // ---- helpers ----
@@ -208,7 +211,7 @@ export function buildOccupantsByDate(params: {
       if ((f as { status?: string | null }).status === "cancelada") continue;
       if (filterUser !== "all" && f.colaborador_id !== filterUser) continue;
       const origin = f.extra
-        ? "Extra (Admin)"
+        ? rotuloFolga(f)
         : f.origem === "sorteio"
           ? "Sorteio Automático"
           : f.criado_por
@@ -222,6 +225,7 @@ export function buildOccupantsByDate(params: {
         type: "monthly",
         origin,
         extra: !!f.extra,
+        rotulo: rotuloFolga(f),
       });
     }
   }

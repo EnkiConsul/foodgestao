@@ -87,7 +87,7 @@ export function ColaboradorDossieJornadaCard({
     <div className="col-span-full space-y-4">
       <div>
         <p className="mb-2 text-xs font-medium text-muted-foreground">Folgas, compensações e dispensa do aviso</p>
-        <ColaboradorOcorrenciasCard colaboradorId={colaboradorId} />
+        <ColaboradorOcorrenciasCard colaboradorId={colaboradorId} somenteFolgas />
       </div>
       <div>
         <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">Trocas de folga ({d.trocas.length})</p>

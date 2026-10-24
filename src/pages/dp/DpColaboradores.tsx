@@ -353,6 +353,7 @@ export default function DpColaboradores() {
         if (cargoFilter !== "all" && c.cargo_id !== cargoFilter) return false;
         if (statusFilter === "ativos" && !c.ativo) return false;
         if (statusFilter === "desligados" && c.ativo) return false;
+        if (statusFilter === "em_aviso" && !avisos.has(c.id)) return false;
         if (statusFilter === "incompletos" && (!c.ativo || faltantesDe(c).length === 0)) return false;
         return true;
       })
@@ -373,7 +374,7 @@ export default function DpColaboradores() {
       return a.nome.localeCompare(b.nome, "pt-BR");
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [list.data, pessoasApoio.data, search, unidadeFilter, cargoFilter, statusFilter]);
+  }, [list.data, pessoasApoio.data, search, unidadeFilter, cargoFilter, statusFilter, avisos]);
 
   /**
    * Atalho de outras telas (ex.: Rotina, Pendências):
@@ -465,6 +466,7 @@ export default function DpColaboradores() {
         if (setorFilter !== "all" && setorFilter !== "__sem__" && (c as any).setor_id !== setorFilter) return false;
         if (statusFilter === "ativos" && !c.ativo) return false;
         if (statusFilter === "desligados" && c.ativo) return false;
+        if (statusFilter === "em_aviso" && !avisos.has(c.id)) return false;
         if (statusFilter === "incompletos" && (!c.ativo || faltantesDe(c).length === 0)) return false;
         if (incompletosFilter) {
           if (faltantesDe(c).length === 0) return false;
@@ -491,7 +493,7 @@ export default function DpColaboradores() {
         return a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" });
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [list.data, search, unidadeFilter, cargoFilter, perfilFilter, setorFilter, statusFilter, incompletosFilter, mostrarSetor]);
+  }, [list.data, search, unidadeFilter, cargoFilter, perfilFilter, setorFilter, statusFilter, incompletosFilter, mostrarSetor, avisos]);
 
 
 
@@ -948,7 +950,7 @@ export default function DpColaboradores() {
                                   {c.user_id ? "Acesso e senha do portal" : "Gerar acesso ao portal"}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onSelect={() => abrirCadastro(c, "desligamento")}>
-                                  {c.ativo ? (
+                                  {avisos.has(c.id) ? <>Rever aviso prévio em curso</> : c.ativo ? (
                                     <><UserMinus className="h-4 w-4 mr-2 text-destructive" /> Registrar desligamento</>
                                   ) : (
                                     <><RotateCcw className="h-4 w-4 mr-2" /> Desligamento / reintegração</>
@@ -1228,7 +1230,7 @@ export default function DpColaboradores() {
                                       {c.user_id ? "Acesso e senha do portal" : "Gerar acesso ao portal"}
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onSelect={() => abrirCadastro(c, "desligamento")}>
-                                      {c.ativo ? (
+                                      {avisos.has(c.id) ? <>Rever aviso prévio em curso</> : c.ativo ? (
                                         <><UserMinus className="h-4 w-4 mr-2 text-destructive" /> Registrar desligamento</>
                                       ) : (
                                         <><RotateCcw className="h-4 w-4 mr-2" /> Desligamento / reintegração</>

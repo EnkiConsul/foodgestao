@@ -39,21 +39,23 @@ function rotuloMes(data: string): string {
 }
 
 /** Ocorrências do colaborador agrupadas por mês, para a ficha. */
-export function ColaboradorOcorrenciasCard({ colaboradorId }: { colaboradorId: string | null }) {
+export function ColaboradorOcorrenciasCard({ colaboradorId, somenteFolgas = false }: { colaboradorId: string | null; somenteFolgas?: boolean }) {
   const { selectedCompanyId } = useCompanyContext();
 
   const { data = [], isLoading } = useQuery({
-    queryKey: ["dp_ocorrencias_colaborador", selectedCompanyId, colaboradorId],
+    queryKey: ["dp_ocorrencias_colaborador", selectedCompanyId, colaboradorId, somenteFolgas],
     enabled: !!selectedCompanyId && !!colaboradorId,
     queryFn: async () => {
       if (!selectedCompanyId || !colaboradorId) return [];
-      const { data, error } = await supabase
+      let consulta = supabase
         .from("dp_ocorrencias")
         .select("id, data_operacional, tipo, subtipo, troca_id, estado, minutos, justificativa_inicial")
         .eq("company_id", selectedCompanyId)
         .eq("colaborador_id", colaboradorId)
         .order("data_operacional", { ascending: false })
         .limit(120);
+      if (somenteFolgas) consulta = consulta.or("folga_id.not.is.null,troca_id.not.is.null,subtipo.eq.dispensa_aviso_art488");
+      const { data, error } = await consulta;
       if (error) throw error;
       return (data ?? []) as unknown as Linha[];
     },
