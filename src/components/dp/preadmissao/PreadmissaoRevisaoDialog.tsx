@@ -1317,7 +1317,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                 {jornadaAtivacao ? (
                   <p className="rounded-md border bg-muted/30 p-2 text-xs">
                     Horário que vai para a rotina: <strong>{descricaoJornada(jornadaAtivacao)}</strong>.
-                    Para ajustar, edite os dias nesta aba e salve a ficha antes de ativar.
+                    É o horário que está nesta aba agora; ele também fica gravado na ficha ao ativar.
                   </p>
                 ) : (
                   <p className="rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-xs text-amber-700 dark:text-amber-500">
@@ -1378,12 +1378,12 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
             Ative na rotina para escala, folgas e plantões enquanto o registro não sai. O sistema trata
             como {regimeAtual === "intermitente" ? "freelancer diarista" : "freelancer mensalista"} —
             sem portal, sem férias e sem efeito CLT até a efetivação.
-            {!jornadaAtivacao && " Defina e salve o horário acima para liberar a ativação."}
+            {!jornadaAtivacao && " Preencha entrada e saída dos dias trabalhados acima para liberar a ativação."}
           </p>
           <Button
             variant="outline"
             disabled={!jornadaAtivacao}
-            title={jornadaAtivacao ? undefined : "Defina e salve o horário de trabalho antes de ativar."}
+            title={jornadaAtivacao ? undefined : "Preencha o horário dos dias trabalhados antes de ativar."}
             onClick={() => setAtivarRotinaAberto(true)}
           >
             <Store className="h-4 w-4 mr-2" /> Ativar na Rotina da Loja
@@ -1721,6 +1721,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
           },
           jornada: jornadaAdmissao,
           jornadaExtra: ativacaoNode,
+          onJornadaChange: (j) => { if (pa?.id) setJornadaEmEdicao({ id: pa.id, j }); },
           complementares: complementaresNode,
           etapa,
           acoes: acoesRodape,
