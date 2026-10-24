@@ -2,6 +2,7 @@
  * Exame admissional (ASO) na revisão do gestor: agendar (com link do Maps e
  * envio por WhatsApp), anexar o ASO feito ou dispensar com base legal.
  */
+import { abrirNoApp } from "@/lib/visualizadorGlobal";
 import { useEffect, useRef, useState } from "react";
 import { CalendarClock, ExternalLink, FileUp, Loader2, MapPin, MessageSquare, ShieldAlert, Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
