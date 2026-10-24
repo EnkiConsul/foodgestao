@@ -19,6 +19,9 @@
 - Tokens: `:root`/`.dark`, mapped in `tailwind.config.ts`; never route-scoped.
 - Troca de plano/ciclo só por `billing_v2_plan_change_quote/schedule/cancel`: upgrade e mensal→anual são imediatos com crédito proporcional; downgrade e anual→mensal ficam em `pending_plan_change` e `billing_v2_apply_scheduled_changes` revalida uso na renovação — valor calculado no banco.
 - Read subdirectory `AGENTS.md` before edits.
+- Portal request refusals are classified by server domain tokens before notifying; preserve transport errors for audit and never classify Pix failures by matching prose.
+- Stale-bundle recovery shares a 30-second sessionStorage guard across global, lazy and boundary handlers; without persistent storage only manual recovery is safe.
+- Certificate external files are rendered and serialized in isolated PDFs before copying pages; keep originals and acceptance evidence unchanged when reproduction fails.
 - Admission review saves through the shared form before navigation and reports finalization failures separately; post-review actions reuse official ASO and document workflows. CLT effectivation without a returned registration uses the official audited confirmation only after valid ASO and confirmed accounting dispatch; preserve server authorization and keep the document dialog mounted after effectivation.
 - Portal document signing uses a single "Visualizar e Assinar" button opening the full-screen `DocumentoAssinarViewer`; multi-page PDFs require per-page rubric taps (rules in `src/lib/dp/rubrica.ts`) before the final signature is enabled — never reintroduce a locked sign button waiting for a separate preview.
 - Unit holiday registration uses the frontend date-order helper with the selected year; retain inactive and non-occurring rules for editing separately from the active annual agenda.

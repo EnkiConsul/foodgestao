@@ -7,6 +7,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { garantirColaboradorNovo } from "@/lib/billing/excedente-colaboradores";
+import { negarRegra } from "./regraAviso";
 
 type Json = Record<string, unknown>;
 
@@ -95,7 +96,12 @@ export async function atualizarMeuCadastro(dados: Json): Promise<void> {
   const { error } = await (supabase.rpc as any)("dp_colaborador_perfil_atualizar", {
     p_dados: dados,
   });
-  if (error) lancar(error, "Não foi possível atualizar seus dados.");
+  if (error) {
+    if (/^(PIX_TIPO_NAO_PERMITIDO|PIX_CHAVE_OBRIGATORIA|PIX_CHAVE_INVALIDA|TITULAR_TERCEIRO_NAO_PERMITIDO)(?=[:\s]|$)/.test(String(error.message ?? ""))) {
+      negarRegra(mensagemErroColaborador(error, "Confira os dados de pagamento."));
+    }
+    throw error;
+  }
 }
 
 export type ConfigDiaPayload = {

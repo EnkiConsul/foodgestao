@@ -19,6 +19,7 @@ import { resumoQuitacao } from "../_shared/quitacao.ts";
 import { desenharAssinatura, embutirAssinatura, rubricarPaginas } from "../_shared/assinatura-pdf.ts";
 import { montarReciboPdf, reciboDaLinha } from "../_shared/recibo-pdf.ts";
 import { assinarCampoTermoFolga } from "./termo-folga-assinado.ts";
+import { incorporarAnexoIsolado } from "./anexo-isolado.ts";
 import type { PDFImage } from "npm:pdf-lib@1.17.1";
 import {
   MARCA_ASSINATURA,
@@ -296,6 +297,19 @@ async function anexarArquivo(
   mime: string,
   nome: string,
 ): Promise<string | null> {
+  return incorporarAnexoIsolado(
+    pdf,
+    (temporario) => montarArquivo(temporario, bytes, mime, nome),
+    `Não foi possível reproduzir o arquivo "${nome}" neste certificado devido à codificação do arquivo. O original continua preservado e disponível para download.`,
+  );
+}
+
+async function montarArquivo(
+  pdf: PDFDocument,
+  bytes: Uint8Array,
+  mime: string,
+  nome: string,
+): Promise<string | null> {
   const tipo = (mime || "").toLowerCase();
   const ehPdf = tipo.includes("pdf") || /\.pdf$/i.test(nome);
   if (ehPdf) {
@@ -311,11 +325,7 @@ async function anexarArquivo(
         }
         origem = await PDFDocument.load(livre);
       }
-      // Ensaio num documento descartável: conteúdo ilegível vira aviso sem
-      // contaminar o certificado (o pdf-lib reembute tudo ao salvar).
-      const ensaio = await PDFDocument.create();
-      await ensaio.embedPages(origem.getPages());
-      await ensaio.save();
+      // O documento inteiro é montado e salvo em isolamento antes da transferência.
       // Cada página é incorporada e desenhada numa folha nova, ajustada pela
       // MediaBox real: PDFs de bancos com origem deslocada não saem em branco.
       for (const src of origem.getPages()) {
@@ -457,7 +467,7 @@ Deno.serve(async (req) => {
     const chaveCache = [
       registro.company_id,
       "certificados",
-      `${documentoId}-${aceite.id}-${encodeURIComponent(String(comp?.file_path ?? "sem-comprovante")).replace(/%/g, "")}-${String(registro.comprovante_pago_em ?? "").slice(0, 10)}-${String(registro.versao ?? 1)}-r5.pdf`,
+      `${documentoId}-${aceite.id}-${encodeURIComponent(String(comp?.file_path ?? "sem-comprovante")).replace(/%/g, "")}-${String(registro.comprovante_pago_em ?? "").slice(0, 10)}-${String(registro.versao ?? 1)}-r6.pdf`,
     ].join("/");
     const pronto = await admin.storage.from(BUCKET).download(chaveCache);
     if (pronto.data && !pronto.error) {
