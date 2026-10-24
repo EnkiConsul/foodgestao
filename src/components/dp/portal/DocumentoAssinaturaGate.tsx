@@ -142,10 +142,8 @@ export function DocumentoAssinaturaGate() {
       toast.success("Documento assinado", {
         description: "Registramos data, hora e dispositivo da sua assinatura.",
       });
-      setVisualizou(null);
       setAssinaturaPng(null);
-      setConfirmar(false);
-      setPreview(null);
+      setAssinandoDoc(null);
       setPreviewTroca(false);
       qc.invalidateQueries({ queryKey: ["dp_docs_aguardando_assinatura"] });
       qc.invalidateQueries({ queryKey: ["dp_meus_documentos_unified"] });
@@ -158,7 +156,6 @@ export function DocumentoAssinaturaGate() {
 
   if (!atual) return null;
 
-  const podeAssinar = (!atual.file_path && !atual.troca_id) || visualizou === atual.id;
   // Nome da outra parte da troca, para o colaborador reconhecer o termo no cartão.
   const troca = trocaAtual.data;
   const outraParte =
