@@ -7,7 +7,7 @@ import { ultimoDiaNaEscala } from "../operacao-panorama";
 const pakere: RegraDescansoAviso = { origem: "unidade", modo: "por_mes", semanas: 0, porMes: 1, dias: [0, 6] };
 const domingo: RegraDescansoAviso = { origem: "unidade", modo: "por_mes", semanas: 0, porMes: 1, dias: [0] };
 // Folga fixa na terça; trabalha nos demais dias, 7h20.
-const JORNADA = [440, 440, 0, 440, 440, 440, 440];
+const JORNADA: [number, number, number, number, number, number, number] = [440, 440, 0, 440, 440, 440, 440];
 
 function rosangela(opts: { folgas?: string[]; reducao?: "sete_dias" | "duas_horas"; motivo?: "dispensa_sem_justa_causa" | "pedido_demissao" } = {}) {
   const r = simularDesligamento({ dataAdmissao: "2026-01-05", dataComunicacao: "2026-10-07", modalidade: "trabalhado",
