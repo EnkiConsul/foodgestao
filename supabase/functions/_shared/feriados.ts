@@ -6,6 +6,10 @@
  */
 
 export type FeriadoTipo = "especifica" | "anual" | "relativa" | "movel";
+export type FeriadoCategoria = "nacional" | "estadual" | "municipal" | "sindicato";
+export const FERIADO_CATEGORIA_LABEL: Record<FeriadoCategoria, string> = {
+  nacional: "Nacional", estadual: "Estadual", municipal: "Municipal", sindicato: "Sindicato (CCT)",
+};
 export type FeriadoMovel = "carnaval" | "corpus_christi" | "sexta_feira_santa";
 export const FERIADOS_MOVEIS: Record<FeriadoMovel, { nome: string; deslocamento: number }> = {
   carnaval: { nome: "Carnaval", deslocamento: -47 },
@@ -17,6 +21,7 @@ export type FeriadoRegra = {
   id: string;
   nome: string;
   tipo: FeriadoTipo;
+  categoria?: FeriadoCategoria | null;
   codigo_movel?: FeriadoMovel | null;
   /** Tipo "especifica": data completa ISO (YYYY-MM-DD). */
   data?: string | null;
@@ -142,6 +147,7 @@ export type FeriadoResolvido = {
   nome: string;
   regraId: string;
   tipo: FeriadoTipo;
+  categoria?: FeriadoCategoria | null;
 };
 
 /** Todos os feriados ativos do ano, já resolvidos em datas e ordenados. */
@@ -151,7 +157,7 @@ export function feriadosDoAno(regras: FeriadoRegra[], ano: number): FeriadoResol
     if (r.ativo === false) continue;
     const data = dataDoFeriadoNoAno(r, ano);
     if (!data) continue;
-    out.push({ data, nome: r.nome, regraId: r.id, tipo: r.tipo });
+    out.push({ data, nome: r.nome, regraId: r.id, tipo: r.tipo, categoria: categoriaFeriado(r) });
   }
   return out.sort((a, b) => a.data.localeCompare(b.data) || a.nome.localeCompare(b.nome));
 }
@@ -196,7 +202,13 @@ export function datasDeFeriados(regras: FeriadoRegra[], anos: number[]): Set<str
 }
 
 /** Regra que não é um dos feriados nacionais fixos (municipal, estadual ou móvel). */
-export function ehFeriadoLocal(regra: Pick<FeriadoRegra, "tipo" | "dia" | "mes" | "codigo_movel">): boolean {
+export function categoriaFeriado(regra: Pick<FeriadoRegra, "tipo" | "dia" | "mes" | "categoria">): FeriadoCategoria {
+  if (regra.categoria) return regra.categoria;
+  return regra.tipo === "anual" && FERIADOS_NACIONAIS_FIXOS.some((n) => n.dia === regra.dia && n.mes === regra.mes) ? "nacional" : "municipal";
+}
+
+export function ehFeriadoLocal(regra: Pick<FeriadoRegra, "tipo" | "dia" | "mes" | "codigo_movel" | "categoria">): boolean {
+  if (regra.categoria) return regra.categoria !== "nacional";
   // Os três móveis são escolhidos pela unidade conforme a regra local/CCT;
   // a Sexta-feira Santa não é uma exceção federal a essa classificação.
   if (regra.tipo === "movel") return true;
@@ -206,7 +218,7 @@ export function ehFeriadoLocal(regra: Pick<FeriadoRegra, "tipo" | "dia" | "mes" 
 
 /** A unidade precisa cadastrar feriados locais ou confirmar que não tem. */
 export function faltaFeriadoLocal(
-  regras: Pick<FeriadoRegra, "tipo" | "dia" | "mes" | "codigo_movel" | "ativo">[],
+  regras: Pick<FeriadoRegra, "tipo" | "dia" | "mes" | "codigo_movel" | "ativo" | "categoria">[],
   cienteEm: string | null | undefined,
 ): boolean {
   if (cienteEm) return false;
