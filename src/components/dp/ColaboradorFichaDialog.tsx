@@ -1,4 +1,7 @@
 import { DOCUMENTOS_PESSOAIS } from "@/lib/dp/documentos-pessoais";
+import { useDpDesligamentosAgenda } from "@/hooks/useDpDesligamentosAgenda";
+import { avisoEmAndamento } from "@/lib/dp/desligamento-apresentacao";
+import { DesligamentoResumo } from "@/components/dp/DesligamentoResumo";
 import { FotoColaborador } from "@/components/dp/FotoColaborador";
 import { useMemo, useRef } from "react";
 import { Printer } from "lucide-react";
@@ -168,6 +171,8 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
 
   const perfil = (colaborador as any)?.perfil_acesso as string | null;
   const isDesligado = !!colaborador?.data_desligamento;
+  const agendaDesligamentos = useDpDesligamentosAgenda();
+  const avisoAtual = agendaDesligamentos.data?.find((p) => p.colaborador_id === colaborador?.id && avisoEmAndamento(p.status));
   // Só RH/dono conseguem ler: para o colaborador a consulta volta vazia.
   const ressalvas = useDpDesligamentoRessalvas(colaborador?.id);
 
@@ -826,6 +831,7 @@ ul{list-style:none;padding:0;margin:0}li{border-bottom:1px solid #ddd;padding:4p
           </Section>
 
           {/* Dossiê de jornada: trocas, férias e termos aceitos */}
+          {avisoAtual && <DesligamentoResumo processo={avisoAtual} />}
           <Section icon={Clock} title="Dossiê de Jornada">
             <ColaboradorDossieJornadaCard
               colaboradorId={colaborador?.id ?? null}

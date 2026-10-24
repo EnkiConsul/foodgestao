@@ -6,6 +6,7 @@ import { Printer } from "lucide-react";
 import { toast } from "sonner";
 import { escapeHtml, imprimirHtmlEmQuadro } from "@/lib/print/imprimirHtml";
 import { TERMO_PORTAL_PARAGRAFOS, TERMO_PORTAL_TITULO } from "@/lib/dp/termoPortal";
+import { ColaboradorOcorrenciasCard } from "@/components/dp/ocorrencias/ColaboradorOcorrenciasCard";
 
 const fmtD = (d?: string | null) => (d ? new Date(d.length === 10 ? `${d}T12:00:00` : d).toLocaleDateString("pt-BR") : "—");
 const fmtDH = (d?: string | null) => (d ? new Date(d).toLocaleString("pt-BR") : "—");
@@ -84,6 +85,10 @@ export function ColaboradorDossieJornadaCard({
 
   return (
     <div className="col-span-full space-y-4">
+      <div>
+        <p className="mb-2 text-xs font-medium text-muted-foreground">Folgas, compensações e dispensa do aviso</p>
+        <ColaboradorOcorrenciasCard colaboradorId={colaboradorId} />
+      </div>
       <div>
         <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">Trocas de folga ({d.trocas.length})</p>
         {d.trocas.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma troca registrada.</p> : (

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useDpDesligamentosAgenda, type DesligamentoAgenda } from "@/hooks/useDpDesligamentosAgenda";
+import { avisoEmAndamento } from "@/lib/dp/desligamento-apresentacao";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { CargoSelectItems, CargoSelectAviso } from "@/components/dp/cargos/CargoSelectItems";
 import { useSearchParams } from "react-router-dom";
@@ -109,6 +111,12 @@ const COLAB_ACOES_WIDTH = 96;
 
 export default function DpColaboradores() {
   const list = useDpColaboradores();
+  const agenda = useDpDesligamentosAgenda();
+  const avisos = useMemo(() => {
+    const mapa = new Map<string, DesligamentoAgenda>();
+    for (const p of agenda.data ?? []) if (avisoEmAndamento(p.status) && !mapa.has(p.colaborador_id)) mapa.set(p.colaborador_id, p);
+    return mapa;
+  }, [agenda.data]);
   const unidades = useDpUnidades();
   const cargos = useDpCargos();
   const { todos: todosSetores } = useDpSetores();
@@ -139,6 +147,15 @@ export default function DpColaboradores() {
     setEditing(c);
     setAbaInicial(aba);
     setDialogOpen(true);
+  };
+  const resumoAviso = (c: DpColaborador) => {
+    const p = avisos.get(c.id);
+    if (!p) return null;
+    return <div className="mt-2 space-y-1 text-left">
+      <Badge variant="outline" className="border-warning/40 bg-warning/10 text-warning">Em aviso prévio</Badge>
+      <p className="text-[11px] text-muted-foreground">Último dia na loja: {fmtDate(p.ultimo_comparecimento)}<br />Término: {fmtDate(p.data_efetiva)} · Rescisão: {fmtDate(p.prazo_10_dias)}</p>
+      <Button size="sm" variant="link" className="h-auto min-h-8 px-0 text-xs" onClick={(e) => { e.stopPropagation(); abrirCadastro(c, "desligamento"); }}>Rever datas do aviso →</Button>
+    </div>;
   };
   const navigate = useNavigate();
   const { selectedCompanyId, companies } = useCompanyContext();
@@ -243,9 +260,9 @@ export default function DpColaboradores() {
     },
     {
       key: "desligamento",
-      label: c.ativo ? "Registrar desligamento" : "Desligamento / reintegração",
+      label: avisos.has(c.id) ? "Rever aviso prévio em curso" : c.ativo ? "Registrar desligamento" : "Desligamento / reintegração",
       icon: c.ativo ? UserMinus : RotateCcw,
-      destructive: c.ativo,
+      destructive: c.ativo && !avisos.has(c.id),
       onSelect: () => abrirCadastro(c, "desligamento"),
     },
     {
@@ -513,6 +530,7 @@ export default function DpColaboradores() {
         return (
           <>
             <div className="font-semibold truncate" title={c.nome}>{c.nome}</div>
+            {resumoAviso(c)}
             <div className="font-mono text-[11px] text-muted-foreground">{c.cpf ?? "—"}</div>
             <div className="mt-1 flex flex-wrap gap-1">
               <Badge variant="outline" className="h-4 px-1 text-[10px] border-primary/30 text-primary bg-primary/5">
@@ -746,6 +764,7 @@ export default function DpColaboradores() {
           <TabsTrigger value="all">Todos ({counts.todos})</TabsTrigger>
           <TabsTrigger value="ativos">Ativos ({counts.ativos})</TabsTrigger>
           <TabsTrigger value="desligados">Desligados ({counts.desligados})</TabsTrigger>
+          {origem === "colaboradores" && <TabsTrigger value="em_aviso">Em aviso prévio ({avisos.size})</TabsTrigger>}
           {origem === "colaboradores" && counts.incompletos > 0 && (
             <TabsTrigger value="incompletos">Incompletos ({counts.incompletos})</TabsTrigger>
           )}
@@ -989,6 +1008,7 @@ export default function DpColaboradores() {
                     <>
                       {c.cargo_nome ?? c.cargo ?? "—"}
                       {c.unidade_nome ? <span> • {c.unidade_nome}</span> : null}
+                      {resumoAviso(c)}
                     </>
                   }
                   badges={
