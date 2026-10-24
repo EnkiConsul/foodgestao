@@ -981,6 +981,13 @@
       "when": 1792806548287,
       "tag": "0139_rotina_separar_evidencia_folga_de_afastamento",
       "breakpoints": true
+    },
+    {
+      "idx": 140,
+      "version": "7",
+      "when": 1792816001020,
+      "tag": "0140_feriados_moveis_automaticos",
+      "breakpoints": true
     }
   ]
 }
