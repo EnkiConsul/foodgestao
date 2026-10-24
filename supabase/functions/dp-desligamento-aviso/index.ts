@@ -23,6 +23,7 @@ import { validarTerminoNovoEmprego } from "./termino.ts";
 import { prazoLegalRescisao, prazoPagamentoRescisao } from "../_shared/desligamento-datas.ts";
 import { jornadaSemanalDaConfig, configVigenteEm, type DiaConfigMin, type TurnoMin } from "../_shared/desligamento-jornada.ts";
 import { datasDeFeriados, type FeriadoRegra } from "../_shared/feriados.ts";
+import { diagnosticarEscalaAviso, concentrarBancoNoFinal, type RegraDescansoAviso } from "../_shared/desligamento-escala-diagnostico.ts";
 
 const REGRA_VERSAO = "clt-aviso@2026-11";
 const Data = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -47,9 +48,11 @@ const Condicoes = {
   confirmacao_sem_aviso: z.boolean().optional(),
   saldo_banco_minutos: z.number().int().min(0).max(525600).default(0),
   folgas_compensatorias: z.array(Data).max(90).refine((v) => new Set(v).size === v.length, "Datas repetidas").default([]),
+  concentrar_final: z.boolean().default(false),
   esperado: z.object({ ultimo: z.string().nullable(), prazo: z.string(), efetiva: z.string() }).optional(),
 };
 const Body = z.discriminatedUnion("acao", [
+  z.object({ acao: z.literal("projecao"), processo_id: z.string().uuid() }),
   z.object({ acao: z.literal("previa"), colaborador_id: z.string().uuid(), ...Condicoes }),
   z.object({ acao: z.literal("confirmar"), colaborador_id: z.string().uuid(), comunicacao_formal: z.boolean(), idempotency_key: Chave, ...Condicoes }),
   z.object({ acao: z.literal("alterar"), processo_id: z.string().uuid(), idempotency_key: Chave, previa: z.boolean().optional(), ...Condicoes }),
@@ -76,13 +79,14 @@ const json = (status: number, body: unknown) =>
 const hojeSP = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 const somar = (iso: string, n: number) => { const d = new Date(`${iso}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 
-type Colab = { id: string; company_id: string; unidade_id: string | null; data_admissao: string | null; regime: string | null; ativo: boolean; data_desligamento: string | null; deleted_at: string | null };
+type Colab = { id: string; company_id: string; unidade_id: string | null; cargo_id: string | null; sexo: string | null; domingos_folga_mes: number | null; folga_dif_dias: number[] | null; data_admissao: string | null; regime: string | null; ativo: boolean; data_desligamento: string | null; deleted_at: string | null };
 type Cond = {
   motivo: MotivoDesligamentoCalc; modalidade: "trabalhado" | "indenizado";
   reducao?: "duas_horas" | "sete_dias" | null; data_comunicacao: string;
   data_termino_acordada?: string | null; descontar_aviso?: boolean;
   pedido_escrito?: boolean; aceite_empresa?: boolean; confirmacao_sem_aviso?: boolean;
   saldo_banco_minutos?: number; folgas_compensatorias?: string[];
+  concentrar_final?: boolean;
 };
 
 /** Motivos sem aviso que não podem ser validados pela mera seleção. */
@@ -164,6 +168,7 @@ async function calcular(admin: any, c: Colab, b: Cond, previa = false, processoI
   // não confirma origem bancária e nenhum saldo é inventado ou descontado.
   // Conflito com a escala publicada (trabalho no mesmo dia) vira revisão.
   let folgasConsideradas: string[] = [];
+  let folgasAgenda: string[] = [];
   if (!semAviso && b.modalidade === "trabalhado") {
     const { data: fls, error: errFolgas } = await admin.from("dp_folgas")
       .select("data, tipo, origem, direito_origem, desligamento_processo_id")
@@ -172,6 +177,7 @@ async function calcular(admin: any, c: Colab, b: Cond, previa = false, processoI
       .gt("data", b.data_comunicacao).lte("data", somar(b.data_comunicacao, 95));
     if (errFolgas) return revisao("Não foi possível ler as folgas agendadas. Tente de novo; se persistir, registre manualmente.");
     const outrasFolgas = (fls ?? []).filter((f: { desligamento_processo_id?: string | null }) => !processoId || f.desligamento_processo_id !== processoId);
+    folgasAgenda = outrasFolgas.map((f: { data: string }) => f.data);
     const mescla = mesclarFolgasAgendadas(excecoes, outrasFolgas as FolgaAgendada[]);
     if (mescla.conflitos.length)
       return revisao(`Há folga agendada em dia que a escala publicada marca como trabalho (${mescla.conflitos.join(", ")}). Resolva o conflito na agenda antes de registrar.`);
@@ -188,8 +194,6 @@ async function calcular(admin: any, c: Colab, b: Cond, previa = false, processoI
     folgasCompensatorias: b.folgas_compensatorias ?? [], saldoBancoMinutos: b.saldo_banco_minutos ?? 0,
   });
   if ("erro" in r) return { resp: json(400, { error: r.erro }) };
-  if (r.folgasRejeitadas.length)
-    return { resp: json(400, { error: "Há folgas incompatíveis com o período, a jornada ou o saldo. Revise as datas escolhidas.", folgas_rejeitadas: r.folgasRejeitadas }) };
   const base = simularDesligamento({
     dataAdmissao: String(c.data_admissao).slice(0, 10), dataComunicacao: b.data_comunicacao,
     motivo: b.motivo, modalidade: b.modalidade, reducao: b.modalidade === "trabalhado" ? b.reducao ?? null : null,
@@ -200,6 +204,29 @@ async function calcular(admin: any, c: Colab, b: Cond, previa = false, processoI
   if ("erro" in base) return { resp: json(400, { error: base.erro }) };
   if (!semAviso && b.modalidade === "trabalhado" && !base.ultimoComparecimento)
     return revisao("Não há jornadas previstas no período do aviso. Revise a jornada antes de registrar.");
+  let diagnostico = null;
+  if (precisaJornada) {
+    const { data: config, error: errRegra } = await admin.rpc("dp_config_resolvida", { _company_id: c.company_id, _unidade_id: c.unidade_id });
+    if (errRegra) return revisao("Não foi possível conferir a regra de folgas da unidade. Tente novamente antes de compensar.");
+    const cfg = Array.isArray(config) ? config[0] : config;
+    if (!cfg) return revisao("Confira a regra de folgas da unidade antes de compensar.");
+    const { data: cargo, error: errCargo } = c.cargo_id && c.unidade_id ? await admin.from("dp_folga_domingo_cargos")
+      .select("domingos_mes, modo_frequencia, periodicidade_semanas, dias_descanso").eq("company_id", c.company_id).eq("unidade_id", c.unidade_id).eq("cargo_id", c.cargo_id).maybeSingle() : { data: null, error: null };
+    if (errCargo) return revisao("Não foi possível conferir a regra do cargo. Tente novamente.");
+    const feminino = c.sexo === "F";
+    const acordo = cfg.tipo_descanso_domingo === "acordo_coletivo";
+    const regra: RegraDescansoAviso = c.domingos_folga_mes != null
+      ? { origem: "colaborador", modo: "por_mes", semanas: 0, porMes: c.domingos_folga_mes, dias: c.folga_dif_dias ?? (acordo ? cfg.dias_descanso_negociados : [0]) ?? [0] }
+      : cargo ? { origem: "cargo", modo: cargo.modo_frequencia === "semanas" ? "semanas" : "por_mes", semanas: Number(cargo.periodicidade_semanas ?? 4), porMes: Number(cargo.domingos_mes), dias: cargo.dias_descanso ?? (acordo ? cfg.dias_descanso_negociados : [0]) ?? [0] }
+      : { origem: "unidade", modo: acordo ? "por_mes" : (feminino ? cfg.modo_frequencia_domingo_mulher : cfg.modo_frequencia_domingo) === "por_mes" ? "por_mes" : "semanas", semanas: Number(feminino ? cfg.periodicidade_domingo_mulher : cfg.periodicidade_domingo), porMes: Number(acordo ? cfg.folgas_fds_por_mes : feminino ? cfg.domingos_por_mes_mulher : cfg.domingos_por_mes), dias: acordo ? cfg.dias_descanso_negociados ?? [0] : [0] };
+    diagnostico = diagnosticarEscalaAviso(base, regra, folgasAgenda);
+  }
+  const datasBanco = diagnostico && !diagnostico.apto ? [] : b.concentrar_final ? concentrarBancoNoFinal(base, b.saldo_banco_minutos ?? 0) : b.folgas_compensatorias ?? [];
+  const simulacao = simularDesligamento({ dataAdmissao: String(c.data_admissao).slice(0, 10), dataComunicacao: b.data_comunicacao, motivo: b.motivo, modalidade: b.modalidade, reducao: b.modalidade === "trabalhado" ? b.reducao ?? null : null, dataTerminoAcordada: pedidoDispensado ? b.data_termino_acordada ?? null : null, descontarAviso: pedidoDispensado ? b.descontar_aviso : undefined, jornadaSemanal: semana, excecoesJornada: excecoes, feriados, saldoBancoMinutos: b.saldo_banco_minutos ?? 0, folgasCompensatorias: datasBanco });
+  if ("erro" in simulacao) return { resp: json(400, { error: simulacao.erro }) };
+  if (simulacao.folgasRejeitadas.length) return { resp: json(400, { error: "Há folgas incompatíveis com o período, a jornada ou o saldo. Revise as datas escolhidas." }) };
+  if (!previa && diagnostico && !diagnostico.apto && (b.saldo_banco_minutos ?? 0) > 0)
+    return revisao("Revise as folgas no calendário antes de compensar o banco de horas.");
   const efetiva = r.dataEfetiva;
   const avisos = [...r.avisos];
   if (folgasConsideradas.length)
@@ -213,15 +240,15 @@ async function calcular(admin: any, c: Colab, b: Cond, previa = false, processoI
     pedido_escrito_confirmado: pedidoDispensado ? true : false,
     aceite_empresa_confirmado: pedidoDispensado ? true : false,
     data_comunicacao: b.data_comunicacao, inicio_aviso: r.inicioAviso,
-    ultimo_comparecimento: r.ultimoComparecimento, dispensado_desde: r.dispensadoDeComparecerDesde ?? (!r.ultimoComparecimento && r.folgasAceitas.length ? r.inicioAviso : null),
+    ultimo_comparecimento: simulacao.ultimoComparecimento, dispensado_desde: simulacao.dispensadoDeComparecerDesde ?? (!simulacao.ultimoComparecimento && simulacao.folgasAceitas.length ? simulacao.inicioAviso : null),
     // Pedido de demissão com dispensa do cumprimento: não há projeção
     // indenizada (a empresa dispensou, não indenizou) — grava null.
     data_efetiva: efetiva, projecao_indenizada: r.avisoDispensado ? null : r.terminoProjetado, base_quitacao: r.baseQuitacao,
     prazo_10_dias: r.prazoQuitacao, sugestao_pagamento: r.sugestaoPagamentoDiaUtilAnterior,
     dias_aviso: r.duracaoLegalDias, dias_indenizados: r.diasProjetadosIndenizados,
     regra_versao: REGRA_VERSAO, avisos, usou_escala: excecoes.length > 0,
-    saldo_banco_minutos: b.saldo_banco_minutos ?? 0, folgas_compensatorias: r.folgasAceitas,
-    saldo_residual_minutos: r.saldoResidualMinutos, simulacao: r, base_simulacao: base,
+    saldo_banco_minutos: b.saldo_banco_minutos ?? 0, folgas_compensatorias: simulacao.folgasAceitas,
+    saldo_residual_minutos: simulacao.saldoResidualMinutos, simulacao, base_simulacao: base, diagnostico_escala: diagnostico,
   };
   return { resultado: { ...resultado, termino_passado: efetiva < hoje, prazo_vencido: r.prazoQuitacao < hoje } };
 }
@@ -250,7 +277,7 @@ Deno.serve(async (req) => {
   };
   const carregarColab = async (id: string) => {
     const { data } = await admin.from("dp_colaboradores")
-      .select("id, company_id, unidade_id, data_admissao, regime, ativo, data_desligamento, deleted_at").eq("id", id).maybeSingle();
+      .select("id, company_id, unidade_id, cargo_id, sexo, domingos_folga_mes, folga_dif_dias, data_admissao, regime, ativo, data_desligamento, deleted_at").eq("id", id).maybeSingle();
     return data as Colab | null;
   };
 
@@ -266,7 +293,7 @@ Deno.serve(async (req) => {
       if (!b.comunicacao_formal) return json(400, { error: "Confirme que a comunicação formal foi entregue ao colaborador." });
       if (!resultado) return json(500, { error: "Não foi possível calcular." });
       if (diverge(b.esperado, resultado)) return json(409, { divergente: true, error: "As datas oficiais mudaram desde a prévia. Revise e confirme de novo.", resultado });
-      const { avisos: _a, usou_escala: _u, simulacao: _s, base_simulacao: _bs, termino_passado, prazo_vencido: _pv, ...gravar } = resultado;
+      const { avisos: _a, usou_escala: _u, simulacao: _s, base_simulacao: _bs, diagnostico_escala: _de, termino_passado, prazo_vencido: _pv, ...gravar } = resultado;
       const { data, error } = await admin.rpc("dp_desligamento_registrar_aviso", { p: { ...gravar, colaborador_id: c.id, idempotency_key: b.idempotency_key, ator: user.id } });
       if (error) return json(409, { error: error.message });
       // Registro tardio: o término já passou, então efetiva agora pelo mesmo
@@ -283,8 +310,17 @@ Deno.serve(async (req) => {
       return json(200, { ok: true, ...(data as Record<string, unknown>), resultado, alertas, efetivado });
     }
 
-    const { data: proc } = await admin.from("dp_desligamento_processos").select("id, company_id, colaborador_id, status").eq("id", b.processo_id).maybeSingle();
+    const { data: proc } = await admin.from("dp_desligamento_processos").select("*").eq("id", b.processo_id).maybeSingle();
     if (!proc || !(await autorizado(proc.company_id))) return json(403, { error: "Sem permissão" });
+
+    if (b.acao === "projecao") {
+      const c = await carregarColab(proc.colaborador_id);
+      if (!c || proc.status !== "aviso_em_curso") return json(409, { error: "Aviso não está em andamento." });
+      const { resultado, resp } = await calcular(admin, c, { ...proc, modalidade: "trabalhado", concentrar_final: true }, true, proc.id);
+      if (resp) return resp;
+      // Read-only prediction: official legal dates and persisted agenda remain untouched.
+      return json(200, { resultado: { ...resultado, data_efetiva: proc.data_efetiva, base_quitacao: proc.base_quitacao, prazo_10_dias: proc.prazo_10_dias } });
+    }
 
     if (b.acao === "cancelar") {
       const { error } = await admin.rpc("dp_desligamento_cancelar", { p_processo: proc.id, p_ator: user.id, p_justificativa: b.justificativa });
@@ -300,8 +336,10 @@ Deno.serve(async (req) => {
       if (resp) return resp;
       if (b.previa) return json(200, { resultado });
       if (!resultado) return json(500, { error: "Não foi possível calcular." });
+      if (resultado.data_efetiva !== proc.data_efetiva || resultado.prazo_10_dias !== proc.prazo_10_dias)
+        return json(409, { error: "A compensação não pode alterar o término do vínculo nem o prazo de pagamento. Mantenha as condições legais originais." });
       if (diverge(b.esperado, resultado)) return json(409, { divergente: true, error: "As datas oficiais mudaram. Revise e confirme de novo.", resultado });
-      const { avisos: _a, usou_escala: _u, simulacao: _s, base_simulacao: _bs, motivo: _m, termino_passado: _tp, prazo_vencido: _pv, ...gravar } = resultado;
+      const { avisos: _a, usou_escala: _u, simulacao: _s, base_simulacao: _bs, diagnostico_escala: _de, motivo: _m, termino_passado: _tp, prazo_vencido: _pv, ...gravar } = resultado;
       extra = gravar;
     }
     if (b.acao === "ocorrencia" && b.aplicar_termino) {
