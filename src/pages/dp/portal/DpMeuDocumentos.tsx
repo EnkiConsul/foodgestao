@@ -605,13 +605,16 @@ export default function DpMeuDocumentos() {
         mime={arquivoAberto?.mime}
       />
 
-      <AssinaturaConfirmarDialog
+      <DocumentoAssinarViewer
         open={!!assinando}
         onOpenChange={(v) => { if (!v) setAssinando(null); }}
         titulo={assinando?.titulo ?? ""}
-        nome={String(colaborador?.nome || "")}
+        filePath={assinando?.file_path ?? null}
+        fileName={assinando?.arquivo_nome ?? null}
+        mimeType={assinando?.mime_type ?? null}
+        nomeColaborador={String(colaborador?.nome || "")}
         enviando={aceitar.isPending}
-        onConfirmar={(assinatura) => assinando && aceitar.mutate({ d: assinando, assinatura })}
+        onConcluir={(assinatura) => assinando && aceitar.mutate({ d: assinando, assinatura })}
       />
 
       {/* Envio de atestado — independente da antiga tela de Solicitações. */}
