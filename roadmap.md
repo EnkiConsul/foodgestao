@@ -47,3 +47,4 @@
 - [ ] Homologação visual pelo gestor na ficha da Verônica (aguarda uso real)
 - [ ] Publicação desta leva (autorizada; aguarda resolução das falhas de regressão acima)
 - [x] Teste `calendario-rotina-p1.test.ts` alinhado à prioridade já existente da exceção por data: limite 1 permanece 1 mesmo com três folgas fixas; nove testes deste arquivo passaram.
+- [x] Assinatura do portal unificada: botão único "Visualizar e Assinar" (sem botão travado) abre tela cheia `DocumentoAssinarViewer`; PDF com várias páginas exige rubrica página a página antes de concluir (`src/lib/dp/rubrica.ts`). 13 testes novos/relacionados OK, suíte DP 1237 OK, build OK. Sem publicação e sem gravar dados reais.

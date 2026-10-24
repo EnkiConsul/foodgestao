@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Eye, PenLine, FileText, Clock } from "lucide-react";
+import { PenLine, FileText, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DocumentPreview } from "@/components/dp/DocumentPreview";
 import { DOCUMENTO_CONFIRMACAO_TEXTO } from "@/lib/dp/documento-titulo";
 import { assinarDocumento } from "@/lib/dp/documentoAceite";
 import { assinarTroca } from "@/lib/dp/troca-assinatura";
@@ -20,9 +19,8 @@ import {
 } from "@/hooks/portal/useDocumentosAguardandoAssinatura";
 import { notifyError } from "@/lib/notifyError";
 import { AssinaturaCaptura } from "@/components/dp/AssinaturaCaptura";
-import { AssinaturaConfirmarDialog } from "@/components/dp/portal/AssinaturaConfirmarDialog";
+import { DocumentoAssinarViewer } from "@/components/dp/portal/DocumentoAssinarViewer";
 
-const BUCKET = "dp-documentos";
 /** Se o colaborador fechar sem assinar, o aviso volta depois deste intervalo. */
 export const REABRIR_APOS_MS = 10 * 60 * 1000;
 /** Trava o portal (sem "Ver depois") a partir destes limites. */
@@ -39,10 +37,9 @@ export function DocumentoAssinaturaGate() {
   const { colaborador, documentos } = useDocumentosAguardandoAssinatura();
 
   const [adiado, setAdiado] = useState(false);
-  const [visualizou, setVisualizou] = useState<string | null>(null);
-  const [preview, setPreview] = useState<DocParaAssinar | null>(null);
+  /** Documento com arquivo aberto na tela cheia de leitura e assinatura. */
+  const [assinandoDoc, setAssinandoDoc] = useState<DocParaAssinar | null>(null);
   const [previewTroca, setPreviewTroca] = useState(false);
-  const [confirmar, setConfirmar] = useState(false);
   const [assinaturaPng, setAssinaturaPng] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -121,11 +118,6 @@ export function DocumentoAssinaturaGate() {
   const naTelaTroca = !!atual?.troca_id && pathname.startsWith("/dp/meu/trocas");
   const open = !!atual && !naTelaTroca && (bloqueado || !adiado);
 
-  // Ao trocar de documento, exige nova visualização.
-  useEffect(() => {
-    if (atual && visualizou && visualizou !== atual.id) setVisualizou(null);
-  }, [atual, visualizou]);
-
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
   const adiar = () => {
@@ -149,10 +141,8 @@ export function DocumentoAssinaturaGate() {
       toast.success("Documento assinado", {
         description: "Registramos data, hora e dispositivo da sua assinatura.",
       });
-      setVisualizou(null);
       setAssinaturaPng(null);
-      setConfirmar(false);
-      setPreview(null);
+      setAssinandoDoc(null);
       setPreviewTroca(false);
       qc.invalidateQueries({ queryKey: ["dp_docs_aguardando_assinatura"] });
       qc.invalidateQueries({ queryKey: ["dp_meus_documentos_unified"] });
@@ -165,7 +155,6 @@ export function DocumentoAssinaturaGate() {
 
   if (!atual) return null;
 
-  const podeAssinar = (!atual.file_path && !atual.troca_id) || visualizou === atual.id;
   // Nome da outra parte da troca, para o colaborador reconhecer o termo no cartão.
   const troca = trocaAtual.data;
   const outraParte =
@@ -229,61 +218,54 @@ export function DocumentoAssinaturaGate() {
 
             <p className="text-xs text-muted-foreground">{DOCUMENTO_CONFIRMACAO_TEXTO}</p>
 
-            {!podeAssinar && (
-              <p className="text-xs text-amber-700">
-                Abra o documento para liberar a assinatura.
-              </p>
-            )}
+            {atual.troca_id ? (
+              <>
+                <Button
+                  variant="outline"
+                  className="w-full min-h-10"
+                  onClick={() => setPreviewTroca((v) => !v)}
+                >
+                  <FileText className="h-4 w-4 mr-1" />
+                  {previewTroca ? "Recolher termo" : "Ler o termo"}
+                </Button>
 
-            <Button
-              variant="outline"
-              className="w-full min-h-10"
-              disabled={!atual.file_path && !atual.troca_id}
-              onClick={() => {
-                if (atual.troca_id) {
-                  // O termo abre dentro deste mesmo aviso: nada de janela por cima.
-                  // O botão alterna: abre para ler e recolhe para assinar com a tela limpa.
-                  setPreviewTroca((v) => !v);
-                  setVisualizou(atual.id);
-                  return;
-                }
-                setPreview(atual);
-                setVisualizou(atual.id);
-              }}
-            >
-              <Eye className="h-4 w-4 mr-1" />
-              {atual.troca_id && previewTroca ? "Recolher documento" : "Abrir documento"}
-            </Button>
-
-            {atual.troca_id && previewTroca && (
-              <div className="h-[50dvh] overflow-hidden rounded-lg border bg-background">
-                {trocaAtual.isLoading || cpfsTermo.isLoading ? (
-                  <p className="p-3 text-xs text-muted-foreground">Carregando o termo…</p>
-                ) : trocaAtual.isError || !trocaAtual.data ? (
-                  <p className="p-3 text-xs text-destructive">Não conseguimos abrir o termo agora. Toque em "Abrir documento" de novo; se continuar, fale com o seu gestor.</p>
-                ) : (
-                  <iframe title="Termo de Troca de Folga" srcDoc={termoHtml} sandbox="" className="h-full w-full bg-white" />
+                {previewTroca && (
+                  <div className="h-[50dvh] overflow-hidden rounded-lg border bg-background">
+                    {trocaAtual.isLoading || cpfsTermo.isLoading ? (
+                      <p className="p-3 text-xs text-muted-foreground">Carregando o termo…</p>
+                    ) : trocaAtual.isError || !trocaAtual.data ? (
+                      <p className="p-3 text-xs text-destructive">Não conseguimos abrir o termo agora. Toque em "Ler o termo" de novo; se continuar, fale com o seu gestor.</p>
+                    ) : (
+                      <iframe title="Termo de Troca de Folga" srcDoc={termoHtml} sandbox="" className="h-full w-full bg-white" />
+                    )}
+                  </div>
                 )}
-              </div>
-            )}
 
-            {podeAssinar && (
-              <AssinaturaCaptura
-                key={atual.id}
-                nomePadrao={String(colaborador?.nome || "")}
-                onChange={setAssinaturaPng}
-              />
+                {/* O termo de troca é uma página única: assina aqui mesmo, sem rubrica. */}
+                <AssinaturaCaptura
+                  key={atual.id}
+                  nomePadrao={String(colaborador?.nome || "")}
+                  onChange={setAssinaturaPng}
+                />
+                <Button
+                  className="w-full min-h-10"
+                  disabled={!assinaturaPng || assinar.isPending}
+                  onClick={() => assinar.mutate({ d: atual, png: assinaturaPng })}
+                >
+                  <PenLine className="h-4 w-4 mr-1" /> Assinar termo
+                </Button>
+              </>
+            ) : (
+              // Documento com arquivo: um único botão abre a tela cheia de
+              // leitura, rubrica página a página e assinatura. Nada de botão
+              // travado esperando a visualização.
+              <Button className="w-full min-h-11" onClick={() => setAssinandoDoc(atual)}>
+                <PenLine className="h-4 w-4 mr-1" /> Visualizar e Assinar
+              </Button>
             )}
           </div>
 
           <DialogFooter className="flex-col gap-2 sm:flex-col">
-            <Button
-              className="w-full min-h-10"
-              disabled={!podeAssinar || !assinaturaPng || assinar.isPending}
-              onClick={() => assinar.mutate({ d: atual, png: assinaturaPng })}
-            >
-              <PenLine className="h-4 w-4 mr-1" /> Assinar documento
-            </Button>
             {bloqueado ? (
               <p className="text-xs text-center text-muted-foreground">
                 O portal fica liberado assim que você assinar os documentos pendentes.
@@ -297,33 +279,17 @@ export function DocumentoAssinaturaGate() {
         </DialogContent>
       </Dialog>
 
-      <DocumentPreview
-        open={!!preview}
-        onOpenChange={(v) => { if (!v) setPreview(null); }}
-        title={preview?.titulo}
-        bucket={BUCKET}
-        path={preview?.file_path ?? null}
-        mime={preview?.mime_type ?? null}
-        comprovanteDocumentoId={preview?.id ?? null}
-        acaoRodape={
-          <Button size="sm" className="ml-auto sm:ml-0 sm:order-last" onClick={() => setConfirmar(true)}>
-            <PenLine className="h-4 w-4 mr-1" /> Assinar
-          </Button>
-        }
-      />
-
-      <AssinaturaConfirmarDialog
-        open={confirmar && !!preview}
-        onOpenChange={setConfirmar}
-        titulo={(preview ?? atual)?.titulo ?? ""}
-        nome={String(colaborador?.nome || "")}
+      <DocumentoAssinarViewer
+        open={!!assinandoDoc}
+        onOpenChange={(v) => { if (!v) setAssinandoDoc(null); }}
+        titulo={assinandoDoc?.titulo ?? ""}
+        filePath={assinandoDoc?.file_path ?? null}
+        fileName={assinandoDoc?.file_name ?? null}
+        mimeType={assinandoDoc?.mime_type ?? null}
+        nomeColaborador={String(colaborador?.nome || "")}
         enviando={assinar.isPending}
-        onConfirmar={(png) => {
-          const d = preview ?? atual;
-          if (d) assinar.mutate({ d, png });
-        }}
+        onConcluir={(png) => assinandoDoc && assinar.mutate({ d: assinandoDoc, png })}
       />
-
     </>
   );
 }

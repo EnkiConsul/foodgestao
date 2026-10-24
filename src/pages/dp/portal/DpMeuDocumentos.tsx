@@ -35,7 +35,7 @@ import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import type { Database } from "@/integrations/supabase/types";
 import { notifyError } from "@/lib/notifyError";
 import { assinarDocumento } from "@/lib/dp/documentoAceite";
-import { AssinaturaConfirmarDialog } from "@/components/dp/portal/AssinaturaConfirmarDialog";
+import { DocumentoAssinarViewer } from "@/components/dp/portal/DocumentoAssinarViewer";
 import { excluirDocumento, registrarDocumento } from "@/lib/dp/documentos-oficial";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -144,7 +144,9 @@ export default function DpMeuDocumentos() {
     if (!alvo) return;
     abriuFoco.current = true;
     setTab("all");
-    setPreview(alvo);
+    // Pendência de assinatura abre direto na tela de leitura e assinatura.
+    if (alvo.aceite === false) setAssinando(alvo);
+    else setPreview(alvo);
   }, [docFoco, isLoading, documentos]);
 
   const changeTab = (v: string) => {
@@ -518,22 +520,25 @@ export default function DpMeuDocumentos() {
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{d.observacao}</p>
                       )}
                       <div className="flex gap-2 mt-3 flex-wrap">
-                        <Button size="sm" variant="outline" onClick={() => (d.aceite === true && d.meta?.source !== "solicitacao" ? void certificado(d) : setPreview(d))} disabled={!d.file_path || gerando === d.id} className="min-h-9 flex-1 sm:flex-none">
-                          <Eye className="h-4 w-4 mr-1" /> {gerando === d.id ? "Carregando validação..." : "Visualizar"}
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => download(d)} disabled={!d.file_path} className="min-h-9 flex-1 sm:flex-none">
-                          <Download className="h-4 w-4 mr-1" /> Baixar
-                        </Button>
-                        {d.aceite === false && (
+                        {d.aceite === false ? (
+                          // Pendente de assinatura: um único botão abre a tela
+                          // cheia de leitura, rubrica por página e assinatura.
                           <Button
                             size="sm"
-                            onClick={() => (d.file_path ? setPreview(d) : setAssinando(d))}
+                            onClick={() => setAssinando(d)}
                             disabled={aceitar.isPending}
                             className="min-h-9 flex-1 sm:flex-none"
                           >
-                            <PenLine className="h-4 w-4 mr-1" /> Ler e assinar
+                            <PenLine className="h-4 w-4 mr-1" /> Visualizar e Assinar
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="outline" onClick={() => (d.aceite === true && d.meta?.source !== "solicitacao" ? void certificado(d) : setPreview(d))} disabled={!d.file_path || gerando === d.id} className="min-h-9 flex-1 sm:flex-none">
+                            <Eye className="h-4 w-4 mr-1" /> {gerando === d.id ? "Carregando validação..." : "Visualizar"}
                           </Button>
                         )}
+                        <Button size="sm" variant="outline" onClick={() => download(d)} disabled={!d.file_path} className="min-h-9 flex-1 sm:flex-none">
+                          <Download className="h-4 w-4 mr-1" /> Baixar
+                        </Button>
                         {d.origem === "meu_envio" && d.status_key === "pendente" && (
                           <ConfirmarAcaoDialog
                             titulo="Cancelar este envio?"
@@ -584,11 +589,6 @@ export default function DpMeuDocumentos() {
         mime={preview?.mime_type ?? undefined}
         somenteReciboVinculado={!preview?.meta?.comprovante}
         comprovanteDocumentoId={preview?.origem === "dp" && (preview?.meta?.comprovante || preview?.meta?.recibo_id) ? String(preview.meta?.originalId ?? preview.id) : null}
-        acaoRodape={preview?.aceite === false ? (
-          <Button size="sm" onClick={() => { const d = preview; setPreview(null); setAssinando(d); }}>
-            <PenLine className="h-4 w-4 mr-1" /> Assinar documento
-          </Button>
-        ) : undefined}
       />
 
       {/* Comprovante e certificado abrem aqui mesmo: no celular, outra aba é bloqueada. */}
@@ -605,13 +605,16 @@ export default function DpMeuDocumentos() {
         mime={arquivoAberto?.mime}
       />
 
-      <AssinaturaConfirmarDialog
+      <DocumentoAssinarViewer
         open={!!assinando}
         onOpenChange={(v) => { if (!v) setAssinando(null); }}
         titulo={assinando?.titulo ?? ""}
-        nome={String(colaborador?.nome || "")}
+        filePath={assinando?.file_path ?? null}
+        fileName={assinando?.arquivo_nome ?? null}
+        mimeType={assinando?.mime_type ?? null}
+        nomeColaborador={String(colaborador?.nome || "")}
         enviando={aceitar.isPending}
-        onConfirmar={(assinatura) => assinando && aceitar.mutate({ d: assinando, assinatura })}
+        onConcluir={(assinatura) => assinando && aceitar.mutate({ d: assinando, assinatura })}
       />
 
       {/* Envio de atestado — independente da antiga tela de Solicitações. */}
