@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
         admin
           .from("dp_preadmissao_documentos")
           .select(
-            "id, requisito_codigo, pessoa_id, file_name, status, motivo_recusa, versao, created_at, substituido_em, parte, parte_rotulo",
+            "id, requisito_codigo, pessoa_id, file_name, mime_type, status, motivo_recusa, versao, created_at, substituido_em, parte, parte_rotulo",
           )
           .eq("preadmissao_id", pa.id)
           .order("created_at", { ascending: false }),
