@@ -42,6 +42,7 @@ export const PREADMISSAO_STATUS_LABEL: Record<PreadmissaoStatus, string> = {
 
 export interface PreadmissaoResumo {
   id: string;
+  versao?: number;
   company_id: string;
   candidato_nome: string;
   whatsapp: string;
@@ -268,7 +269,13 @@ export function useDpPreadmissaoGestor(id: string | null) {
 
   return {
     solicitarCorrecao: useMutation({
-      mutationFn: async (motivo: string) => await acao({ action: "solicitar_correcao", motivo }),
+      mutationFn: async (entrada: { motivo: string; versao: number }) =>
+        await acao<{ expires_at: string }>({ action: "solicitar_correcao", ...entrada }),
+      onSuccess: invalidar,
+    }),
+    retomarConferencia: useMutation({
+      mutationFn: async (entrada: { motivo: string; versao: number }) =>
+        await acao({ action: "retomar_conferencia", ...entrada }),
       onSuccess: invalidar,
     }),
     salvarAdmin: useMutation({

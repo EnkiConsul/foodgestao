@@ -1009,6 +1009,13 @@
       "when": 1792854868000,
       "tag": "0143_preadmissao_documento_gestor_ator",
       "breakpoints": true
+    },
+    {
+      "idx": 144,
+      "version": "7",
+      "when": 1792859208487,
+      "tag": "0144_preadmissao_correcao_retomada_atomica",
+      "breakpoints": true
     }
   ]
 }

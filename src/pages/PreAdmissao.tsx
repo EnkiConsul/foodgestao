@@ -36,6 +36,7 @@ import { ConferirFotoDialog } from "@/components/dp/preadmissao/ConferirFotoDial
 import { ImagemEnquadrarDialog } from "@/components/dp/documentos/ImagemEnquadrarDialog";
 import { ArquivoVisualizadorDialog, type ArquivoCarregado } from "@/components/dp/documentos/ArquivoVisualizadorDialog";
 import { exigeVerso, faltaVerso, ehArquivoUnico, ROTULO_ARQUIVO_UNICO } from "@/lib/dp/documentoPartes";
+import { pendenciaDocumento } from "@/lib/dp/preadmissao-correcao";
 
 type Opcao = { value: string; label: string };
 
@@ -1058,8 +1059,14 @@ export default function PreAdmissao() {
     return bruto;
   };
   const pendentesObrigatorios = (estado?.checklist ?? []).filter(
-    (i) => i.obrigatorio && !documentoPorChave.has(`${i.codigo}:${i.pessoa_id ?? ""}`),
+    (i) => i.obrigatorio && pendenciaDocumento(i.codigo, documentoPorChave.get(`${i.codigo}:${i.pessoa_id ?? ""}`) ?? []),
   );
+  const irParaDocumentos = () => {
+    const primeiro = (estado?.checklist ?? []).find((i) =>
+      pendenciaDocumento(i.codigo, documentoPorChave.get(`${i.codigo}:${i.pessoa_id ?? ""}`) ?? []));
+    if (primeiro) setBlocoAberto(primeiro.key);
+    irParaEtapa(ETAPAS.length + 1);
+  };
 
   return (
     <div className="min-h-screen bg-muted/30 pb-28">
@@ -1122,9 +1129,12 @@ export default function PreAdmissao() {
       </header>
 
       {estado?.correcao_motivo && (
-        <div className="mx-4 mt-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+        <div className="mx-4 mt-4 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
           <p className="font-semibold">A empresa pediu um ajuste</p>
           <p className="text-muted-foreground">{estado.correcao_motivo}</p>
+          <Button variant="outline" size="sm" className="mt-2 min-h-10" onClick={irParaDocumentos}>
+            <Camera className="mr-2 h-4 w-4" /> Ir para Documentos
+          </Button>
         </div>
       )}
 
@@ -1486,9 +1496,11 @@ export default function PreAdmissao() {
               {(estado?.checklist ?? []).map((item) => {
                 const chave = `${item.codigo}:${item.pessoa_id ?? ""}`;
                 const fotos = documentoPorChave.get(chave) ?? [];
+                const pendencia = pendenciaDocumento(item.codigo, fotos);
                 const proximaParte = Math.min((fotos.reduce((max, d) => Math.max(max, d.parte ?? 1), 0)) + 1, 10);
                 return (
-                  <div key={item.key} className="border-t pt-3 space-y-2">
+                  <div key={item.key} className={pendencia ? "border-t border-warning pt-3 space-y-2" : "border-t pt-3 space-y-2"}>
+                    {pendencia && <p className="text-xs font-medium text-warning-foreground bg-warning/10 p-2 rounded-md">{pendencia}</p>}
                     <Button type="button" variant="ghost" aria-expanded={blocoAberto === item.key} className="w-full justify-between text-left px-1" onClick={() => alternarBloco(item.key)}>
                       <span className="min-w-0 truncate">{item.titulo}{item.pessoa_nome ? ` — ${item.pessoa_nome}` : ""}</span><ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${blocoAberto === item.key ? "" : "-rotate-90"}`} />
                     </Button>
@@ -1670,11 +1682,11 @@ export default function PreAdmissao() {
                   </Button>
                 </div>
                 {!pendentesObrigatorios.length ? (
-                  <p className="text-sm text-emerald-600">Todos os documentos obrigatórios foram enviados.</p>
+                  <p className="text-sm text-success">Todos os documentos obrigatórios foram enviados.</p>
                 ) : (
                   <ul className="list-disc pl-5 text-sm text-destructive">
                     {pendentesObrigatorios.map((i) => (
-                      <li key={i.key}>{i.titulo}{i.pessoa_nome ? ` — ${i.pessoa_nome}` : ""}</li>
+                      <li key={i.key}>{i.titulo}{i.pessoa_nome ? ` — ${i.pessoa_nome}` : ""}: {pendenciaDocumento(i.codigo, documentoPorChave.get(`${i.codigo}:${i.pessoa_id ?? ""}`) ?? [])}</li>
                     ))}
                   </ul>
                 )}
