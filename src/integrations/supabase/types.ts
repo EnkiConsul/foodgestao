@@ -21296,6 +21296,14 @@ export type Database = {
         Args: { p_colaborador_id: string }
         Returns: undefined
       }
+      dp_rotina_ausencia_operacional_em: {
+        Args: { p_colaborador: string; p_data: string }
+        Returns: boolean
+      }
+      dp_rotina_folga_em: {
+        Args: { p_colaborador: string; p_data: string }
+        Returns: boolean
+      }
       dp_set_desligamento_ressalvas: {
         Args: {
           p_colaborador_id: string
