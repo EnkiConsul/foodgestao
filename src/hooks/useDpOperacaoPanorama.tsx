@@ -28,6 +28,8 @@ import {
   type PessoaAvulsaTipo,
   type ResultadoDia,
   ehSobDemanda,
+  ultimoDiaNaEscala,
+  diaAnterior,
 } from "@/lib/dp/operacao-panorama";
 import { isSocio } from "@/lib/dp/contrato-policy";
 import { nomeExibicao } from "@/lib/dp/nomeExibicao";
@@ -454,6 +456,24 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     [base.data, unidadeId],
   );
 
+  // Termination notices in progress: last attendance day (already includes the bank grouping).
+  const ultimosDias = useQuery({
+    queryKey: ["dp_operacao", "desligamento_ultimo_dia", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("dp_desligamento_processos")
+        .select("colaborador_id, ultimo_comparecimento, dispensado_desde")
+        .eq("company_id", selectedCompanyId!).eq("status", "aviso_em_curso");
+      if (error) throw error;
+      const mapa = new Map<string, string>();
+      for (const p of (data ?? []) as { colaborador_id: string; ultimo_comparecimento: string | null; dispensado_desde: string | null }[]) {
+        const ultimo = p.ultimo_comparecimento ?? (p.dispensado_desde ? diaAnterior(p.dispensado_desde) : null);
+        if (ultimo) mapa.set(p.colaborador_id, ultimo);
+      }
+      return mapa;
+    },
+  });
+
   const colaboradores: ColaboradorPanorama[] = useMemo(() => {
     const d = base.data;
     if (!d) return [];
@@ -502,7 +522,8 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           socio: isSocio((c as { vinculo_label?: string | null }).vinculo_label),
           ativo: c.ativo !== false,
           data_admissao: c.data_admissao,
-          data_desligamento: c.data_desligamento,
+          // Leaves the store schedule the day after the last attendance (bank included), with no tag.
+          data_desligamento: ultimoDiaNaEscala(c.data_desligamento, ultimosDias.data?.get(c.id)),
           // Pré-admissão ativada na rotina: freelancer provisório aguardando
           // o registro oficial (selo na operação).
           aguardando_registro:
@@ -510,7 +531,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           trabalho_excepcional: excepcionais.data?.get(c.id) ?? [],
         };
       });
-  }, [base.data, unidadeId, fim, janelaInicio, excepcionais.data]);
+  }, [base.data, unidadeId, fim, janelaInicio, excepcionais.data, ultimosDias.data]);
 
   const ausencias: AusenciaPanorama[] = useMemo(() => {
     const d = base.data;
