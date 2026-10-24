@@ -40,6 +40,17 @@ const textoErro = (msg?: string | null) => {
 export type ReplicarModo = "completar" | "substituir";
 export type ReplicarResumo = { unidades: number; copiados: number; existentes: number };
 
+/** Nacionais fixos; Sexta-feira Santa somente mediante escolha explícita da unidade. */
+export function feriadosParaInclusao(atuais: FeriadoRegra[], incluirSextaSanta = false): FeriadoInput[] {
+  const candidatos: FeriadoInput[] = FERIADOS_NACIONAIS_FIXOS.map((f) => ({
+    nome: f.nome, tipo: "anual", dia: f.dia, mes: f.mes, ativo: true,
+  }));
+  if (incluirSextaSanta) candidatos.push({
+    nome: "Sexta-feira Santa", tipo: "movel", codigo_movel: "sexta_feira_santa", ativo: true,
+  });
+  return candidatos.filter((f) => !atuais.some((a) => chaveFeriado(a) === chaveFeriado({ ...f, id: "" })));
+}
+
 /** Chave de comparação de uma regra de feriado, para evitar duplicidade. */
 export const chaveFeriado = (f: FeriadoRegra) =>
   f.tipo === "movel" ? `movel:${f.codigo_movel ?? ""}` : f.tipo === "especifica"
@@ -142,24 +153,21 @@ export function useDpFeriados(unidadeId?: string | null) {
     onError: (e: any) => toast.error(textoErro(e?.message)),
   });
 
-  /** Inclui os feriados nacionais fixos que ainda não existem na unidade. */
+  /** Inclui nacionais fixos e, se confirmado, Sexta-feira Santa como regra local móvel. */
   const incluirNacionais = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (incluirSextaSanta: boolean = false) => {
       if (!selectedCompanyId || !unidadeId) throw new Error("Salve a unidade primeiro.");
-      const atuais = query.data ?? [];
-      const faltantes = FERIADOS_NACIONAIS_FIXOS.filter(
-        (f) => !atuais.some((a) => a.tipo === "anual" && a.dia === f.dia && a.mes === f.mes),
-      );
+      const { data: atuais, error: readError } = await supabase.from("dp_unidade_feriados")
+        .select("id, nome, tipo, codigo_movel, data, dia, mes, ordinal, dia_semana, ativo")
+        .eq("unidade_id", unidadeId);
+      if (readError) throw readError;
+      const faltantes = feriadosParaInclusao((atuais ?? []) as FeriadoRegra[], incluirSextaSanta);
       if (faltantes.length === 0) return 0;
       const { error } = await supabase.from("dp_unidade_feriados").insert(
         faltantes.map((f) => ({
+          ...f,
           company_id: selectedCompanyId,
           unidade_id: unidadeId,
-          nome: f.nome,
-          tipo: "anual",
-          dia: f.dia,
-          mes: f.mes,
-          ativo: true,
         })),
       );
       if (error) throw error;
@@ -167,7 +175,7 @@ export function useDpFeriados(unidadeId?: string | null) {
     },
     onSuccess: (quantos) => {
       toast.success(
-        quantos ? `${quantos} feriado(s) nacional(is) incluído(s)` : "Já estavam todos cadastrados",
+        quantos ? `${quantos} feriado(s) incluído(s)` : "Os feriados selecionados já estavam cadastrados",
       );
       invalidate();
     },

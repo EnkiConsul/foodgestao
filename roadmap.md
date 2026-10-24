@@ -1,5 +1,7 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 
+- [ ] Facilitar a inclusão de Sexta-feira Santa junto aos nacionais mediante seleção local explícita; validar sem gravar feriados reais e sem publicar.
+
 - [x] Revisar a classificação legal dos feriados móveis: Sexta-feira Santa permanece local/opcional (Lei 9.093/1995, art. 2º), não adicionada aos nacionais; consulta de pendências inclui codigo_movel e teste de exceção por data alinhado. 66 testes passaram e build OK; sem publicação ou alteração de dados reais.
 
 - [x] Cadastrar Carnaval, Corpus Christi e Sexta-feira Santa por nome, com cálculo anual automático na agenda e no servidor (0140); 28 testes passaram, cadastro/resolução/desativação validados em PostgreSQL isolado e seleção/prévias conferidas no celular e computador. Sem cadastro real ou publicação da interface; compatibilidade do serviço de desligamento atualizada.

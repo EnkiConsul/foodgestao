@@ -21,7 +21,7 @@
 - Read subdirectory `AGENTS.md` before edits.
 - Unit holiday registration uses the frontend date-order helper with the selected year; retain inactive and non-occurring rules for editing separately from the active annual agenda.
 - Movable holidays use explicit unit-selected codes and Gregorian computus in the shared helper and database resolver; include the code in reads and replication to keep annual dates consistent without scheduled jobs or automatic holiday enrollment.
-- Automatic national holiday enrollment includes only federal fixed dates; movable religious holidays remain explicit local registration under Law 9,093/1995, article 2, preventing incorrect nationwide enrollment.
+- National holiday enrollment defaults to federal fixed dates; its confirmation dialog may include Good Friday only through explicit local opt-in, using the movable code and preserving existing/inactive rules, because Law 9,093/1995, article 2 requires municipal legislation.
 - Recrutamento 360 rules live in `src/pages/recrutamento/AGENTS.md`.
 
 - Ações do Dia: decide documents only; other requests use dedicated DSR/release-undo screens.

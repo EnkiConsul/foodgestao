@@ -8,6 +8,11 @@ import { CalendarDays, Copy, Pencil, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -64,6 +69,8 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
   const desfazer = useMutation({ mutationFn: () => definirCiencia(false), ...aposCiencia });
   const [open, setOpen] = useState(false);
   const [replicarOpen, setReplicarOpen] = useState(false);
+  const [nacionaisOpen, setNacionaisOpen] = useState(false);
+  const [incluirSextaSanta, setIncluirSextaSanta] = useState(false);
   const [editando, setEditando] = useState<FeriadoRegra | null>(null);
   const anoAtual = new Date().getFullYear();
   const [ano, setAno] = useState(String(anoAtual));
@@ -92,8 +99,8 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
           <Button
             size="sm"
             variant="outline"
-            disabled={incluirNacionais.isPending}
-            onClick={() => incluirNacionais.mutate()}
+            disabled={isLoading || incluirNacionais.isPending}
+            onClick={() => { setIncluirSextaSanta(false); setNacionaisOpen(true); }}
           >
             Incluir nacionais
           </Button>
@@ -202,6 +209,31 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
           </ul>
         )}
       </div>
+
+      <AlertDialog open={nacionaisOpen} onOpenChange={(value) => { if (!incluirNacionais.isPending) setNacionaisOpen(value); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Incluir feriados</AlertDialogTitle>
+            <AlertDialogDescription>
+              Os nove feriados nacionais de data fixa serão incluídos, sem duplicar os já cadastrados.
+              Sexta-feira Santa depende de lei municipal; não é feriado nacional automático.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <label className="flex min-h-11 cursor-pointer items-start gap-3 py-2 text-sm">
+            <Checkbox className="mt-0.5" checked={incluirSextaSanta}
+              disabled={incluirNacionais.isPending}
+              onCheckedChange={(value) => setIncluirSextaSanta(value === true)} />
+            <span className="min-w-0 break-words">Incluir também Sexta-feira Santa nesta unidade, conforme a legislação local</span>
+          </label>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="min-h-11" disabled={incluirNacionais.isPending}>Cancelar</AlertDialogCancel>
+            <Button className="min-h-11" disabled={incluirNacionais.isPending}
+              onClick={() => incluirNacionais.mutate(incluirSextaSanta, { onSuccess: () => setNacionaisOpen(false) })}>
+              {incluirNacionais.isPending ? "Incluindo…" : "Incluir feriados"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <FeriadoFormDialog
         open={open}
