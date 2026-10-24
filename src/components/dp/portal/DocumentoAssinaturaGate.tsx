@@ -38,10 +38,9 @@ export function DocumentoAssinaturaGate() {
   const { colaborador, documentos } = useDocumentosAguardandoAssinatura();
 
   const [adiado, setAdiado] = useState(false);
-  const [visualizou, setVisualizou] = useState<string | null>(null);
-  const [preview, setPreview] = useState<DocParaAssinar | null>(null);
+  /** Documento com arquivo aberto na tela cheia de leitura e assinatura. */
+  const [assinandoDoc, setAssinandoDoc] = useState<DocParaAssinar | null>(null);
   const [previewTroca, setPreviewTroca] = useState(false);
-  const [confirmar, setConfirmar] = useState(false);
   const [assinaturaPng, setAssinaturaPng] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
