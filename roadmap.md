@@ -1,6 +1,7 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 
-- [ ] Redesenhar conferência da admissão: PDF compacto + Salvar e Avançar/Finalizar, ASO retomável antes da contabilidade, efetivação por vínculo e anexos para aceite; corrigir CPF do próprio provisório e vigência inicial. Aguarda aprovação do plano consolidado; sem gravações reais ou publicação.
+- [x] Redesenhar conferência da admissão: PDF compacto + Salvar e Avançar/Finalizar, ASO retomável antes da contabilidade, elegibilidade de efetivação por vínculo e documentos oficiais após efetivar; ocultar alerta do próprio provisório e alinhar vigência inicial. 23 testes passaram; fluxo autenticado conferido no celular com gravações interceptadas (avanço e finalização simulados), sem alterar dados reais. Build OK.
+- [ ] Disponibilizar o novo fluxo no site e a correção de CPF na função do gestor: aguarda autorização explícita de publicação. Gravação real, ASO real e efetivação real não exercitados para preservar os colaboradores.
 
 - [x] Categorizar feriados em Nacional, Estadual, Municipal e Sindicato (CCT), com seletor, filtro, resumo, replicação e identificação nos calendários; migração aditiva 0141 preserva RPC antiga e registros. 45 testes passaram; consulta autenticada, formulário e resumo mensal conferidos em 320/407/1280 sem gravações de teste ou publicação. Legado não federal inicialmente Municipal, sujeito à revisão do gestor (ex.: Dia da Categoria SECHSEG).
 

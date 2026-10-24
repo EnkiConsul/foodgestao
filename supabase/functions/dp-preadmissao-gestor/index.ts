@@ -183,12 +183,14 @@ Deno.serve(async (req) => {
       if (cpfLimpo.length === 11) {
         const { data: colab } = await admin
           .from("dp_colaboradores")
-          .select("nome, desligado_em")
+          .select("id, nome, desligado_em")
           .eq("company_id", pa.company_id)
           .eq("cpf", cpfLimpo)
           .limit(1)
           .maybeSingle();
-        if (colab) {
+        const rotina = (ficha.admin_dados as Record<string, unknown> | null)?.rotina as { colaborador_id?: string } | undefined;
+        const proprioId = ficha.colaborador_id || rotina?.colaborador_id;
+        if (colab && colab.id !== proprioId) {
           cpfExistente = {
             situacao: colab.desligado_em ? "desligado" : "ativo",
             nome: String(colab.nome ?? ""),
