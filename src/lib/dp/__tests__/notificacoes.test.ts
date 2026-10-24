@@ -46,6 +46,12 @@ describe("origem amigável — sem nomes técnicos", () => {
 });
 
 describe("destinos (deep links)", () => {
+  it("desligamento abre a aba do colaborador e nunca usa o id do processo como pessoa", () => {
+    expect(notificacaoPathGestor("dp_desligamento_processos", "processo-1", "colaborador-1"))
+      .toBe("/dp/colaboradores?editar=colaborador-1&aba=desligamento");
+    expect(notificacaoPathGestor("dp_desligamento_processos", "processo-1"))
+      .toBe("/dp/colaboradores");
+  });
   it("gestor cai em rotas do Pessoas 360", () => {
     expect(notificacaoPathGestor("dp_trocas")).toBe("/dp/folgas?aba=trocas");
     expect(notificacaoPathGestor("desconhecida")).toBe("/dp/notificacoes");

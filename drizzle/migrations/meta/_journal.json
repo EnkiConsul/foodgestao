@@ -1030,6 +1030,13 @@
       "when": 1792860876636,
       "tag": "0146_desligamento_compensacao_cancelamento_seguro",
       "breakpoints": true
+    },
+    {
+      "idx": 147,
+      "version": "7",
+      "when": 1792872065557,
+      "tag": "0147_preadmissao_setor_e_notificacoes_desligamento",
+      "breakpoints": true
     }
   ]
 }

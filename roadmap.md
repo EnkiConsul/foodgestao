@@ -1,5 +1,8 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 
+- [x] Corrigir herança do setor na ativação e o setor já escolhido da Verônica na ficha e nos dias de trabalho, preservando exceções. Migração 0147 aplicada; correção aprovada auditada; Verônica conferida na rotina da Pakerê em PIZZARIA.
+- [x] Identificar colaboradores nos alertas de desligamento, corrigir o aviso existente da Thais e abrir diretamente a aba Desligamento. 46 testes com dados fictícios passaram; aviso real e abertura da ficha autenticada conferidos sem salvar nem marcar leitura real. Build OK; interface não publicada.
+
 - [x] Preparar revisão de folgas pela regra resolvida antes do banco, atalho ao mês sem gravação automática, concentração terminal em dias inteiros sem negativo, comparação de datas e saldo residual. 93 testes passaram; calculadora autenticada conferida em 1280/407, sem gravações reais; build OK. Função do servidor alterada somente na fonte, não implantada.
 - [ ] Disponibilizar e validar registro e projeção do aviso no servidor: aguarda autorização de implantação/publicação. Portal mantém a última data confirmada e explica seu caráter estimado; ainda não recebe a projeção dinâmica. Registros antigos não têm referência original sem banco e não recebem data inventada. Fluxo oficial não exercitado com colaboradores reais por restrição do usuário.
 
