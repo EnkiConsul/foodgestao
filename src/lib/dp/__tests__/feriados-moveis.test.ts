@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dataFeriadoMovel, dataDoFeriadoNoAno, feriadosDoAno, type FeriadoMovel, type FeriadoRegra } from "../feriados";
+import { dataFeriadoMovel, dataDoFeriadoNoAno, feriadosDoAno, ehFeriadoLocal, faltaFeriadoLocal, FERIADOS_NACIONAIS_FIXOS, type FeriadoMovel, type FeriadoRegra } from "../feriados";
 import { ordenarFeriadosCadastro } from "../feriados-ordenacao";
 import { chaveFeriado } from "@/hooks/useDpFeriados";
 
@@ -8,6 +8,17 @@ const regra = (codigo: FeriadoMovel, extra: Partial<FeriadoRegra> = {}): Feriado
 });
 
 describe("feriados móveis escolhidos pelo nome", () => {
+  it.each(["carnaval", "corpus_christi", "sexta_feira_santa"] as const)("%s é cadastro local opcional, não nacional automático", (codigo) => {
+    const movel = regra(codigo);
+    expect(ehFeriadoLocal(movel)).toBe(true);
+    expect(faltaFeriadoLocal([movel], null)).toBe(false);
+    expect(faltaFeriadoLocal([{ ...movel, ativo: false }], null)).toBe(true);
+  });
+  it("completar nacionais mantém somente as nove datas fixas federais", () => {
+    expect(FERIADOS_NACIONAIS_FIXOS.map(f => [f.dia, f.mes])).toEqual([
+      [1, 1], [21, 4], [1, 5], [7, 9], [12, 10], [2, 11], [15, 11], [20, 11], [25, 12],
+    ]);
+  });
   it.each([
     [2024, "2024-02-13", "2024-03-29", "2024-05-30"],
     [2025, "2025-03-04", "2025-04-18", "2025-06-19"],

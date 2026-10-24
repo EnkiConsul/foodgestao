@@ -172,7 +172,10 @@ export function descricaoRegra(regra: FeriadoRegra): string {
   return `Todo ano no ${ord} ${dow} de ${mes}${desde}`;
 }
 
-/** Feriados nacionais de data fixa, para a unidade não começar vazia. */
+/** Feriados nacionais de data fixa, para a unidade não começar vazia.
+ * Feriados religiosos, incluindo Sexta-feira Santa, dependem de lei municipal
+ * (Lei 9.093/1995, art. 2º) e não entram na inclusão automática de nacionais.
+ */
 export const FERIADOS_NACIONAIS_FIXOS: { nome: string; dia: number; mes: number }[] = [
   { nome: "Confraternização Universal", dia: 1, mes: 1 },
   { nome: "Tiradentes", dia: 21, mes: 4 },
@@ -193,14 +196,17 @@ export function datasDeFeriados(regras: FeriadoRegra[], anos: number[]): Set<str
 }
 
 /** Regra que não é um dos feriados nacionais fixos (municipal, estadual ou móvel). */
-export function ehFeriadoLocal(regra: Pick<FeriadoRegra, "tipo" | "dia" | "mes">): boolean {
+export function ehFeriadoLocal(regra: Pick<FeriadoRegra, "tipo" | "dia" | "mes" | "codigo_movel">): boolean {
+  // Os três móveis são escolhidos pela unidade conforme a regra local/CCT;
+  // a Sexta-feira Santa não é uma exceção federal a essa classificação.
+  if (regra.tipo === "movel") return true;
   if (regra.tipo !== "anual") return true;
   return !FERIADOS_NACIONAIS_FIXOS.some((n) => n.dia === regra.dia && n.mes === regra.mes);
 }
 
 /** A unidade precisa cadastrar feriados locais ou confirmar que não tem. */
 export function faltaFeriadoLocal(
-  regras: Pick<FeriadoRegra, "tipo" | "dia" | "mes" | "ativo">[],
+  regras: Pick<FeriadoRegra, "tipo" | "dia" | "mes" | "codigo_movel" | "ativo">[],
   cienteEm: string | null | undefined,
 ): boolean {
   if (cienteEm) return false;

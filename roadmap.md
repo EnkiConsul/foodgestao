@@ -1,5 +1,7 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 
+- [x] Revisar a classificação legal dos feriados móveis: Sexta-feira Santa permanece local/opcional (Lei 9.093/1995, art. 2º), não adicionada aos nacionais; consulta de pendências inclui codigo_movel e teste de exceção por data alinhado. 66 testes passaram e build OK; sem publicação ou alteração de dados reais.
+
 - [x] Cadastrar Carnaval, Corpus Christi e Sexta-feira Santa por nome, com cálculo anual automático na agenda e no servidor (0140); 28 testes passaram, cadastro/resolução/desativação validados em PostgreSQL isolado e seleção/prévias conferidas no celular e computador. Sem cadastro real ou publicação da interface; compatibilidade do serviço de desligamento atualizada.
 
 - [x] Ajustar cadastro de unidades e todas as abas para celular; feriados ordenados por data com datas completas. 17 testes passaram; cinco abas e quatro janelas auxiliares conferidas em telas estreitas, sem rolagem lateral no conteúdo, alterações em dados reais ou publicação.
@@ -33,4 +35,4 @@
 - [x] Migração 0135: `dp_preadmissao_efetivar_com_ficha` converte o cadastro provisório da rotina em vez de acusar CPF duplicado
 - [ ] Homologação visual pelo gestor na ficha da Verônica (aguarda uso real)
 - [ ] Publicação desta leva (autorizada; aguarda resolução das falhas de regressão acima)
-- [ ] Teste pré-existente falhando, fora do escopo: `calendario-rotina-p1.test.ts` › "folgas fixas do dia são o piso mesmo com exceção da data" (já falhava antes desta leva)
+- [x] Teste `calendario-rotina-p1.test.ts` alinhado à prioridade já existente da exceção por data: limite 1 permanece 1 mesmo com três folgas fixas; nove testes deste arquivo passaram.
