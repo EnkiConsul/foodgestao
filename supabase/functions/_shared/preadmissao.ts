@@ -843,6 +843,10 @@ export function validarAdminDados(entrada: unknown): AdminValidado {
       continue;
     }
     const v = texto(campo);
+    if (campo === "folha_ponto_dispensa_justificativa" && v && v.length < 10) {
+      out.erros[campo] = "Justifique a dispensa com pelo menos 10 caracteres.";
+      continue;
+    }
     if (v === null) continue;
     if (v === "") {
       out.campos[campo] = "";

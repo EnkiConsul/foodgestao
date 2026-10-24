@@ -1320,7 +1320,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
         </li>)}
       </ol>
       <p className="text-xs text-muted-foreground">
-        <strong className="text-foreground">{passoAtual === 0 ? "Ficha ainda não finalizada" : passoAtual === 1 && isClt ? "Ficha conferida · aguardando ASO" : passoAtual === 2 ? "Ficha e ASO conferidos · contabilidade" : "Aguardando efetivação"}</strong>
+        <strong className="text-foreground">{status === "concluido" ? "Admissão efetivada" : status === "cancelado" ? "Admissão cancelada" : passoAtual === 0 ? "Ficha ainda não finalizada" : passoAtual === 1 && isClt ? "Ficha conferida · aguardando ASO" : passoAtual === 2 && isClt ? "Ficha e ASO conferidos · contabilidade" : "Aguardando efetivação"}</strong>
         {passoAtual === 0 && " · alterações salvas não significam aprovação da ficha."}
       </p>
       {admin.data_admissao && <p className="text-xs text-muted-foreground">Admissão prevista: {admin.data_admissao.split("-").reverse().join("/")}. A data poderá ser ajustada antes da efetivação, conforme o ASO e o registro.</p>}
