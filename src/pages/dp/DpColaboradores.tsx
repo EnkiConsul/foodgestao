@@ -42,6 +42,9 @@ import {
 } from "@/components/dp/PromoverApoioMetodoDialog";
 import { PreadmissoesPanel } from "@/components/dp/preadmissao/PreadmissoesPanel";
 import { useDpPreadmissoes } from "@/hooks/dp/useDpPreadmissoes";
+import { admissaoDoProvisorio } from "@/lib/dp/admissao-apresentacao";
+import { AdmissaoResumo } from "@/components/dp/preadmissao/AdmissaoResumo";
+import { PreadmissaoRevisaoDialog } from "@/components/dp/preadmissao/PreadmissaoRevisaoDialog";
 import { PessoaApoioFormDialog } from "@/components/dp/PessoaApoioFormDialog";
 import type { PessoaApoioTipo } from "@/hooks/useDpPessoasApoio";
 import { useNavigate } from "react-router-dom";
@@ -110,7 +113,22 @@ const COLAB_ACOES_WIDTH = 96;
 
 
 export default function DpColaboradores() {
-  const list = useDpColaboradores();
+  const cadastro = useDpColaboradores();
+  const preadmissoes = useDpPreadmissoes();
+  const [revisandoAdmissao, setRevisandoAdmissao] = useState<string | null>(null);
+  const dadosUnificados = useMemo(() => (cadastro.data ?? []).map((c) => ({
+    ...c, admissao: c.origem_cadastro === "preadmissao_rotina" ? admissaoDoProvisorio(c.id, c.company_id, preadmissoes.data ?? []) : null,
+  })), [cadastro.data, preadmissoes.data]);
+  const list = { ...cadastro, data: dadosUnificados };
+  const resumoAdmissao = (c: DpColaborador) => c.admissao ? <AdmissaoResumo ficha={c.admissao} onAbrir={() => setRevisandoAdmissao(c.admissao?.id ?? null)} /> : null;
+  const abrirVisualizacao = (c: DpColaborador) => {
+    if (c.admissao) return setRevisandoAdmissao(c.admissao.id);
+    if (c.origem_cadastro === "preadmissao_rotina" && c.ativo) {
+      toast.info("Abra a pré-admissão para retomar a conferência.");
+      return;
+    }
+    setViewing(c);
+  };
   const agenda = useDpDesligamentosAgenda();
   const avisos = useMemo(() => {
     const mapa = new Map<string, DesligamentoAgenda>();
@@ -144,6 +162,11 @@ export default function DpColaboradores() {
   /** Aba aberta ao abrir o cadastro pelas ações da lista e pelos atalhos de pendências. */
   const [abaInicial, setAbaInicial] = useState<AbaCadastro>("dados");
   const abrirCadastro = (c: DpColaborador | null, aba: AbaCadastro = "dados") => {
+    if (c?.admissao && aba !== "acesso") return setRevisandoAdmissao(c.admissao.id);
+    if (c?.origem_cadastro === "preadmissao_rotina" && c.ativo && aba !== "acesso") {
+      toast.info("Abra a pré-admissão para retomar a conferência.");
+      return;
+    }
     setEditing(c);
     setAbaInicial(aba);
     setDialogOpen(true);
@@ -250,7 +273,10 @@ export default function DpColaboradores() {
   const [apoioUnidadesDe, setApoioUnidadesDe] = useState<DpColaborador | null>(null);
 
   /** Ações padrão de colaborador reutilizadas nos cards e na tabela unificada. */
-  const acoesColaborador = (c: DpColaborador) => [
+  const acoesColaborador = (c: DpColaborador) => c.admissao ? [
+    { key: "admissao", label: "Rever processo de admissão", icon: Eye, onSelect: () => setRevisandoAdmissao(c.admissao?.id ?? null) },
+    { key: "acesso", label: "Acesso ao portal", icon: KeyRound, onSelect: () => abrirCadastro(c, "acesso") },
+  ] : [
     { key: "editar", label: "Editar cadastro", icon: Pencil, onSelect: () => abrirCadastro(c) },
     {
       key: "acesso",
@@ -301,7 +327,6 @@ export default function DpColaboradores() {
   }, [origem, statusFilter]);
 
   const pessoasApoio = useDpPessoasApoio();
-  const preadmissoes = useDpPreadmissoes();
   // Contadores por aba, exibidos no seletor de seção do celular.
   const contagemOrigem = useMemo(() => {
     const apoio = pessoasApoio.data ?? [];
@@ -354,7 +379,8 @@ export default function DpColaboradores() {
         if (statusFilter === "ativos" && !c.ativo) return false;
         if (statusFilter === "desligados" && c.ativo) return false;
         if (statusFilter === "em_aviso" && !avisos.has(c.id)) return false;
-        if (statusFilter === "incompletos" && (!c.ativo || faltantesDe(c).length === 0)) return false;
+        if (statusFilter === "em_admissao" && !c.admissao) return false;
+        if (statusFilter === "incompletos" && (c.admissao || !c.ativo || faltantesDe(c).length === 0)) return false;
         return true;
       })
       .map((c) => ({ tipo: "colaborador" as const, item: c, nome: c.nome, ativo: c.ativo }));
@@ -443,7 +469,7 @@ export default function DpColaboradores() {
       todos: baseColabs.length + baseApoios.length,
       ativos: baseColabs.filter((c) => c.ativo).length + baseApoios.filter((p) => p.ativo).length,
       desligados: baseColabs.filter((c) => !c.ativo).length + baseApoios.filter((p) => !p.ativo).length,
-      incompletos: colabs.filter((c) => c.ativo && faltantesDe(c).length > 0).length,
+      incompletos: colabs.filter((c) => c.ativo && !c.admissao && faltantesDe(c).length > 0).length,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [list.data, pessoasApoio.data, origem]);
@@ -467,7 +493,8 @@ export default function DpColaboradores() {
         if (statusFilter === "ativos" && !c.ativo) return false;
         if (statusFilter === "desligados" && c.ativo) return false;
         if (statusFilter === "em_aviso" && !avisos.has(c.id)) return false;
-        if (statusFilter === "incompletos" && (!c.ativo || faltantesDe(c).length === 0)) return false;
+        if (statusFilter === "em_admissao" && !c.admissao) return false;
+        if (statusFilter === "incompletos" && (c.admissao || !c.ativo || faltantesDe(c).length === 0)) return false;
         if (incompletosFilter) {
           if (faltantesDe(c).length === 0) return false;
         }
@@ -533,12 +560,13 @@ export default function DpColaboradores() {
           <>
             <div className="font-semibold truncate" title={c.nome}>{c.nome}</div>
             {resumoAviso(c)}
+            {resumoAdmissao(c)}
             <div className="font-mono text-[11px] text-muted-foreground">{c.cpf ?? "—"}</div>
             <div className="mt-1 flex flex-wrap gap-1">
               <Badge variant="outline" className="h-4 px-1 text-[10px] border-primary/30 text-primary bg-primary/5">
-                {vinculoLabel(c as any)}
+                {c.admissao || (c.origem_cadastro === "preadmissao_rotina" && c.ativo) ? "Aguardando admissão" : vinculoLabel(c)}
               </Badge>
-              {c.ativo && (
+              {c.ativo && !c.admissao && (
 <CadastroIncompletoBadge faltando={faltantesDe(c)} className="h-4 px-1 text-[10px]" onCompletar={(aba) => abrirCadastro(c, aba)} />
 )}
               {folha && <Badge variant="outline" className="h-4 px-1 text-[10px]">Ponto</Badge>}
@@ -581,8 +609,8 @@ export default function DpColaboradores() {
     },
     status: {
       label: "Status", sortKey: "status", center: true,
-      value: (c) => (c.ativo ? "Ativo" : "Desligado"),
-      render: (c) => (c.ativo ? (
+      value: (c) => c.admissao ? "Aguardando admissão" : (c.ativo ? "Ativo" : "Desligado"),
+      render: (c) => (c.admissao ? <Badge variant="outline" className="whitespace-normal border-warning/40 bg-warning/10 text-warning-foreground">Aguardando admissão</Badge> : c.ativo ? (
         <div className="text-center">
           <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
             Ativo
@@ -766,6 +794,7 @@ export default function DpColaboradores() {
           <TabsTrigger value="all">Todos ({counts.todos})</TabsTrigger>
           <TabsTrigger value="ativos">Ativos ({counts.ativos})</TabsTrigger>
           <TabsTrigger value="desligados">Desligados ({counts.desligados})</TabsTrigger>
+          {origem === "colaboradores" && <TabsTrigger value="em_admissao">Em admissão ({dadosUnificados.filter((c) => c.admissao).length})</TabsTrigger>}
           {origem === "colaboradores" && <TabsTrigger value="em_aviso">Em aviso prévio ({avisos.size})</TabsTrigger>}
           {origem === "colaboradores" && counts.incompletos > 0 && (
             <TabsTrigger value="incompletos">Incompletos ({counts.incompletos})</TabsTrigger>
@@ -921,7 +950,7 @@ export default function DpColaboradores() {
                       <TableRow
                         key={c.id}
                         className="cursor-pointer hover:bg-muted/50 transition-colors"
-                        onClick={() => setViewing(c)}
+                        onClick={() => abrirVisualizacao(c)}
                       >
                         {colunas.map((k) => (
                           <TableCell
@@ -945,6 +974,7 @@ export default function DpColaboradores() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-56">
+                                {c.admissao ? <DropdownMenuItem onSelect={() => setRevisandoAdmissao(c.admissao?.id ?? null)}>Rever processo de admissão</DropdownMenuItem> : <>
                                 <DropdownMenuItem onSelect={() => abrirCadastro(c, "acesso")}>
                                   {c.user_id ? <KeyRound className="h-4 w-4 mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}
                                   {c.user_id ? "Acesso e senha do portal" : "Gerar acesso ao portal"}
@@ -965,6 +995,7 @@ export default function DpColaboradores() {
                                 <DropdownMenuItem onSelect={() => setToDelete(c)}>
                                   <Trash2 className="h-4 w-4 mr-2 text-destructive" /> Remover
                                 </DropdownMenuItem>
+                                </>}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
@@ -1011,11 +1042,12 @@ export default function DpColaboradores() {
                       {c.cargo_nome ?? c.cargo ?? "—"}
                       {c.unidade_nome ? <span> • {c.unidade_nome}</span> : null}
                       {resumoAviso(c)}
+            {resumoAdmissao(c)}
                     </>
                   }
                   badges={
                     <>
-                      {c.ativo ? (
+                      {c.admissao ? <Badge variant="outline" className="text-[11px] border-warning/40 bg-warning/10 text-warning-foreground">Em admissão</Badge> : c.ativo ? (
                         <Badge variant="outline" className="text-[11px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
                           Ativo
                         </Badge>
@@ -1025,7 +1057,7 @@ export default function DpColaboradores() {
                         </Badge>
                       )}
                       <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5 text-[11px]">
-                        {vinculoLabel(c as any)}
+                        {c.admissao || (c.origem_cadastro === "preadmissao_rotina" && c.ativo) ? "Aguardando admissão" : vinculoLabel(c)}
                       </Badge>
                       <Badge
                         variant="outline"
@@ -1045,12 +1077,12 @@ export default function DpColaboradores() {
                       >
                         Ponto: {folha ? "Sim" : "Não"}
                       </Badge>
-                      {c.ativo && (
+                      {c.ativo && !c.admissao && (
 <CadastroIncompletoBadge faltando={faltantesDe(c)} className="text-[11px]" onCompletar={(aba) => abrirCadastro(c, aba)} />
 )}
                     </>
                   }
-                  onOpen={() => setViewing(c)}
+                  onOpen={() => abrirVisualizacao(c)}
                   actions={acoesColaborador(c)}
                 />
               );
@@ -1198,12 +1230,12 @@ export default function DpColaboradores() {
                       if (item.tipo === "colaborador") {
                         const c = item.item;
                         return (
-                          <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setViewing(c)}>
-                            <TableCell className="align-top font-medium">{c.nome}</TableCell>
-                            <TableCell className="align-top"><Badge variant="outline" className="text-[11px]">Colaborador</Badge></TableCell>
+                          <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => abrirVisualizacao(c)}>
+                            <TableCell className="align-top font-medium">{c.nome}{resumoAdmissao(c)}</TableCell>
+                            <TableCell className="align-top"><Badge variant="outline" className="text-[11px]">{c.admissao ? "Em admissão" : "Colaborador"}</Badge></TableCell>
                             <TableCell className="align-top">{c.cargo_nome ?? c.cargo ?? "—"}{c.unidade_nome ? <span className="text-muted-foreground"> • {c.unidade_nome}</span> : null}</TableCell>
                             <TableCell className="align-top">
-                              {c.ativo ? (
+                              {c.admissao ? <Badge variant="outline" className="text-[11px] border-warning/40 bg-warning/10 text-warning-foreground">Em admissão</Badge> : c.ativo ? (
                                 <Badge variant="outline" className="text-[11px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
                                   Ativo
                                 </Badge>
@@ -1225,6 +1257,7 @@ export default function DpColaboradores() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end" className="w-56">
+                                    {c.admissao ? <DropdownMenuItem onSelect={() => setRevisandoAdmissao(c.admissao?.id ?? null)}>Rever processo de admissão</DropdownMenuItem> : <>
                                     <DropdownMenuItem onSelect={() => abrirCadastro(c, "acesso")}>
                                       {c.user_id ? <KeyRound className="h-4 w-4 mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}
                                       {c.user_id ? "Acesso e senha do portal" : "Gerar acesso ao portal"}
@@ -1245,6 +1278,7 @@ export default function DpColaboradores() {
                                     <DropdownMenuItem onSelect={() => setToDelete(c)}>
                                       <Trash2 className="h-4 w-4 mr-2 text-destructive" /> Remover
                                     </DropdownMenuItem>
+                                    </>}
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               </div>
@@ -1333,12 +1367,13 @@ export default function DpColaboradores() {
                       <>
                         {c.cargo_nome ?? c.cargo ?? "—"}
                         {c.unidade_nome ? <span> • {c.unidade_nome}</span> : null}
+                        {resumoAdmissao(c)}
                       </>
                     }
                     badges={
                       <>
-                        <Badge variant="outline" className="text-[11px]">Colaborador</Badge>
-                        {c.ativo ? (
+                        <Badge variant="outline" className="text-[11px]">{c.admissao ? "Em admissão" : "Colaborador"}</Badge>
+                        {c.admissao ? <Badge variant="outline" className="text-[11px] border-warning/40 bg-warning/10 text-warning-foreground">Em admissão</Badge> : c.ativo ? (
                           <Badge variant="outline" className="text-[11px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400">
                             Ativo
                           </Badge>
@@ -1355,12 +1390,12 @@ export default function DpColaboradores() {
                         >
                           Ponto: {folha ? "Sim" : "Não"}
                         </Badge>
-                        {c.ativo && (
+                        {c.ativo && !c.admissao && (
 <CadastroIncompletoBadge faltando={faltantesDe(c)} className="text-[11px]" onCompletar={(aba) => abrirCadastro(c, aba)} />
 )}
                       </>
                     }
-                    onOpen={() => setViewing(c)}
+                    onOpen={() => abrirVisualizacao(c)}
                     actions={acoesColaborador(c)}
                   />
                 );
@@ -1408,6 +1443,8 @@ export default function DpColaboradores() {
       )}
 
 
+
+      <PreadmissaoRevisaoDialog preadmissaoId={revisandoAdmissao} onOpenChange={() => setRevisandoAdmissao(null)} />
 
       {viewing && (
         <ColaboradorFichaDialog
