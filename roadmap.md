@@ -1,5 +1,7 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 
+- [ ] Categorizar feriados em Nacional, Estadual, Municipal e Sindicato (CCT), com seletor, resumo, replicação e identificação nos calendários; preservar registros existentes e verificar no celular sem publicação.
+
 - [x] Melhorar abas horizontais das unidades no celular, exibir totais somente no painel e padronizar Sexta-feira da Paixão; 36 testes passaram e navegação autenticada conferida em 320/407/1280, sem gravações reais ou publicação.
 
 - [x] Facilitar a inclusão de Sexta-feira Santa junto aos nacionais mediante seleção local explícita; 24 testes passaram, janela conferida em 320/407/1280 e gravação/leitura simuladas com conta autenticada. Sem gravar feriados reais ou publicar.
