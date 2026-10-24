@@ -265,8 +265,13 @@ export default function DpUnidades() {
                       </button>
                     )}
                   </td>
-                  <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
-                    <Switch checked={u.ativo} onCheckedChange={() => handleToggle(u)} />
+                  <td className="p-4 text-center" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+                    <Switch
+                      checked={u.ativo}
+                      disabled={togglingId === u.id}
+                      aria-label={u.ativo ? `Desativar unidade ${u.nome}` : `Ativar unidade ${u.nome}`}
+                      onCheckedChange={() => handleToggle(u)}
+                    />
                   </td>
                   <td className="p-4 text-right whitespace-nowrap">
                     <div className="flex justify-end gap-1">
@@ -332,8 +337,17 @@ export default function DpUnidades() {
                   <span className="line-clamp-2">{resumos[u.id] ?? "Funcionamento não configurado"}</span>
                 </div>
               </div>
-              <div onClick={(e) => e.stopPropagation()}>
-                <Switch checked={u.ativo} onCheckedChange={() => handleToggle(u)} />
+              <div
+                className="-m-2 flex min-h-11 min-w-11 items-center justify-center p-2"
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <Switch
+                  checked={u.ativo}
+                  disabled={togglingId === u.id}
+                  aria-label={u.ativo ? `Desativar unidade ${u.nome}` : `Ativar unidade ${u.nome}`}
+                  onCheckedChange={() => handleToggle(u)}
+                />
               </div>
             </div>
             <div className="flex flex-wrap gap-1.5 text-[11px]">
