@@ -345,6 +345,13 @@ export async function enviarDocumentoGestor(args: {
   await chamar("dp-preadmissao-arquivo", { action: "upload_gestor", ...args });
 }
 
+/** Gestor: relê os dados do documento atual (sugestões; nunca grava). */
+export async function relerDocumentoGestor(preadmissao_id: string, requisito_codigo: string) {
+  return chamar<{ campos: Record<string, string>; indisponivel?: boolean }>("dp-preadmissao-arquivo", {
+    action: "ler_documento_gestor", preadmissao_id, requisito_codigo,
+  });
+}
+
 /** Link temporário para abrir um documento enviado pelo candidato. */
 export async function abrirDocumentoPreadmissao(documentoId: string): Promise<string> {
   const r = await chamar<{ url: string }>("dp-preadmissao-arquivo", { action: "url", documento_id: documentoId });
