@@ -86,15 +86,21 @@ export function DatasDesligamento({ r, gestor = true }: {
   gestor?: boolean;
 }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="grid gap-3 sm:grid-cols-3">
       <Card className="border-primary"><CardContent className="space-y-1 py-4">
-        <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><CalendarCheck className="h-4 w-4" /> {r.sem_aviso ? "Término do vínculo" : "Último comparecimento previsto"}</p>
+        <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><CalendarCheck className="h-4 w-4" /> {r.sem_aviso ? "Término do vínculo" : "Último dia de trabalho"}</p>
         {r.sem_aviso
           ? <p className="text-2xl font-bold" data-testid="aviso-ultimo">{br(r.data_efetiva ?? null)} <span className="text-sm font-normal">({r.data_efetiva ? semana(r.data_efetiva) : ""})</span></p>
           : r.ultimo_comparecimento
             ? <p className="text-2xl font-bold" data-testid="aviso-ultimo">{br(r.ultimo_comparecimento)} <span className="text-sm font-normal">({semana(r.ultimo_comparecimento)})</span></p>
             : <p className="text-lg font-semibold" data-testid="aviso-ultimo">Dispensado de comparecer a partir de {br(r.dispensado_desde)}</p>}
+        {!r.sem_aviso && <p className="text-xs text-muted-foreground">{gestor ? "Último dia na loja." : "Último dia em que você comparece ao trabalho."}</p>}
       </CardContent></Card>
+      {!r.sem_aviso && r.data_efetiva && <Card><CardContent className="space-y-1 py-4">
+        <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><CalendarCheck className="h-4 w-4" /> Término do contrato</p>
+        <p className="text-2xl font-bold" data-testid="aviso-termino">{br(r.data_efetiva)} <span className="text-sm font-normal">({semana(r.data_efetiva)})</span></p>
+        <p className="text-xs text-muted-foreground">Data oficial; não muda com o banco de horas.</p>
+      </CardContent></Card>}
       <Card className="border-primary"><CardContent className="space-y-1 py-4">
         <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><Wallet className="h-4 w-4" /> Prazo para pagamento da rescisão</p>
         <p className="text-2xl font-bold" data-testid="aviso-prazo">{br(r.prazo_10_dias)} <span className="text-sm font-normal">({semana(r.prazo_10_dias)})</span></p>
@@ -123,7 +129,6 @@ function Detalhes({ r }: { r: Resultado }) {
           {r.projecao_indenizada && <div>Término com projeção: <strong>{br(r.projecao_indenizada)}</strong></div>}
         </>
       )}
-      <div>Término do vínculo: <strong>{br(r.data_efetiva)}</strong></div>
     </div>
   );
 }
