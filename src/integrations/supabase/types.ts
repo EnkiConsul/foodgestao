@@ -8291,6 +8291,7 @@ export type Database = {
           dias_indenizados: number | null
           dispensado_desde: string | null
           encerrado_admin_em: string | null
+          extrato_aviso: Json | null
           folgas_compensatorias: Json
           id: string
           idempotency_key: string | null
@@ -8336,6 +8337,7 @@ export type Database = {
           dias_indenizados?: number | null
           dispensado_desde?: string | null
           encerrado_admin_em?: string | null
+          extrato_aviso?: Json | null
           folgas_compensatorias?: Json
           id?: string
           idempotency_key?: string | null
@@ -8381,6 +8383,7 @@ export type Database = {
           dias_indenizados?: number | null
           dispensado_desde?: string | null
           encerrado_admin_em?: string | null
+          extrato_aviso?: Json | null
           folgas_compensatorias?: Json
           id?: string
           idempotency_key?: string | null
@@ -11421,6 +11424,7 @@ export type Database = {
           created_at: string
           criado_por: string | null
           data_operacional: string
+          desligamento_processo_id: string | null
           documento_id: string | null
           estado: Database["public"]["Enums"]["dp_ocorrencia_estado"]
           folga_id: string | null
@@ -11473,6 +11477,7 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           data_operacional: string
+          desligamento_processo_id?: string | null
           documento_id?: string | null
           estado?: Database["public"]["Enums"]["dp_ocorrencia_estado"]
           folga_id?: string | null
@@ -11525,6 +11530,7 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           data_operacional?: string
+          desligamento_processo_id?: string | null
           documento_id?: string | null
           estado?: Database["public"]["Enums"]["dp_ocorrencia_estado"]
           folga_id?: string | null
@@ -11580,6 +11586,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ocorrencias_desligamento_processo_id_fkey"
+            columns: ["desligamento_processo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_desligamento_processos"
             referencedColumns: ["id"]
           },
           {
@@ -19781,6 +19794,10 @@ export type Database = {
         Returns: number
       }
       dp_desligamento_banco_aplicar: {
+        Args: { p: Json; p_id: string }
+        Returns: undefined
+      }
+      dp_desligamento_banco_aplicar_base: {
         Args: { p: Json; p_id: string }
         Returns: undefined
       }

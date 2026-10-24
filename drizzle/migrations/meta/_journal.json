@@ -1037,6 +1037,13 @@
       "when": 1792872065557,
       "tag": "0147_preadmissao_setor_e_notificacoes_desligamento",
       "breakpoints": true
+    },
+    {
+      "idx": 148,
+      "version": "7",
+      "when": 1792873803080,
+      "tag": "0148_aviso_extrato_ocorrencias_art488_ponto_admissao",
+      "breakpoints": true
     }
   ]
 }
