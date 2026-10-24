@@ -233,8 +233,8 @@ export function CalculadoraDesligamento({ chave, admissaoInicial = null, jornada
                 motivo: motivo as MotivoDesligamentoCalc,
                 data_termino_acordada: pedidoDispensado && terminoAcordado ? terminoAcordado : null,
                 descontar_aviso: pedidoDispensado ? descontar : undefined,
-                saldo_banco_minutos: number; folgas_compensatorias: string[];
-    simulado: { ultimo: r.ultimoComparecimento, prazo: r.prazoQuitacao, comFolgas: r.folgasAceitas.length > 0 },
+                saldo_banco_minutos: saldoMin ?? 0, folgas_compensatorias: [...r.folgasAceitas],
+                simulado: { ultimo: r.ultimoComparecimento, prazo: r.prazoQuitacao, comFolgas: r.folgasAceitas.length > 0 },
               })}>
               {registrar.rotulo}
             </Button>

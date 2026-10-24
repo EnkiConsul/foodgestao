@@ -45,6 +45,8 @@ const Condicoes = {
   aceite_empresa: z.boolean().optional(),
   // Motivos sem aviso que exigem determinação factual/jurídica (abandono, aposentadoria, outro).
   confirmacao_sem_aviso: z.boolean().optional(),
+  saldo_banco_minutos: z.number().int().min(0).max(525600).default(0),
+  folgas_compensatorias: z.array(Data).max(90).refine((v) => new Set(v).size === v.length, "Datas repetidas").default([]),
   esperado: z.object({ ultimo: z.string().nullable(), prazo: z.string(), efetiva: z.string() }).optional(),
 };
 const Body = z.discriminatedUnion("acao", [
@@ -80,6 +82,7 @@ type Cond = {
   reducao?: "duas_horas" | "sete_dias" | null; data_comunicacao: string;
   data_termino_acordada?: string | null; descontar_aviso?: boolean;
   pedido_escrito?: boolean; aceite_empresa?: boolean; confirmacao_sem_aviso?: boolean;
+  saldo_banco_minutos?: number; folgas_compensatorias?: string[];
 };
 
 /** Motivos sem aviso que não podem ser validados pela mera seleção. */
@@ -95,7 +98,7 @@ async function feriadosDaUnidade(admin: any, c: Pick<Colab, "unidade_id" | "comp
 }
 
 // deno-lint-ignore no-explicit-any
-async function calcular(admin: any, c: Colab, b: Cond, previa = false): Promise<{ resultado?: Record<string, unknown>; resp?: Response }> {
+async function calcular(admin: any, c: Colab, b: Cond, previa = false, processoId?: string): Promise<{ resultado?: Record<string, unknown>; resp?: Response }> {
   const revisao = (msg: string) => ({ resp: json(422, { revisao: true, error: msg }) });
   if (c.regime !== "clt") return revisao("O cálculo automático cobre apenas o regime CLT. Para este vínculo, a análise é manual, com confirmação da contabilidade ou do jurídico.");
   if (!c.data_admissao) return revisao("Cadastre a data de admissão para calcular.");
@@ -163,12 +166,13 @@ async function calcular(admin: any, c: Colab, b: Cond, previa = false): Promise<
   let folgasConsideradas: string[] = [];
   if (!semAviso && b.modalidade === "trabalhado") {
     const { data: fls, error: errFolgas } = await admin.from("dp_folgas")
-      .select("data, tipo, origem, direito_origem")
+      .select("data, tipo, origem, direito_origem, desligamento_processo_id")
       .eq("colaborador_id", c.id).eq("company_id", c.company_id)
       .eq("status", "agendada")
       .gt("data", b.data_comunicacao).lte("data", somar(b.data_comunicacao, 95));
     if (errFolgas) return revisao("Não foi possível ler as folgas agendadas. Tente de novo; se persistir, registre manualmente.");
-    const mescla = mesclarFolgasAgendadas(excecoes, (fls ?? []) as FolgaAgendada[]);
+    const outrasFolgas = (fls ?? []).filter((f: { desligamento_processo_id?: string | null }) => !processoId || f.desligamento_processo_id !== processoId);
+    const mescla = mesclarFolgasAgendadas(excecoes, outrasFolgas as FolgaAgendada[]);
     if (mescla.conflitos.length)
       return revisao(`Há folga agendada em dia que a escala publicada marca como trabalho (${mescla.conflitos.join(", ")}). Resolva o conflito na agenda antes de registrar.`);
     excecoes = mescla.excecoes;
@@ -181,11 +185,20 @@ async function calcular(admin: any, c: Colab, b: Cond, previa = false): Promise<
     dataTerminoAcordada: pedidoDispensado ? b.data_termino_acordada ?? null : null,
     descontarAviso: pedidoDispensado ? b.descontar_aviso === true : undefined,
     jornadaSemanal: semana, excecoesJornada: excecoes, feriados,
-    // Saldo/folgas de banco só existem na simulação da calculadora; aqui nada é descontado.
-    folgasCompensatorias: [], saldoBancoMinutos: 0,
+    folgasCompensatorias: b.folgas_compensatorias ?? [], saldoBancoMinutos: b.saldo_banco_minutos ?? 0,
   });
   if ("erro" in r) return { resp: json(400, { error: r.erro }) };
-  if (!semAviso && b.modalidade === "trabalhado" && !r.ultimoComparecimento)
+  if (r.folgasRejeitadas.length)
+    return { resp: json(400, { error: "Há folgas incompatíveis com o período, a jornada ou o saldo. Revise as datas escolhidas.", folgas_rejeitadas: r.folgasRejeitadas }) };
+  const base = simularDesligamento({
+    dataAdmissao: String(c.data_admissao).slice(0, 10), dataComunicacao: b.data_comunicacao,
+    motivo: b.motivo, modalidade: b.modalidade, reducao: b.modalidade === "trabalhado" ? b.reducao ?? null : null,
+    dataTerminoAcordada: pedidoDispensado ? b.data_termino_acordada ?? null : null,
+    descontarAviso: pedidoDispensado ? b.descontar_aviso === true : undefined,
+    jornadaSemanal: semana, excecoesJornada: excecoes, feriados, saldoBancoMinutos: b.saldo_banco_minutos ?? 0,
+  });
+  if ("erro" in base) return { resp: json(400, { error: base.erro }) };
+  if (!semAviso && b.modalidade === "trabalhado" && !base.ultimoComparecimento)
     return revisao("Não há jornadas previstas no período do aviso. Revise a jornada antes de registrar.");
   const efetiva = r.dataEfetiva;
   const avisos = [...r.avisos];
@@ -200,13 +213,15 @@ async function calcular(admin: any, c: Colab, b: Cond, previa = false): Promise<
     pedido_escrito_confirmado: pedidoDispensado ? true : false,
     aceite_empresa_confirmado: pedidoDispensado ? true : false,
     data_comunicacao: b.data_comunicacao, inicio_aviso: r.inicioAviso,
-    ultimo_comparecimento: r.ultimoComparecimento, dispensado_desde: r.dispensadoDeComparecerDesde,
+    ultimo_comparecimento: r.ultimoComparecimento, dispensado_desde: r.dispensadoDeComparecerDesde ?? (!r.ultimoComparecimento && r.folgasAceitas.length ? r.inicioAviso : null),
     // Pedido de demissão com dispensa do cumprimento: não há projeção
     // indenizada (a empresa dispensou, não indenizou) — grava null.
     data_efetiva: efetiva, projecao_indenizada: r.avisoDispensado ? null : r.terminoProjetado, base_quitacao: r.baseQuitacao,
     prazo_10_dias: r.prazoQuitacao, sugestao_pagamento: r.sugestaoPagamentoDiaUtilAnterior,
     dias_aviso: r.duracaoLegalDias, dias_indenizados: r.diasProjetadosIndenizados,
     regra_versao: REGRA_VERSAO, avisos, usou_escala: excecoes.length > 0,
+    saldo_banco_minutos: b.saldo_banco_minutos ?? 0, folgas_compensatorias: r.folgasAceitas,
+    saldo_residual_minutos: r.saldoResidualMinutos, simulacao: r, base_simulacao: base,
   };
   return { resultado: { ...resultado, termino_passado: efetiva < hoje, prazo_vencido: r.prazoQuitacao < hoje } };
 }
@@ -249,8 +264,9 @@ Deno.serve(async (req) => {
       if (resp) return resp;
       if (b.acao === "previa") return json(200, { resultado });
       if (!b.comunicacao_formal) return json(400, { error: "Confirme que a comunicação formal foi entregue ao colaborador." });
-      if (diverge(b.esperado, resultado!)) return json(409, { divergente: true, error: "As datas oficiais mudaram desde a prévia. Revise e confirme de novo.", resultado });
-      const { avisos: _a, usou_escala: _u, termino_passado, prazo_vencido: _pv, ...gravar } = resultado!;
+      if (!resultado) return json(500, { error: "Não foi possível calcular." });
+      if (diverge(b.esperado, resultado)) return json(409, { divergente: true, error: "As datas oficiais mudaram desde a prévia. Revise e confirme de novo.", resultado });
+      const { avisos: _a, usou_escala: _u, simulacao: _s, base_simulacao: _bs, termino_passado, prazo_vencido: _pv, ...gravar } = resultado;
       const { data, error } = await admin.rpc("dp_desligamento_registrar_aviso", { p: { ...gravar, colaborador_id: c.id, idempotency_key: b.idempotency_key, ator: user.id } });
       if (error) return json(409, { error: error.message });
       // Registro tardio: o término já passou, então efetiva agora pelo mesmo
@@ -280,11 +296,12 @@ Deno.serve(async (req) => {
     if (b.acao === "alterar") {
       const c = await carregarColab(proc.colaborador_id);
       if (!c || !c.ativo || c.data_desligamento) return json(409, { error: "Colaborador não está ativo." });
-      const { resultado, resp } = await calcular(admin, c, b, b.previa === true);
+      const { resultado, resp } = await calcular(admin, c, b, b.previa === true, proc.id);
       if (resp) return resp;
       if (b.previa) return json(200, { resultado });
-      if (diverge(b.esperado, resultado!)) return json(409, { divergente: true, error: "As datas oficiais mudaram. Revise e confirme de novo.", resultado });
-      const { avisos: _a, usou_escala: _u, motivo: _m, termino_passado: _tp, prazo_vencido: _pv, ...gravar } = resultado!;
+      if (!resultado) return json(500, { error: "Não foi possível calcular." });
+      if (diverge(b.esperado, resultado)) return json(409, { divergente: true, error: "As datas oficiais mudaram. Revise e confirme de novo.", resultado });
+      const { avisos: _a, usou_escala: _u, simulacao: _s, base_simulacao: _bs, motivo: _m, termino_passado: _tp, prazo_vencido: _pv, ...gravar } = resultado;
       extra = gravar;
     }
     if (b.acao === "ocorrencia" && b.aplicar_termino) {
