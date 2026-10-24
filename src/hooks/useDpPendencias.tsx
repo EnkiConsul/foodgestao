@@ -697,7 +697,7 @@ export function useDpPendencias() {
         try {
           const { data } = await supabase
             .from("dp_unidade_feriados")
-            .select("id, unidade_id, nome, tipo, data, dia, mes, ordinal, dia_semana, ativo").abortSignal(signal).throwOnError()
+            .select("id, unidade_id, nome, tipo, codigo_movel, data, dia, mes, ordinal, dia_semana, ano_inicio, ativo").abortSignal(signal).throwOnError()
             .eq("company_id", selectedCompanyId!)
             .eq("ativo", true);
           for (const r of (data ?? []) as any[]) {
@@ -2043,7 +2043,7 @@ export function useDpPendencias() {
         if (unidades.length > 0) {
           const { data: fer } = await supabase
             .from("dp_unidade_feriados")
-            .select("id, unidade_id, nome, tipo, data, dia, mes, ordinal, dia_semana, ativo").abortSignal(signal).throwOnError()
+            .select("id, unidade_id, nome, tipo, codigo_movel, data, dia, mes, ordinal, dia_semana, ano_inicio, ativo").abortSignal(signal).throwOnError()
             .eq("company_id", selectedCompanyId!)
             .eq("ativo", true);
           const comFeriado = new Set<string>();

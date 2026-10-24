@@ -89,7 +89,7 @@ const SEM_AVISO_ASSISTIDO: ReadonlySet<string> = new Set(["abandono_emprego", "a
 async function feriadosDaUnidade(admin: any, c: Pick<Colab, "unidade_id" | "company_id">, ano: number): Promise<string[]> {
   if (!c.unidade_id) return [];
   const { data: fs } = await admin.from("dp_unidade_feriados")
-    .select("id, nome, tipo, data, dia, mes, ordinal, dia_semana, ano_inicio, ativo")
+    .select("id, nome, tipo, codigo_movel, data, dia, mes, ordinal, dia_semana, ano_inicio, ativo")
     .eq("unidade_id", c.unidade_id).eq("company_id", c.company_id);
   return [...datasDeFeriados(((fs ?? []) as FeriadoRegra[]).filter((f) => f.ativo !== false), [ano, ano + 1])];
 }
