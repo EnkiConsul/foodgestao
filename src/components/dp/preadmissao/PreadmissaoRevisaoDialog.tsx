@@ -1697,7 +1697,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
         open={!!preadmissaoId}
         onOpenChange={(v) => !v && onOpenChange(false)}
         admissao={{
-          chave: pa.id,
+          chave: `${pa.id}:${fichaDe ? "carregada" : "carregando"}`,
           form: modo,
           endereco: {
             cep: ficha.cep ?? "", logradouro: ficha.endereco ?? "", numero: ficha.numero ?? "",
@@ -1838,14 +1838,15 @@ function consolidarJornada(j: JornadaRascunho | null): JornadaRascunho | null {
   let horario: HorarioSimples | null = j.horario ? { ...j.horario } : null;
   if (!horario?.entrada || !horario?.saida) {
     const comHora = trabalhados.find((d) => d.entrada && d.saida);
-    if (comHora) {
+    if (comHora?.entrada && comHora.saida) {
       horario = {
-        entrada: comHora.entrada!,
-        saida: comHora.saida!,
+        entrada: comHora.entrada,
+        saida: comHora.saida,
         intervalo_minutos: comHora.intervalo_minutos ?? horario?.intervalo_minutos ?? 0,
       };
     }
   }
+  if (!horario) throw new Error("Informe os horários dos dias trabalhados antes de salvar.");
   const diasCompletos = dias.map((d) =>
     d.trabalha
       ? {
