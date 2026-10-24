@@ -83,6 +83,7 @@ export function DocumentoAssinarViewer({
   const [assinatura, setAssinatura] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const assinaturaRef = useRef<HTMLDivElement>(null);
+  const paginaRefs = useRef(new Map<number, HTMLDivElement>());
 
   const nomeArquivo = fileName ?? filePath ?? "";
   const isPdf = mimeType === "application/pdf" || /\.pdf$/i.test(nomeArquivo);
@@ -153,7 +154,17 @@ export function DocumentoAssinarViewer({
       assinaturaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
-    setRubricadas((s) => new Set(s).add(n));
+    const novas = new Set(rubricadas).add(n);
+    setRubricadas(novas);
+    // Leva o colaborador direto para a próxima folha ainda sem rubrica.
+    const alvo = proximaPaginaSemRubrica(paginas, novas);
+    if (alvo !== null) {
+      setTimeout(() => {
+        paginaRefs.current.get(alvo)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 60);
+    } else {
+      toast.success("Todas as páginas rubricadas. Agora é só concluir a assinatura.");
+    }
   };
 
   return (
@@ -218,7 +229,14 @@ export function DocumentoAssinarViewer({
                 </div>
               ) : (
                 Array.from({ length: paginas }, (_, i) => i + 1).map((n) => (
-                  <div key={n} className="mb-4">
+                  <div
+                    key={n}
+                    className="mb-4 scroll-mt-2"
+                    ref={(el) => {
+                      if (el) paginaRefs.current.set(n, el);
+                      else paginaRefs.current.delete(n);
+                    }}
+                  >
                     <PaginaPdf doc={pdfDoc} numero={n} zoom={zoom} largura={larguraPagina} />
                     {precisaRubrica && (
                       <div className="mt-1.5 flex items-center justify-center">
