@@ -34,7 +34,7 @@ Oferecer anexar documentos de admissão para assinatura
 - Sem ASO válido ou dispensa formal, não liberar a marcação de envio à contabilidade nem a efetivação. Isso não bloqueia salvar a ficha ou baixar uma prévia.
 - Após resolver o ASO, orientar a baixar a ficha e o exame (ou registro da dispensa) e enviá-los à contabilidade. Usar downloads existentes; não criar uma integração de envio nem afirmar que o sistema registrou no eSocial.
 - **Confirmar envio** é uma ação explícita do gestor; baixar arquivos nunca muda esse status sozinho.
-- Manter o retorno contábil conferido como requisito da efetivação formal, conforme o fluxo atual.
+- Manter o retorno contábil conferido como requisito da efetivação formal, conforme o fluxo atual: ficha oficial da contabilidade anexada e conferida e status de registro recebido. O painel pós-efetivação permite contratos e anexos complementares; não adia a ficha oficial exigida para efetivar CLT/intermitente.
 - ASO é requisito ocupacional do fluxo adotado; não apresentar a sequência como afirmação de que o eSocial é tecnicamente incapaz de receber registro sem ele.
 
 ## 3. Freelancer, PJ e MEI
@@ -70,6 +70,7 @@ Oferecer anexar documentos de admissão para assinatura
 - Preservar `salvar_ficha`, `salvar_admin`, `salvar_aso`, `aso_arquivo`, marcação de status e efetivação como portas oficiais. A aprovação existente passa a representar conclusão da conferência, sem pular os requisitos posteriores.
 - A lista e a revisão derivam o próximo passo dos dados persistidos e do regime; não inventar status apenas locais que desapareçam ao recarregar.
 - Confirmar o vínculo do cadastro provisório no servidor ao corrigir a leitura de CPF. Manter efetivação idempotente e conversão do mesmo cadastro provisório, sem duplicar identidade ou histórico.
+- Revisar explicitamente as travas de ficha oficial na efetivação direta: freelancer/PJ/MEI devem ter um caminho autorizado no servidor sem exigir ficha contábil de empregado; CLT/intermitente preservam integralmente esse requisito. A mudança não pode ser apenas esconder campos na tela.
 - Mudanças de estrutura, caso indispensáveis, devem ser aditivas/reversíveis, com isolamento por empresa, permissões e auditoria. Não enfraquecer as travas atuais para simplificar a tela.
 - Escopo comercial: Pessoas 360°; preservar as exigências do módulo Escala nos caminhos operacionais existentes.
 
