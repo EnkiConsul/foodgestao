@@ -393,6 +393,45 @@ Deno.serve(async (req) => {
       return jsonResponse(req, 200, { success: true });
     }
 
+    // ---------- Gestor: reler os dados do documento (após ajuste) ----------
+    // Só sugere valores: a tela preenche apenas campos vazios e nunca nome/CPF.
+    if (acao === "ler_documento_gestor") {
+      const caller = await requireUser(req);
+      if (!caller) return jsonError(req, "unauthorized");
+      const preadmissaoId = String(body?.preadmissao_id ?? "").trim();
+      const { data: pa } = await admin.from("dp_preadmissoes").select("id, company_id")
+        .eq("id", preadmissaoId).maybeSingle();
+      if (!pa) return jsonError(req, "not_found");
+      const access = await requireCompanyAccess(caller.id, pa.company_id as string);
+      if (!access || !canAdminister(access)) return jsonError(req, "forbidden");
+      const codigo = String(body?.requisito_codigo ?? "").trim();
+      if (!CODIGOS_LEITURA.includes(codigo)) return jsonResponse(req, 200, { campos: {} });
+      const aiKey = Deno.env.get("LOVABLE_API_KEY");
+      if (!aiKey) return jsonResponse(req, 200, { campos: {}, indisponivel: true });
+      const { data: docs } = await admin
+        .from("dp_preadmissao_documentos")
+        .select("file_path, mime_type, file_size, parte")
+        .eq("preadmissao_id", pa.id)
+        .eq("requisito_codigo", codigo)
+        .is("pessoa_id", null)
+        .is("substituido_em", null)
+        .order("parte")
+        .limit(3);
+      const arquivos: ArquivoLeitura[] = [];
+      for (const d of docs ?? []) {
+        if (Number(d.file_size ?? 0) > MAX_BYTES) continue;
+        const mime = String(d.mime_type ?? "");
+        if (!["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(mime)) continue;
+        const dl = await admin.storage.from(BUCKET).download(d.file_path as string);
+        if (dl.error || !dl.data) continue;
+        arquivos.push({ mime, base64: base64Encode(new Uint8Array(await dl.data.arrayBuffer())) });
+      }
+      if (!arquivos.length) return jsonResponse(req, 200, { campos: {} });
+      const r = await lerDocumento(aiKey, codigo, arquivos);
+      if (!r.ok) return jsonResponse(req, 200, { campos: {}, indisponivel: true });
+      return jsonResponse(req, 200, { campos: r.campos });
+    }
+
     // ---------- Gestor: link temporário de visualização ----------
     if (acao === "url") {
       const caller = await requireUser(req);
