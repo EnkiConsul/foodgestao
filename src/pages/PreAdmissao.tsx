@@ -33,6 +33,9 @@ import { CONTA_TIPOS, PIX_TIPOS } from "@/lib/dp/dadosPagamento";
 import { rotuloSalvoEm } from "@/lib/dp/admissao-rascunho";
 import { PARENTESCOS_EMERGENCIA } from "@/lib/dp/contatosEmergencia";
 import { ConferirFotoDialog } from "@/components/dp/preadmissao/ConferirFotoDialog";
+import { ImagemEnquadrarDialog } from "@/components/dp/documentos/ImagemEnquadrarDialog";
+import { ArquivoVisualizadorDialog, type ArquivoCarregado } from "@/components/dp/documentos/ArquivoVisualizadorDialog";
+import { exigeVerso, faltaVerso, ehArquivoUnico, ROTULO_ARQUIVO_UNICO } from "@/lib/dp/documentoPartes";
 
 type Opcao = { value: string; label: string };
 
@@ -400,6 +403,7 @@ interface DocumentoEnviado {
   requisito_codigo: string;
   pessoa_id: string | null;
   file_name: string;
+  mime_type?: string | null;
   status: string;
   motivo_recusa?: string | null;
   /** 1 = frente, 2 = verso, e assim por diante. */
@@ -514,7 +518,11 @@ export default function PreAdmissao() {
   const [faltando, setFaltando] = useState<string[]>([]);
   const [avisoTopo, setAvisoTopo] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const alvo = useRef<(ChecklistItem & { parte: number }) | null>(null);
+  const alvo = useRef<(ChecklistItem & { parte: number; rotulo?: string }) | null>(null);
+  /** Selfie aguardando o enquadramento na moldura 3x4. */
+  const [enquadrando, setEnquadrando] = useState<File | null>(null);
+  /** Arquivo aberto no visualizador interno. */
+  const [vendo, setVendo] = useState<{ titulo: string; carregar: () => Promise<ArquivoCarregado> } | null>(null);
   /** Assinatura do que já foi guardado, para o rascunho automático. */
   const assinaturaRef = useRef<string | null>(null);
   /** Foto escolhida aguardando a conferência do candidato. */
@@ -733,7 +741,18 @@ export default function PreAdmissao() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form, pessoas, estado, enviado, salvando]);
 
+  /** Documentos de dois lados enviados só com a frente. */
   const enviar = async () => {
+    const semVerso = (estado?.checklist ?? []).filter((item) =>
+      faltaVerso(item.codigo, documentoPorChave.get(`${item.codigo}:${item.pessoa_id ?? ""}`) ?? []));
+    if (semVerso.length) {
+      const lista = semVerso.map((i) => `${i.titulo}${i.pessoa_nome ? ` — ${i.pessoa_nome}` : ""}: falta o verso`);
+      setFaltando(lista);
+      setAvisoTopo("Falta enviar o verso de documento. Volte à etapa Documentos.");
+      toast.error("Falta enviar o verso do documento.");
+      irParaOAviso();
+      return;
+    }
     setSalvando(true);
     try {
       const novo = await chamar<Estado>("dp-preadmissao-publica", {
@@ -767,8 +786,8 @@ export default function PreAdmissao() {
   };
 
   /** Cada documento aceita mais de uma foto (frente, verso e extras). */
-  const escolherArquivo = (item: ChecklistItem, parte: number) => {
-    alvo.current = { ...item, parte };
+  const escolherArquivo = (item: ChecklistItem, parte: number, rotulo?: string) => {
+    alvo.current = { ...item, parte, rotulo };
     fileRef.current?.click();
   };
 
@@ -789,10 +808,10 @@ export default function PreAdmissao() {
         file_name: arquivo.name,
         content_base64: base64,
         parte,
-        parte_rotulo: rotuloParte(parte),
+        parte_rotulo: item.rotulo ?? rotuloParte(parte),
       });
       aplicar(await chamar<Estado>("dp-preadmissao-publica", { t, c, action: "ler" }));
-      toast.success(`${rotuloParte(parte)} enviada`);
+      toast.success(item.codigo === "foto_3x4" ? "Foto enviada" : `${item.rotulo ?? rotuloParte(parte)} enviada`);
       if (!item.pessoa_id && CODIGOS_LEITURA.has(item.codigo)) void lerDocumento(item.codigo);
     } catch (e) {
       void tratarFalha(e);
@@ -895,16 +914,25 @@ export default function PreAdmissao() {
   /** O candidato revê o próprio arquivo por link temporário do convite. */
   const verArquivo = async (documentoId: string) => {
     try {
-      const r = await chamar<{ url: string }>("dp-preadmissao-arquivo", {
+      const r = await chamar<{ url: string; mime_type?: string | null; file_name?: string }>("dp-preadmissao-arquivo", {
         action: "url_candidato",
         t, c,
         documento_id: documentoId,
       });
-      window.open(r.url, "_blank", "noopener");
+      return r;
     } catch (e) {
       void tratarFalha(e);
+      throw e;
     }
   };
+  const abrirArquivo = (documentoId: string, titulo: string) =>
+    setVendo({
+      titulo,
+      carregar: async () => {
+        const r = await verArquivo(documentoId);
+        return { url: r.url, mime: r.mime_type ?? null, nome: r.file_name ?? titulo };
+      },
+    });
 
   /** Todas as fotos enviadas de cada documento, em ordem de parte. */
   const documentoPorChave = useMemo(() => {
@@ -1053,7 +1081,9 @@ export default function PreAdmissao() {
           e.target.value = "";
           if (!f) return;
           // Foto de iPhone (HEIC) já convertida para a conferência.
-          void converterHeicParaJpeg(f).then(setConferindo, () => setConferindo(f));
+          const selfie = alvo.current?.codigo === "foto_3x4";
+          const abrir = (arq: File) => (selfie && arq.type.startsWith("image/") ? setEnquadrando(arq) : setConferindo(arq));
+          void converterHeicParaJpeg(f).then(abrir, () => abrir(f));
         }}
       />
       <ConferirFotoDialog
@@ -1063,6 +1093,20 @@ export default function PreAdmissao() {
         onTrocar={() => { setConferindo(null); fileRef.current?.click(); }}
         onCancelar={() => { setConferindo(null); alvo.current = null; }}
       />
+
+      <ImagemEnquadrarDialog
+        fonte={enquadrando}
+        modo="retrato"
+        titulo="Ajuste sua Foto 3x4"
+        onConfirmar={(f) => { setEnquadrando(null); void enviarArquivo(f); }}
+        onCancelar={() => { setEnquadrando(null); alvo.current = null; }}
+        acaoExtra={
+          <Button type="button" variant="outline" onClick={() => { setEnquadrando(null); fileRef.current?.click(); }}>
+            Escolher outra
+          </Button>
+        }
+      />
+      <ArquivoVisualizadorDialog carregar={vendo?.carregar ?? null} titulo={vendo?.titulo ?? ""} onClose={() => setVendo(null)} />
 
       <header className="bg-background border-b px-4 py-4">
         <h1 className="text-base font-semibold">Ficha de Admissão</h1>
@@ -1457,7 +1501,11 @@ export default function PreAdmissao() {
                       </p>
                       {item.instrucao && <p className="text-xs text-muted-foreground">{item.instrucao}</p>}
                       <p className="text-xs text-muted-foreground">
-                        Se o documento tiver frente e verso, envie uma foto de cada lado.
+                        {item.codigo === "foto_3x4"
+                          ? "Selfie com fundo claro: você ajusta o rosto na moldura antes de enviar."
+                          : exigeVerso(item.codigo)
+                            ? "Envie a frente e o verso. Documento digital (PDF do gov.br) vai em arquivo único."
+                            : "Foto nítida, sem cortar as bordas, ou PDF."}
                       </p>
                     </div>
 
@@ -1471,7 +1519,7 @@ export default function PreAdmissao() {
                             <button
                               type="button"
                               className="text-xs text-primary underline"
-                              onClick={() => verArquivo(doc.id)}
+                              onClick={() => abrirArquivo(doc.id, `${item.titulo} - ${rotuloParte(parte, doc.parte_rotulo)}`)}
                             >
                               Ver esta foto
                             </button>
@@ -1504,6 +1552,42 @@ export default function PreAdmissao() {
                       );
                     })}
 
+{(() => {
+                      const doisLados = exigeVerso(item.codigo);
+                      const unico = fotos.some(ehArquivoUnico);
+                      const temFrente = fotos.some((d) => (d.parte ?? 1) === 1);
+                      const semVerso = faltaVerso(item.codigo, fotos);
+                      const ocupado = (p: number) => subindo === `${item.key}:${p}`;
+                      if (doisLados && !temFrente) {
+                        return (
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            <Button size="sm" className="h-auto min-h-12 flex-col py-2" disabled={ocupado(1)} onClick={() => escolherArquivo(item, 1)}>
+                              <span className="flex items-center">{ocupado(1) ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Camera className="h-4 w-4 mr-2" />}Enviar Frente</span>
+                              <span className="text-[11px] font-normal opacity-80">Lado com a foto</span>
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-auto min-h-12 flex-col py-2" disabled={ocupado(1)}
+                              onClick={() => escolherArquivo(item, 1, ROTULO_ARQUIVO_UNICO)}>
+                              <span>Arquivo Único</span>
+                              <span className="text-[11px] font-normal text-muted-foreground">PDF digital ou os dois lados numa foto</span>
+                            </Button>
+                          </div>
+                        );
+                      }
+                      if (doisLados && semVerso && !unico) {
+                        return (
+                          <div className="space-y-2">
+                            <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs" role="status">
+                              Falta enviar o verso deste documento.
+                            </p>
+                            <Button size="sm" className="h-auto min-h-12 w-full flex-col py-2" disabled={ocupado(2)} onClick={() => escolherArquivo(item, 2)}>
+                              <span className="flex items-center">{ocupado(2) ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Camera className="h-4 w-4 mr-2" />}Enviar Verso</span>
+                              <span className="text-[11px] font-normal opacity-80">Lado com filiação, órgão emissor e CPF</span>
+                            </Button>
+                          </div>
+                        );
+                      }
+                      if (item.codigo === "foto_3x4" && fotos.length) return null;
+                      return (
                     <Button
                       size="sm"
                       variant={fotos.length ? "outline" : "default"}
@@ -1515,8 +1599,10 @@ export default function PreAdmissao() {
                       {subindo === `${item.key}:${proximaParte}`
                         ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
                         : <Camera className="h-4 w-4 mr-2" />}
-                      {fotos.length ? `Enviar ${rotuloParte(proximaParte)}` : "Enviar Frente"}
+                      {item.codigo === "foto_3x4" ? "Tirar ou Escolher Foto" : fotos.length ? `Enviar ${rotuloParte(proximaParte)}` : doisLados ? "Enviar Frente" : "Enviar Arquivo"}
                     </Button>
+                      );
+                    })()}
                     </div>
                   </div>
                 );

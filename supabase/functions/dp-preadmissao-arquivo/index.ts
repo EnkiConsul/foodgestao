@@ -273,7 +273,7 @@ Deno.serve(async (req) => {
       const documentoId = String(body?.documento_id ?? "").trim();
       const { data: doc } = await admin
         .from("dp_preadmissao_documentos")
-        .select("id, file_path, file_name, requisito_codigo, substituido_em")
+        .select("id, file_path, file_name, mime_type, requisito_codigo, substituido_em")
         .eq("id", documentoId)
         .eq("preadmissao_id", valid.preadmissao.id)
         .eq("company_id", valid.preadmissao.company_id)
@@ -352,6 +352,45 @@ Deno.serve(async (req) => {
         });
       }
       return jsonResponse(req, 200, { campos: r.campos, divergencias });
+    }
+
+    // ---------- Gestor: anexar verso, substituir ou salvar ajuste de enquadramento ----------
+    if (acao === "upload_gestor") {
+      const caller = await requireUser(req);
+      if (!caller) return jsonError(req, "unauthorized");
+      const preadmissaoId = String(body?.preadmissao_id ?? "").trim();
+      const { data: pa } = await admin.from("dp_preadmissoes").select("id, company_id")
+        .eq("id", preadmissaoId).maybeSingle();
+      if (!pa) return jsonError(req, "not_found");
+      const access = await requireCompanyAccess(caller.id, pa.company_id as string);
+      if (!access || !canAdminister(access)) return jsonError(req, "forbidden");
+      const codigo = String(body?.requisito_codigo ?? "").trim().slice(0, 80);
+      if (!/^[a-z0-9_]+$/.test(codigo)) return jsonResponse(req, 400, { error: "Documento inválido." });
+      const pessoaId = typeof body?.pessoa_id === "string" && body.pessoa_id.length === 36 ? String(body.pessoa_id) : null;
+      const parte = Number(body?.parte ?? 1);
+      if (!Number.isInteger(parte) || parte < 1 || parte > 10) return jsonResponse(req, 400, { error: "Parte do documento inválida." });
+      const bytes = decodificar(String(body?.content_base64 ?? ""));
+      if (!bytes.length) return jsonResponse(req, 400, { error: "O arquivo não foi recebido. Tente novamente." });
+      if (bytes.length > MAX_BYTES) return jsonResponse(req, 400, { error: "O arquivo passa de 10 MB." });
+      const real = tipoRealDoArquivo(bytes);
+      if (!real || !EXTENSOES[real]) return jsonResponse(req, 400, { error: "Envie uma foto (JPG, PNG, HEIC ou WEBP) ou um PDF." });
+      const ext = EXTENSOES[real];
+      const caminho = `${pa.company_id}/preadmissao/${pa.id}/${codigo}-${pessoaId ?? "titular"}-p${parte}-g${Date.now()}.${ext}`;
+      const up = await admin.storage.from(BUCKET).upload(caminho, bytes, { contentType: real, upsert: false });
+      if (up.error) return jsonError(req, "internal", up.error.message);
+      const { data: reg, error } = await admin.rpc("dp_preadmissao_documento_registrar_gestor", {
+        p_preadmissao_id: pa.id, p_requisito_codigo: codigo, p_pessoa_id: pessoaId, p_file_path: caminho,
+        p_file_name: String(body?.file_name ?? `${codigo}.${ext}`).slice(0, 180), p_mime_type: real,
+        p_file_size: bytes.length, p_parte: parte,
+        p_parte_rotulo: typeof body?.parte_rotulo === "string" ? body.parte_rotulo.slice(0, 40) : null,
+        p_ator: caller.id, p_motivo: typeof body?.motivo === "string" ? body.motivo.slice(0, 60) : null,
+      });
+      const r = reg as { ok?: boolean; motivo?: string } | null;
+      if (error || !r?.ok) {
+        await admin.storage.from(BUCKET).remove([caminho]);
+        return jsonResponse(req, 400, { error: r?.motivo === "titular_invalido" ? "Pessoa não encontrada nesta ficha." : "Não foi possível gravar o documento." });
+      }
+      return jsonResponse(req, 200, { success: true });
     }
 
     // ---------- Gestor: link temporário de visualização ----------

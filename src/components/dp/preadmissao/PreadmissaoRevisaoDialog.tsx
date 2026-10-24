@@ -39,7 +39,11 @@ import { asoLiberaContabilidade, BASES_LEGAIS_DISPENSA, type AsoDados } from "@/
 import { efetivacaoDisponivel, inicioJornadaAdmissao } from "@/lib/dp/admissao-fluxo";
 import { ColaboradorDocumentosPanel } from "@/components/dp/documentos/ColaboradorDocumentosPanel";
 import { documentoPorVinculo } from "@/lib/dp/vinculo-documento";
-import { abrirAsoPreadmissao } from "@/hooks/dp/useDpPreadmissoes";
+import { abrirAsoPreadmissao, linkDocumentoPreadmissao, enviarDocumentoGestor } from "@/hooks/dp/useDpPreadmissoes";
+import { ArquivoVisualizadorDialog, baixarBlob, buscarBlob, type ArquivoCarregado } from "@/components/dp/documentos/ArquivoVisualizadorDialog";
+import { ImagemEnquadrarDialog } from "@/components/dp/documentos/ImagemEnquadrarDialog";
+import { faltaVerso, nomeArquivoPacote } from "@/lib/dp/documentoPartes";
+import { Pencil, Replace } from "lucide-react";
 
 /** Ordem da conferência guiada do gestor (abas da ficha). */
 const ABAS_CONFERENCIA: Array<{ aba: string; rotulo: string }> = [
@@ -720,42 +724,124 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const nomePessoa = (id: string | null) =>
     id ? (data?.pessoas ?? []).find((p) => p.id === id)?.nome ?? "Familiar" : "O candidato";
 
-  const ver = async (documentoId: string) => {
+  const tituloDocumento = (codigo: string) =>
+    (data?.checklist ?? []).find((c) => c.codigo === codigo)?.titulo ?? codigo.replace(/_/g, " ");
+
+  /** Visualizador interno: nada abre fora do app. */
+  const [vendo, setVendo] = useState<{ titulo: string; carregar: () => Promise<ArquivoCarregado> } | null>(null);
+  const ver = (documentoId: string, titulo = "Documento") =>
+    setVendo({
+      titulo,
+      carregar: async () => {
+        const r = await linkDocumentoPreadmissao(documentoId);
+        return { url: r.url, mime: r.mime_type ?? null, nome: r.file_name ?? titulo };
+      },
+    });
+
+  const [baixandoUm, setBaixandoUm] = useState<string | null>(null);
+  const baixarUm = async (d: { id: string; requisito_codigo: string; file_name: string; parte?: number | null; parte_rotulo?: string | null }) => {
+    setBaixandoUm(d.id);
     try {
-      const url = await abrirDocumentoPreadmissao(documentoId);
-      window.open(url, "_blank", "noopener");
+      const r = await linkDocumentoPreadmissao(d.id);
+      const blob = await buscarBlob(r.url);
+      const ext = d.file_name.includes(".") ? d.file_name.split(".").pop()! : "bin";
+      baixarBlob(blob, nomeArquivoPacote(1, tituloDocumento(d.requisito_codigo), rotuloParte(d), ext).slice(3));
     } catch (e) {
-      notifyError(e as Error, { surface: "Pessoas 360°", action: "abrir o documento" });
+      notifyError(e as Error, { surface: "Pessoas 360°", action: "baixar o documento" });
+    } finally {
+      setBaixandoUm(null);
     }
   };
 
+  /** Ajustes do gestor: anexar verso, substituir arquivo ou enquadrar. A versão anterior fica no histórico. */
+  const arquivoGestorRef = useRef<HTMLInputElement>(null);
+  const alvoGestor = useRef<{ codigo: string; pessoa_id: string | null; parte: number; rotulo: string; motivo: "verso" | "substituicao" } | null>(null);
+  const [enquadrar, setEnquadrar] = useState<{ fonte: string; codigo: string; pessoa_id: string | null; parte: number; rotulo: string; titulo: string } | null>(null);
+  const [gravandoDoc, setGravandoDoc] = useState(false);
+  const gravarDocGestor = async (arquivo: File, a: { codigo: string; pessoa_id: string | null; parte: number; rotulo: string; motivo: "verso" | "substituicao" | "enquadramento" }) => {
+    if (!data) return;
+    setGravandoDoc(true);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onerror = () => reject(new Error("Não foi possível ler o arquivo."));
+        fr.onload = () => resolve(String(fr.result).split(",")[1] ?? "");
+        fr.readAsDataURL(arquivo);
+      });
+      await enviarDocumentoGestor({
+        preadmissao_id: data.preadmissao.id, requisito_codigo: a.codigo, pessoa_id: a.pessoa_id,
+        parte: a.parte, parte_rotulo: a.rotulo, file_name: arquivo.name, content_base64: base64, motivo: a.motivo,
+      });
+      toast.success(a.motivo === "verso" ? "Verso anexado." : a.motivo === "enquadramento" ? "Ajuste salvo." : "Arquivo substituído.");
+      refetch();
+    } catch (e) {
+      notifyError(e as Error, { surface: "Pessoas 360°", action: "gravar o documento" });
+    } finally {
+      setGravandoDoc(false);
+    }
+  };
+  const escolherArquivoGestor = (a: NonNullable<typeof alvoGestor.current>) => {
+    alvoGestor.current = a;
+    arquivoGestorRef.current?.click();
+  };
+  const abrirEnquadramento = async (d: { id: string; requisito_codigo: string; pessoa_id: string | null; parte?: number | null; parte_rotulo?: string | null }) => {
+    try {
+      const r = await linkDocumentoPreadmissao(d.id);
+      const blob = await buscarBlob(r.url);
+      setEnquadrar({
+        fonte: URL.createObjectURL(blob), codigo: d.requisito_codigo, pessoa_id: d.pessoa_id,
+        parte: Number(d.parte ?? 1), rotulo: rotuloParte(d), titulo: tituloDocumento(d.requisito_codigo),
+      });
+    } catch (e) {
+      notifyError(e as Error, { surface: "Pessoas 360°", action: "abrir a foto para ajuste" });
+    }
+  };
+  const ehImagem = (d: { mime_type?: string | null; file_name: string }) =>
+    (d.mime_type ?? "").startsWith("image/") || /\.(jpe?g|png|webp)$/i.test(d.file_name);
+
+  /** Grupos (documento + titular) de dois lados que chegaram só com a frente. */
+  const gruposSemVerso = useMemo(() => {
+    const m = new Map<string, typeof vigentes>();
+    vigentes.forEach((d) => { const k = `${d.requisito_codigo}:${d.pessoa_id ?? ""}`; m.set(k, [...(m.get(k) ?? []), d]); });
+    return [...m.entries()].filter(([k, ds]) => faltaVerso(k.split(":")[0], ds)).map(([, ds]) => ds[0]);
+  }, [vigentes]);
+
   /**
-   * Baixa os documentos vigentes com nomes organizados
-   * (candidato-documento-titular). Nada é enviado para fora do sistema.
+   * Pacote contábil: todos os documentos vigentes num ZIP com nomes
+   * organizados (01_Identidade_Frente.jpg). Nada é enviado para fora do sistema.
    */
   const [baixando, setBaixando] = useState(false);
   const baixarDocumentos = async () => {
     if (!data || !vigentes.length) return;
     setBaixando(true);
-    const limpar = (s: string) =>
-      s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w.-]+/g, "-").toLowerCase();
     try {
-      for (const d of vigentes) {
-        const url = await abrirDocumentoPreadmissao(d.id);
-        const resposta = await fetch(url);
-        if (!resposta.ok) throw new Error("Não foi possível baixar o arquivo.");
-        const blob = await resposta.blob();
-        const extensao = d.file_name.includes(".") ? d.file_name.split(".").pop() : "bin";
-        const nome = limpar(
-          `${data.preadmissao.candidato_nome}-${d.requisito_codigo}-${nomePessoa(d.pessoa_id)}`,
-        );
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = `${nome}.${extensao}`;
-        link.click();
-        URL.revokeObjectURL(link.href);
+      const { default: JSZip } = await import("jszip");
+      const zip = new JSZip();
+      const ordenados = [...vigentes].filter((d) => d.status !== "recusado").sort((a, b) =>
+        (a.requisito_codigo === "foto_3x4" ? -1 : 0) - (b.requisito_codigo === "foto_3x4" ? -1 : 0)
+        || (a.pessoa_id ?? "").localeCompare(b.pessoa_id ?? "")
+        || a.requisito_codigo.localeCompare(b.requisito_codigo)
+        || Number(a.parte ?? 1) - Number(b.parte ?? 1));
+      let n = 0;
+      for (const d of ordenados) {
+        const r = await linkDocumentoPreadmissao(d.id);
+        const blob = await buscarBlob(r.url);
+        const ext = d.file_name.includes(".") ? d.file_name.split(".").pop()! : "bin";
+        const titular = d.pessoa_id ? ` ${nomePessoa(d.pessoa_id)}` : "";
+        zip.file(nomeArquivoPacote(++n, `${tituloDocumento(d.requisito_codigo)}${titular}`, rotuloParte(d), ext), blob);
       }
-      toast.success("Documentos baixados.");
+      const asoPacote = ((data.preadmissao as { admin_dados?: Record<string, unknown> | null }).admin_dados?.aso ?? null) as AsoDados | null;
+      if (asoPacote?.modo === "realizado" && asoPacote.arquivo_path) {
+        try {
+          const r = await abrirAsoPreadmissao(data.preadmissao.id);
+          const blob = await buscarBlob(r.url);
+          zip.file(nomeArquivoPacote(++n, "ASO Admissional", "", (r.mime_type ?? "").includes("pdf") ? "pdf" : "jpg"), blob);
+        } catch { /* ASO segue disponível no card próprio */ }
+      }
+      const pacote = await zip.generateAsync({ type: "blob", compression: "STORE" });
+      const nome = data.preadmissao.candidato_nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w]+/g, "-").toLowerCase();
+      baixarBlob(pacote, `documentos-${nome}.zip`);
+      toast.success("Pacote de documentos baixado.");
     } catch (e) {
       notifyError(e as Error, { surface: "Pessoas 360°", action: "baixar os documentos" });
     } finally {
@@ -1428,15 +1514,27 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                 {vigentes.map((d) => (
                   <div key={d.id} className="rounded-lg border p-2 text-sm">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium">{d.requisito_codigo.replace(/_/g, " ")}</span>
+                      <span className="font-medium">{tituloDocumento(d.requisito_codigo)}</span>
                       <Badge variant="secondary">{rotuloParte(d)}</Badge>
                       <span className="text-xs text-muted-foreground">{nomePessoa(d.pessoa_id)}</span>
                       {d.status === "aprovado" && <Badge variant="outline" className="text-emerald-600">Aprovado</Badge>}
                       {d.status === "recusado" && <Badge variant="destructive">Recusado</Badge>}
                       {d.status === "pendente" && <Badge variant="secondary">Em análise</Badge>}
                       <div className="ml-auto flex gap-1">
-                        <Button size="sm" variant="ghost" onClick={() => ver(d.id)}>
+                        <Button size="sm" variant="ghost" aria-label="Ver documento" onClick={() => ver(d.id, `${tituloDocumento(d.requisito_codigo)} - ${rotuloParte(d)}`)}>
                           <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" aria-label="Baixar documento" disabled={baixandoUm === d.id} onClick={() => void baixarUm(d)}>
+                          {baixandoUm === d.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                        </Button>
+                        {ehImagem(d) && (
+                          <Button size="sm" variant="ghost" aria-label="Editar enquadramento" disabled={gravandoDoc} onClick={() => void abrirEnquadramento(d)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button size="sm" variant="ghost" aria-label="Substituir arquivo" disabled={gravandoDoc}
+                          onClick={() => escolherArquivoGestor({ codigo: d.requisito_codigo, pessoa_id: d.pessoa_id, parte: Number(d.parte ?? 1), rotulo: rotuloParte(d), motivo: "substituicao" })}>
+                          <Replace className="h-4 w-4" />
                         </Button>
                         <Button
                           size="sm"
@@ -1471,6 +1569,18 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                     {d.motivo_recusa && <p className="text-xs text-destructive mt-1">{d.motivo_recusa}</p>}
                   </div>
                 ))}
+                {gruposSemVerso.map((d) => (
+                  <div key={`sv-${d.id}`} className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-2 text-sm">
+                    <span className="min-w-0 flex-1">
+                      <AlertTriangle className="inline h-4 w-4 mr-1 text-amber-600" />
+                      {tituloDocumento(d.requisito_codigo)} ({nomePessoa(d.pessoa_id)}): verso não enviado
+                    </span>
+                    <Button size="sm" variant="outline" disabled={gravandoDoc}
+                      onClick={() => escolherArquivoGestor({ codigo: d.requisito_codigo, pessoa_id: d.pessoa_id, parte: 2, rotulo: "Verso", motivo: "verso" })}>
+                      <Plus className="h-4 w-4 mr-1" /> Anexar Verso
+                    </Button>
+                  </div>
+                ))}
                 {!!data.pendencias.length && (
                   <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
                     <p className="font-semibold flex items-center gap-2">
@@ -1485,8 +1595,37 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                 )}
                 <Button variant="outline" disabled={baixando || !vigentes.length} onClick={baixarDocumentos}>
                   {baixando ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-                  Baixar Documentos
+                  Baixar Pacote de Documentos
                 </Button>
+                <input
+                  ref={arquivoGestorRef}
+                  type="file"
+                  accept="image/*,application/pdf"
+                  className="hidden"
+                  aria-hidden="true"
+                  tabIndex={-1}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    e.target.value = "";
+                    const a = alvoGestor.current;
+                    alvoGestor.current = null;
+                    if (f && a) void gravarDocGestor(f, a);
+                  }}
+                />
+                <ArquivoVisualizadorDialog carregar={vendo?.carregar ?? null} titulo={vendo?.titulo ?? ""} onClose={() => setVendo(null)} />
+                <ImagemEnquadrarDialog
+                  fonte={enquadrar?.fonte ?? null}
+                  modo={enquadrar?.codigo === "foto_3x4" ? "retrato" : "documento"}
+                  titulo={enquadrar ? `Ajustar ${enquadrar.titulo} - ${enquadrar.rotulo}` : ""}
+                  textoConfirmar="Salvar Ajuste"
+                  onCancelar={() => { if (enquadrar) URL.revokeObjectURL(enquadrar.fonte); setEnquadrar(null); }}
+                  onConfirmar={async (f) => {
+                    const a = enquadrar!;
+                    await gravarDocGestor(f, { codigo: a.codigo, pessoa_id: a.pessoa_id, parte: a.parte, rotulo: a.rotulo, motivo: "enquadramento" });
+                    URL.revokeObjectURL(a.fonte);
+                    setEnquadrar(null);
+                  }}
+                />
       </div>
       <Separator />
       <div className="space-y-4">
@@ -1570,7 +1709,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                       </Button>
                       {fichaOficial && (
                         <>
-                          <Button variant="outline" onClick={() => ver(fichaOficial.id)}>
+                          <Button variant="outline" onClick={() => ver(fichaOficial.id, "Ficha oficial da contabilidade")}>
                             Abrir Ficha Oficial
                           </Button>
                           <Button

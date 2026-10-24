@@ -119,6 +119,7 @@ export interface PreadmissaoDocumento {
   /** Frente, verso ou fotos extras do mesmo documento (1 a 10). */
   parte?: number | null;
   parte_rotulo?: string | null;
+  mime_type?: string | null;
 }
 
 export interface PreadmissaoDetalhe {
@@ -329,6 +330,19 @@ export function useDpPreadmissaoGestor(id: string | null) {
       onSuccess: invalidar,
     }),
   };
+}
+
+/** Link temporário com nome e tipo do arquivo, para abrir dentro do app. */
+export async function linkDocumentoPreadmissao(documentoId: string): Promise<{ url: string; file_name?: string; mime_type?: string | null }> {
+  return await chamar<{ url: string; file_name?: string; mime_type?: string | null }>("dp-preadmissao-arquivo", { action: "url", documento_id: documentoId });
+}
+
+/** Gestor anexa verso, substitui arquivo ou grava o ajuste de enquadramento (versão anterior preservada). */
+export async function enviarDocumentoGestor(args: {
+  preadmissao_id: string; requisito_codigo: string; pessoa_id: string | null; parte: number;
+  parte_rotulo: string; file_name: string; content_base64: string; motivo: "verso" | "substituicao" | "enquadramento";
+}): Promise<void> {
+  await chamar("dp-preadmissao-arquivo", { action: "upload_gestor", ...args });
 }
 
 /** Link temporário para abrir um documento enviado pelo candidato. */

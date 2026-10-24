@@ -21086,6 +21086,22 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_preadmissao_documento_registrar_gestor: {
+        Args: {
+          p_ator: string
+          p_file_name: string
+          p_file_path: string
+          p_file_size: number
+          p_mime_type: string
+          p_motivo: string
+          p_parte: number
+          p_parte_rotulo: string
+          p_pessoa_id: string
+          p_preadmissao_id: string
+          p_requisito_codigo: string
+        }
+        Returns: Json
+      }
       dp_preadmissao_efetivar: {
         Args: {
           p_colaborador_id: string
