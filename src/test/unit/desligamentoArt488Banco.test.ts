@@ -26,7 +26,7 @@ beforeAll(async()=>{ await db.exec(`    CREATE ROLE anon; CREATE ROLE authentica
  ALTER TABLE dp_colaboradores ADD COLUMN possui_folha_ponto boolean, ADD COLUMN folha_ponto_dispensa_justificativa text;
  `);
  await db.exec(readFileSync("drizzle/migrations/0137_folgas_trocas_justificativas_vinculadas.sql","utf8"));
- await db.exec(readFileSync("/tmp/desligamento/migration.sql","utf8"));
+ await db.exec(readFileSync("drizzle/migrations/0148_aviso_extrato_ocorrencias_art488_ponto_admissao.sql","utf8"));
  await db.exec(`INSERT INTO dp_desligamento_processos VALUES('${id}','00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000002','aviso_em_curso','sete_dias','trabalhado','dispensa_sem_justa_causa','2026-10-08','2026-11-06',NULL)`);
 },30000);
 afterAll(()=>db.close());
