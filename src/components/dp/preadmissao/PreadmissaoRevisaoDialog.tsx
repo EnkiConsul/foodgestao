@@ -497,6 +497,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const [confirmarClt, setConfirmarClt] = useState(false);
   /** Ativação operacional na rotina da loja (antes do registro formal). */
   const [ativarRotinaAberto, setAtivarRotinaAberto] = useState(false);
+  const [jornadaEmEdicao, setJornadaEmEdicao] = useState<{ id: string; j: JornadaRascunho } | null>(null);
   const [dataInicioRotina, setDataInicioRotina] = useState(() => new Date().toISOString().slice(0, 10));
   const [ativandoRotina, setAtivandoRotina] = useState(false);
   const regimeAtual = admin.regime_trabalho || data?.preadmissao?.regime_previsto || "clt";
@@ -823,8 +824,12 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   );
   const adminBruto = (pa?.admin_dados ?? {}) as Record<string, unknown>;
   const jornadaAdmissao = (adminBruto.jornada ?? null) as JornadaRascunho | null;
-  /** Jornada consolidada dos dias (horário derivado) usada na ativação. */
-  const jornadaAtivacao = jornadaConsolidadaOuNull(jornadaAdmissao);
+  /**
+   * Jornada consolidada usada na ativação: a que está na tela (mesmo sem
+   * salvar a ficha) tem precedência sobre a salva; a ativação grava a da tela.
+   */
+  const jornadaTela = jornadaEmEdicao && jornadaEmEdicao.id === pa?.id ? jornadaEmEdicao.j : null;
+  const jornadaAtivacao = jornadaConsolidadaOuNull(jornadaTela ?? jornadaAdmissao);
   /** Ativação operacional já feita (freelancer provisório na rotina da loja). */
   const rotinaInfo = rotinaDaPreadmissao(adminBruto);
   const podeAtivarRotina =
