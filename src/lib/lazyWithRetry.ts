@@ -1,11 +1,11 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from "react";
-import { recoverFromStaleBundle, staleReloadAlreadyTried } from "@/lib/staleBundle";
+import { isStaleBundleError, recoverFromStaleBundle, staleReloadAlreadyTried } from "@/lib/staleBundle";
 
 /**
  * React.lazy resiliente a deploys: quando o arquivo da tela não carrega
  * ("Failed to fetch dynamically imported module"), tenta de novo uma vez e,
  * persistindo a falha, limpa cache + service worker e recarrega uma única vez
- * por sessão (guarda compartilhada com `staleBundle`).
+ * a cada 30 segundos (guarda compartilhada com `staleBundle`).
  */
 export function lazyWithRetry<P extends object, T extends ComponentType<P>>(
   factory: () => Promise<{ default: T }>,
@@ -18,8 +18,9 @@ export function lazyWithRetry<P extends object, T extends ComponentType<P>>(
       try {
         return await factory();
       } catch (error) {
-        if (!staleReloadAlreadyTried()) {
-          void recoverFromStaleBundle();
+        if (isStaleBundleError(error) && !staleReloadAlreadyTried()) {
+          const recovered = await recoverFromStaleBundle();
+          if (!recovered) throw error;
           // Mantém o Suspense ativo enquanto a página recarrega.
           return new Promise<{ default: T }>(() => {});
         }

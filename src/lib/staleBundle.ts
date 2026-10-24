@@ -8,6 +8,8 @@
  */
 
 const FLAG = "sf-stale-bundle-reload";
+export const STALE_RELOAD_COOLDOWN_MS = 30_000;
+let recovering = false;
 
 const STALE_PATTERNS = [
   "failed to fetch dynamically imported module",
@@ -24,10 +26,16 @@ const STALE_PATTERNS = [
  * que as duas rotas de recuperação não recarreguem a página em laço.
  */
 export function staleReloadAlreadyTried(): boolean {
+  if (recovering) return true;
   try {
-    return sessionStorage.getItem(FLAG) === "1";
+    const stored = sessionStorage.getItem(FLAG);
+    // A marca antiga não tem horário: mantém a proteção nesta sessão.
+    if (stored === "1") return true;
+    const lastAttempt = Number(stored);
+    return stored !== null && Number.isFinite(lastAttempt) && Date.now() - lastAttempt < STALE_RELOAD_COOLDOWN_MS;
   } catch {
-    return false;
+    // Sem armazenamento persistente, a recarga automática poderia entrar em loop.
+    return true;
   }
 }
 
@@ -39,17 +47,17 @@ export function isStaleBundleError(message: unknown): boolean {
 }
 
 /**
- * Limpa caches/SW e recarrega — no máximo uma vez por sessão.
+ * Limpa caches/SW e recarrega — no máximo uma vez a cada 30 segundos.
  * Com `force = true` (ação manual do usuário) o guard de sessão é ignorado.
  */
 export async function recoverFromStaleBundle(force = false): Promise<boolean> {
+  if (recovering || (!force && staleReloadAlreadyTried())) return false;
   try {
-    if (!force && sessionStorage.getItem(FLAG)) return false;
-    sessionStorage.setItem(FLAG, "1");
+    sessionStorage.setItem(FLAG, String(Date.now()));
   } catch {
-    // sessionStorage bloqueado (modo privado antigo do iOS): segue sem guarda.
+    if (!force) return false;
   }
-
+  recovering = true;
 
   try {
     if ("caches" in window) {
@@ -64,8 +72,12 @@ export async function recoverFromStaleBundle(force = false): Promise<boolean> {
     // Ignora: o reload abaixo ainda pode resolver.
   }
 
-  window.location.reload();
-  return true;
+  try {
+    window.location.reload();
+    return true;
+  } finally {
+    recovering = false;
+  }
 }
 
 /** Escuta falhas globais de carregamento de módulo. */

@@ -111,7 +111,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               </Button>
               {isStaleBundleError(error) ? (
                 <Button variant="outline" onClick={this.atualizarApp} className="flex-1">
-                  Atualizar o app
+                  Atualizar Aplicativo
                 </Button>
               ) : (
                 <Button variant="outline" onClick={this.reload} className="flex-1">
