@@ -5,7 +5,7 @@ import { CalculadoraDesligamento } from "../CalculadoraDesligamento";
 afterEach(cleanup);
 const preencher = () => {
   fireEvent.change(screen.getByLabelText("Data de admissão"), { target: { value: "2024-01-10" } });
-  fireEvent.change(screen.getByLabelText("Comunicação (simulada)"), { target: { value: "2026-10-01" } });
+  fireEvent.change(screen.getByLabelText("Data da comunicação"), { target: { value: "2026-10-01" } });
 };
 
 describe("Atalho Registrar desligamento", () => {
@@ -18,7 +18,7 @@ describe("Atalho Registrar desligamento", () => {
     fireEvent.click(btn);
     expect(abrir).not.toHaveBeenCalled();
   });
-  it("leva só decisões e datas simuladas sem folgas/saldo", () => {
+  it("leva decisões, saldo e folgas para conferência oficial", () => {
     const abrir = vi.fn();
     render(<CalculadoraDesligamento registrar={{ rotulo: "Registrar desligamento", abrir }} />);
     preencher();
@@ -27,10 +27,12 @@ describe("Atalho Registrar desligamento", () => {
     fireEvent.click(screen.getByRole("button", { name: "Registrar desligamento" }));
     expect(abrir).toHaveBeenCalledTimes(1);
     const arg = abrir.mock.calls[0][0];
-    expect(Object.keys(arg).sort()).toEqual(["data_comunicacao", "data_termino_acordada", "descontar_aviso", "modalidade", "motivo", "reducao", "simulado"]);
+    expect(Object.keys(arg).sort()).toEqual(["data_comunicacao", "data_termino_acordada", "descontar_aviso", "folgas_compensatorias", "modalidade", "motivo", "reducao", "saldo_banco_minutos", "simulado"]);
     expect(arg.motivo).toBe("dispensa_sem_justa_causa");
     // Referência = cenário simulado COM a folga escolhida (último dia antecipado), sem levar folgas/saldo.
     expect(arg.data_comunicacao).toBe("2026-10-01");
+    expect(arg.saldo_banco_minutos).toBe(480);
+    expect(arg.folgas_compensatorias).toEqual(["2026-10-31"]);
     expect(arg.simulado.comFolgas).toBe(true);
     expect(arg.simulado.ultimo).not.toBe("2026-10-31");
     expect(arg.simulado.ultimo < "2026-10-31").toBe(true);

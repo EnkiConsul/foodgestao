@@ -7,7 +7,7 @@ afterEach(cleanup);
 
 function preencher(adm = "2024-01-10", com = "2026-10-01") {
   fireEvent.change(screen.getByLabelText("Data de admissão"), { target: { value: adm } });
-  fireEvent.change(screen.getByLabelText("Comunicação (simulada)"), { target: { value: com } });
+  fireEvent.change(screen.getByLabelText("Data da comunicação"), { target: { value: com } });
 }
 const ultimo = () => screen.getByTestId("ultimo-comparecimento").textContent;
 const dia = (iso: string) => document.querySelector(`[data-dia="${iso}"]`) as HTMLButtonElement;
