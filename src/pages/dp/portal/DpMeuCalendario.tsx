@@ -100,6 +100,7 @@ import { MeusPlantoesTrocaCard } from "@/components/dp/convocacoes/MeusPlantoesT
 import { pessoaConvocavel } from "@/lib/dp/convocacoes-planejamento";
 import { notifyError } from "@/lib/notifyError";
 import { negarRegra } from "@/lib/dp/regraAviso";
+import { lancarErroSolicitacao } from "@/lib/dp/regraServidor";
 const hojeLocalIso = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
 
 /** Retorno do cálculo do período de escolha feito no servidor. */
@@ -1084,7 +1085,7 @@ export default function DpMeuCalendario() {
         if (raw.includes("DUPLICATE_REQUEST")) negarRegra("Você já tem folga marcada neste dia.");
         if (raw.includes("PAST_DATE_NOT_EDITABLE"))
           negarRegra("Não é possível marcar folga em datas passadas.");
-        throw error;
+        lancarErroSolicitacao(error);
       }
     },
     onSuccess: (_data, iso: string) => {
@@ -1128,7 +1129,7 @@ export default function DpMeuCalendario() {
         if (raw.includes("FOLGA_NAO_ENCONTRADA")) negarRegra("Folga não encontrada.");
         if (raw.includes("PAST_DATE_NOT_EDITABLE"))
           negarRegra("Não é possível remover folga passada.");
-        throw error;
+        lancarErroSolicitacao(error);
       }
     },
     onSuccess: () => {
@@ -1215,7 +1216,7 @@ export default function DpMeuCalendario() {
           negarRegra("Não é possível solicitar folga em datas passadas.");
         if (raw.includes("TROCA_MOTIVO_OBRIGATORIO")) negarRegra("Escreva o motivo da troca.");
         if (raw.includes("FORBIDDEN")) negarRegra("Seu cadastro não está ativo para enviar pedidos. Fale com o DP.");
-        throw new Error("Não foi possível enviar a solicitação. Tente novamente.");
+        lancarErroSolicitacao(error);
       }
     },
     onSuccess: (r, substituir) => {
@@ -1573,7 +1574,7 @@ export default function DpMeuCalendario() {
         const raw = error.message ?? "";
         if (raw.includes("DUPLICATE_REQUEST"))
           negarRegra("Você já tem um pedido pendente para este dia.");
-        throw new Error("Não foi possível enviar o pedido. Tente novamente.");
+        lancarErroSolicitacao(error);
       }
     },
     onSuccess: () => {
