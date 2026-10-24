@@ -115,10 +115,23 @@ const COLAB_ACOES_WIDTH = 96;
 export default function DpColaboradores() {
   const cadastro = useDpColaboradores();
   const preadmissoes = useDpPreadmissoes();
+  const unidades = useDpUnidades();
+  const cargos = useDpCargos();
+  const { todos: todosSetores } = useDpSetores();
   const [revisandoAdmissao, setRevisandoAdmissao] = useState<string | null>(null);
-  const dadosUnificados = useMemo(() => (cadastro.data ?? []).map((c) => ({
-    ...c, admissao: c.origem_cadastro === "preadmissao_rotina" ? admissaoDoProvisorio(c.id, c.company_id, preadmissoes.data ?? []) : null,
-  })), [cadastro.data, preadmissoes.data]);
+  const dadosUnificados = useMemo(() => (cadastro.data ?? []).map((c) => {
+    const admissao = c.origem_cadastro === "preadmissao_rotina" ? admissaoDoProvisorio(c.id, c.company_id, preadmissoes.data ?? []) : null;
+    if (!admissao) return { ...c, admissao: null };
+    const a = admissao.admin_dados;
+    const cargo = typeof a?.cargo_id === "string" && a.cargo_id ? a.cargo_id : admissao.cargo_previsto_id ?? c.cargo_id;
+    const unidade = typeof a?.unidade_id === "string" && a.unidade_id ? a.unidade_id : admissao.unidade_prevista_id ?? c.unidade_id;
+    const setor = typeof a?.setor_id === "string" ? a.setor_id || null : c.setor_id;
+    return { ...c, admissao, cargo_id: cargo, unidade_id: unidade, setor_id: setor,
+      cargo_nome: (cargos.data ?? []).find((r) => r.id === cargo)?.nome ?? c.cargo_nome,
+      unidade_nome: (unidades.data ?? []).find((r) => r.id === unidade)?.nome ?? c.unidade_nome,
+      setor_nome: setor ? todosSetores.find((r) => r.id === setor)?.nome ?? c.setor_nome : null,
+    };
+  }), [cadastro.data, preadmissoes.data, cargos.data, unidades.data, todosSetores]);
   const list = { ...cadastro, data: dadosUnificados };
   const resumoAdmissao = (c: DpColaborador) => c.admissao ? <AdmissaoResumo ficha={c.admissao} onAbrir={() => setRevisandoAdmissao(c.admissao?.id ?? null)} /> : null;
   const abrirVisualizacao = (c: DpColaborador) => {
@@ -135,9 +148,6 @@ export default function DpColaboradores() {
     for (const p of agenda.data ?? []) if (avisoEmAndamento(p.status) && !mapa.has(p.colaborador_id)) mapa.set(p.colaborador_id, p);
     return mapa;
   }, [agenda.data]);
-  const unidades = useDpUnidades();
-  const cargos = useDpCargos();
-  const { todos: todosSetores } = useDpSetores();
   const del = useDeleteDpColaborador();
   const reintegrar = useReintegrarDpColaborador();
 
