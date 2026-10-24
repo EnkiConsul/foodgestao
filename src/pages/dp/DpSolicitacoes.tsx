@@ -1,6 +1,7 @@
 import { TIPOS_LICENCA_CURTA, TIPO_AFASTAMENTO_LABEL } from "@/lib/dp/licencas";
 import { diasDeAntecedencia, ehCompensacaoFeriado, motivoLegivel, MOTIVO_COMPENSACAO_FERIADO } from "@/lib/dp/termos-compensacao";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
+import { invalidarRotina } from "@/lib/dp/rotina-cache";
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
@@ -242,6 +243,7 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
     },
     onSuccess: (_data, vars) => {
       toast.success(vars.status === "aprovada" ? "Solicitação aprovada" : "Solicitação recusada");
+      void invalidarRotina(qc);
       qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
       qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
       void resolverPendencias(qc, { companyId: selectedCompanyId, match: porIds([`sol-${vars.id}`]) });

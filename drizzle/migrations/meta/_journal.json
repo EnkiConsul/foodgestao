@@ -953,6 +953,13 @@
       "when": 1792800518327,
       "tag": "0135_preadmissao_efetivar_com_ficha_converte_rotina",
       "breakpoints": true
+    },
+    {
+      "idx": 136,
+      "version": "7",
+      "when": 1792804744346,
+      "tag": "0136_rotina_loja_folgas_trocas_ausencias",
+      "breakpoints": true
     }
   ]
 }

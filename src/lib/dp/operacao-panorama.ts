@@ -519,6 +519,12 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       continue;
     }
 
+    // A folga efetivada vence horários antigos de escala e convocação.
+    if (folgas.some((f) => f.tipo === "normal" || f.tipo === "abono")) {
+      registrar(colab, "folga_padrao");
+      continue;
+    }
+
     const cobertura = coberturaPor.get(colab.id);
     if (cobertura && !colab.intermitente) {
       registrar(colab, "coberto", undefined, {
@@ -585,11 +591,6 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       } else if (item.tipo === "ferias") registrar(colab, "ferias");
       else if (item.tipo === "afastamento") registrar(colab, "atestado");
       else registrar(colab, "folga_padrao");
-      continue;
-    }
-
-    if (folgas.some((f) => f.tipo === "normal" || f.tipo === "abono")) {
-      registrar(colab, "folga_padrao");
       continue;
     }
 

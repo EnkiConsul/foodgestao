@@ -60,8 +60,9 @@ export function RotinaDoDiaPanel({
   const { data: vinculo } = useMeuVinculoPortal();
 
   const q = useQuery({
-    queryKey: ["dp_meu_rotina_loja", vinculo?.unidadeId, iso],
+    queryKey: ["dp_meu_rotina_dia_panel", vinculo?.unidadeId, iso],
     enabled: !!vinculo?.unidadeId,
+    refetchInterval: 30_000,
     queryFn: async (): Promise<Pessoa[]> => {
       const { data, error } = await supabase.rpc("dp_portal_rotina_dia", { p_data: iso });
       if (error) throw error;
@@ -92,6 +93,7 @@ export function RotinaDoDiaPanel({
   const foraQ = useQuery({
     queryKey: ["dp_portal_equipe_fora_dia", vinculo?.unidadeId, iso],
     enabled: !!vinculo?.unidadeId,
+    refetchInterval: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("dp_portal_equipe_fora_dia" as any, { p_data: iso });
       if (error) throw error;
@@ -107,6 +109,7 @@ export function RotinaDoDiaPanel({
   const situacaoQ = useQuery({
     queryKey: ["dp_minha_situacao_dia", vinculo?.colaboradorId, iso],
     enabled: !!vinculo?.unidadeId,
+    refetchInterval: 30_000,
     queryFn: async (): Promise<string | null> => {
       const { data, error } = await supabase.rpc("dp_portal_minha_situacao_dia" as any, { p_data: iso });
       if (error) throw error;
@@ -148,7 +151,7 @@ export function RotinaDoDiaPanel({
   let situacao: { texto: string; tom: string };
   if (minha === "ferias") situacao = { texto: "Minhas férias", tom: "bg-sky-500/15 text-sky-700 border-sky-500/30" };
   else if (minha === "afastado") situacao = { texto: "Estou afastado", tom: "bg-muted text-muted-foreground" };
-  else if (minhaFolga) situacao = { texto: minhaFolga, tom: "bg-amber-500/15 text-amber-700 border-amber-500/30" };
+  else if (minhaFolga || minha === "folga") situacao = { texto: minhaFolga ?? "Minha folga", tom: "bg-amber-500/15 text-amber-700 border-amber-500/30" };
   else if (eu) situacao = { texto: eu.entrada && eu.saida ? `Trabalho ${eu.entrada}–${eu.saida}` : "Trabalho previsto", tom: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30" };
   else if (dependeConvocacao) situacao = { texto: "Sem convocação aceita", tom: "bg-muted text-muted-foreground" };
   else situacao = { texto: "Sem horário previsto", tom: "bg-muted text-muted-foreground" };

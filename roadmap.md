@@ -1,5 +1,9 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 
+- [x] Corrigir Rotina da Loja: respeitar folgas e afastamentos aprovados, faltas confirmadas e trabalho por troca em todos os caminhos.
+- [x] Validar sem alterar registros reais: 69 testes focados passaram; gestor autenticado abriu solicitações e rotina do dia 23/10 sem erro. Aprovação real e portal de colaborador não exercitados.
+- [ ] Publicar correções autorizadas: bloqueada por falhas de regressão em authEmailConfirmation.test.tsx e calendario-rotina-p1.test.ts; não houve publicação.
+
 - [x] Sugestão de horário: horário base mais repetido do cargo, uniforme em todos os dias, sem variação de sex/sáb/dom (`sugerirSemanaBaseCargo` + `montarSemanaUniforme`)
 - [x] Nunca sugerir 7 dias trabalhados: folga semanal garantida (mais comum do cargo ou dia menos trabalhado)
 - [x] Botão "Horário padrão do cargo" na aba Horário de Trabalho (corrige a ficha da Verônica)
@@ -16,5 +20,5 @@
 - [x] Ativação usa o horário da tela (sem exigir salvar a ficha antes) via `onJornadaChange`
 - [x] Migração 0135: `dp_preadmissao_efetivar_com_ficha` converte o cadastro provisório da rotina em vez de acusar CPF duplicado
 - [ ] Homologação visual pelo gestor na ficha da Verônica (aguarda uso real)
-- [ ] Publicação desta leva (aguarda pedido explícito)
+- [ ] Publicação desta leva (autorizada; aguarda resolução das falhas de regressão acima)
 - [ ] Teste pré-existente falhando, fora do escopo: `calendario-rotina-p1.test.ts` › "folgas fixas do dia são o piso mesmo com exceção da data" (já falhava antes desta leva)
