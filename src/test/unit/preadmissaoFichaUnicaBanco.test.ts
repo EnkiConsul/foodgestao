@@ -29,6 +29,7 @@ beforeAll(async () => {
     INSERT INTO dp_colaborador_config_trabalho(id,company_id,colaborador_id,unidade_id,vigencia_inicio,folga_variavel) VALUES('${config}','${empresa}','${pessoa}','${empresa}',(now() AT TIME ZONE 'America/Sao_Paulo')::date-10,false);
     INSERT INTO dp_colaborador_config_dias VALUES('${empresa}','${config}',1,true,NULL,'08:00','17:00',60,'${excecao}'),('${empresa}','${config}',2,false,NULL,NULL,NULL,NULL,NULL);`);
   await db.exec(readFileSync("drizzle/migrations/0152_preadmissao_sincronizar_cadastro_provisorio.sql", "utf8"));
+  await db.exec(readFileSync("drizzle/migrations/0153_preadmissao_sincronizacao_salario_decimal.sql", "utf8"));
 }, 30000);
 afterAll(() => db.close());
 describe.sequential("pré-admissão com identidade única", () => {
@@ -42,6 +43,10 @@ describe.sequential("pré-admissão com identidade única", () => {
     await db.query("UPDATE dp_preadmissoes SET admin_dados=admin_dados||$1::jsonb WHERE id=$2",[JSON.stringify({jornada:{dias:[{dow:1,trabalha:true,entrada:"09:00",saida:"18:00"},{dow:2,trabalha:false}]}}),ficha]);
     expect((await db.query("SELECT entrada::text,setor_id FROM dp_colaborador_config_dias WHERE config_id=$1 AND dow=1",[config])).rows).toEqual([{entrada:"08:00:00",setor_id:excecao}]);
     expect((await db.query("SELECT d.entrada::text,d.setor_id FROM dp_colaborador_config_dias d JOIN dp_colaborador_config_trabalho c ON c.id=d.config_id WHERE c.vigencia_fim IS NULL AND d.dow=1")).rows).toEqual([{entrada:"09:00:00",setor_id:excecao}]);
+  });
+  it("preserva salário decimal recebido sem máscara brasileira", async () => {
+    await db.query("UPDATE dp_preadmissoes SET admin_dados=admin_dados||$1::jsonb WHERE id=$2",[JSON.stringify({salario:2100.50}),ficha]);
+    expect((await db.query("SELECT salario_base::text FROM dp_colaboradores")).rows).toEqual([{salario_base:"2100.5"}]);
   });
   it("recusa setor de outra empresa e desfaz o salvamento inteiro", async () => {
     const estranho="00000000-0000-4000-8000-000000000009";
