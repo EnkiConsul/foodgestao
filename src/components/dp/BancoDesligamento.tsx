@@ -40,12 +40,13 @@ export function simularBancoSobreCalendario(base: ResultadoDesligamento, saldo: 
   return { ...base, calendario, folgasAceitas: aceitas, folgasRejeitadas: rejeitadas, saldoResidualMinutos: restante, minutosCompensados: saldo - restante, ultimoComparecimento: trabalho.at(-1)?.data ?? null, jornadasRestantes: trabalho.length };
 }
 
-export function BancoDesligamento({ texto, unidade, horasDia, set, base, resultado, folgas, onFolgas, planejamento = false, bloqueado = false }: {
+export function BancoDesligamento({ texto, unidade, horasDia, set, base, resultado, folgas, onFolgas, planejamento = false, bloqueado = false, limiteOriginal }: {
   texto: string; unidade: "horas" | "dias"; horasDia: string;
   set: (v: { texto?: string; unidade?: "horas" | "dias"; horasDia?: string }) => void;
   base?: ResultadoDesligamento | null; resultado?: ResultadoDesligamento | null; folgas: string[];
   onFolgas: (datas: string[]) => void; planejamento?: boolean;
   bloqueado?: boolean;
+  limiteOriginal?: string | null;
 }) {
   const saldo = saldoDesligamento(texto, unidade, horasDia);
   return <div className="space-y-3">
@@ -65,7 +66,7 @@ export function BancoDesligamento({ texto, unidade, horasDia, set, base, resulta
     {resultado && <>
       <div className="grid gap-2 text-sm sm:grid-cols-2"><span>Compensado: <strong>{formatarMinutos(resultado.minutosCompensados)}</strong></span><span>Sobra para conferir e quitar na rescisão: <strong>{formatarMinutos(resultado.saldoResidualMinutos)}</strong></span></div>
       <div className="grid gap-2 rounded-md bg-muted p-3 text-sm sm:grid-cols-2">
-        <p>Limite de trabalho sem banco: <strong>{base?.ultimoComparecimento?.split('-').reverse().join('/') ?? '—'}</strong></p>
+        <p>Limite de trabalho sem banco: <strong>{(limiteOriginal ?? base?.ultimoComparecimento)?.split('-').reverse().join('/') ?? '—'}</strong></p>
         <p>Comparecimento estimado com banco: <strong>{resultado.ultimoComparecimento?.split('-').reverse().join('/') ?? 'Sem jornadas'}</strong></p>
         <p className="sm:col-span-2">Término do vínculo: <strong>{resultado.dataEfetiva.split('-').reverse().join('/')}</strong> · não muda com a compensação.</p>
       </div>

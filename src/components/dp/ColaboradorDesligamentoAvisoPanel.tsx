@@ -274,7 +274,7 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
   const Diagnostico = previa?.diagnostico_escala && <RevisaoCalendario r={previa} />;
 
   const Banco = !SEM_AVISO.has(cond.motivo) && cond.modalidade === "trabalhado" && <BancoDesligamento
-    texto={saldoTxt} unidade={saldoUnidade} horasDia={horasDia} folgas={folgas} base={baseCalendario} bloqueado={previa?.diagnostico_escala?.apto === false} resultado={baseCalendario && saldo.minutos !== null ? simularBancoSobreCalendario(baseCalendario, saldo.minutos, folgas) : calendario}
+    texto={saldoTxt} unidade={saldoUnidade} horasDia={horasDia} folgas={folgas} base={baseCalendario} limiteOriginal={previa?.limite_sem_banco ?? projecao.data?.limite_sem_banco} bloqueado={previa?.diagnostico_escala?.apto === false} resultado={baseCalendario && saldo.minutos !== null ? simularBancoSobreCalendario(baseCalendario, saldo.minutos, folgas) : calendario}
     set={(v) => { if (v.texto !== undefined) setSaldoTxt(v.texto); if (v.unidade) setSaldoUnidade(v.unidade); if (v.horasDia !== undefined) setHorasDia(v.horasDia); setFolgas([]); setCalendario(null); setBaseCalendario(null); limpar(); }}
     onFolgas={(datas) => { setFolgas(datas); setFormal(false); setPrevia(null); }} />;
 

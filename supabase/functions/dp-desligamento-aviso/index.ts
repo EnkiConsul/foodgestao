@@ -102,7 +102,7 @@ async function feriadosDaUnidade(admin: any, c: Pick<Colab, "unidade_id" | "comp
 }
 
 // deno-lint-ignore no-explicit-any
-async function calcular(admin: any, c: Colab, b: Cond, previa = false, processoId?: string): Promise<{ resultado?: Record<string, unknown>; resp?: Response }> {
+async function calcular(admin: any, c: Colab, b: Cond, previa = false, processoId?: string, limiteOriginal?: string | null): Promise<{ resultado?: Record<string, unknown>; resp?: Response }> {
   const revisao = (msg: string) => ({ resp: json(422, { revisao: true, error: msg }) });
   if (c.regime !== "clt") return revisao("O cálculo automático cobre apenas o regime CLT. Para este vínculo, a análise é manual, com confirmação da contabilidade ou do jurídico.");
   if (!c.data_admissao) return revisao("Cadastre a data de admissão para calcular.");
@@ -202,6 +202,8 @@ async function calcular(admin: any, c: Colab, b: Cond, previa = false, processoI
     jornadaSemanal: semana, excecoesJornada: excecoes, feriados, saldoBancoMinutos: b.saldo_banco_minutos ?? 0,
   });
   if ("erro" in base) return { resp: json(400, { error: base.erro }) };
+  if (limiteOriginal && base.ultimoComparecimento && base.ultimoComparecimento > limiteOriginal)
+    return revisao("O calendário prevê trabalho depois do limite original sem banco. Revise a escala; a compensação não pode ampliar esse limite.");
   if (!semAviso && b.modalidade === "trabalhado" && !base.ultimoComparecimento)
     return revisao("Não há jornadas previstas no período do aviso. Revise a jornada antes de registrar.");
   let diagnostico = null;
@@ -327,7 +329,7 @@ Deno.serve(async (req) => {
     if (b.acao === "projecao") {
       const c = await carregarColab(proc.colaborador_id);
       if (!c || proc.status !== "aviso_em_curso") return json(409, { error: "Aviso não está em andamento." });
-      const { resultado, resp } = await calcular(admin, c, { ...proc, modalidade: "trabalhado", concentrar_final: true }, true, proc.id);
+      const { resultado, resp } = await calcular(admin, c, { ...proc, modalidade: "trabalhado", concentrar_final: true }, true, proc.id, limiteOriginal);
       if (resp) return resp;
       // Read-only prediction: official legal dates and persisted agenda remain untouched.
       return json(200, { resultado: { ...resultado, limite_sem_banco: limiteOriginal, data_efetiva: proc.data_efetiva, base_quitacao: proc.base_quitacao, prazo_10_dias: proc.prazo_10_dias } });
@@ -343,14 +345,13 @@ Deno.serve(async (req) => {
     if (b.acao === "alterar") {
       const c = await carregarColab(proc.colaborador_id);
       if (!c || !c.ativo || c.data_desligamento) return json(409, { error: "Colaborador não está ativo." });
-      const { resultado, resp } = await calcular(admin, c, b, b.previa === true, proc.id);
+      const { resultado, resp } = await calcular(admin, c, b, b.previa === true, proc.id, limiteOriginal);
       if (resp) return resp;
       if (!resultado) return json(500, { error: "Não foi possível calcular." });
       if (limiteOriginal) resultado.limite_sem_banco = limiteOriginal;
       if (b.previa) return json(200, { resultado });
       if (resultado.data_efetiva !== proc.data_efetiva || resultado.prazo_10_dias !== proc.prazo_10_dias)
         return json(409, { error: "A compensação não pode alterar o término do vínculo nem o prazo de pagamento. Mantenha as condições legais originais." });
-      if (limiteOriginal) resultado.limite_sem_banco = limiteOriginal;
       if (diverge(b.esperado, resultado)) return json(409, { divergente: true, error: "As datas oficiais mudaram. Revise e confirme de novo.", resultado });
       const { avisos: _a, usou_escala: _u, simulacao: _s, base_simulacao: _bs, diagnostico_escala: _de, motivo: _m, termino_passado: _tp, prazo_vencido: _pv, ...gravar } = resultado;
       extra = gravar;
