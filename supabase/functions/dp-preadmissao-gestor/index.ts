@@ -237,21 +237,27 @@ Deno.serve(async (req) => {
       return jsonResponse(req, 200, { success: true });
     }
 
-    if (acao === "solicitar_correcao") {
+    if (acao === "solicitar_correcao" || acao === "retomar_conferencia") {
       const motivo = String(body?.motivo ?? "").trim();
-      if (motivo.length < 5) return jsonResponse(req, 400, { error: "Descreva o que precisa ser corrigido." });
-      const t = await transicionar(admin, pa.id, ["aguardando_revisao", "aguardando_nova_versao", "em_preenchimento"], "correcao_solicitada", {
-        correcao_motivo: motivo,
-        revisado_em: true,
-        revisado_por: caller.id,
-      });
-      if (!t.ok) {
-        return t.motivo === "status_inesperado"
-          ? jsonResponse(req, 409, { error: "A ficha não está em revisão agora.", status: t.status })
-          : jsonError(req, "internal", "não foi possível registrar a correção");
+      const versao = body?.versao;
+      if (motivo.length < 5 || motivo.length > 1000 || !Number.isInteger(versao) || versao < 1) {
+        return jsonResponse(req, 400, { error: "Descreva o motivo (5 a 1.000 caracteres) e atualize a ficha antes de continuar." });
       }
-      await registrarEvento(admin, pa.id, pa.company_id, "correcao_solicitada", { motivo }, caller.id);
-      return jsonResponse(req, 200, { success: true });
+      const { data: t, error } = await admin.rpc("dp_preadmissao_correcao_gestor", {
+        p_preadmissao_id: pa.id, p_ator: caller.id,
+        p_acao: acao === "solicitar_correcao" ? "solicitar" : "retomar",
+        p_motivo: motivo, p_versao: versao,
+      });
+      if (error) return jsonError(req, "internal", "não foi possível registrar a ação");
+      if (!t?.ok) {
+        const mensagem = t?.motivo === "convite_revogado"
+          ? "O link foi cancelado. Gere um novo link com confirmação antes de pedir correção."
+          : t?.motivo === "versao_alterada"
+            ? "A ficha foi alterada em outro aparelho. Atualize e confira antes de continuar."
+            : "A ficha mudou de etapa. Atualize antes de continuar.";
+        return jsonResponse(req, 409, { error: mensagem, motivo: t?.motivo });
+      }
+      return jsonResponse(req, 200, { success: true, ...t });
     }
 
     if (acao === "salvar_admin") {
