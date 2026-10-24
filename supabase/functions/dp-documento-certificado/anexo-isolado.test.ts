@@ -1,4 +1,4 @@
-import { PDFDocument, PDFName, PDFNumber } from "npm:pdf-lib@1.17.1";
+import { PDFDocument, PDFName, PDFNumber, StandardFonts } from "npm:pdf-lib@1.17.1";
 import { incorporarAnexoIsolado } from "./anexo-isolado.ts";
 
 Deno.test("compressão inválida no save do anexo não contamina documento assinado", async () => {
@@ -23,8 +23,9 @@ Deno.test("compressão inválida no save do anexo não contamina documento assin
 
 Deno.test("anexo válido transfere todas as páginas sem alterar bytes de entrada", async () => {
   const original = await PDFDocument.create();
-  original.addPage([595, 842]);
-  original.addPage([595, 842]);
+  const fonte = await original.embedFont(StandardFonts.Helvetica);
+  original.addPage([595, 842]).drawText("Documento original", { font: fonte });
+  original.addPage([595, 842]).drawText("Comprovante original", { font: fonte });
   const bytes = await original.save();
   const copia = bytes.slice();
   const destino = await PDFDocument.create();
