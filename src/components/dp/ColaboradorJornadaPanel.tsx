@@ -2,6 +2,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { inicioJornadaAdmissao } from "@/lib/dp/admissao-fluxo";
 import { CalendarOff, Info, AlertTriangle, Save, Trash2, Users, Clock, ShieldAlert, CopyPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -114,6 +115,7 @@ interface Props {
   onNavegar?: (rota: string) => void;
   /** Horário registrado na Ficha de Registro (registro contábil) de origem. */
   horarioFicha?: { entrada: string; saida: string; intervalo_minutos: number | null } | null;
+  inicioLoja?: string;
 }
 
 const descreverHorario = (h: { entrada?: string | null; saida?: string | null; intervalo_minutos?: number | null }) =>
@@ -138,7 +140,7 @@ export interface JornadaRascunho {
  */
 export function ColaboradorJornadaPanel({
   colaborador, active = true, showSaveButton = true, onRegistrarSalvar,
-  rascunhoInicial, onRascunho, avisoSemCadastro, onNavegar, horarioFicha,
+  rascunhoInicial, onRascunho, avisoSemCadastro, onNavegar, horarioFicha, inicioLoja,
 }: Props) {
   const policy = contratoPolicy(colaborador?.regime, colaborador?.vinculo_label);
   const { selectedCompanyId } = useCompanyContext();
@@ -193,7 +195,7 @@ export function ColaboradorJornadaPanel({
   const [vigDecJust, setVigDecJust] = useState("");
   const vigDecResolveRef = useRef<((ok: boolean) => void) | null>(null);
   const decisaoRef = useRef<{ modo: "nova" | "correcao"; inicio: string; justificativa: string } | null>(null);
-  const admissao = colaborador?.data_admissao ?? null;
+  const admissao = inicioJornadaAdmissao(inicioLoja, colaborador?.data_admissao) || null;
   const [obs, setObs] = useState("");
   const [copiarOpen, setCopiarOpen] = useState(false);
   const [cienciaOpen, setCienciaOpen] = useState(false);
@@ -335,6 +337,11 @@ export function ColaboradorJornadaPanel({
   // Recarrega o formulário com a configuração vigente sempre que o painel ativa.
   useEffect(() => {
     if (!active) return;
+    // O rascunho permanece ao navegar entre abas; não reaplica dias vazios.
+    if (!colaborador?.id && (alterado || rascunhoAplicadoRef.current)) {
+      if (vigenciaModo === "base") setInicio(admissao ?? "");
+      return;
+    }
     if (vigente) {
       setFolgaVariavel(vigente.folga_variavel);
       setDias(normalizarDias(vigente.dias, vigente.folga_fixa_dow));
@@ -1009,7 +1016,7 @@ export function ColaboradorJornadaPanel({
               <p className="rounded-md border bg-muted/30 p-2 text-xs text-muted-foreground">
                 {vigente
                   ? <>Mantém a vigência atual: <strong className="text-foreground">{fmt(inicio)}</strong></>
-                  : <>Vigente desde a admissão: <strong className="text-foreground">{fmt(inicio)}</strong></>}
+                  : <>Vigente desde {inicioLoja ? "o início na loja" : "a admissão"}: <strong className="text-foreground">{fmt(inicio)}</strong></>}
               </p>
               <Button
                 type="button" variant="link" size="sm" className="h-auto p-0 text-xs"
