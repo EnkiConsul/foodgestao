@@ -1,9 +1,16 @@
 /** Regras de apresentação; as autorizações oficiais permanecem no servidor. */
-export function efetivacaoDisponivel(regime: string, status: string, asoValido: boolean, fichaConferida: boolean): boolean {
+export function efetivacaoDisponivel(regime: string, status: string, asoValido: boolean, fichaConferida: boolean, permitirSemFicha = false): boolean {
   if (regime === "clt" || regime === "intermitente") {
-    return status === "registro_recebido" && asoValido && fichaConferida;
+    if (!asoValido) return false;
+    if (permitirSemFicha) return ["enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"].includes(status);
+    return status === "registro_recebido" && fichaConferida;
   }
   return ["pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"].includes(status);
+}
+
+/** O salvamento já terminou; pendências aqui não são falhas de gravação. */
+export async function finalizarDepoisDeSalvar(finalizar: () => Promise<void>, avisar: (erro: unknown) => void): Promise<void> {
+  try { await finalizar(); } catch (erro) { avisar(erro); }
 }
 
 export async function salvarAntesDeAvancar(salvar: () => Promise<void>, avancar: () => void): Promise<void> {

@@ -1,5 +1,7 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 
+- [ ] Aplicar revisão da admissão: salvar sem bloqueio silencioso, separar pendências de finalização, permitir efetivação CLT com ciência expressa sem ficha retornada, rolar ao ASO e mostrar etapas compactas; validar sem gravações reais nem publicação.
+
 - [x] Redesenhar conferência da admissão: PDF compacto + Salvar e Avançar/Finalizar, ASO retomável antes da contabilidade, elegibilidade de efetivação por vínculo e documentos oficiais após efetivar; ocultar alerta do próprio provisório e alinhar vigência inicial. 23 testes passaram; fluxo autenticado conferido no celular com gravações interceptadas (avanço e finalização simulados), sem alterar dados reais. Build OK.
 - [ ] Disponibilizar o novo fluxo no site e a correção de CPF na função do gestor: aguarda autorização explícita de publicação. Gravação real, ASO real e efetivação real não exercitados para preservar os colaboradores.
 

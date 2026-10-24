@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { efetivacaoDisponivel, inicioJornadaAdmissao, salvarAntesDeAvancar } from "../admissao-fluxo";
+import { efetivacaoDisponivel, finalizarDepoisDeSalvar, inicioJornadaAdmissao, salvarAntesDeAvancar } from "../admissao-fluxo";
 
 describe("fluxo de admissão", () => {
   it("não avança quando o salvamento falha", async () => {
@@ -26,5 +26,18 @@ describe("fluxo de admissão", () => {
     expect(inicioJornadaAdmissao("2026-10-12", "2026-10-24")).toBe("2026-10-12");
     expect(inicioJornadaAdmissao(null, "2026-10-12")).toBe("2026-10-12");
     expect(inicioJornadaAdmissao()).toBe("");
+  });
+  it.each(["clt", "intermitente"])("permite %s sem retorno da ficha somente após ASO e envio confirmado", (regime) => {
+    expect(efetivacaoDisponivel(regime, "enviado_contabilidade", true, false, true)).toBe(true);
+    expect(efetivacaoDisponivel(regime, "aguardando_retorno_contabilidade", true, false, true)).toBe(true);
+    expect(efetivacaoDisponivel(regime, "pronto_contabilidade", true, false, true)).toBe(false);
+    expect(efetivacaoDisponivel(regime, "enviado_contabilidade", false, false, true)).toBe(false);
+    expect(efetivacaoDisponivel(regime, "enviado_contabilidade", true, false)).toBe(false);
+  });
+  it("trata falha de finalização separadamente da gravação concluída", async () => {
+    const erro = new Error("documento obrigatório pendente");
+    const avisar = vi.fn();
+    await expect(finalizarDepoisDeSalvar(async () => { throw erro; }, avisar)).resolves.toBeUndefined();
+    expect(avisar).toHaveBeenCalledWith(erro);
   });
 });
