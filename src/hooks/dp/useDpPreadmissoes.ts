@@ -264,7 +264,7 @@ export function useDpPreadmissaoGestor(id: string | null) {
     qc.invalidateQueries({ queryKey: ["dp_preadmissao", id] });
     qc.invalidateQueries({ queryKey: ["dp_preadmissoes"] });
     qc.invalidateQueries({ queryKey: ["dp_pendencias"] });
-    for (const key of ["dp_colaboradores", "dp_colaborador_config_trabalho", "dp_operacao", "dp_operacao_panorama", "dp_calendario"]) {
+    for (const key of ["dp_colaboradores", "dp_colab_config_trabalho", "dp_operacao", "dp_panorama_base", "dp_escala_mes", "dp_calendario"]) {
       qc.invalidateQueries({ queryKey: [key] });
     }
   };
