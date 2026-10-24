@@ -46,6 +46,23 @@ const DOMINGO = "2026-08-23";
 
 describe("contarDia", () => {
   const vazio = { convocacoes: [], folgas: [], ausencias: [] };
+  it("justificativa vinculada não transforma folga autorizada em atestado", () => {
+    const r = contarDia({ data: SEGUNDA, colaboradores: [fixo("a")], turnos, ...vazio,
+      folgas: [{ colaborador_id: "a", data: SEGUNDA, tipo: "extra", extra: true }],
+      ocorrencias: [{ id: "o", colaborador_id: "a", data: SEGUNDA, tipo: "ausencia_justificada", estado: "confirmada", minutos: null, horario_estimado: null, horario_real: null, folga_id: "f" }],
+    });
+    expect(r.contagens.folga_extra).toBe(1);
+    expect(r.contagens.atestado).toBe(0);
+    expect(r.trabalhando).toBe(0);
+  });
+  it("dia trabalhado por troca não recebe alerta de divergência operacional", () => {
+    const r = contarDia({ data: SEGUNDA, colaboradores: [fixo("a")], turnos, ...vazio,
+      ocorrencias: [{ id: "o", colaborador_id: "a", data: SEGUNDA, tipo: "divergencia_jornada", estado: "confirmada", minutos: null, horario_estimado: null, horario_real: null, troca_id: "t" }],
+    });
+    expect(r.trabalhando).toBe(1);
+    expect(r.pessoas).toHaveLength(1);
+    expect(r.pessoas[0]?.categoria).toBe("fixo");
+  });
 
   it("suspensão disciplinar tira a pessoa da escala como ausente", () => {
     const colaboradores = [fixo("a"), fixo("b")];

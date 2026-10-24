@@ -34,6 +34,7 @@ beforeAll(async () => {
     CREATE FUNCTION public.is_super_admin(uuid) RETURNS boolean LANGUAGE sql AS 'SELECT false';
   `);
   await db.exec(readFileSync("drizzle/migrations/0138_folga_exclusao_e_troca_estorno_integral.sql", "utf8"));
+  await db.exec(readFileSync("drizzle/migrations/0139_rotina_separar_evidencia_folga_de_afastamento.sql", "utf8"));
 }, 30000);
 afterAll(() => db.close());
 
@@ -50,6 +51,7 @@ describe.sequential("geração transacional de justificativas", () => {
     await db.query(`UPDATE dp_ocorrencias SET impacta_assiduidade='sim',impacta_ferias='sim',assiduidade_risco=true WHERE folga_id=$1`,[fid]);
     const rows = (await db.query(`SELECT subtipo,impacta_assiduidade,impacta_ferias,assiduidade_risco,analise_status,tratativa_ponto,tratativa_status FROM dp_ocorrencias WHERE folga_id=$1`,[fid])).rows;
     expect(rows).toEqual([{subtipo,impacta_assiduidade:'nao',impacta_ferias:'nao',assiduidade_risco:false,analise_status:'analisada',tratativa_ponto:true,tratativa_status:'pendente'}]);
+    expect((await db.query<{ausente:boolean}>(`SELECT public.dp_rotina_ausencia_operacional_em($1,$2) ausente`,[person,dia])).rows[0]?.ausente).toBe(false);
     await db.query(`UPDATE dp_folgas SET status='cancelada' WHERE id=$1`,[fid]);
     expect((await db.query(`SELECT estado FROM dp_ocorrencias WHERE folga_id=$1`,[fid])).rows).toEqual([{estado:'cancelada'}]);
   });
