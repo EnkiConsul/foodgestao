@@ -42,7 +42,7 @@ export type ErrorReportReadyDetail = {
 export function ehFalhaDeRede(error: unknown): boolean {
   if (typeof navigator !== "undefined" && navigator.onLine === false) return true;
   const m = messageOf(error).toLowerCase();
-  return /failed to fetch|networkerror|network request failed|load failed|err_network|err_internet|timeout|timed out|conex[aã]o/.test(m);
+  return /failed to fetch|networkerror|network request failed|load failed|err_network|err_internet|timeout|timed out|conex[aã]o|failed to send a request to the edge function|edge function returned a non-2xx.*(502|503|504)|aborterror|the operation was aborted/.test(m);
 }
 
 let currentCompanyId: string | null = null;
@@ -95,6 +95,34 @@ export function fingerprintOf(input: {
 }
 
 let lastSent = new Map<string, number>();
+let lastMessage = new Map<string, number>();
+
+/** Navegador de automação (testes locais): nunca é uso real. */
+export function ehNavegadorDeAutomacao(): boolean {
+  if (typeof navigator === "undefined") return false;
+  if ((navigator as Navigator & { webdriver?: boolean }).webdriver) return true;
+  return /HeadlessChrome|Playwright|Puppeteer/i.test(navigator.userAgent ?? "");
+}
+
+/** Relato manual de suporte: cada envio é um atendimento próprio. */
+export function ehRelatoManual(action?: string): boolean {
+  return /relatar (um )?problema/i.test(action ?? "");
+}
+
+/** Mesma falha capturada por várias escutas (janela, barreira, entrada) em 3s. */
+export function ehCascataDuplicada(message: string, now = Date.now()): boolean {
+  const chave = message.trim().slice(0, 300);
+  const prev = lastMessage.get(chave);
+  if (lastMessage.size > 200) lastMessage = new Map();
+  lastMessage.set(chave, now);
+  return prev != null && now - prev < 3_000;
+}
+
+/** Só para testes. */
+export function __resetErrorLogState() {
+  lastSent = new Map();
+  lastMessage = new Map();
+}
 
 /**
  * Ruído de ambiente de desenvolvimento (recarga a quente do Vite): módulos
@@ -124,6 +152,11 @@ export async function reportError(input: ReportErrorInput): Promise<string | nul
   try {
     const message = messageOf(input.error);
     if (ehRuidoDeDesenvolvimento(message)) return null;
+    if (ehNavegadorDeAutomacao()) return null;
+    const relato = ehRelatoManual(input.action);
+    // Queda de sinal/timeout orienta o usuário, mas não vira chamado de defeito.
+    if (!relato && ehFalhaDeRede(input.error)) return null;
+    if (!relato && ehCascataDuplicada(message)) return latestReport?.errorLogId ?? null;
     const code = codeOf(input.error);
 
     const fingerprint = fingerprintOf({
@@ -131,7 +164,7 @@ export async function reportError(input: ReportErrorInput): Promise<string | nul
       action: input.action,
       code,
       message,
-    });
+    }) + (relato ? `|relato:${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}` : "");
 
     const now = Date.now();
     const prev = lastSent.get(fingerprint);
