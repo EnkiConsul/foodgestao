@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import { Check, ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Plus } from "lucide-react";
+import { ArrowLeftRight, Check, ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Plus } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -683,6 +683,22 @@ export default function DpOcorrencias() {
           </Button>
         </DpFilterField>
 
+        <DpFilterField label=" " className="flex items-end">
+          <Button
+            size="sm"
+            variant={filtros.tipo === "folgas_trocas" ? "default" : "outline"}
+            className="h-10 w-full gap-2"
+            aria-pressed={filtros.tipo === "folgas_trocas"}
+            onClick={() => {
+              set("tipo", filtros.tipo === "folgas_trocas" ? "all" : "folgas_trocas");
+              setDiretriz(null);
+            }}
+          >
+            <ArrowLeftRight className="h-4 w-4 shrink-0" />
+            Folgas e trocas
+          </Button>
+        </DpFilterField>
+
         {maisFiltros && (
         <>
         <DpFilterField label="Colaborador">
@@ -730,6 +746,7 @@ export default function DpOcorrencias() {
                   {TIPO_LABEL[t]}
                 </SelectItem>
               ))}
+              <SelectItem value="folgas_trocas">Folgas e trocas</SelectItem>
             </SelectContent>
           </Select>
         </DpFilterField>

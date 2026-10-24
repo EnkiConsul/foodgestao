@@ -1,4 +1,5 @@
 import { tratativaPendente } from "@/lib/dp/ocorrencias";
+import { aplicarTipoOcorrencia } from "@/lib/dp/ocorrencias-filtro";
 import { invalidarRotina } from "@/lib/dp/rotina-cache";
 import { intervaloDePeriodo } from "@/lib/dp/ocorrenciasPeriodo";
 import { useMemo } from "react";
@@ -210,7 +211,7 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
       if (filtros.colaboradorId !== "all") q = q.eq("colaborador_id", filtros.colaboradorId);
       if (filtros.unidadeId !== "all") q = q.eq("unidade_id", filtros.unidadeId);
       if (filtros.setorId !== "all") q = q.eq("setor_id", filtros.setorId);
-      if (filtros.tipo !== "all") q = q.eq("tipo", filtros.tipo as OcorrenciaTipo);
+      q = aplicarTipoOcorrencia(q, filtros.tipo);
       if (filtros.estado !== "all") q = q.eq("estado", filtros.estado as OcorrenciaEstado);
       if (filtros.analise !== "all") q = q.eq("analise_status", filtros.analise as OcorrenciaAnalise);
       if (filtros.impactaAssiduidade !== "all")
