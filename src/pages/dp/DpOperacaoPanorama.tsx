@@ -1,4 +1,5 @@
 import { FeriadosDia } from "@/components/dp/FeriadoCategoriaBadge";
+import { PrazosRescisao } from "@/components/dp/calendario/PrazosRescisao";
 import { textoFeriadosDia } from "@/lib/dp/feriados-apresentacao";
 import { Fragment, type ReactNode } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -126,6 +127,7 @@ function rotuloCategoriaPessoa(p: PessoaPanorama): string {
     if (p.origem === "registro_manual") return "Registro manual";
   }
   if (p.folga_troca && (p.categoria === "folga_padrao" || p.categoria === "folga_extra")) return "Folga por Troca";
+  if (p.folga_rotulo) return p.folga_rotulo;
   return CATEGORIA_LABEL[p.categoria];
 }
 
@@ -958,7 +960,7 @@ function DetalheDiaOperacao({
                 const reg = ausReg.find((a) => a.colaborador_id === p.colaborador_id);
                 const tipo = p.categoria === "coberto" && p.coberto_por_nome
                   ? `Coberto por ${p.coberto_por_nome}`
-                  : p.folga_troca && (p.categoria === "folga_padrao" || p.categoria === "folga_extra")
+                  : p.folga_rotulo ? p.folga_rotulo : p.folga_troca && (p.categoria === "folga_padrao" || p.categoria === "folga_extra")
                     ? "Folga por Troca"
                     : CATEGORIA_LABEL[p.categoria];
                 const extra = reg && reg.fim !== reg.inicio ? ` · até ${reg.fim.split("-").reverse().join("/")}` : "";
@@ -1951,6 +1953,7 @@ export default function DpOperacaoPanorama({
       </Tabs>
       </>}
 
+      {inicioEmLinha && <PrazosRescisao data={data} unidadeId={unidadeId} />}
       {inicioEmLinha && <section className="space-y-2" aria-label="Visão oficial do dia">
         {dia && <>
           <div className="flex flex-wrap items-center gap-1 rounded-xl border border-primary/20 bg-calendar-day-header px-2 py-1.5 text-xs text-calendar-header-foreground">
@@ -2022,6 +2025,7 @@ export default function DpOperacaoPanorama({
             )}
           </DialogHeader>
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+            {dataPopout && <PrazosRescisao data={dataPopout} unidadeId={unidadeId} />}
             {dataPopout && diaPopout ? conteudoDia(dataPopout, diaPopout) : (
               <p className="text-sm text-muted-foreground">Sem dados para este dia.</p>
             )}

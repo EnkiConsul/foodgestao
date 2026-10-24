@@ -20,6 +20,7 @@ import {
 import { paraMinutos } from "@/lib/dp/jornada-utils";
 import { turnoDoDia, type ConfigTrabalho, type TurnoResolvido } from "@/lib/dp/config-trabalho";
 import type { OcorrenciaEstado, OcorrenciaTipo } from "@/lib/dp/ocorrencias";
+import { rotuloFolga } from "@/lib/dp/folga-apresentacao";
 
 export type CategoriaDia =
   | "fixo"
@@ -91,6 +92,8 @@ export interface FolgaPanorama {
   extra?: boolean | null;
   /** Origem do registro (ex.: "troca"). */
   origem?: string | null;
+  direito_origem?: string | null;
+  subtipo?: string | null;
 }
 
 export interface AusenciaPanorama {
@@ -195,6 +198,7 @@ export interface PessoaPanorama {
   setor_habitual_nome?: string | null;
   /** Folga vinda de troca aprovada. */
   folga_troca?: boolean;
+  folga_rotulo?: string;
   /** Dias da semana (0=dom) de folga fixa na jornada. */
   folga_fixa_dows?: number[];
   socio: boolean;
@@ -483,6 +487,9 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       folga_troca:
         categoria === "folga_padrao" &&
         (folgasPor.get(colab.id) ?? []).some((f) => f.origem === "troca"),
+      folga_rotulo: (categoria === "folga_extra" || categoria === "folga_padrao")
+        ? (() => { const f = (folgasPor.get(colab.id) ?? [])[0]; return f ? rotuloFolga(f) : undefined; })()
+        : undefined,
       folga_fixa_dows: (colab.config?.dias ?? []).filter((d) => !d.trabalha).map((d) => d.dow),
       origem: horario?.origem ?? "jornada",
       ...extrasSemSetor,

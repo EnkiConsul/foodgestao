@@ -1,4 +1,6 @@
 import { FeriadosDia } from "@/components/dp/FeriadoCategoriaBadge";
+import { useDpDesligamentosAgenda } from "@/hooks/useDpDesligamentosAgenda";
+import { PrazosRescisao } from "./PrazosRescisao";
 import { textoFeriadosDia } from "@/lib/dp/feriados-apresentacao";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -91,6 +93,8 @@ interface Props {
 
 export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros, onFiltros, onAbrirDia, unidadeId = null, nomeUnidade, competenciaLabel, onMarcarOk, indisponiveis = [] }: Props) {
   const { selectedCompanyId } = useCompanyContext();
+  const agenda = useDpDesligamentosAgenda();
+  const prazosDoDia = (iso: string) => (agenda.data ?? []).filter((p) => p.prazo_10_dias === iso && (!unidadeId || p.colaborador?.unidade_id === unidadeId));
   const { config } = useDpConfigDp(unidadeId);
   // Dias de descanso dominical habilitados na regra da unidade.
   const diasDominicais = useMemo(() => (config ? diasElegiveisDaConfig(config) : [0]), [config]);
@@ -476,6 +480,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
       )}
 
       {/* Mobile: 1 dia = 1 linha, como no calendário de folgas */}
+      <PrazosRescisao competencia={ini?.slice(0, 7)} unidadeId={unidadeId} />
       <div className="md:hidden">
         <DiasEmLista
           dias={dias.map((d) => {
@@ -515,6 +520,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
               ),
               chips: (
                 <>
+                  {prazosDoDia(d.data).map((p) => <span key={p.id} className="inline-flex shrink-0 rounded-md border border-primary/40 px-2 py-0.5 text-[10px] font-semibold text-primary">Rescisão: {primeiroNome(p.colaborador?.nome ?? "Colaborador")}</span>)}
                   {aus.slice(0, 3).map((a) => (
                     <span key={`${a.colaborador_id}-${a.tipo}`} title={rotulo(a, d.data)} className={cn("inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase", tomDe(a, d.data), d.data < hoje && "opacity-60")}>
                       {iconeAus(a) && <span aria-hidden="true" className="text-[9px] leading-none">{iconeAus(a)}</span>}{a.troca && <Repeat className="h-2.5 w-2.5" />}{primeiroNome(a.nome)}
@@ -583,6 +589,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                       <span className={cn("inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold tabular-nums", d.alerta && d.avaliacao.situacao === "abaixo" ? "bg-destructive text-destructive-foreground" : "bg-primary/15 text-primary")} title="Trabalhando"><Users className="h-3 w-3" />{d.trabalhando}</span>
                     </div>
                     {aniversariosDoDia(d.data).length > 0 && <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-foreground" title={aniversariosDoDia(d.data).map((a) => `${a.nome} · ${a.tipo === "nascimento" ? "Nascimento" : "Contratação"}`).join("; ")}><Cake className="h-3.5 w-3.5 shrink-0 text-primary" />{aniversariosDoDia(d.data).length} aniversariante(s)</span>}
+                    {prazosDoDia(d.data).map((p) => <span key={p.id} className="break-words text-[10px] font-semibold text-primary">Rescisão: {primeiroNome(p.colaborador?.nome ?? "Colaborador")}</span>)}
                     <div className={cn("mt-0.5", compacto ? "grid grid-cols-2 gap-1" : "flex flex-col gap-1")}>
                       {visiveis.map((a) => (
                         <span key={`${a.colaborador_id}-${a.tipo}`} className={cn("inline-flex min-w-0 items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase shadow-sm", tomDe(a, d.data))} title={rotulo(a, d.data)}>
