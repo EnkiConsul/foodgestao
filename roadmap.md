@@ -1,5 +1,7 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 
+- [ ] Ajustar cadastro de unidades e todas as abas para celular; ordenar feriados por data, validar em telas estreitas sem alterar dados reais nem publicar.
+
 - [x] Adicionar filtro rápido “Folgas e trocas” em Ocorrências: 15 testes passaram; ativação/desativação e consulta autenticada validadas (nenhum registro vinculado no período); sem alterar registros reais nem publicar.
 
 - [x] Justificativas automáticas de folgas extras, compensatórias e trocas: vinculadas à origem, sem impacto em assiduidade/férias, com tratativa externa pendente.
