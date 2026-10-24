@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DatasDesligamento } from "@/components/dp/ColaboradorDesligamentoAvisoPanel";
+import type { ExtratoAvisoDados } from "@/components/dp/ExtratoAviso";
 
 /**
  * "Meu desligamento" no portal: só aparece depois da comunicação formal e lê
@@ -13,6 +14,7 @@ type Meu = {
   base_quitacao: string; prazo_10_dias: string; pagamento_previsto: string | null;
   pagamento_status: "pendente" | "programado" | "pago"; pagamento_em: string | null;
   alterado: boolean; atualizado_em: string | null;
+  data_comunicacao?: string; extrato_aviso?: ExtratoAvisoDados | null;
 };
 const br = (iso: string | null) => (iso ? iso.split("-").reverse().join("/") : "—");
 const PAG = { pendente: "Pendente", programado: "Programado", pago: "Pago" } as const;
@@ -34,7 +36,7 @@ export function MeuDesligamentoCard() {
         <h2 id="meu-desl-titulo" className="text-base font-semibold">Meu desligamento</h2>
         <p className="text-sm text-muted-foreground">
           {d.status === "desligado" ? `Seu vínculo foi encerrado em ${br(d.data_efetiva)}.`
-            : d.status === "em_revisao" ? "Seu aviso prévio está em revisão pela empresa. As datas podem mudar."
+            : d.status === "em_revisao" ? "Seu aviso está em revisão. O gestor precisa confirmar a previsão de comparecimento."
             : `Você continua ativo até ${br(d.data_efetiva)}.`}
         </p>
       </div>

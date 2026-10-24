@@ -1,5 +1,9 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 
+- [ ] Corrigir persistência da folha de ponto, unificar etapas da admissão e retornar ao topo ao trocar abas.
+- [ ] Gerar justificativas do Art. 488 vinculadas ao processo, sem duplicar DSR, com cancelamento e proteção dos impactos.
+- [ ] Exibir extrato de datas e descansos no desligamento e portal, sem saldo residual, com etapas e fundamentos legais; validar com dados fictícios sem publicar.
+
 - [x] Corrigir herança do setor na ativação e o setor já escolhido da Verônica na ficha e nos dias de trabalho, preservando exceções. Migração 0147 aplicada; correção aprovada auditada; Verônica conferida na rotina da Pakerê em PIZZARIA.
 - [x] Identificar colaboradores nos alertas de desligamento, corrigir o aviso existente da Thais e abrir diretamente a aba Desligamento. 46 testes com dados fictícios passaram; aviso real e abertura da ficha autenticada conferidos sem salvar nem marcar leitura real. Build OK; interface não publicada.
 

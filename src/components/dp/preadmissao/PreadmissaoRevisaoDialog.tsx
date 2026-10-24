@@ -36,6 +36,7 @@ import { notifyError } from "@/lib/notifyError";
 import { gerarFichaAdmissaoPdf } from "@/lib/dp/ficha-admissao-pdf";
 import { AsoAdmissionalCard } from "./AsoAdmissionalCard";
 import { asoLiberaContabilidade, BASES_LEGAIS_DISPENSA, type AsoDados } from "@/lib/dp/aso-admissional";
+import { passoAdmissao, pontoNaAdmissao } from "@/lib/dp/admissao-apresentacao";
 import { efetivacaoDisponivel, inicioJornadaAdmissao } from "@/lib/dp/admissao-fluxo";
 import { ColaboradorDocumentosPanel } from "@/components/dp/documentos/ColaboradorDocumentosPanel";
 import { documentoPorVinculo } from "@/lib/dp/vinculo-documento";
@@ -1065,8 +1066,9 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
       setor_id: admin.setor_id ?? "",
       data_admissao: admin.data_admissao || new Date().toISOString().slice(0, 10),
       tipo_vinculo: REGIME_PARA_VINCULO[admin.regime_trabalho] ?? "CLT",
+      possui_folha_ponto: pontoNaAdmissao(pa.admin_dados?.possui_folha_ponto, pa.admin_dados?.folha_ponto_dispensa_justificativa, isClt, !!unidades.find((u) => u.id === admin.unidade_id)?.possui_relogio_ponto),
     };
-  }, [pa, ficha, admin]);
+  }, [pa, ficha, admin, isClt, unidades]);
 
   /** Grava a ficha única: dados pessoais + dependentes, depois dados da empresa. */
   const salvarUnificado = async (e: SalvarAdmissaoEntrada) => {
@@ -1138,6 +1140,8 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
         cargo_id: String(f.cargo_id ?? ""),
         unidade_id: String(f.unidade_id ?? ""),
         setor_id: String(f.setor_id ?? ""),
+        possui_folha_ponto: e.form.possui_folha_ponto === true,
+        folha_ponto_dispensa_justificativa: String(e.form.folha_ponto_dispensa_justificativa ?? ""),
         forma_pagamento: e.rem.forma_pagamento ?? "",
         salario: e.rem.salario_base ?? "",
         vale_transporte: !!e.rem.vale_transporte,
@@ -1257,15 +1261,6 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     </>
   );
 
-  // Não-CLT não tem ficha de registro: a etapa "Registro" some e a aprovação já libera a efetivação.
-  const ETAPAS: Array<{ rotulo: string; status: PreadmissaoStatus[] }> = [
-    { rotulo: "Preenchimento", status: ["aguardando_preenchimento", "em_preenchimento", "correcao_solicitada", "aguardando_nova_versao"] as PreadmissaoStatus[] },
-    { rotulo: "Revisão", status: (isClt ? ["aguardando_revisao"] : ["aguardando_revisao", "pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"]) as PreadmissaoStatus[] },
-    ...(isClt ? [{ rotulo: "Registro", status: ["pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"] as PreadmissaoStatus[] }] : []),
-    { rotulo: "Efetivado", status: ["concluido"] as PreadmissaoStatus[] },
-  ];
-  const etapaAtual = Math.max(0, ETAPAS.findIndex((e) => e.status.includes(status)));
-
   // Admissão efetivada: a mesma ficha passa a ser o cadastro do colaborador.
   if (status === "concluido" && colaboradorEfetivado && !documentosDe) {
     return (
@@ -1314,9 +1309,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const fichaOficialPronta = ["pronto_contabilidade", "enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido", "concluido"]
     .includes(status) && (!isClt || asoLiberaContabilidade(asoAtual));
   const passos = isClt ? ["Ficha", "ASO", "Contabilidade", "Efetivar"] : ["Ficha", "Efetivar"];
-  const passoAtual = status === "concluido" ? passos.length : emConferencia || etapaAtual === 0 ? 0
-    : !isClt ? 1 : !asoLiberaContabilidade(asoAtual) ? 1
-    : ["enviado_contabilidade", "aguardando_retorno_contabilidade", "registro_recebido"].includes(status) ? 3 : 2;
+  const passoAtual = passoAdmissao(status, isClt, asoLiberaContabilidade(asoAtual));
 
   const etapa = (
     <div className="space-y-2">
@@ -1326,30 +1319,11 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
           <span className="flex items-center gap-1">{i < passoAtual ? <CheckCircle2 className="h-3 w-3 shrink-0" /> : `${i + 1}.`}<span>{passo}</span></span>
         </li>)}
       </ol>
-      <p className="text-xs text-muted-foreground sm:hidden">
-        Etapa {Math.min(etapaAtual + 1, ETAPAS.length)} de {ETAPAS.length}:{" "}
-        <span className="font-medium text-foreground">{ETAPAS[Math.min(etapaAtual, ETAPAS.length - 1)]?.rotulo}</span>
+      <p className="text-xs text-muted-foreground">
+        <strong className="text-foreground">{status === "concluido" ? "Admissão efetivada" : status === "cancelado" ? "Admissão cancelada" : passoAtual === 0 ? "Ficha ainda não finalizada" : passoAtual === 1 && isClt ? "Ficha conferida · aguardando ASO" : passoAtual === 2 && isClt ? "Ficha e ASO conferidos · contabilidade" : "Aguardando efetivação"}</strong>
+        {passoAtual === 0 && " · alterações salvas não significam aprovação da ficha."}
       </p>
-      <ol className="hidden flex-wrap items-center gap-1 text-[11px] sm:flex sm:text-xs" aria-label="Etapas da admissão">
-        {ETAPAS.map((e, i) => (
-          <li key={e.rotulo} className="flex items-center gap-1">
-            <span
-              className={
-                i < etapaAtual
-                  ? "rounded-full bg-primary/10 px-2 py-0.5 text-primary"
-                  : i === etapaAtual
-                    ? "rounded-full bg-primary px-2 py-0.5 font-medium text-primary-foreground"
-                    : "rounded-full bg-muted px-2 py-0.5 text-muted-foreground"
-              }
-              aria-current={i === etapaAtual ? "step" : undefined}
-            >
-              {e.rotulo}
-            </span>
-            {i < ETAPAS.length - 1 && <span className="text-muted-foreground">›</span>}
-          </li>
-        ))}
-        <li className="ml-auto text-muted-foreground">{PREADMISSAO_STATUS_LABEL[status]}</li>
-      </ol>
+      {admin.data_admissao && <p className="text-xs text-muted-foreground">Admissão prevista: {admin.data_admissao.split("-").reverse().join("/")}. A data poderá ser ajustada antes da efetivação, conforme o ASO e o registro.</p>}
       {emConferencia && (
         <div className="hidden flex-wrap gap-1 text-[11px] sm:flex" aria-label="Conferência das abas">
           {ABAS_CONFERENCIA.map((a) => {
@@ -1949,6 +1923,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
         admissao={{
           chave: `${pa.id}:${fichaDe ? "carregada" : "carregando"}`,
           form: modo,
+          justificativaPonto: String(pa.admin_dados?.folha_ponto_dispensa_justificativa ?? ""),
           endereco: {
             cep: ficha.cep ?? "", logradouro: ficha.endereco ?? "", numero: ficha.numero ?? "",
             complemento: ficha.complemento ?? "", bairro: ficha.bairro ?? "", cidade: ficha.cidade ?? "", uf: ficha.uf ?? "",

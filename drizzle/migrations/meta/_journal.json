@@ -1037,6 +1037,34 @@
       "when": 1792872065557,
       "tag": "0147_preadmissao_setor_e_notificacoes_desligamento",
       "breakpoints": true
+    },
+    {
+      "idx": 148,
+      "version": "7",
+      "when": 1792873803080,
+      "tag": "0148_aviso_extrato_ocorrencias_art488_ponto_admissao",
+      "breakpoints": true
+    },
+    {
+      "idx": 149,
+      "version": "7",
+      "when": 1792874235697,
+      "tag": "0149_aviso_extrato_sincronizacao_auditada",
+      "breakpoints": true
+    },
+    {
+      "idx": 150,
+      "version": "7",
+      "when": 1792874324755,
+      "tag": "0150_aviso_extrato_preservar_protecao_origem",
+      "breakpoints": true
+    },
+    {
+      "idx": 151,
+      "version": "7",
+      "when": 1792874405896,
+      "tag": "0151_aviso_evento_extrato_compativel",
+      "breakpoints": true
     }
   ]
 }

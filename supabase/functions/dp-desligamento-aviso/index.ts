@@ -15,6 +15,7 @@
  * necessária" (sem datas inventadas).
  */
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { extratoAviso } from "../_shared/desligamento-extrato.ts";
 import { z } from "npm:zod@3";
 import { requireUser, serviceClient } from "../_shared/authz.ts";
 import { simularDesligamento, modalidadePersistida, MOTIVOS_SEM_AVISO, type MotivoDesligamentoCalc } from "../_shared/desligamento-motor.ts";
@@ -53,6 +54,7 @@ const Condicoes = {
 };
 const Body = z.discriminatedUnion("acao", [
   z.object({ acao: z.literal("projecao"), processo_id: z.string().uuid() }),
+  z.object({ acao: z.literal("sincronizar_extrato"), processo_id: z.string().uuid() }),
   z.object({ acao: z.literal("previa"), colaborador_id: z.string().uuid(), ...Condicoes }),
   z.object({ acao: z.literal("confirmar"), colaborador_id: z.string().uuid(), comunicacao_formal: z.boolean(), idempotency_key: Chave, ...Condicoes }),
   z.object({ acao: z.literal("alterar"), processo_id: z.string().uuid(), idempotency_key: Chave, previa: z.boolean().optional(), ...Condicoes }),
@@ -278,7 +280,7 @@ async function calcular(admin: any, c: Colab, b: Cond, previa = false, processoI
     dias_aviso: r.duracaoLegalDias, dias_indenizados: r.diasProjetadosIndenizados,
     regra_versao: REGRA_VERSAO, avisos, usou_escala: excecoes.length > 0,
     saldo_banco_minutos: b.saldo_banco_minutos ?? 0, folgas_compensatorias: simulacao.folgasAceitas,
-    saldo_residual_minutos: simulacao.saldoResidualMinutos, limite_sem_banco: base.ultimoComparecimento, simulacao, base_simulacao: base, diagnostico_escala: diagnostico,
+    saldo_residual_minutos: simulacao.saldoResidualMinutos, limite_sem_banco: base.ultimoComparecimento, extrato_aviso: extratoAviso(simulacao), simulacao, base_simulacao: base, diagnostico_escala: diagnostico,
   };
   return { resultado: { ...resultado, termino_passado: efetiva < hoje, prazo_vencido: r.prazoQuitacao < hoje } };
 }
@@ -348,11 +350,18 @@ Deno.serve(async (req) => {
     const { data: abertura } = await admin.from("dp_desligamento_eventos").select("depois").eq("processo_id", proc.id).eq("tipo", "aberto").order("created_at").limit(1).maybeSingle();
     const limiteOriginal = abertura?.depois?.limite_sem_banco ?? null;
 
-    if (b.acao === "projecao") {
+    if (b.acao === "projecao" || b.acao === "sincronizar_extrato") {
       const c = await carregarColab(proc.colaborador_id);
       if (!c || proc.status !== "aviso_em_curso") return json(409, { error: "Aviso não está em andamento." });
       const { resultado, resp } = await calcular(admin, c, { ...proc, modalidade: "trabalhado", concentrar_final: true }, true, proc.id, limiteOriginal);
       if (resp) return resp;
+      if (b.acao === "sincronizar_extrato") {
+        if (!resultado || resultado.ultimo_comparecimento !== proc.ultimo_comparecimento || resultado.data_efetiva !== proc.data_efetiva || resultado.prazo_10_dias !== proc.prazo_10_dias)
+          return json(409, { error: "A escala mudou. Revise as datas antes de atualizar o extrato." });
+        const { error } = await admin.rpc("dp_desligamento_extrato_sincronizar", { p_id: proc.id, p: { extrato_aviso: resultado.extrato_aviso, ator: user.id, versao: proc.versao } });
+        if (error) return json(409, { error: error.message });
+        return json(200, { ok: true });
+      }
       // Read-only prediction: official legal dates and persisted agenda remain untouched.
       return json(200, { resultado: { ...resultado, limite_sem_banco: limiteOriginal, data_efetiva: proc.data_efetiva, base_quitacao: proc.base_quitacao, prazo_10_dias: proc.prazo_10_dias } });
     }

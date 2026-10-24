@@ -251,7 +251,8 @@ export interface SalvarAdmissaoEntrada {
 export interface ModoAdmissao {
   /** Muda quando a ficha é recarregada do servidor. */
   chave: string;
-  form: Record<string, string>;
+  form: Record<string, unknown>;
+  justificativaPonto?: string;
   endereco?: EnderecoValor;
   pagamento?: Partial<DadosPagamento>;
   rem?: Partial<RemuneracaoFormState>;
@@ -388,6 +389,10 @@ export function ColaboradorFormDialog({
   /** Campo pendente sinalizado no formulário (foco + destaque). */
   const [campoErro, setCampoErro] = useState<string | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0, behavior: "instant" });
+  }, [tab]);
 
   /** Id do colaborador recém-criado — permite salvar a jornada sem sair do cadastro. */
   const [criadoId, setCriadoId] = useState<string | null>(null);
@@ -1129,8 +1134,8 @@ export function ColaboradorFormDialog({
     !!form.unidade_id && !unidadeTemPonto && !unidadeDispensaJustificada && lotacaoComEste > LIMITE_PONTO_OBRIGATORIO;
   const [justificativaPonto, setJustificativaPonto] = useState("");
   useEffect(() => {
-    setJustificativaPonto(String((colaborador as any)?.folha_ponto_dispensa_justificativa ?? ""));
-  }, [colaborador?.id]);
+    setJustificativaPonto(admissao?.justificativaPonto ?? String((colaborador as any)?.folha_ponto_dispensa_justificativa ?? ""));
+  }, [colaborador?.id, admissao?.chave]);
   const dispensaPontoPendente =
     pontoObrigatorio && !form.possui_folha_ponto && justificativaPonto.trim().length < 10;
 
@@ -1761,7 +1766,7 @@ export function ColaboradorFormDialog({
       setSalvandoAdmissao(true);
       try {
         await salvarAntesDeAvancar(() => admissao.onSalvar({
-          form: form as unknown as Record<string, unknown>,
+          form: { ...form, folha_ponto_dispensa_justificativa: form.possui_folha_ponto ? "" : justificativaPonto.trim() },
           endereco, pagamento, rem,
           jornada: jornadaAdmissaoRef.current,
         }), () => {
@@ -2440,7 +2445,7 @@ export function ColaboradorFormDialog({
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 sm:px-6">
+          <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 sm:px-6">
           <TabsContent value="dados" className="mt-0">
 
             {/* O selo "cadastro incompleto" da lista vem destes campos: aqui o
@@ -3428,7 +3433,7 @@ export function ColaboradorFormDialog({
 
         <DialogFooter className="sticky bottom-0 z-10 shrink-0 flex-col gap-2 border-t border-border bg-background p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:p-4 sm:pb-4 sm:justify-between">
           <p className="order-2 text-center text-[11px] text-muted-foreground sm:order-1 sm:text-left sm:text-xs">
-            {`Etapa ${ABAS.indexOf(tab as AbaCadastro) + 1} de ${ABAS.length}`}
+            {`${admissao ? "Aba da ficha" : "Etapa"} ${ABAS.indexOf(tab as AbaCadastro) + 1} de ${ABAS.length}`}
             {dirty ? " · alterações não salvas" : ""}
             {!isEdit && !criadoId && rotuloSalvoEm(rascunho.salvoEm)
               ? ` · rascunho ${rotuloSalvoEm(rascunho.salvoEm).toLowerCase()}`

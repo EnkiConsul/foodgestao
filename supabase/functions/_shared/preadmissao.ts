@@ -767,11 +767,13 @@ export const CAMPOS_ADMIN = [
   "adicional_insalubridade", "adicional_periculosidade",
   // Horário de trabalho escolhido na ficha única (aplicado ao efetivar).
   "jornada",
+  "possui_folha_ponto", "folha_ponto_dispensa_justificativa",
 ] as const;
 
 /** Campos administrativos que valem Sim/Não. */
 export const CAMPOS_ADMIN_BOOLEANOS = [
   "vale_transporte", "adicional_insalubridade", "adicional_periculosidade",
+  "possui_folha_ponto",
 ] as const;
 
 /** Campos administrativos numéricos e seus limites aceitos. */
@@ -841,6 +843,10 @@ export function validarAdminDados(entrada: unknown): AdminValidado {
       continue;
     }
     const v = texto(campo);
+    if (campo === "folha_ponto_dispensa_justificativa" && v && v.length < 10) {
+      out.erros[campo] = "Justifique a dispensa com pelo menos 10 caracteres.";
+      continue;
+    }
     if (v === null) continue;
     if (v === "") {
       out.campos[campo] = "";
