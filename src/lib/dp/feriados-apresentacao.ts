@@ -23,6 +23,17 @@ export function resumoFeriados(regras: FeriadoRegra[], ano: number) {
 }
 
 export type FeriadoDia = { nome: string; categoria: FeriadoCategoria };
+export function agruparFeriadosDia(linhas: (FeriadoDia & { data: string; unidade_id: string })[], unidadeId: string | null, unidadesAtivas: string[]) {
+  const grupos = new Map<string, { itens: FeriadoDia[]; unidades: Set<string> }>();
+  for (const linha of linhas) {
+    const grupo = grupos.get(linha.data) ?? { itens: [], unidades: new Set<string>() };
+    grupo.unidades.add(linha.unidade_id);
+    const nome = linha.nome.replace(/sexta-feira santa/gi, "Sexta-feira da Paixão");
+    if (!grupo.itens.some((f) => f.nome === nome && f.categoria === linha.categoria)) grupo.itens.push({ nome, categoria: linha.categoria });
+    grupos.set(linha.data, grupo);
+  }
+  return new Map([...grupos].filter(([, g]) => unidadeId || (unidadesAtivas.length > 0 && unidadesAtivas.every((id) => g.unidades.has(id)))).map(([data, g]) => [data, g.itens]));
+}
 export function textoFeriadosDia(dia: { feriado_nome: string | null; feriados?: FeriadoDia[] }): string {
   return dia.feriados?.length
     ? dia.feriados.map((f) => `Feriado ${FERIADO_CATEGORIA_LABEL[f.categoria]} · ${f.nome}`).join("; ")

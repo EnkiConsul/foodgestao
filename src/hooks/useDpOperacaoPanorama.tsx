@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import { agruparFeriadosDia, type FeriadoDia } from "@/lib/dp/feriados-apresentacao";
+import type { FeriadoCategoria } from "@/lib/dp/feriados";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -39,6 +41,7 @@ export interface DiaPanorama extends ResultadoDia {
   alerta: boolean;
   /** Nome do feriado da unidade neste dia, quando houver. */
   feriado_nome: string | null;
+  feriados?: FeriadoDia[];
 }
 
 /** Ausência registrada pelo gestor (adiantamento/outros), já aprovada. */
@@ -334,13 +337,13 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
       const alvos = unidadeId ? [unidadeId] : unidadesAtivasIds;
       const listas = await Promise.all(
         alvos.map(async (uid) => {
-          const { data, error } = await supabase.rpc("dp_feriados_resolver", {
+          const { data, error } = await supabase.rpc("dp_feriados_resolver_v2", {
             _unidade_id: uid,
             _inicio: janelaInicio,
             _fim: fim,
           });
           if (error) throw error;
-          return (data ?? []).map((f) => ({ data: f.data, nome: f.nome, unidade_id: uid }));
+          return (data ?? []).map((f) => ({ data: f.data, nome: f.nome, categoria: f.categoria as FeriadoCategoria, unidade_id: uid }));
         }),
       );
       return listas.flat();
@@ -715,24 +718,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
   }, [base.data, colaboradores, turnos, convocacoes, folgas, ausencias, ocorrencias, janelaInicio, inicio]);
 
   const feriadosPorData = useMemo(() => {
-    const linhas = feriadosQuery.data ?? [];
-    const out = new Map<string, string>();
-    if (unidadeId) {
-      for (const l of linhas) if (!out.has(l.data)) out.set(l.data, l.nome);
-      return out;
-    }
-    // Visão "todas as unidades": só é feriado da operação quando vale para todas.
-    const unidades = new Set(linhas.map((l) => l.unidade_id));
-    const porData = new Map<string, { nome: string; unidades: Set<string> }>();
-    for (const l of linhas) {
-      const reg = porData.get(l.data) ?? { nome: l.nome, unidades: new Set<string>() };
-      reg.unidades.add(l.unidade_id);
-      porData.set(l.data, reg);
-    }
-    for (const [data, reg] of porData) {
-      if (unidades.size > 0 && reg.unidades.size === unidadesAtivasIds.length) out.set(data, reg.nome);
-    }
-    return out;
+    return agruparFeriadosDia(feriadosQuery.data ?? [], unidadeId ?? null, unidadesAtivasIds);
   }, [feriadosQuery.data, unidadeId, unidadesAtivasIds]);
 
   const padrao = useMemo(
@@ -755,7 +741,8 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     if (!base.data) return [];
     return dias.map((data) => {
       const r = contar(data);
-      const feriadoNome = feriadosPorData.get(data) ?? null;
+      const feriados = feriadosPorData.get(data) ?? [];
+      const feriadoNome = feriados.length ? feriados.map((f) => f.nome).join(" • ") : null;
       // Feriado nunca é comparado com o padrão de dia comum: usa o padrão de
       // feriado e, sem histórico suficiente, fica sem alerta quantitativo.
       const referencia = feriadoNome ? padraoFeriado : padrao.get(r.dow);
@@ -768,6 +755,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         dispensado,
         alerta: desvio && !dispensado,
         feriado_nome: feriadoNome,
+        feriados,
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
