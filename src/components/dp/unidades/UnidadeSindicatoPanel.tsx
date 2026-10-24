@@ -174,9 +174,9 @@ export function UnidadeSindicatoPanel({ unidadeId, unidadeNome }: Props) {
 
   if (modo === "form") {
     return (
-      <div className="space-y-4">
+      <div className="min-w-0 space-y-4 [&_input]:min-w-0 [&_input]:max-w-full [&_input]:min-h-11 [&_input]:text-base [&_textarea]:text-base [&_button[role=combobox]]:min-h-11 [&_button[role=combobox]]:min-w-0 [&_button[role=combobox]>span]:truncate">
         <div className="space-y-1">
-          <Label className="flex items-center gap-1.5">
+          <Label className="flex items-start gap-1.5 leading-relaxed [&>svg]:shrink-0">
             <Scale className="h-4 w-4" aria-hidden="true" />
             {editandoId ? "Editar Sindicato Patronal" : "Novo Sindicato Patronal"}
           </Label>
@@ -227,9 +227,9 @@ export function UnidadeSindicatoPanel({ unidadeId, unidadeNome }: Props) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4 [&_input]:min-w-0 [&_input]:max-w-full [&_input]:min-h-11 [&_input]:text-base [&_textarea]:text-base [&_button[role=combobox]]:min-h-11 [&_button[role=combobox]]:min-w-0 [&_button[role=combobox]>span]:truncate">
       <div className="space-y-1">
-        <Label className="flex items-center gap-1.5">
+        <Label className="flex items-start gap-1.5 leading-relaxed [&>svg]:shrink-0">
           <Scale className="h-4 w-4" aria-hidden="true" />
           Sindicato patronal desta unidade
         </Label>
@@ -277,13 +277,13 @@ export function UnidadeSindicatoPanel({ unidadeId, unidadeNome }: Props) {
             </div>
           </div>
           <div className="mt-3 grid grid-cols-1 gap-2 min-[390px]:grid-cols-2 sm:flex sm:flex-wrap">
-            <Button size="sm" variant="outline" className="min-h-10 w-full sm:w-auto" onClick={abrirEdicao}>
+            <Button size="sm" variant="outline" className="min-h-11 w-full sm:w-auto" onClick={abrirEdicao}>
               <Pencil className="mr-1 size-4" /> Editar Dados
             </Button>
             <Button
               size="sm"
               variant="ghost"
-              className="min-h-10 w-full text-destructive hover:bg-destructive/10 sm:w-auto"
+              className="min-h-11 w-full text-destructive hover:bg-destructive/10 sm:w-auto"
               onClick={() => vincular(null)}
               disabled={salvando}
             >

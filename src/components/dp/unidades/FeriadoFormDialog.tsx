@@ -66,12 +66,12 @@ export function FeriadoFormDialog({ open, onOpenChange, feriado = null, saving, 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>{feriado ? "Editar feriado" : "Novo feriado"}</DialogTitle>
+      <DialogContent className="flex h-[100dvh] w-full min-w-0 max-w-full flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-auto sm:max-h-[92dvh] sm:max-w-md sm:rounded-lg">
+        <DialogHeader className="shrink-0 border-b p-4 pr-12 text-left">
+          <DialogTitle className="break-words">{feriado ? "Editar feriado" : "Novo feriado"}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4 [&_input]:min-w-0 [&_input]:max-w-full [&_input]:min-h-11 [&_input]:text-base [&_textarea]:text-base [&_button[role=combobox]]:min-h-11 [&_button[role=combobox]]:min-w-0 [&_button[role=combobox]>span]:truncate">
           <div className="space-y-1.5">
             <Label>Nome *</Label>
             <Input
@@ -101,7 +101,7 @@ export function FeriadoFormDialog({ open, onOpenChange, feriado = null, saving, 
           )}
 
           {tipo === "anual" && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 min-[390px]:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Dia</Label>
                 <Select value={dia} onValueChange={setDia}>
@@ -128,7 +128,7 @@ export function FeriadoFormDialog({ open, onOpenChange, feriado = null, saving, 
           )}
 
           {tipo === "relativa" && (
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="space-y-1.5">
                 <Label>Ocorrência</Label>
                 <Select value={ordinal} onValueChange={setOrdinal}>
@@ -194,7 +194,7 @@ export function FeriadoFormDialog({ open, onOpenChange, feriado = null, saving, 
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0 flex-row gap-2 border-t p-4 pb-[max(1rem,env(safe-area-inset-bottom))] [&>button]:min-h-11 [&>button]:flex-1 sm:[&>button]:flex-none">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button
             disabled={invalido || saving}

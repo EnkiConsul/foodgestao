@@ -15,6 +15,8 @@ import { useDpFeriados } from "@/hooks/useDpFeriados";
 import {
   descricaoRegra, ehFeriadoLocal, faltaFeriadoLocal, feriadosDoAno, type FeriadoRegra,
 } from "@/lib/dp/feriados";
+import { ordenarFeriadosCadastro } from "@/lib/dp/feriados-ordenacao";
+import { dataDoFeriadoNoAno } from "@/lib/dp/feriados";
 import { FeriadoFormDialog } from "@/components/dp/unidades/FeriadoFormDialog";
 import { ReplicarFeriadosDialog } from "@/components/dp/unidades/ReplicarFeriadosDialog";
 
@@ -66,6 +68,7 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
   const anoAtual = new Date().getFullYear();
   const [ano, setAno] = useState(String(anoAtual));
 
+  const ordenados = useMemo(() => ordenarFeriadosCadastro(feriados, Number(ano)), [feriados, ano]);
   const doAno = useMemo(() => feriadosDoAno(feriados, Number(ano)), [feriados, ano]);
 
   if (!unidadeId) {
@@ -77,7 +80,7 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="text-sm font-medium">Feriados desta unidade</p>
@@ -85,7 +88,7 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
             Usados nas férias e na rotina. Cada unidade tem o seu próprio calendário.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:flex sm:flex-wrap [&>button]:min-h-11 [&>button]:whitespace-normal">
           <Button
             size="sm"
             variant="outline"
@@ -102,7 +105,7 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
           >
             <Copy className="mr-1 h-4 w-4" /> Replicar para outras unidades
           </Button>
-          <Button size="sm" onClick={() => { setEditando(null); setOpen(true); }}>
+          <Button size="sm" className="order-first sm:order-last" onClick={() => { setEditando(null); setOpen(true); }}>
             <Plus className="mr-1 h-4 w-4" /> Novo feriado
           </Button>
         </div>
@@ -115,7 +118,7 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
             Esta unidade só tem feriados nacionais. Cadastre os feriados da cidade e do estado
             (ex.: aniversário da cidade, padroeiro) para que férias, folgas e escalas fiquem corretas.
           </p>
-          <Button size="sm" variant="outline" disabled={confirmar.isPending} onClick={() => confirmar.mutate()}>
+          <Button size="sm" variant="outline" className="h-auto min-h-11 w-full whitespace-normal" disabled={confirmar.isPending} onClick={() => confirmar.mutate()}>
             Confirmar que Não Há Feriados Locais
           </Button>
         </div>
@@ -123,7 +126,7 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
       {cienteEm.data && !feriados.some((f) => f.ativo !== false && ehFeriadoLocal(f)) && (
         <p className="text-xs text-muted-foreground">
           Confirmado que esta unidade não tem feriados locais.{" "}
-          <button type="button" className="underline" onClick={() => desfazer.mutate()}>Desfazer</button>
+          <Button type="button" variant="link" className="min-h-11 px-1" onClick={() => desfazer.mutate()}>Desfazer</Button>
         </p>
       )}
 
@@ -135,13 +138,15 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
         </div>
       ) : (
         <ul className="divide-y rounded-xl border">
-          {feriados.map((f) => (
-            <li key={f.id} className="flex items-center gap-3 p-3">
+          {ordenados.map((f) => (
+            <li key={f.id} className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start gap-2 p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
               <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{f.nome}</p>
-                <p className="truncate text-xs text-muted-foreground">{descricaoRegra(f)}</p>
+                <p className="break-words text-sm font-medium">{f.nome}</p>
+                <p className="mt-1 whitespace-nowrap text-sm font-medium tabular-nums">{dataDoFeriadoNoAno(f, Number(ano)) ? fmt(dataDoFeriadoNoAno(f, Number(ano)) ?? "") : f.tipo === "especifica" && f.data ? fmt(f.data) : `Sem ocorrência em ${ano}`}</p>
+                <p className="mt-1 break-words text-xs text-muted-foreground">{descricaoRegra(f)}</p>
               </div>
+              <div className="col-span-2 flex min-h-11 flex-wrap items-center justify-end gap-2 sm:col-span-1">
               {f.ativo === false && <Badge variant="outline">Desligado</Badge>}
               <Switch
                 checked={f.ativo !== false}
@@ -150,6 +155,7 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
               />
               <Button
                 size="icon"
+                className="h-11 w-11 shrink-0"
                 variant="ghost"
                 aria-label={`Editar ${f.nome}`}
                 onClick={() => { setEditando(f); setOpen(true); }}
@@ -158,12 +164,14 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
               </Button>
               <Button
                 size="icon"
+                className="h-11 w-11 shrink-0"
                 variant="ghost"
                 aria-label={`Remover ${f.nome}`}
                 onClick={() => excluir.mutate(f.id)}
               >
                 <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
+              </div>
             </li>
           ))}
         </ul>
@@ -173,7 +181,7 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-medium">Feriados de {ano}</p>
           <Select value={ano} onValueChange={setAno}>
-            <SelectTrigger className="h-8 w-28"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-11 w-28 shrink-0"><SelectValue /></SelectTrigger>
             <SelectContent>
               {[anoAtual - 1, anoAtual, anoAtual + 1, anoAtual + 2].map((a) => (
                 <SelectItem key={a} value={String(a)}>{a}</SelectItem>
@@ -186,9 +194,9 @@ export function UnidadeFeriadosPanel({ unidadeId }: Props) {
         ) : (
           <ul className="space-y-1">
             {doAno.map((f) => (
-              <li key={`${f.regraId}-${f.data}`} className="flex items-center gap-2 text-sm">
-                <span className="tabular-nums text-muted-foreground">{fmt(f.data)}</span>
-                <span className="truncate">{f.nome}</span>
+              <li key={`${f.regraId}-${f.data}`} className="grid grid-cols-[7rem_minmax(0,1fr)] items-start gap-2 py-1 text-sm">
+                <span className="whitespace-nowrap tabular-nums text-muted-foreground">{fmt(f.data)}</span>
+                <span className="break-words">{f.nome}</span>
               </li>
             ))}
           </ul>

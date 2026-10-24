@@ -42,8 +42,8 @@ export function UnidadeSetoresPanel({ unidadeId, unidadeNome }: Props) {
   };
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
+    <div className="min-w-0 space-y-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-medium">Setores / áreas</p>
           <p className="text-xs text-muted-foreground">
@@ -67,10 +67,10 @@ export function UnidadeSetoresPanel({ unidadeId, unidadeNome }: Props) {
       ) : (
         <ul className="divide-y rounded-xl border">
           {setores.map((s) => (
-            <li key={s.id} className="flex items-center gap-3 p-3">
+            <li key={s.id} className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3 p-3 sm:flex sm:items-center">
               <LayoutGrid className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{s.nome}</p>
+                <p className="break-words text-sm font-medium">{s.nome}</p>
                 <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                   <Badge variant="secondary" className="gap-1">
                     <Users className="h-3 w-3" aria-hidden="true" />
@@ -78,10 +78,11 @@ export function UnidadeSetoresPanel({ unidadeId, unidadeNome }: Props) {
                   </Badge>
                   {!s.ativo && <Badge variant="outline">Inativo</Badge>}
                   {s.descricao && (
-                    <span className="truncate text-xs text-muted-foreground">{s.descricao}</span>
+                    <span className="break-words text-xs text-muted-foreground">{s.descricao}</span>
                   )}
                 </div>
               </div>
+              <div className="col-span-2 flex items-center justify-end gap-3 sm:ml-auto">
               <Switch
                 checked={s.ativo}
                 onCheckedChange={(v) => void alternar(s, v)}
@@ -89,12 +90,14 @@ export function UnidadeSetoresPanel({ unidadeId, unidadeNome }: Props) {
               />
               <Button
                 size="icon"
+                className="h-11 w-11 shrink-0"
                 variant="ghost"
                 aria-label={`Editar setor ${s.nome}`}
                 onClick={() => { setEditing(s); setOpen(true); }}
               >
                 <Pencil className="h-4 w-4" />
               </Button>
+              </div>
             </li>
           ))}
         </ul>

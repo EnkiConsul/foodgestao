@@ -276,7 +276,7 @@ export function UnidadeNegociacoesPanel({ unidadeId, unidadeNome }: Props) {
   const laboralOptions = opcoes("laboral");
 
   return (
-    <div className="space-y-3">
+    <div className="min-w-0 space-y-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
           <Label className="flex items-center gap-1.5">
@@ -299,7 +299,7 @@ export function UnidadeNegociacoesPanel({ unidadeId, unidadeNome }: Props) {
           Nenhuma negociação cadastrada para {unidadeNome || "esta unidade"}.
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="min-w-0 space-y-3">
           {rows.map((n) => {
             const patronal = sindicatoMap.get(n.sindicato_id);
             const laboral = n.sindicato_laboral_id ? sindicatoMap.get(n.sindicato_laboral_id) : null;
@@ -319,22 +319,22 @@ export function UnidadeNegociacoesPanel({ unidadeId, unidadeNome }: Props) {
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                       {patronal && (
-                        <span className="inline-flex items-center gap-1">
+                        <span className="inline-flex min-w-0 items-start gap-1 break-words [&>svg]:shrink-0">
                           <Users className="h-3.5 w-3.5" /> {patronal.nome}
                         </span>
                       )}
                       {laboral && (
-                        <span className="inline-flex items-center gap-1">
+                        <span className="inline-flex min-w-0 items-start gap-1 break-words [&>svg]:shrink-0">
                           <Users className="h-3.5 w-3.5" /> {laboral.nome}
                         </span>
                       )}
                     </div>
                   </div>
-                  <div className="grid w-full grid-cols-[1fr_auto_auto] gap-1 sm:flex sm:w-auto sm:flex-wrap">
+                  <div className="grid w-full grid-cols-[minmax(0,1fr)_2.75rem_2.75rem] gap-1 sm:flex sm:w-auto sm:flex-wrap">
                     <Button
                       size="sm"
                       variant="outline"
-                      className="min-h-10 min-w-0 px-2 text-xs sm:px-3 sm:text-sm"
+                      className="min-h-11 min-w-0 whitespace-normal px-2 text-xs sm:px-3 sm:text-sm"
                       onClick={() =>
                         setAplicar({
                           sindicatoPatronalId: n.sindicato_id ?? null,
@@ -344,10 +344,10 @@ export function UnidadeNegociacoesPanel({ unidadeId, unidadeNome }: Props) {
                     >
                       Aplicar Aos Cargos
                     </Button>
-                    <Button size="icon" variant="ghost" className="min-h-10" onClick={() => openEdit(n)} aria-label="Editar">
+                    <Button size="icon" variant="ghost" className="h-11 w-11" onClick={() => openEdit(n)} aria-label="Editar">
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="min-h-10" onClick={() => setToDelete(n)} aria-label="Excluir">
+                    <Button size="icon" variant="ghost" className="h-11 w-11" onClick={() => setToDelete(n)} aria-label="Excluir">
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
@@ -357,13 +357,13 @@ export function UnidadeNegociacoesPanel({ unidadeId, unidadeNome }: Props) {
                   <div className="mt-3 flex flex-col gap-2 rounded-md border bg-background px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex min-w-0 items-center gap-2 text-sm">
                       <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      <span className="truncate">{arquivoNome ?? "arquivo.pdf"}</span>
+                      <span className="break-all">{arquivoNome ?? "arquivo.pdf"}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-2 sm:flex">
-                      <Button size="sm" variant="outline" className="min-h-10" onClick={() => n.pdf_path && openPdf(n.pdf_path, false)}>
+                      <Button size="sm" variant="outline" className="min-h-11" onClick={() => n.pdf_path && openPdf(n.pdf_path, false)}>
                         <Eye className="mr-1.5 h-4 w-4" /> Visualizar
                       </Button>
-                      <Button size="sm" variant="outline" className="min-h-10" onClick={() => n.pdf_path && openPdf(n.pdf_path, true)}>
+                      <Button size="sm" variant="outline" className="min-h-11" onClick={() => n.pdf_path && openPdf(n.pdf_path, true)}>
                         <Download className="mr-1.5 h-4 w-4" /> Baixar
                       </Button>
                     </div>
@@ -376,11 +376,11 @@ export function UnidadeNegociacoesPanel({ unidadeId, unidadeNome }: Props) {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="flex max-h-[calc(100dvh-1rem)] max-w-md flex-col gap-0 overflow-hidden p-0">
+        <DialogContent className="flex h-[100dvh] w-full min-w-0 max-w-full rounded-none sm:h-auto sm:max-h-[92dvh] sm:max-w-md sm:rounded-lg flex-col gap-0 overflow-hidden p-0">
           <DialogHeader className="shrink-0 border-b px-4 py-4 pr-12 sm:px-6">
             <DialogTitle>{form.id ? "Editar Negociação" : "Nova Negociação"}</DialogTitle>
           </DialogHeader>
-          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
+          <div className="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 [&_input]:min-w-0 [&_input]:max-w-full [&_input]:min-h-11 [&_input]:text-base [&_textarea]:text-base [&_button[role=combobox]]:min-h-11 [&_button[role=combobox]]:min-w-0 [&_button[role=combobox]>span]:truncate">
             <p className="text-xs text-muted-foreground">Unidade: {unidadeNome || "—"}</p>
 
             <div className="space-y-1.5">
@@ -417,7 +417,7 @@ export function UnidadeNegociacoesPanel({ unidadeId, unidadeNome }: Props) {
               </Select>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 min-[390px]:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Ano Base *</Label>
                 <Input type="number" min={2000} max={2100} value={form.ano} onChange={(e) => setForm({ ...form, ano: e.target.value })} />
@@ -456,11 +456,11 @@ export function UnidadeNegociacoesPanel({ unidadeId, unidadeNome }: Props) {
                 onChange={(e) => setForm({ ...form, arquivo: e.target.files?.[0] ?? null })}
               />
               {form.id && form.arquivo_nome && !form.arquivo && (
-                <p className="text-xs text-muted-foreground">Atual: {form.arquivo_nome}</p>
+                <p className="break-all text-xs text-muted-foreground">Atual: {form.arquivo_nome}</p>
               )}
             </div>
           </div>
-          <DialogFooter className="shrink-0 gap-2 border-t px-4 py-3 sm:px-6">
+          <DialogFooter className="shrink-0 flex-row gap-2 border-t px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6">
             <Button variant="ghost" className="h-11 w-full sm:w-auto" onClick={() => setOpen(false)}>Cancelar</Button>
             <Button className="h-11 w-full sm:w-auto" onClick={() => upsert.mutate()} disabled={upsert.isPending}>
               {upsert.isPending ? "Salvando..." : form.id ? "Salvar" : "Cadastrar"}

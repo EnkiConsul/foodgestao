@@ -284,7 +284,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
         <Input
           id={id}
           type="date"
-          className="w-44"
+          className="w-full sm:w-44"
           value={datasPolitica[politica] ?? ""}
           onChange={(e) => setDatasPolitica((d) => ({ ...d, [politica]: e.target.value }))}
         />
@@ -398,27 +398,27 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[100dvh] max-w-2xl flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-auto sm:max-h-[92vh] sm:rounded-lg">
-        <DialogHeader className="shrink-0 border-b p-4 text-left">
-          <DialogTitle className="truncate">
+      <DialogContent className="flex h-[100dvh] w-full min-w-0 max-w-full sm:max-w-2xl flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-auto sm:max-h-[92vh] sm:rounded-lg">
+        <DialogHeader className="shrink-0 border-b p-4 pr-12 text-left">
+          <DialogTitle className="break-words">
             {unidade ? unidade.nome || "Editar unidade" : "Nova unidade"}
           </DialogTitle>
         </DialogHeader>
         <Tabs
           value={aba}
           onValueChange={(v) => setAba(v as UnidadeAba)}
-          className="flex min-h-0 flex-1 flex-col gap-0"
+          className="flex min-h-0 min-w-0 flex-1 flex-col gap-0"
         >
-          <div className="max-w-full shrink-0 overflow-x-auto overflow-y-hidden border-b px-4 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <TabsList className="flex h-auto min-h-12 w-max min-w-full shrink-0 justify-start sm:grid sm:w-full sm:grid-cols-5">
-              <TabsTrigger value="dados" className="h-10 shrink-0 px-4 sm:px-3">Dados</TabsTrigger>
-              <TabsTrigger value="setores" className="h-10 shrink-0 px-4 sm:px-3">Setores</TabsTrigger>
-              <TabsTrigger value="funcionamento" className="h-10 shrink-0 px-4 sm:px-3">Funcionamento</TabsTrigger>
-              <TabsTrigger value="feriados" className="h-10 shrink-0 px-4 sm:px-3">Feriados</TabsTrigger>
-              <TabsTrigger value="sindicato" className="h-10 shrink-0 px-4 sm:px-3">Sindicato</TabsTrigger>
+          <div className="min-w-0 max-w-full shrink-0 overflow-x-auto overflow-y-hidden border-b px-4 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <TabsList className="flex h-auto min-h-12 w-max min-w-full shrink-0 justify-start sm:flex sm:w-full">
+              <TabsTrigger value="dados" className="h-11 shrink-0 px-3 sm:flex-1 sm:px-2">Dados</TabsTrigger>
+              <TabsTrigger value="setores" className="h-11 shrink-0 px-3 sm:flex-1 sm:px-2">Setores</TabsTrigger>
+              <TabsTrigger value="funcionamento" className="h-11 shrink-0 px-3 sm:flex-1 sm:px-2">Funcionamento</TabsTrigger>
+              <TabsTrigger value="feriados" className="h-11 shrink-0 px-3 sm:flex-1 sm:px-2">Feriados</TabsTrigger>
+              <TabsTrigger value="sindicato" className="h-11 shrink-0 px-3 sm:flex-1 sm:px-2">Sindicato</TabsTrigger>
             </TabsList>
           </div>
-        <TabsContent value="dados" className="mt-0 flex-1 space-y-4 overflow-y-auto p-4">
+        <TabsContent value="dados" className="mt-0 min-h-0 min-w-0 w-full flex-1 space-y-4 overflow-y-auto overflow-x-hidden overscroll-contain p-4 [&_input]:min-w-0 [&_input]:max-w-full [&_input]:min-h-11 [&_input]:text-base [&_textarea]:text-base [&_button[role=combobox]]:min-h-11 [&_button[role=combobox]]:min-w-0 [&_button[role=combobox]>span]:truncate">
           <div className="space-y-2">
             <Label>Empresa vinculada *</Label>
             {companies.length === 0 ? (
@@ -471,7 +471,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
             />
           </div>
           <div className="space-y-2">
-            <Label className="flex items-center gap-2">
+            <Label className="flex flex-wrap items-center gap-2">
               CNPJ
               {loadingBrasilApi && (
                 <span className="inline-flex items-center gap-1 text-[11px] font-normal text-muted-foreground">
@@ -511,7 +511,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
             />
           </div>
           <div className="space-y-2 rounded-xl border border-border p-3">
-            <div className="flex items-center space-x-2">
+            <div className="flex min-h-11 items-center gap-3">
               <Switch
                 id="possui_relogio_ponto"
                 checked={form.possui_relogio_ponto}
@@ -546,7 +546,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
             )}
           </div>
           <div className="space-y-3 rounded-xl border border-border p-3">
-            <div className="flex items-center space-x-2">
+            <div className="flex min-h-11 items-center gap-3">
               <Switch id="banco_horas" checked={form.banco_horas} onCheckedChange={(v) => setForm({ ...form, banco_horas: v })} />
               <Label htmlFor="banco_horas">Adota banco de horas</Label>
             </div>
@@ -562,7 +562,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
                 </p>
               </div>
             )}
-            <div className="flex items-center space-x-2">
+            <div className="flex min-h-11 items-center gap-3">
               <Switch id="compensa_feriados" checked={form.compensa_feriados} onCheckedChange={(v) => setForm({ ...form, compensa_feriados: v })} />
               <Label htmlFor="compensa_feriados">Compensação de feriados</Label>
             </div>
@@ -575,7 +575,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
                   type="number"
                   min={0}
                   max={60}
-                  className="w-28"
+                  className="w-full sm:w-28"
                   value={form.compensacao_feriado_antecedencia_dias}
                   onChange={(e) => setForm({ ...form, compensacao_feriado_antecedencia_dias: e.target.value })}
                 />
@@ -601,7 +601,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
               </div>
             )}
           </div>
-          <div className="flex items-center space-x-2 rounded-xl border border-border p-3">
+          <div className="flex min-h-11 items-center gap-3 rounded-xl border border-border p-3">
             <Switch
               id="tem_adiantamento"
               checked={form.tem_adiantamento}
@@ -632,11 +632,11 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
           )}
         </TabsContent>
 
-        <TabsContent value="setores" className="mt-0 flex-1 space-y-2 overflow-y-auto p-4">
+        <TabsContent value="setores" className="mt-0 min-h-0 min-w-0 w-full flex-1 space-y-2 overflow-y-auto overflow-x-hidden overscroll-contain p-4 [&_input]:min-w-0 [&_input]:max-w-full [&_input]:min-h-11 [&_input]:text-base [&_textarea]:text-base [&_button[role=combobox]]:min-h-11 [&_button[role=combobox]]:min-w-0 [&_button[role=combobox]>span]:truncate">
           <UnidadeSetoresPanel unidadeId={unidadeId} unidadeNome={form.nome} />
         </TabsContent>
 
-        <TabsContent value="funcionamento" className="mt-0 flex-1 space-y-2 overflow-y-auto p-4">
+        <TabsContent value="funcionamento" className="mt-0 min-h-0 min-w-0 w-full flex-1 space-y-2 overflow-y-auto overflow-x-hidden overscroll-contain p-4 [&_input]:min-w-0 [&_input]:max-w-full [&_input]:min-h-11 [&_input]:text-base [&_textarea]:text-base [&_button[role=combobox]]:min-h-11 [&_button[role=combobox]]:min-w-0 [&_button[role=combobox]>span]:truncate">
           <Label className="flex items-center gap-1.5">
             <Store className="h-4 w-4" aria-hidden="true" />
             Horário de funcionamento da loja
@@ -644,12 +644,12 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
           <HorarioFuncionamentoEditor unidadeId={unidadeId} semRodape onRegistrarSalvar={registrarSalvar} />
         </TabsContent>
 
-        <TabsContent value="feriados" className="mt-0 flex-1 space-y-2 overflow-y-auto p-4">
+        <TabsContent value="feriados" className="mt-0 min-h-0 min-w-0 w-full flex-1 space-y-2 overflow-y-auto overflow-x-hidden overscroll-contain p-4 [&_input]:min-w-0 [&_input]:max-w-full [&_input]:min-h-11 [&_input]:text-base [&_textarea]:text-base [&_button[role=combobox]]:min-h-11 [&_button[role=combobox]]:min-w-0 [&_button[role=combobox]>span]:truncate">
           <UnidadeFeriadosPanel unidadeId={unidadeId} />
         </TabsContent>
 
 
-        <TabsContent value="sindicato" className="mt-0 flex-1 space-y-6 overflow-y-auto p-4">
+        <TabsContent value="sindicato" className="mt-0 min-h-0 min-w-0 w-full flex-1 space-y-6 overflow-y-auto overflow-x-hidden overscroll-contain p-4 [&_input]:min-w-0 [&_input]:max-w-full [&_input]:min-h-11 [&_input]:text-base [&_textarea]:text-base [&_button[role=combobox]]:min-h-11 [&_button[role=combobox]]:min-w-0 [&_button[role=combobox]>span]:truncate">
           <UnidadeSindicatoPanel unidadeId={unidadeId} unidadeNome={form.nome} />
           <div className="border-t pt-4">
             <UnidadeNegociacoesPanel unidadeId={unidadeId} unidadeNome={form.nome} />
@@ -657,7 +657,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
         </TabsContent>
 
         </Tabs>
-        <DialogFooter className="flex-col gap-2 border-t p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row">
+        <DialogFooter className="shrink-0 flex-row gap-2 border-t p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row">
           <Button variant="ghost" className="h-11 w-full sm:w-auto" onClick={() => onOpenChange(false)}>
             {criadaId ? "Fechar" : "Cancelar"}
           </Button>
