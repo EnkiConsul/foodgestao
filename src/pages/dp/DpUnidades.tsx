@@ -480,6 +480,23 @@ export default function DpUnidades() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Confirmação de desativação: evita toque acidental no switch */}
+      <AlertDialog open={!!toDeactivate} onOpenChange={(o) => !o && setToDeactivate(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desativar unidade "{toDeactivate?.nome}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A unidade sairá da rotina da loja, das escalas e das pendências operacionais.
+              Os cadastros e o histórico são preservados e você pode reativar a qualquer momento.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmarDesativacao} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Desativar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DpPage>
   );
 }
