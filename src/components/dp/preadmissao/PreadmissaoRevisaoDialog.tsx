@@ -43,7 +43,7 @@ import { abrirAsoPreadmissao, linkDocumentoPreadmissao, enviarDocumentoGestor } 
 import { ArquivoVisualizadorDialog, baixarBlob, buscarBlob, type ArquivoCarregado } from "@/components/dp/documentos/ArquivoVisualizadorDialog";
 import { ImagemEnquadrarDialog } from "@/components/dp/documentos/ImagemEnquadrarDialog";
 import { faltaVerso, nomeArquivoPacote } from "@/lib/dp/documentoPartes";
-import { Pencil, Plus, Replace } from "lucide-react";
+import { Pencil, Replace } from "lucide-react";
 
 /** Ordem da conferência guiada do gestor (abas da ficha). */
 const ABAS_CONFERENCIA: Array<{ aba: string; rotulo: string }> = [
@@ -830,7 +830,8 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
         const titular = d.pessoa_id ? ` ${nomePessoa(d.pessoa_id)}` : "";
         zip.file(nomeArquivoPacote(++n, `${tituloDocumento(d.requisito_codigo)}${titular}`, rotuloParte(d), ext), blob);
       }
-      if (aso?.modo === "realizado" && aso.arquivo_path) {
+      const asoPacote = ((data.preadmissao as { admin_dados?: Record<string, unknown> | null }).admin_dados?.aso ?? null) as AsoDados | null;
+      if (asoPacote?.modo === "realizado" && asoPacote.arquivo_path) {
         try {
           const r = await abrirAsoPreadmissao(data.preadmissao.id);
           const blob = await buscarBlob(r.url);
@@ -1708,7 +1709,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                       </Button>
                       {fichaOficial && (
                         <>
-                          <Button variant="outline" onClick={() => ver(fichaOficial.id)}>
+                          <Button variant="outline" onClick={() => ver(fichaOficial.id, "Ficha oficial da contabilidade")}>
                             Abrir Ficha Oficial
                           </Button>
                           <Button
