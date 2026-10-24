@@ -37,4 +37,7 @@ describe("Calendário antes do banco no aviso", () => {
   it("não usa os 120 minutos da redução diária para compensar", () => {
     expect(concentrarBancoNoFinal(base([], "duas_horas"), 320)).toEqual(["2026-10-31"]);
   });
+  it("feriado no domingo não inventa folga dominical confirmada", () => {
+    expect(diagnosticarEscalaAviso(base(["2026-10-11"]), regra, [], []).apto).toBe(false);
+  });
 });

@@ -210,9 +210,10 @@ async function calcular(admin: any, c: Colab, b: Cond, previa = false, processoI
     let consulta = admin.from("dp_config_dp").select("*").eq("company_id", c.company_id);
     consulta = c.unidade_id ? consulta.or(`unidade_id.eq.${c.unidade_id},unidade_id.is.null`) : consulta.is("unidade_id", null);
     const { data: config, error: errRegra } = await consulta.order("unidade_id", { ascending: true, nullsFirst: false }).limit(1).maybeSingle();
-    if (errRegra) return revisao("Não foi possível conferir a regra de folgas da unidade. Tente novamente antes de compensar.");
+    if (errRegra && (b.saldo_banco_minutos ?? 0) > 0) return revisao("Não foi possível conferir a regra de folgas da unidade. Tente novamente antes de compensar.");
     const cfg = Array.isArray(config) ? config[0] : config;
-    if (!cfg) return revisao("Confira a regra de folgas da unidade antes de compensar.");
+    if (!cfg && (b.saldo_banco_minutos ?? 0) > 0) return revisao("Confira a regra de folgas da unidade antes de compensar.");
+    if (cfg) {
     const { data: cargo, error: errCargo } = c.cargo_id && c.unidade_id ? await admin.from("dp_folga_domingo_cargos")
       .select("domingos_mes, modo_frequencia, periodicidade_semanas, dias_descanso").eq("company_id", c.company_id).eq("unidade_id", c.unidade_id).eq("cargo_id", c.cargo_id).maybeSingle() : { data: null, error: null };
     if (errCargo) return revisao("Não foi possível conferir a regra do cargo. Tente novamente.");
@@ -227,6 +228,7 @@ async function calcular(admin: any, c: Colab, b: Cond, previa = false, processoI
       return ex ? ex.minutos === 0 : semana[new Date(`${d.data}T00:00:00Z`).getUTCDay()] === 0;
     }).map((d) => d.data);
     diagnostico = diagnosticarEscalaAviso(base, regra, folgasAgenda, confirmados);
+    }
   }
   const datasBanco = diagnostico && !diagnostico.apto ? [] : b.concentrar_final ? concentrarBancoNoFinal(base, b.saldo_banco_minutos ?? 0) : b.folgas_compensatorias ?? [];
   const simulacao = simularDesligamento({ dataAdmissao: String(c.data_admissao).slice(0, 10), dataComunicacao: b.data_comunicacao, motivo: b.motivo, modalidade: b.modalidade, reducao: b.modalidade === "trabalhado" ? b.reducao ?? null : null, dataTerminoAcordada: pedidoDispensado ? b.data_termino_acordada ?? null : null, descontarAviso: pedidoDispensado ? b.descontar_aviso : undefined, jornadaSemanal: semana, excecoesJornada: excecoes, feriados, saldoBancoMinutos: b.saldo_banco_minutos ?? 0, folgasCompensatorias: datasBanco });
@@ -343,8 +345,9 @@ Deno.serve(async (req) => {
       if (!c || !c.ativo || c.data_desligamento) return json(409, { error: "Colaborador não está ativo." });
       const { resultado, resp } = await calcular(admin, c, b, b.previa === true, proc.id);
       if (resp) return resp;
-      if (b.previa) return json(200, { resultado });
       if (!resultado) return json(500, { error: "Não foi possível calcular." });
+      if (limiteOriginal) resultado.limite_sem_banco = limiteOriginal;
+      if (b.previa) return json(200, { resultado });
       if (resultado.data_efetiva !== proc.data_efetiva || resultado.prazo_10_dias !== proc.prazo_10_dias)
         return json(409, { error: "A compensação não pode alterar o término do vínculo nem o prazo de pagamento. Mantenha as condições legais originais." });
       if (limiteOriginal) resultado.limite_sem_banco = limiteOriginal;
