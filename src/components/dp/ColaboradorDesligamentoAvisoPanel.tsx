@@ -3,7 +3,7 @@ export type { CondicoesValor } from "./CondicoesDesligamento";
 import { BancoDesligamento, saldoDesligamento, simularBancoSobreCalendario } from "./BancoDesligamento";
 import type { ResultadoDesligamento } from "@/lib/dp/compensacao/desligamentoMotor";
 import { ehDispensaCumprimento } from "@/lib/dp/compensacao/desligamentoMotor";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { DiagnosticoEscalaAviso } from "@/lib/dp/desligamento-escala-diagnostico";
 import { formatarMinutos } from "@/lib/dp/compensacao/motor";
 import { Link } from "react-router-dom";
@@ -205,8 +205,8 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
     data_termino_acordada: cond.motivo === "pedido_demissao" && cond.modalidade === "indenizado" && cond.terminoAcordado ? cond.terminoAcordado : null,
     descontar_aviso: cond.motivo === "pedido_demissao" && cond.modalidade === "indenizado" ? cond.descontar : undefined,
     saldo_banco_minutos: !SEM_AVISO.has(cond.motivo) && cond.modalidade === "trabalhado" ? saldo.minutos ?? 0 : 0,
-    folgas_compensatorias: !SEM_AVISO.has(cond.motivo) && cond.modalidade === "trabalhado" ? folgas : [],
-    concentrar_final: folgas.length === 0,
+    // Informed balance is always grouped at the end by the server; manual rests live in the calendar.
+    folgas_compensatorias: [],
     pedido_escrito: cond.pedidoEscrito, aceite_empresa: cond.aceiteEmpresa,
     confirmacao_sem_aviso: SEM_AVISO_ASSISTIDO.has(cond.motivo) ? cond.confirmacaoSemAviso : undefined,
   });
@@ -279,9 +279,16 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
   const Diagnostico = previa?.diagnostico_escala && <RevisaoCalendario r={previa} />;
 
   const Banco = !SEM_AVISO.has(cond.motivo) && cond.modalidade === "trabalhado" && <BancoDesligamento
-    texto={saldoTxt} unidade={saldoUnidade} horasDia={horasDia} folgas={folgas} base={baseCalendario} limiteOriginal={previa?.limite_sem_banco ?? projecao.data?.limite_sem_banco} bloqueado={previa?.diagnostico_escala?.apto === false} resultado={baseCalendario && saldo.minutos !== null ? simularBancoSobreCalendario(baseCalendario, saldo.minutos, folgas) : calendario}
-    set={(v) => { if (v.texto !== undefined) setSaldoTxt(v.texto); if (v.unidade) setSaldoUnidade(v.unidade); if (v.horasDia !== undefined) setHorasDia(v.horasDia); setFolgas([]); setCalendario(null); setBaseCalendario(null); limpar(); }}
-    onFolgas={(datas) => { setFolgas(datas); setFormal(false); setPrevia(null); }} />;
+    texto={saldoTxt} unidade={saldoUnidade} horasDia={horasDia} base={baseCalendario} resultado={calendario} calculando={carregando}
+    set={(v) => { if (v.texto !== undefined) setSaldoTxt(v.texto); if (v.unidade) setSaldoUnidade(v.unidade); if (v.horasDia !== undefined) setHorasDia(v.horasDia); setCalendario(null); limpar(); }} />;
+  // Reactive registration preview: no "calculate" button; recompute shortly after any change.
+  const chavePrevia = !p && ativo && cond.comunicacao && saldo.minutos !== null ? JSON.stringify(condBody()) : null;
+  useEffect(() => {
+    if (!chavePrevia) return;
+    const t = setTimeout(() => { void calcular({ acao: "previa", colaborador_id: colaboradorId }); }, 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chavePrevia]);
 
   if (proc.isLoading) return <p className="text-sm text-muted-foreground">Carregando…</p>;
   if (proc.isError) return <Alert variant="destructive"><AlertDescription>Não foi possível carregar o desligamento.</AlertDescription></Alert>;
@@ -369,7 +376,7 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
           {previa && <>
             <DatasDesligamento r={previa} />
             <p className="text-xs text-muted-foreground">O colaborador será avisado no portal das novas datas.</p>
-            <Button size="sm" disabled={carregando || ((saldo.minutos ?? 0) > 0 && previa.diagnostico_escala?.apto === false)} onClick={() => executar({ acao: "alterar", processo_id: p.id, idempotency_key: chave, ...condBody(), esperado }, "Condições atualizadas.")}>Confirmar alteração</Button>
+            <Button size="sm" disabled={carregando || previa.diagnostico_escala?.apto === false} onClick={() => executar({ acao: "alterar", processo_id: p.id, idempotency_key: chave, ...condBody(), esperado }, "Condições atualizadas.")}>Confirmar alteração</Button>
           </>}
           <Button size="sm" variant="ghost" onClick={fechar}>Voltar</Button>
         </div>
@@ -459,7 +466,7 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
     {rascunho && <p className="text-xs text-muted-foreground">Dados trazidos da calculadora para conferência. Nada foi gravado.</p>}
     <Condicoes v={cond} set={setCond} comMotivo />
     {Banco}
-    <Button onClick={() => calcular({ acao: "previa", colaborador_id: colaboradorId })} disabled={carregando || !cond.comunicacao || saldo.minutos === null}>{carregando ? "Calculando…" : "Calcular datas oficiais"}</Button>
+    {carregando && !previa && <p className="text-sm text-muted-foreground">Calculando as datas…</p>}
     {Msg}
     {Diagnostico}
     {previa && (
@@ -491,7 +498,7 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
         </label>
         {pedidoDispensadoPendente && <p className="text-xs text-destructive">Marque as duas declarações (pedido escrito e aceite da empresa) para confirmar.</p>}
         {semAvisoPendente && <p className="text-xs text-destructive">Confirme a validação da data de término para este motivo.</p>}
-        <Button onClick={() => void confirmarRegistro()} disabled={carregando || !formal || pedidoDispensadoPendente || semAvisoPendente || ((saldo.minutos ?? 0) > 0 && previa.diagnostico_escala?.apto === false)}>{carregando ? "Registrando…" : "Confirmar registro"}</Button>
+        <Button className="w-full sm:w-auto" onClick={() => void confirmarRegistro()} disabled={carregando || !formal || pedidoDispensadoPendente || semAvisoPendente || previa.diagnostico_escala?.apto === false}>{carregando ? "Registrando…" : "Confirmar desligamento"}</Button>
       </div>
     )}
   </>);
@@ -560,15 +567,13 @@ function BancoResumo({ r }: { r: Resultado }) {
   return <p className="rounded-md bg-muted p-3 text-sm">Banco de horas simulado: <strong>{formatarMinutos(saldo - residual)}</strong> compensadas no aviso · <strong>{formatarMinutos(residual)}</strong> residuais para conferir e quitar na rescisão. Confirme o saldo final com a contabilidade; este registro não comprova pagamento.</p>;
 }
 
+/** Só aparece quando falta a folga dominical num mês com trabalho e ainda dá para encaixar. */
 function RevisaoCalendario({ r }: { r: Resultado }) {
   const d = r.diagnostico_escala;
-  if (!d) return null;
-  return <Alert><AlertTriangle className="h-4 w-4" /><AlertDescription className="space-y-2">
-    <p className="font-medium">Conferência das folgas antes da compensação</p>
-    <p>Defina as folgas semanais e dominicais até {br(d.limiteSemBanco)} (limite sem banco). Regra aplicada: {d.origem}.</p>
-    {d.pendencias.map((p) => <p key={p}>{p}</p>)}
-    {d.apto && <p>Os descansos cadastrados cobrem a regra neste intervalo. A análise não substitui a conferência de períodos anteriores à comunicação.</p>}
-    <Button asChild size="sm" variant="outline"><Link to={`/dp/calendario?mes=${r.inicio_aviso.slice(0, 7)}`}>Revisar calendário do mês</Link></Button>
-    <p className="text-xs">O atalho não marca nem remarca folgas. Volte e calcule novamente depois de ajustar.</p>
+  if (!d || d.apto) return null;
+  const mes = (d.limiteSemBanco ?? r.inicio_aviso).slice(0, 7);
+  return <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription className="space-y-2">
+    {d.pendencias.map((p) => <p key={p} className="font-medium">{p}</p>)}
+    <Button asChild size="sm" variant="outline"><Link to={`/dp/calendario?mes=${mes}`}>Abrir calendário</Link></Button>
   </AlertDescription></Alert>;
 }
