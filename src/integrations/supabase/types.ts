@@ -13850,6 +13850,7 @@ export type Database = {
         Row: {
           ano_inicio: number | null
           ativo: boolean
+          categoria: string
           codigo_movel: string | null
           company_id: string
           created_at: string
@@ -13869,6 +13870,7 @@ export type Database = {
         Insert: {
           ano_inicio?: number | null
           ativo?: boolean
+          categoria?: string
           codigo_movel?: string | null
           company_id: string
           created_at?: string
@@ -13888,6 +13890,7 @@ export type Database = {
         Update: {
           ano_inicio?: number | null
           ativo?: boolean
+          categoria?: string
           codigo_movel?: string | null
           company_id?: string
           created_at?: string
@@ -19991,6 +19994,16 @@ export type Database = {
       dp_feriados_resolver: {
         Args: { _fim: string; _inicio: string; _unidade_id: string }
         Returns: {
+          data: string
+          feriado_id: string
+          nome: string
+          tipo: string
+        }[]
+      }
+      dp_feriados_resolver_v2: {
+        Args: { _fim: string; _inicio: string; _unidade_id: string }
+        Returns: {
+          categoria: string
           data: string
           feriado_id: string
           nome: string

@@ -21,6 +21,7 @@
 - Read subdirectory `AGENTS.md` before edits.
 - Unit holiday registration uses the frontend date-order helper with the selected year; retain inactive and non-occurring rules for editing separately from the active annual agenda.
 - Unit tabs use a dedicated horizontal scroller with edge controls and active-tab visibility; holiday presentation labels and counts stay in the frontend adapter to preserve stored identifiers and records.
+- Holiday category is independent of date calculation; the additive v2 resolver keeps the legacy RPC compatible, and calendars retain all same-day categories through shared presentation helpers (Pessoas/Escala).
 - Movable holidays use explicit unit-selected codes and Gregorian computus in the shared helper and database resolver; include the code in reads and replication to keep annual dates consistent without scheduled jobs or automatic holiday enrollment.
 - National holiday enrollment defaults to federal fixed dates; its confirmation dialog may include Good Friday only through explicit local opt-in, using the movable code and preserving existing/inactive rules, because Law 9,093/1995, article 2 requires municipal legislation.
 - Recrutamento 360 rules live in `src/pages/recrutamento/AGENTS.md`.

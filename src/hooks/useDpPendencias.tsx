@@ -1040,7 +1040,7 @@ export function useDpPendencias() {
         if (ids.length) {
           const [{ data: uc }, { data: fr }] = await Promise.all([
             (supabase as any).from("dp_unidades").select("id, feriados_locais_ciente_em").abortSignal(signal).throwOnError().in("id", ids),
-            supabase.from("dp_unidade_feriados").select("unidade_id, tipo, codigo_movel, dia, mes, ativo").abortSignal(signal).throwOnError().in("unidade_id", ids),
+            supabase.from("dp_unidade_feriados").select("unidade_id, tipo, categoria, codigo_movel, dia, mes, ativo").abortSignal(signal).throwOnError().in("unidade_id", ids),
           ]);
           const ciente = new Map(((uc ?? []) as any[]).map((r) => [r.id, r.feriados_locais_ciente_em as string | null]));
           const porUnidade = new Map<string, any[]>();

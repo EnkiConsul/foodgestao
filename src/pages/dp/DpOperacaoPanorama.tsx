@@ -1,3 +1,5 @@
+import { FeriadosDia } from "@/components/dp/FeriadoCategoriaBadge";
+import { textoFeriadosDia } from "@/lib/dp/feriados-apresentacao";
 import { Fragment, type ReactNode } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -354,9 +356,7 @@ function Secao({
 
 function SituacaoBadge({ dia }: { dia: DiaPanorama }) {
   const feriado = dia.feriado_nome ? (
-    <Badge variant="outline" className="border-primary/40 text-primary">
-      Feriado · {dia.feriado_nome}
-    </Badge>
+    <FeriadosDia dia={dia} />
   ) : null;
 
   const situacao = () => {
@@ -1797,9 +1797,7 @@ export default function DpOperacaoPanorama({
                       chips: (
                         <>
                           {d.feriado_nome && (
-                            <Badge variant="outline" className="border-primary/40 text-[10px] text-primary">
-                              Feriado · {d.feriado_nome}
-                            </Badge>
+                            <FeriadosDia dia={d} />
                           )}
                           <Badge variant="secondary" className="text-[10px]">
                             {d.contagens.fixo} fixo(s)
@@ -1894,8 +1892,8 @@ export default function DpOperacaoPanorama({
                         {d.contagens.folga_padrao + d.contagens.folga_extra}FG
                       </p>
                       {d.feriado_nome && (
-                        <p className="truncate text-[10px] font-medium leading-tight text-primary" title={d.feriado_nome}>
-                          Feriado · {d.feriado_nome}
+                        <p className="truncate text-[10px] font-medium leading-tight text-primary" title={textoFeriadosDia(d)}>
+                          {textoFeriadosDia(d)}
                         </p>
                       )}
                       {d.avaliacao.padrao != null && (
@@ -1969,7 +1967,8 @@ export default function DpOperacaoPanorama({
               </PopoverContent>
             </Popover>
           </div>
-          {(dia.aguardando > 0 || dia.feriado_nome) && <p className="text-xs text-muted-foreground">{dia.aguardando > 0 && `${dia.aguardando} aguardando`}{dia.aguardando > 0 && dia.feriado_nome && " · "}{dia.feriado_nome && `🎉 ${dia.feriado_nome}`}</p>}
+          {dia.aguardando > 0 && <p className="text-xs text-muted-foreground">{dia.aguardando} aguardando</p>}
+          <FeriadosDia dia={dia} />
           {conteudoDia(data, dia, true)}
           <AniversariantesCard compacto competencia={data.slice(0, 7)} dataDia={data} unidadeId={unidadeId} />
         </>}
@@ -2006,9 +2005,7 @@ export default function DpOperacaoPanorama({
               {diaPopout ? (contagemTurno ? `${contagemTurno.n} trabalhando no turno ${({ dia: "Dia", noite: "Noite", madrugada: "Madrugada" } as Record<string, string>)[contagemTurno.turno] ?? ""}` : `${diaPopout.trabalhando} trabalhando`) : "Rotina prevista para o dia"}
               {diaPopout && diaPopout.aguardando > 0 ? ` · ${diaPopout.aguardando} aguardando resposta` : ""}
               {diaPopout?.feriado_nome && (
-                <Badge variant="outline" className="ml-2 border-primary/40 text-primary">
-                  Feriado · {diaPopout.feriado_nome}
-                </Badge>
+                <FeriadosDia dia={diaPopout} />
               )}
             </DialogDescription>
             {calendario && dataPopout && diaPopout && (

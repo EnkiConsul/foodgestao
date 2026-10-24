@@ -1,3 +1,5 @@
+import { FeriadosDia } from "@/components/dp/FeriadoCategoriaBadge";
+import { textoFeriadosDia } from "@/lib/dp/feriados-apresentacao";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
@@ -239,7 +241,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     for (const d of dias) {
       r.trab += d.trabalhando;
       if (d.alerta) r.alertas++;
-      if (d.feriado_nome) { r.feriados++; add("feriados", `f-${d.data}`, `Feriado · ${d.feriado_nome}`, d.data); }
+      if (d.feriado_nome) { r.feriados++; add("feriados", `f-${d.data}`, textoFeriadosDia(d), d.data); }
       if (bloqueios.has(d.data)) {
         r.bloqueados++;
         const motivo = bloqueios.get(d.data);
@@ -494,9 +496,9 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                   {pico(d.data, d.feriado_nome) && <Flame className="h-3.5 w-3.5 fill-amber-500 text-amber-500" aria-label="Pico de operação" />}
                   {d.feriado_nome && (
                     <span
-                      title={`Feriado · ${d.feriado_nome}`}
+                      title={textoFeriadosDia(d)}
                       role="img"
-                      aria-label={`Feriado: ${d.feriado_nome}`}
+                      aria-label={textoFeriadosDia(d)}
                       className="text-[13px] leading-none"
                     >
                       🎉
@@ -575,7 +577,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                         {bloqueio && <Lock className="h-3.5 w-3.5 shrink-0 text-destructive" aria-label="Data bloqueada"><title>{bloqueio}</title></Lock>}
                         {temParcial(d.data) && <Lock className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-label="Bloqueio parcial"><title>Bloqueio parcial</title></Lock>}
                         {d.feriado_nome && (
-                          <span className="truncate rounded bg-primary px-1 text-[9px] font-bold uppercase leading-4 text-primary-foreground" title={d.feriado_nome}>Feriado</span>
+                          <span className="truncate rounded bg-primary px-1 text-[9px] font-bold leading-4 text-primary-foreground" title={textoFeriadosDia(d)} aria-label={textoFeriadosDia(d)}>🎉</span>
                         )}
                       </div>
                       <span className={cn("inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold tabular-nums", d.alerta && d.avaliacao.situacao === "abaixo" ? "bg-destructive text-destructive-foreground" : "bg-primary/15 text-primary")} title="Trabalhando"><Users className="h-3 w-3" />{d.trabalhando}</span>
@@ -605,7 +607,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                 <HoverCardContent side="top" className="w-64 space-y-2 p-3 text-xs">
                   <p className="font-bold first-letter:uppercase">
                     {new Date(`${d.data}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "short" })}
-                    {d.feriado_nome ? ` · ${d.feriado_nome}` : ""}
+                    {d.feriado_nome ? ` · ${textoFeriadosDia(d)}` : ""}
                   </p>
                   <div>
                     <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-primary">Trabalhando ({trab.length})</p>
@@ -689,7 +691,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
               <li key={p.nome + p.datas[0]} className="py-2">
                 <p className="text-sm font-semibold">
                   {cardAberto?.chave === "feriados"
-                    ? `🎉 ${p.nome.replace(/^Feriado · /, "")}`
+                    ? <FeriadosDia dia={dias.find((d) => d.data === p.datas[0]) ?? { feriado_nome: p.nome }} />
                     : p.nome}
                 </p>
                 <div className="mt-1 flex flex-wrap gap-1.5">

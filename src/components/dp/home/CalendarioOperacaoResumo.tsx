@@ -1,3 +1,4 @@
+import { textoFeriadosDia } from "@/lib/dp/feriados-apresentacao";
 import { Suspense, useEffect, useMemo, useReducer, useState } from "react";
 import { Link } from "react-router-dom";
 import { AlertTriangle, BedSingle, Cake, CalendarDays, ChevronLeft, ChevronRight, ExternalLink, FileHeart, Flame, Moon, Palmtree, Sun, Users, UserX } from "lucide-react";
@@ -142,15 +143,15 @@ export function CalendarioOperacaoResumo() {
                 <div className="grid grid-cols-7 gap-1 pt-1">
                   {Array.from({ length: p.dias[0]?.dow ?? 0 }).map((_, i) => <div key={`v${i}`} aria-hidden="true" />)}
                   {dias.map((d) => <Button key={d.data} variant="ghost"
-                    title={[d.feriado_nome, d.alerta ? mensagemAlerta(d, d.avaliacao, p.unidades.find((u) => u.id === unidade)?.nome ?? null) : null].filter(Boolean).join(" · ") || undefined}
-                    aria-label={`Selecionar ${d.data}, ${d.trabalhando} trabalhando, ${AUSENCIAS_MES.map((a) => `${a.valor(d)} ${a.label.toLowerCase()}`).join(", ")}${diaEhPico(d.data, d.feriado_nome) ? ", dia de pico" : ""}${d.alerta ? ", alerta de equipe" : ""}${aniversariosDoDia(d.data).length ? `, ${aniversariosDoDia(d.data).length} aniversariantes` : ""}`}
+                    title={[textoFeriadosDia(d), d.alerta ? mensagemAlerta(d, d.avaliacao, p.unidades.find((u) => u.id === unidade)?.nome ?? null) : null].filter(Boolean).join(" · ") || undefined}
+                    aria-label={`Selecionar ${d.data}, ${textoFeriadosDia(d)}, ${d.trabalhando} trabalhando, ${AUSENCIAS_MES.map((a) => `${a.valor(d)} ${a.label.toLowerCase()}`).join(", ")}${diaEhPico(d.data, d.feriado_nome) ? ", dia de pico" : ""}${d.alerta ? ", alerta de equipe" : ""}${aniversariosDoDia(d.data).length ? `, ${aniversariosDoDia(d.data).length} aniversariantes` : ""}`}
                     aria-pressed={d.data === selecionado} aria-current={d.data === hoje ? "date" : undefined}
                     onClick={() => { navegar({ type: "selecionar", data: d.data }); if (window.matchMedia("(max-width: 1023px)").matches) abrirDia(d.data); }}
                     className={cn("relative flex h-[88px] min-w-0 flex-col justify-start gap-0.5 rounded-lg border px-0.5 py-1 text-xs transition-opacity [&_svg]:size-2.5", "border-border bg-card", diaEhPico(d.data, d.feriado_nome) && "bg-calendar-pico", d.data < hoje && d.data !== selecionado && "opacity-45 grayscale-[0.3] hover:opacity-100", d.data === selecionado && "border-primary ring-1 ring-inset ring-primary", d.alerta && "border-destructive ring-1 ring-inset ring-destructive/60")}>
                     <span className="flex h-6 w-full items-center justify-between gap-0.5 px-0.5">
                       <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold", d.data === hoje && "bg-primary text-primary-foreground")}>{Number(d.data.slice(8))}</span>
                       <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold tabular-nums text-primary" title={`${d.trabalhando} trabalhando`}><Users className="h-2.5 w-2.5" />{d.trabalhando}</span>
-                      <span className="absolute bottom-1 right-1">{d.alerta ? <AlertTriangle className="text-destructive" /> : d.feriado_nome ? <span className="text-[10px]">🎉</span> : diaEhPico(d.data) ? <Flame className="text-warning" /> : null}</span>
+                      <span className="absolute bottom-1 right-1">{d.alerta ? <AlertTriangle className="text-destructive" /> : d.feriado_nome ? <span className="text-[10px]" role="img" aria-label={textoFeriadosDia(d)}>🎉</span> : diaEhPico(d.data) ? <Flame className="text-warning" /> : null}</span>
                     </span>
                     <span className="grid w-full grid-cols-2 gap-0.5">
                       {AUSENCIAS_MES.filter((a) => a.valor(d) > 0).map(({ label, Icon, cor, valor }) => <span key={label} className={cn("flex min-w-0 items-center justify-center gap-0.5 rounded-sm py-0.5 text-[10px] leading-none tabular-nums", cor)}><Icon className="h-2.5 w-2.5 shrink-0" /><span>{valor(d)}</span></span>)}
