@@ -331,6 +331,19 @@ export function useDpPreadmissaoGestor(id: string | null) {
   };
 }
 
+/** Link temporário com nome e tipo do arquivo, para abrir dentro do app. */
+export async function linkDocumentoPreadmissao(documentoId: string): Promise<{ url: string; file_name?: string; mime_type?: string | null }> {
+  return await chamar<{ url: string; file_name?: string; mime_type?: string | null }>("dp-preadmissao-arquivo", { action: "url", documento_id: documentoId });
+}
+
+/** Gestor anexa verso, substitui arquivo ou grava o ajuste de enquadramento (versão anterior preservada). */
+export async function enviarDocumentoGestor(args: {
+  preadmissao_id: string; requisito_codigo: string; pessoa_id: string | null; parte: number;
+  parte_rotulo: string; file_name: string; content_base64: string; motivo: "verso" | "substituicao" | "enquadramento";
+}): Promise<void> {
+  await chamar("dp-preadmissao-arquivo", { action: "upload_gestor", ...args });
+}
+
 /** Link temporário para abrir um documento enviado pelo candidato. */
 export async function abrirDocumentoPreadmissao(documentoId: string): Promise<string> {
   const r = await chamar<{ url: string }>("dp-preadmissao-arquivo", { action: "url", documento_id: documentoId });

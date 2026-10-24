@@ -273,7 +273,7 @@ Deno.serve(async (req) => {
       const documentoId = String(body?.documento_id ?? "").trim();
       const { data: doc } = await admin
         .from("dp_preadmissao_documentos")
-        .select("id, file_path, file_name, requisito_codigo, substituido_em")
+        .select("id, file_path, file_name, mime_type, requisito_codigo, substituido_em")
         .eq("id", documentoId)
         .eq("preadmissao_id", valid.preadmissao.id)
         .eq("company_id", valid.preadmissao.company_id)
