@@ -34,6 +34,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { WhatsAppChoiceDrawer } from "@/components/dp/WhatsAppChoiceDrawer";
 import { PreadmissaoMobileCard } from "./PreadmissaoMobileCard";
+import { etapaDaPreadmissao } from "@/lib/dp/admissao-apresentacao";
 
 type ColunaKey = "candidato" | "situacao" | "cargo" | "validade";
 const COLUNAS: { key: ColunaKey; label: string }[] = [
@@ -346,11 +347,11 @@ export function PreadmissoesPanel({
                         {ver("situacao") && (
                           <TableCell>
                             <Badge variant="outline" className={`${TOM[p.status] ?? ""} whitespace-normal`}>
-                              {PREADMISSAO_STATUS_LABEL[p.status]}
+                              {etapaDaPreadmissao(p)}
                             </Badge>
                             {(() => {
                               const rotina = rotinaDaPreadmissao(p.admin_dados);
-                              if (!rotina) return null;
+                              if (!rotina || ["concluido", "cancelado"].includes(p.status)) return null;
                               const dias = diasAguardandoRegistro(rotina.iniciou_em);
                               return (
                                 <Badge
