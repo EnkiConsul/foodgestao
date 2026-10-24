@@ -1,4 +1,5 @@
 import { sugerirPushContextual } from "@/components/dp/PushSoftPrompt";
+import { invalidarRotina } from "@/lib/dp/rotina-cache";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { prepararUpload } from "@/lib/storage/uploadPolicy";
 import { Helmet } from "react-helmet-async";
@@ -400,7 +401,7 @@ export default function DpAtestados() {
       if (fileRef.current) fileRef.current.value = "";
       qc.invalidateQueries({ queryKey: ["dp_atestados_admin"] });
       void resolverPendencias(qc, { companyId: selectedCompanyId });
-      qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
+      void invalidarRotina(qc);
       setTab("historico");
     },
     onError: (e: any) => notifyError(e, { surface: "Atestados", action: "concluir a ação", fallback: "Erro ao importar" }),
@@ -417,6 +418,7 @@ export default function DpAtestados() {
     },
     onSuccess: (_d, vars) => {
       toast.success(vars.status === "aprovada" ? "Atestado aprovado" : "Atestado recusado");
+      void invalidarRotina(qc);
       qc.invalidateQueries({ queryKey: ["dp_atestados_admin"] });
       qc.invalidateQueries({ queryKey: ["dp_atestados_pendentes"] });
       void resolverPendencias(qc, { companyId: selectedCompanyId });
@@ -431,6 +433,7 @@ export default function DpAtestados() {
     },
     onSuccess: () => {
       toast.success("O atestado foi excluído e permanece no histórico");
+      void invalidarRotina(qc);
       setMotivoExclusao("");
       qc.invalidateQueries({ queryKey: ["dp_atestados_admin"] });
       void resolverPendencias(qc, { companyId: selectedCompanyId });
@@ -467,6 +470,7 @@ export default function DpAtestados() {
     },
     onSuccess: () => {
       toast.success("Atestado atualizado");
+      void invalidarRotina(qc);
       sugerirPushContextual("Ative os avisos para receber na hora os próximos atestados enviados pela equipe.");
       qc.invalidateQueries({ queryKey: ["dp_atestados_admin"] });
       void resolverPendencias(qc, { companyId: selectedCompanyId });
