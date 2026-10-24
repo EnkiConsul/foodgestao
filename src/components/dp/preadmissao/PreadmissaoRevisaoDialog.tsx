@@ -44,6 +44,7 @@ import { ArquivoVisualizadorDialog, baixarBlob, buscarBlob, type ArquivoCarregad
 import { ImagemEnquadrarDialog } from "@/components/dp/documentos/ImagemEnquadrarDialog";
 import { faltaVerso, nomeArquivoPacote } from "@/lib/dp/documentoPartes";
 import { Pencil, Replace, ScanText } from "lucide-react";
+import { WhatsAppChoiceDrawer } from "@/components/dp/WhatsAppChoiceDrawer";
 
 /** Ordem da conferência guiada do gestor (abas da ficha). */
 const ABAS_CONFERENCIA: Array<{ aba: string; rotulo: string }> = [
@@ -275,6 +276,9 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   useEffect(() => { setVistas(new Set(["dados"])); setAbaConf("dados"); setAbaPedida(null); }, [preadmissaoId]);
   const marcarAba = (a: string) => { setAbaConf(a); setVistas((v) => (v.has(a) ? v : new Set([...v, a]))); };
   const [motivo, setMotivo] = useState("");
+  const [retomando, setRetomando] = useState(false);
+  const [motivoRetomada, setMotivoRetomada] = useState("");
+  const [avisoCorrecao, setAvisoCorrecao] = useState<{ numero: string; mensagem: string } | null>(null);
   const [admin, setAdmin] = useState<Record<string, string>>({});
   const [ficha, setFicha] = useState<Record<string, string>>({});
   /** Marca de quando a ficha do candidato terminou de carregar (recarrega o formulário). */
@@ -888,6 +892,19 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     }
   };
 
+  const pedirCorrecao = async () => {
+    if (!pa?.versao) { toast.warning("Atualize a ficha antes de pedir correção."); return; }
+    try {
+      const recado = motivo.trim();
+      const resposta = await acoes.solicitarCorrecao.mutateAsync({ motivo: recado, versao: pa.versao });
+      toast.success(`Correção pedida. Mesmo link válido até ${new Date(resposta.expires_at).toLocaleString("pt-BR")}.`);
+      const empresa = companies.find((c) => c.id === pa.company_id)?.name ?? "a empresa";
+      setAvisoCorrecao({ numero: pa.whatsapp, mensagem: `Olá, ${pa.candidato_nome}. ${empresa} pediu um ajuste na sua ficha de admissão: ${recado}\n\nAbra o mesmo link de pré-admissão que você já recebeu e toque em “Ir para Documentos”. O prazo foi renovado até ${new Date(resposta.expires_at).toLocaleString("pt-BR")}. Seus dados e anexos continuam guardados.` });
+      setMotivo("");
+      await refetch();
+    } catch (e) { notifyError(e as Error, { surface: "Pessoas 360°", action: "pedir correção" }); }
+  };
+
   const enviarFichaOficial = async (arquivo: File) => {
     setEnviandoFicha(true);
     try {
@@ -1399,10 +1416,11 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                 </div>
               )}
 
-              {pa.correcao_motivo && status === "correcao_solicitada" && (
+              {["correcao_solicitada", "aguardando_nova_versao"].includes(status) && (
                 <div className="rounded-lg border p-3 text-sm ">
                   <p className="font-semibold">Correção pedida ao candidato</p>
                   <p className="text-muted-foreground">{pa.correcao_motivo}</p>
+                  <Button variant="outline" className="mt-2 min-h-10" onClick={() => setRetomando(true)}>Retomar Conferência</Button>
                 </div>
               )}
 
@@ -1674,13 +1692,12 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                 {["aguardando_revisao", "aguardando_nova_versao", "em_preenchimento"].includes(status) && (
                   <div className="space-y-2">
                     <Label className="text-xs">Pedir correção ao candidato</Label>
-                    <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={2}
+                    <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={2} maxLength={1000}
                       placeholder="Descreva o que precisa ser corrigido." />
                     <Button
                       variant="outline"
                       disabled={motivo.trim().length < 5 || acoes.solicitarCorrecao.isPending}
-                      onClick={() =>
-                        executar(() => acoes.solicitarCorrecao.mutateAsync(motivo.trim()), "Correção pedida ao candidato")}
+                      onClick={() => void pedirCorrecao()}
                     >
                       Pedir Correção
                     </Button>
@@ -1800,6 +1817,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                       {data.eventos.map((e, i) => (
                         <li key={`${e.created_at}-${i}`}>
                           {new Date(e.created_at).toLocaleString("pt-BR")} — {e.evento.replace(/_/g, " ")}
+                          {e.detalhe && typeof e.detalhe === "object" && "motivo" in e.detalhe && typeof e.detalhe.motivo === "string" && <span className="block text-foreground">{e.detalhe.motivo}</span>}
                         </li>
                       ))}
                     </ul>
@@ -1904,6 +1922,27 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
 
   return (
     <>
+      {avisoCorrecao && <WhatsAppChoiceDrawer key={avisoCorrecao.mensagem} open onOpenChange={(v) => { if (!v) setAvisoCorrecao(null); }} numero={avisoCorrecao.numero} mensagem={avisoCorrecao.mensagem} />}
+      <Dialog open={retomando} onOpenChange={(v) => { if (!acoes.retomarConferencia.isPending) setRetomando(v); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Retomar Conferência</DialogTitle><DialogDescription>A candidata deixa de editar pelo link. A ficha, os anexos e a rotina da loja são preservados. Esta ação não aprova documentos nem efetiva a admissão.</DialogDescription></DialogHeader>
+          <Label htmlFor="motivo-retomada">Motivo da retomada</Label>
+          <Textarea id="motivo-retomada" value={motivoRetomada} onChange={(e) => setMotivoRetomada(e.target.value)} maxLength={1000} placeholder="Ex.: recebi os documentos na loja e vou conferir aqui." />
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" disabled={acoes.retomarConferencia.isPending} onClick={() => setRetomando(false)}>Cancelar</Button>
+            <Button disabled={motivoRetomada.trim().length < 5 || acoes.retomarConferencia.isPending} onClick={async () => {
+              if (!pa.versao) { toast.warning("Atualize a ficha antes de retomar."); return; }
+              try {
+                await acoes.retomarConferencia.mutateAsync({ motivo: motivoRetomada.trim(), versao: pa.versao });
+                setRetomando(false); setMotivoRetomada("");
+                setVistas(new Set(["dados"])); setAbaConf("dados"); setAbaPedida({ aba: "dados", n: Date.now() });
+                toast.success("Conferência retomada. Confira as pendências antes de finalizar.");
+                await refetch();
+              } catch (e) { notifyError(e as Error, { surface: "Pessoas 360°", action: "retomar conferência" }); }
+            }}>Retomar Conferência</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <ColaboradorFormDialog
         open={!!preadmissaoId}
         onOpenChange={(v) => !v && onOpenChange(false)}
