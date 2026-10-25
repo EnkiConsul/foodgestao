@@ -56,3 +56,4 @@
 - Termination notifications identify employees in the shared server notifier and navigate with collaborator_id, never the process ref_id; this covers every producer without duplicating identity logic.
 - Pre-admission activation inherits the reviewed habitual sector into the employee and empty worked-day slots, preserving explicit daily sectors and validating company scope.
 - Provisional employee cards resolve admission by company-scoped routine ID and open the official review form; admission updates synchronize operational fields transactionally without formalizing the regime or replacing past schedule configurations.
+- Pre-admission document groups use requirement plus person identity and retain individual versioned decisions; portrait panning protects the face guide while document cropping protects all edges, using the shared geometry helper.
