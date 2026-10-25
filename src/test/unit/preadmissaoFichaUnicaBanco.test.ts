@@ -18,7 +18,7 @@ beforeAll(async () => {
     CREATE TABLE dp_unidades(id uuid,company_id uuid); CREATE TABLE dp_cargos(id uuid,company_id uuid);
     CREATE TABLE dp_setores(id uuid,company_id uuid,unidade_id uuid); CREATE TABLE dp_turnos(id uuid,company_id uuid);
     CREATE TABLE dp_preadmissoes(id uuid,company_id uuid,status text,removido_em timestamptz,colaborador_id uuid,admin_dados jsonb,dados jsonb,cargo_previsto_id uuid,unidade_prevista_id uuid);
-    CREATE TABLE dp_colaboradores(id uuid,company_id uuid,origem_cadastro text,ativo boolean,deleted_at timestamptz,nome text,telefone text,whatsapp text,email_contato text,cargo_id uuid,unidade_id uuid,setor_id uuid,possui_folha_ponto boolean,folha_ponto_dispensa_justificativa text,salario_base numeric,forma_pagamento dp_forma_pagamento,regime text,data_admissao date);
+    CREATE TABLE dp_colaboradores(id uuid,company_id uuid,origem_cadastro text,ativo boolean,deleted_at timestamptz,nome text,telefone text,whatsapp text,email_contato text,cargo_id uuid,unidade_id uuid,setor_id uuid,possui_folha_ponto boolean,folha_ponto_dispensa_justificativa text,salario_base numeric,forma_pagamento dp_forma_pagamento,regime text,data_admissao date,cargo text);
     CREATE TABLE dp_colaborador_config_trabalho(id uuid DEFAULT gen_random_uuid(),company_id uuid,colaborador_id uuid,unidade_id uuid,turno_padrao_id uuid,carga_semanal_horas numeric,folga_variavel boolean,folga_fixa_dow smallint,observacoes text,vigencia_inicio date,vigencia_fim date,compoe_equipe_habitual boolean);
     CREATE TABLE dp_colaborador_config_dias(company_id uuid,config_id uuid,dow int,trabalha boolean,turno_id uuid,entrada time,saida time,intervalo_minutos int,setor_id uuid,UNIQUE(config_id,dow));
     CREATE TABLE dp_preadmissao_eventos(preadmissao_id uuid,company_id uuid,evento text,detalhe jsonb,actor_user_id uuid);
@@ -30,6 +30,7 @@ beforeAll(async () => {
     INSERT INTO dp_colaborador_config_dias VALUES('${empresa}','${config}',1,true,NULL,'08:00','17:00',60,'${excecao}'),('${empresa}','${config}',2,false,NULL,NULL,NULL,NULL,NULL);`);
   await db.exec(readFileSync("drizzle/migrations/0152_preadmissao_sincronizar_cadastro_provisorio.sql", "utf8"));
   await db.exec(readFileSync("drizzle/migrations/0153_preadmissao_sincronizacao_salario_decimal.sql", "utf8"));
+  await db.exec(readFileSync("drizzle/migrations/0155_preadmissao_sincronizar_rotina_variavel_ambigua.sql", "utf8"));
 }, 30000);
 afterAll(() => db.close());
 describe.sequential("pré-admissão com identidade única", () => {
