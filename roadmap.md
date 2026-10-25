@@ -1,5 +1,7 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 
+- [x] Preparar plano de Minhas Ocorrências no Portal: consulta mensal, decisões e impacto de assiduidade, com acesso pelo início e detalhes do calendário; sem implementar nem publicar nesta etapa.
+
 - [x] Unificar cards e edição do cadastro provisório com a pré-admissão, exibindo etapa real e vínculo previsto, sem segunda ficha independente. Verônica conferida em computador/celular; ambos abrem a conferência oficial.
 - [x] Sincronizar dados operacionais ao salvar a pré-admissão, preservando identidade, início na loja, histórico e setores diários explícitos. Migrações 0152–0153 aplicadas sem alterar fichas reais; 22 testes isolados passaram. Gravação real não exercitada para preservar colaboradores; interface não publicada.
 
