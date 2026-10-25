@@ -13,7 +13,7 @@ Dar ao colaborador um lugar claro para consultar suas ocorrências por mês, aco
 
 ## 2. Informações de cada ocorrência
 - Data, tipo, horário e minutos, quando registrados; previsões permanecem identificadas como previsões.
-- Justificativa enviada pelo próprio colaborador e origem do registro.
+- Justificativa enviada pelo próprio colaborador e origem do registro; textos escritos pelo gestor só aparecem se houver indicação explícita de comunicação ao colaborador.
 - Separar **confirmação do fato**, **análise do gestor** e **impacto na assiduidade**. Confirmada não significa automaticamente justificada ou abonada.
 - Usar a decisão efetivamente registrada, sem deduzir aprovação apenas pelo tipo ou pela cor do card.
 - Preservar os rótulos unificados de folga compensatória e sua origem; mostrar os dois lados das trocas quando existirem.
@@ -47,7 +47,7 @@ Dar ao colaborador um lugar claro para consultar suas ocorrências por mês, aco
 - Criar a página em `/dp/meu/ocorrencias`, respeitando as guardas e a navegação compartilhada do Portal.
 - Criar consulta própria de histórico por intervalo mensal, sem remover o recorte usado para registrar ocorrências de hoje em `useMinhasOcorrencias`.
 - Usar apresentação compartilhada entre a página e o detalhe do calendário, reutilizando os rótulos de `ocorrencias.ts`.
-- Fazer leitura por RPC autenticada com lista explícita de campos seguros, sem ampliar políticas de leitura de tabelas internas; verificar e corrigir eventuais acessos diretos equivalentes que contrariem a confidencialidade.
+- Fazer leitura por RPC autenticada com lista explícita de campos seguros, sem ampliar políticas de leitura de tabelas internas; verificar e corrigir eventuais acessos diretos equivalentes que contrariem a confidencialidade. A consulta atual já pede `assiduidade_observacao`: retirar essa exposição e conferir no servidor se o acesso direto permite recuperar notas internas. Ocultar no card não basta; preservar as leituras autorizadas do gestor ao proteger o Portal.
 - Buscar o mês completo com paginação quando necessário, aplicando período e filtros antes do limite. Evitar recorte de “hoje em diante” no histórico.
 - Reutilizar regras existentes de assiduidade sem duplicar o motor; verificar a existência de apuração/regra histórica antes de implementar o resumo mensal.
 - Compartilhar invalidação de consultas após decisões, atualização ao retornar à tela e atualização periódica compatível com o Portal.
