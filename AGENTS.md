@@ -1,5 +1,7 @@
 # Regras técnicas do projeto
 
+- Portal occurrence history uses a session-scoped RPC with an explicit field allowlist and complete monthly pagination; page and day details share presentation, and only persisted decisions can confirm a prize impact.
+
 - Admission progress is derived from process status and ASO, not opened form tabs; preserve the typed time-sheet decision through review and effectivation to avoid losing manager choices.
 - Termination evidence is synchronized transactionally with bank application using the server motor's sanitized attendance extract; portal reads only persisted date/rest fields, never balances, and Art. 488 occurrences remain pending for external point treatment.
 - Termination agenda uses a shared company-scoped read independent of active attendance, linking by employee ID; leave presentation uses persisted origin or linked occurrence subtype so legacy extra flags do not mislabel compensation.

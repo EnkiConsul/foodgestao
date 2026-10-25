@@ -9,6 +9,8 @@ import {
   type OcorrenciaTipo,
 } from "@/lib/dp/ocorrencias";
 import type { RegraAssiduidade } from "@/lib/dp/assiduidade-risco";
+import { lerMinhasOcorrencias } from "@/lib/dp/minhas-ocorrencias";
+import { invalidarRotina } from "@/lib/dp/rotina-cache";
 
 /** Jornada prevista de hoje e registro das ocorrências pelo próprio colaborador. */
 export function useMinhasOcorrencias() {
@@ -30,8 +32,9 @@ export function useMinhasOcorrencias() {
     queryKey: ["dp_ocorrencia_previsto", colaborador.data, hoje],
     enabled: !!colaborador.data,
     queryFn: async () => {
+      if (!colaborador.data) return null;
       const { data, error } = await supabase.rpc("dp_ocorrencia_previsto", {
-        _colaborador_id: colaborador.data!,
+        _colaborador_id: colaborador.data,
         _data: hoje,
       });
       if (error) throw error;
@@ -47,17 +50,9 @@ export function useMinhasOcorrencias() {
     queryKey: ["minhas_ocorrencias", colaborador.data],
     enabled: !!colaborador.data,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("dp_ocorrencias")
-        .select(
-          "id, data_operacional, tipo, estado, minutos, horario_estimado, horario_real, impacta_assiduidade, assiduidade_risco, assiduidade_risco_motivo, assiduidade_observacao",
-        )
-        .eq("colaborador_id", colaborador.data!)
-        .neq("estado", "cancelada")
-        .gte("data_operacional", hoje)
-        .order("data_operacional");
-      if (error) throw error;
-      return data ?? [];
+      const fim = new Date(`${hoje}T12:00:00`);
+      fim.setDate(fim.getDate() + 366);
+      return (await lerMinhasOcorrencias(hoje, fim.toLocaleDateString("en-CA"))).filter(o => o.estado !== "cancelada").reverse();
     },
   });
 
@@ -67,15 +62,7 @@ export function useMinhasOcorrencias() {
     queryKey: ["minhas_ocorrencias_mes", colaborador.data, inicioMes],
     enabled: !!colaborador.data,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("dp_ocorrencias")
-        .select("data_operacional, tipo, minutos, estado")
-        .eq("colaborador_id", colaborador.data!)
-        .neq("estado", "cancelada")
-        .gte("data_operacional", inicioMes)
-        .lte("data_operacional", hoje);
-      if (error) throw error;
-      return (data ?? []) as { data_operacional: string; tipo: OcorrenciaTipo; minutos: number | null; estado: string }[];
+      return (await lerMinhasOcorrencias(inicioMes, hoje)).filter(o => o.estado !== "cancelada");
     },
   });
 
@@ -84,12 +71,13 @@ export function useMinhasOcorrencias() {
     queryKey: ["minha_regra_assiduidade", colaborador.data],
     enabled: !!colaborador.data,
     queryFn: async (): Promise<RegraAssiduidade | null> => {
+      if (!colaborador.data) return null;
       const { data, error } = await supabase
         .from("dp_colaboradores")
         .select(
           "premio_assiduidade, premio_assiduidade_valor, assiduidade_criterio, assiduidade_tolerancia_min, assiduidade_max_atrasos, assiduidade_considera_atestado, assiduidade_max_atestados",
         )
-        .eq("id", colaborador.data!)
+        .eq("id", colaborador.data)
         .maybeSingle();
       if (error) throw error;
       return (data as RegraAssiduidade | null) ?? null;
@@ -121,6 +109,7 @@ export function useMinhasOcorrencias() {
       qc.invalidateQueries({ queryKey: ["minhas_ocorrencias"] });
       qc.invalidateQueries({ queryKey: ["minhas_ocorrencias_mes"] });
       qc.invalidateQueries({ queryKey: ["dp_ocorrencias"] });
+      void invalidarRotina(qc);
       toast.success("Avisamos a rotina do dia. Obrigado por informar.");
     },
     onError: (e: Error) => toast.error(textoErroOcorrencia(e.message)),

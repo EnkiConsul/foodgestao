@@ -1,5 +1,9 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 
+- [x] Adicionar Minhas Ocorrências mensal, atalho no início/menu e apresentação compartilhada no calendário; RPC própria sem notas internas, 24 testes passando e tela/mês anterior conferidos com respostas fictícias em computador/celular, sem publicação ou gravações reais.
+- [ ] Validar início → histórico → calendário com sessão real de colaborador e isolamento entre dois vínculos; sessão disponível é de gestor, corretamente recusada pela RPC. Conferência visual simulada não substitui esse teste.
+- [ ] Fechar acesso direto às notas internas de dp_ocorrencias após autorização de publicação da migração dos consumidores do Portal; remover agora a leitura própria quebraria calendário/jornada no site publicado. A nova RPC já omite notas, mas a permissão antiga permanece.
+
 - [x] Preparar plano de Minhas Ocorrências no Portal: consulta mensal, decisões e impacto de assiduidade, com acesso pelo início e detalhes do calendário; sem implementar nem publicar nesta etapa.
 
 - [x] Unificar cards e edição do cadastro provisório com a pré-admissão, exibindo etapa real e vínculo previsto, sem segunda ficha independente. Verônica conferida em computador/celular; ambos abrem a conferência oficial.
