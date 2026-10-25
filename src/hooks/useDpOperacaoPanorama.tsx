@@ -28,6 +28,7 @@ import {
   type PessoaAvulsaTipo,
   type ResultadoDia,
   ehSobDemanda,
+  STATUS_GOZO_VISIVEL_OPERACAO,
   ultimoDiaNaEscala,
   diaAnterior,
 } from "@/lib/dp/operacao-panorama";
