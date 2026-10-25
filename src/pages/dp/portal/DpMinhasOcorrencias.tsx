@@ -34,7 +34,7 @@ export default function DpMinhasOcorrencias() {
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-2">
         <Button variant="outline" size="icon" aria-label="Mês anterior" title="Mês anterior" onClick={() => mudarMes(-1)}><ChevronLeft className="h-4 w-4" /></Button>
-        <span className="min-w-40 text-center font-medium">{format(mes, "MMMM 'de' yyyy", { locale: ptBR })}</span>
+        <span className="min-w-40 text-center font-medium first-letter:uppercase">{format(mes, "MMMM 'de' yyyy", { locale: ptBR })}</span>
         <Button variant="outline" size="icon" aria-label="Próximo mês" title="Próximo mês" onClick={() => mudarMes(1)}><ChevronRight className="h-4 w-4" /></Button>
       </div>
       <Select value={filtro} onValueChange={v => { setFiltro(v); setQuantidade(30); }}><SelectTrigger className="w-full sm:w-56" aria-label="Situação das ocorrências"><SelectValue /></SelectTrigger><SelectContent>
