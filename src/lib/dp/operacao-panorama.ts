@@ -22,6 +22,13 @@ import { turnoDoDia, type ConfigTrabalho, type TurnoResolvido } from "@/lib/dp/c
 import type { OcorrenciaEstado, OcorrenciaTipo } from "@/lib/dp/ocorrencias";
 import { rotuloFolga } from "@/lib/dp/folga-apresentacao";
 
+/**
+ * Status de gozo de férias que contam como ausência na operação.
+ * Inclui "concluido": férias já encerradas continuam ausência nos dias
+ * passados do mês e do baseline — sem elas o histórico infla o quadro.
+ */
+export const STATUS_GOZO_VISIVEL_OPERACAO = ["aprovado", "em_gozo", "concluido"] as const;
+
 export type CategoriaDia =
   | "fixo"
   | "convocado_aceito"
