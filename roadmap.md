@@ -1,5 +1,7 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 
+- [ ] Aplicar somente os refinamentos aprovados em Minhas Ocorrências: dia da semana, inicial maiúscula do mês e horas nas folgas; sem banner em Meu Histórico ou publicação.
+
 - [x] Adicionar Minhas Ocorrências mensal, atalho no início/menu e apresentação compartilhada no calendário; RPC própria sem notas internas, 24 testes passando e tela/mês anterior conferidos com respostas fictícias em computador/celular, sem publicação ou gravações reais.
 - [ ] Validar início → histórico → calendário com sessão real de colaborador e isolamento entre dois vínculos; sessão disponível é de gestor, corretamente recusada pela RPC. Conferência visual simulada não substitui esse teste.
 - [ ] Fechar acesso direto às notas internas de dp_ocorrencias após autorização de publicação da migração dos consumidores do Portal; remover agora a leitura própria quebraria calendário/jornada no site publicado. A nova RPC já omite notas, mas a permissão antiga permanece.
