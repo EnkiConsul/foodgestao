@@ -1,4 +1,7 @@
 import { completarPartesTrocas } from "@/lib/dp/troca-partes";
+import { MinhaOcorrenciaCard } from "@/components/dp/ocorrencias/MinhaOcorrenciaCard";
+import { useMinhasOcorrenciasPeriodo } from "@/hooks/useMinhasOcorrenciasPeriodo";
+import { lerMinhasOcorrencias } from "@/lib/dp/minhas-ocorrencias";
 import { useSwipeHorizontal } from "@/hooks/useSwipeHorizontal";
 import { vinculoAdmiteCompensacao } from "@/lib/dp/termos-compensacao";
 import { MOTIVO_COMPENSACAO_FERIADO, diasDeAntecedencia, motivoLegivel } from "@/lib/dp/termos-compensacao";
@@ -230,6 +233,13 @@ export default function DpMeuCalendario() {
   });
 
   const [searchParams, setSearchParams] = useSearchParams();
+  const ocorrenciasPeriodo = useMinhasOcorrenciasPeriodo(`${ano}-${String(mes).padStart(2, "0")}-01`, ymd(endOfMonth(new Date(ano, mes - 1, 1))), !!meRef.data?.id);
+  useEffect(() => {
+    const competencia = searchParams.get("mes");
+    if (!competencia || !/^\d{4}-(0[1-9]|1[0-2])$/.test(competencia)) return;
+    setAno(Number(competencia.slice(0, 4)));
+    setMes(Number(competencia.slice(5)));
+  }, [searchParams]);
   /** Pedido pendente que será substituído pelo novo envio (devolvido ou duplicado). */
   const [substituirId, setSubstituirId] = useState<string | null>(null);
   const [conflitoPedido, setConflitoPedido] = useState<{ id: string; devolvido_motivo: string | null } | null>(null);
@@ -273,10 +283,11 @@ export default function DpMeuCalendario() {
 
   /** Atestados e faltas do próprio colaborador, marcados no calendário dele. */
   const marcadoresQuery = useQuery({
-    queryKey: ["dp_meus_marcadores_calendario", meRef.data?.id],
+    queryKey: ["dp_meus_marcadores_calendario", meRef.data?.id, range.start, range.end],
     enabled: !!meRef.data?.id,
     queryFn: async () => {
-      const id = meRef.data!.id as string;
+      const id = meRef.data?.id;
+      if (!id) return new Map<string, string[]>();
       const [ates, faltas] = await Promise.all([
         supabase
           .from("dp_solicitacoes")
@@ -284,12 +295,7 @@ export default function DpMeuCalendario() {
           .eq("colaborador_id", id)
           .eq("tipo", "atestado")
           .in("status", ["aprovada", "pendente"]),
-        supabase
-          .from("dp_ocorrencias")
-          .select("data_operacional")
-          .eq("colaborador_id", id)
-          .eq("tipo", "falta")
-          .is("cancelado_em", null),
+        lerMinhasOcorrencias(range.start, range.end),
       ]);
       const mapa = new Map<string, string[]>();
       const add = (iso: string, rotulo: string) => {
@@ -305,7 +311,8 @@ export default function DpMeuCalendario() {
           add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`, "Atestado");
         }
       }
-      for (const f of faltas.data ?? []) {
+      if (ates.error) throw ates.error;
+      for (const f of faltas.filter(o => o.tipo === "falta" && o.estado !== "cancelada")) {
         if (f.data_operacional) add(String(f.data_operacional).slice(0, 10), "Falta");
       }
       return mapa;
@@ -396,12 +403,8 @@ export default function DpMeuCalendario() {
         .lte("data", range.end);
       if (error) throw error;
       if (!companyId || !meRef.data?.id) return data ?? [];
-      const evidencias = await supabase.from("dp_ocorrencias").select("folga_id, subtipo")
-        .eq("company_id", companyId).eq("colaborador_id", meRef.data.id)
-        .gte("data_operacional", range.start).lte("data_operacional", range.end)
-        .not("estado", "eq", "cancelada");
-      if (evidencias.error) throw evidencias.error;
-      return (data ?? []).map((f) => ({ ...f, subtipo: evidencias.data?.find((o) => o.folga_id === f.id)?.subtipo ?? null }));
+      const evidencias = await lerMinhasOcorrencias(range.start, range.end);
+      return (data ?? []).map((f) => ({ ...f, subtipo: evidencias.find((o) => o.estado !== "cancelada" && o.folga_id === f.id)?.subtipo ?? null }));
     },
   });
 
@@ -1950,6 +1953,14 @@ export default function DpMeuCalendario() {
 
           {selectedDay && dayInfo && (
             <div className="space-y-4">
+              <section className="space-y-2">
+                <h2 className="font-semibold">Ocorrências do dia</h2>
+                {ocorrenciasPeriodo.isLoading ? <p role="status" className="text-sm">Carregando ocorrências…</p> : ocorrenciasPeriodo.isError ? <div role="alert"><p className="text-sm">Não foi possível consultar as ocorrências.</p><Button variant="outline" onClick={() => ocorrenciasPeriodo.refetch()}>Tentar novamente</Button></div> : <>
+                  {(ocorrenciasPeriodo.data ?? []).filter(o => o.data_operacional === selectedDay.iso).map(o => <MinhaOcorrenciaCard key={o.id} ocorrencia={o} />)}
+                  {!(ocorrenciasPeriodo.data ?? []).some(o => o.data_operacional === selectedDay.iso) && <p className="text-sm text-muted-foreground">Nenhuma ocorrência registrada neste dia.</p>}
+                </>}
+                <Button variant="link" className="px-0" onClick={() => navigate(`/dp/meu/ocorrencias?mes=${selectedDay.iso.slice(0, 7)}&data=${selectedDay.iso}`)}>Minhas Ocorrências</Button>
+              </section>
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border bg-muted/50 p-4 text-sm min-w-0">
                 <span className="font-bold">Status</span>
                 <Badge variant="outline" className={cn("text-xs whitespace-normal text-right break-words max-w-full", STATUS_BADGE[selectedDay.status])}>
