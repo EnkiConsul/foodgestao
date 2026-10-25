@@ -28,6 +28,7 @@ import {
   type PessoaAvulsaTipo,
   type ResultadoDia,
   ehSobDemanda,
+  STATUS_GOZO_VISIVEL_OPERACAO,
   ultimoDiaNaEscala,
   diaAnterior,
 } from "@/lib/dp/operacao-panorama";
@@ -144,7 +145,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           supabase
             .from("dp_ferias_gozos")
             .select("colaborador_id, data_inicio, data_fim, status")
-            .in("status", ["aprovado", "em_gozo"])
+            .in("status", [...STATUS_GOZO_VISIVEL_OPERACAO])
             .is("cancelado_em", null)
             .eq("company_id", selectedCompanyId!)
             .lte("data_inicio", fim)
