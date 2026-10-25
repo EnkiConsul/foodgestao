@@ -1079,6 +1079,13 @@
       "when": 1792883193589,
       "tag": "0153_preadmissao_sincronizacao_salario_decimal",
       "breakpoints": true
+    },
+    {
+      "idx": 154,
+      "version": "7",
+      "when": 1792896900190,
+      "tag": "0154_portal_ocorrencias_leitura_segura",
+      "breakpoints": true
     }
   ]
 }

@@ -21040,6 +21040,15 @@ export type Database = {
           trabalha: boolean
         }[]
       }
+      dp_portal_minhas_ocorrencias: {
+        Args: {
+          _fim: string
+          _inicio: string
+          _limite?: number
+          _offset?: number
+        }
+        Returns: Json
+      }
       dp_portal_rotina_dia: {
         Args: { p_data: string }
         Returns: {
