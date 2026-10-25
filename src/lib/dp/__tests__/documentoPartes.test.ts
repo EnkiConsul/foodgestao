@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import { faltaVerso, nomeArquivoPacote } from "../documentoPartes";
 
 describe("frente e verso", () => {
+  it("print da CTPS Digital não exige verso", () => {
+    expect(faltaVerso("ctps", [{ parte: 1, mime_type: "image/png" }])).toBe(false);
+  });
   it("RG só com a frente exige o verso", () => {
     expect(faltaVerso("identidade", [{ parte: 1, mime_type: "image/jpeg" }])).toBe(true);
   });

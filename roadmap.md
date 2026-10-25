@@ -1,4 +1,5 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
+- [ ] Simplificar documentos da pré-admissão por documento/titular, corrigir CTPS Digital sem verso e melhorar arrasto/abertura da foto; validar sem alterar fichas reais nem publicar.
 
 - [x] Aplicar somente os refinamentos aprovados em Minhas Ocorrências: dia da semana, inicial maiúscula do mês e horas nas folgas; 11 testes passaram e apresentação conferida com dados fictícios, sem banner em Meu Histórico ou publicação.
 
