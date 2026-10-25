@@ -13,7 +13,7 @@ describe("histórico próprio de ocorrências", () => {
   it("confirmação do fato não equivale a análise", () => { expect(aguardandoAnalise({ ...base, analise_status: "pendente", assiduidade_risco: false })).toBe(true); });
   it("mês vazio não garante prêmio", () => { expect(resumoAssiduidadePortal([])).toBe("Sem impacto confirmado até agora"); });
   it("lê páginas completas do mesmo período", async () => {
-    const rpc = vi.mocked(supabase.rpc);
+    const rpc = supabase.rpc as unknown as ReturnType<typeof vi.fn>;
     rpc.mockResolvedValueOnce({ data: { itens: Array.from({ length: 100 }, (_, i) => ({ ...base, id: String(i) })), total: 101 }, error: null } as never);
     rpc.mockResolvedValueOnce({ data: { itens: [{ ...base, id: "100" }], total: 101 }, error: null } as never);
     expect(await lerMinhasOcorrencias("2026-09-01", "2026-09-30")).toHaveLength(101);
