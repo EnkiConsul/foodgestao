@@ -2,7 +2,7 @@
  * Documentos que têm frente e verso. PDF (CNH digital, CIN do gov.br) ou foto
  * marcada como "Frente e verso" num arquivo só conta como documento completo.
  */
-export const CODIGOS_FRENTE_VERSO = new Set(["identidade", "rg", "cnh", "cnh_valida", "ctps"]);
+export const CODIGOS_FRENTE_VERSO = new Set(["identidade", "rg", "cnh", "cnh_valida"]);
 
 export const ROTULO_ARQUIVO_UNICO = "Frente e verso";
 

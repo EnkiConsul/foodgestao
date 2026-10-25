@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import { pendenciaDocumento } from "../preadmissao-correcao";
 
 describe("integridade da correção documental", () => {
+  it("CTPS Digital em print único está completa", () => {
+    expect(pendenciaDocumento("ctps", [{ parte: 1, mime_type: "image/png" }])).toBeNull();
+  });
   it("não considera RG somente com frente completo", () => {
     expect(pendenciaDocumento("identidade", [{ parte: 1 }])).toBe("Falta enviar o verso");
   });

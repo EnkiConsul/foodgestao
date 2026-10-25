@@ -44,7 +44,8 @@ import { abrirAsoPreadmissao, linkDocumentoPreadmissao, enviarDocumentoGestor, r
 import { ArquivoVisualizadorDialog, baixarBlob, buscarBlob, type ArquivoCarregado } from "@/components/dp/documentos/ArquivoVisualizadorDialog";
 import { ImagemEnquadrarDialog } from "@/components/dp/documentos/ImagemEnquadrarDialog";
 import { faltaVerso, nomeArquivoPacote } from "@/lib/dp/documentoPartes";
-import { Pencil, Replace, ScanText } from "lucide-react";
+import { MoreHorizontal, Pencil, Replace, ScanText } from "lucide-react";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { WhatsAppChoiceDrawer } from "@/components/dp/WhatsAppChoiceDrawer";
 
 /** Ordem da conferência guiada do gestor (abas da ficha). */
@@ -763,6 +764,9 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const alvoGestor = useRef<{ codigo: string; pessoa_id: string | null; parte: number; rotulo: string; motivo: "verso" | "substituicao" } | null>(null);
   const [enquadrar, setEnquadrar] = useState<{ fonte: string; codigo: string; pessoa_id: string | null; parte: number; rotulo: string; titulo: string } | null>(null);
   const [gravandoDoc, setGravandoDoc] = useState(false);
+  const [abrindoFoto, setAbrindoFoto] = useState<string | null>(null);
+  const fotosCache = useRef(new Map<string, Blob>());
+  useEffect(() => { fotosCache.current.clear(); }, [preadmissaoId]);
   const gravarDocGestor = async (arquivo: File, a: { codigo: string; pessoa_id: string | null; parte: number; rotulo: string; motivo: "verso" | "substituicao" | "enquadramento" }) => {
     if (!data) return;
     setGravandoDoc(true);
@@ -778,9 +782,11 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
         parte: a.parte, parte_rotulo: a.rotulo, file_name: arquivo.name, content_base64: base64, motivo: a.motivo,
       });
       toast.success(a.motivo === "verso" ? "Verso anexado." : a.motivo === "enquadramento" ? "Ajuste salvo." : "Arquivo substituído.");
-      refetch();
+      await refetch();
+      return true;
     } catch (e) {
       notifyError(e as Error, { surface: "Pessoas 360°", action: "gravar o documento" });
+      return false;
     } finally {
       setGravandoDoc(false);
     }
@@ -790,16 +796,21 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     arquivoGestorRef.current?.click();
   };
   const abrirEnquadramento = async (d: { id: string; requisito_codigo: string; pessoa_id: string | null; parte?: number | null; parte_rotulo?: string | null }) => {
+    setAbrindoFoto(d.id);
     try {
-      const r = await linkDocumentoPreadmissao(d.id);
-      const blob = await buscarBlob(r.url);
+      let blob = fotosCache.current.get(d.id);
+      if (!blob) {
+        const r = await linkDocumentoPreadmissao(d.id);
+        blob = await buscarBlob(r.url);
+        fotosCache.current.set(d.id, blob);
+      }
       setEnquadrar({
         fonte: URL.createObjectURL(blob), codigo: d.requisito_codigo, pessoa_id: d.pessoa_id,
         parte: Number(d.parte ?? 1), rotulo: rotuloParte(d), titulo: tituloDocumento(d.requisito_codigo),
       });
     } catch (e) {
       notifyError(e as Error, { surface: "Pessoas 360°", action: "abrir a foto para ajuste" });
-    }
+    } finally { setAbrindoFoto(null); }
   };
   const LEITURA = new Set(["identidade", "comprovante_endereco", "ctps", "titulo_eleitor", "reservista"]);
   const [relendo, setRelendo] = useState<string | null>(null);
@@ -834,11 +845,24 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     (d.mime_type ?? "").startsWith("image/") || /\.(jpe?g|png|webp)$/i.test(d.file_name);
 
   /** Grupos (documento + titular) de dois lados que chegaram só com a frente. */
-  const gruposSemVerso = useMemo(() => {
+  const gruposDocumentos = useMemo(() => {
     const m = new Map<string, typeof vigentes>();
     vigentes.forEach((d) => { const k = `${d.requisito_codigo}:${d.pessoa_id ?? ""}`; m.set(k, [...(m.get(k) ?? []), d]); });
-    return [...m.entries()].filter(([k, ds]) => faltaVerso(k.split(":")[0], ds)).map(([, ds]) => ds[0]);
+    return [...m.values()].map((ds) => ds.sort((a, b) => Number(a.parte ?? 1) - Number(b.parte ?? 1)));
   }, [vigentes]);
+  const gruposSemVerso = gruposDocumentos.filter((ds) => faltaVerso(ds[0].requisito_codigo, ds)).map((ds) => ds[0]);
+  const [aprovandoDocs, setAprovandoDocs] = useState(false);
+  const aprovarDocumentos = async () => {
+    setAprovandoDocs(true);
+    try {
+      for (const d of vigentes.filter((d) => d.status !== "aprovado" && d.status !== "recusado")) {
+        await acoes.avaliarDocumento.mutateAsync({ documento_id: d.id, status: "aprovado" });
+      }
+      toast.success("Documentos aprovados. A finalização da ficha continua separada.");
+    } catch (e) {
+      notifyError(e as Error, { surface: "Pessoas 360°", action: "aprovar documentos" });
+    } finally { await refetch(); setAprovandoDocs(false); }
+  };
 
   /**
    * Pacote contábil: todos os documentos vigentes num ZIP com nomes
@@ -1531,82 +1555,50 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const documentosNode = (
     <div className="space-y-6">
       <div className="space-y-3">
-                {!vigentes.length && <p className="text-sm text-muted-foreground">Nenhum documento enviado ainda.</p>}
-                {vigentes.map((d) => (
-                  <div key={d.id} className="rounded-lg border p-2 text-sm">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium">{tituloDocumento(d.requisito_codigo)}</span>
-                      <Badge variant="secondary">{rotuloParte(d)}</Badge>
-                      <span className="text-xs text-muted-foreground">{nomePessoa(d.pessoa_id)}</span>
-                      {d.status === "aprovado" && <Badge variant="outline" className="text-emerald-600">Aprovado</Badge>}
-                      {d.status === "recusado" && <Badge variant="destructive">Recusado</Badge>}
-                      {d.status === "pendente" && <Badge variant="secondary">Em análise</Badge>}
-                      <div className="ml-auto flex gap-1">
-                        <Button size="sm" variant="ghost" aria-label="Ver documento" onClick={() => ver(d.id, `${tituloDocumento(d.requisito_codigo)} - ${rotuloParte(d)}`)}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="ghost" aria-label="Baixar documento" disabled={baixandoUm === d.id} onClick={() => void baixarUm(d)}>
-                          {baixandoUm === d.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                        </Button>
-                        {ehImagem(d) && (
-                          <Button size="sm" variant="ghost" aria-label="Editar enquadramento" disabled={gravandoDoc} onClick={() => void abrirEnquadramento(d)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {!d.pessoa_id && LEITURA.has(d.requisito_codigo) && (
-                          <Button size="sm" variant="ghost" aria-label="Reler dados do documento" title="Reler dados do documento" disabled={relendo === d.requisito_codigo} onClick={() => void relerDados(d.requisito_codigo)}>
-                            {relendo === d.requisito_codigo ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanText className="h-4 w-4" />}
-                          </Button>
-                        )}
-                        <Button size="sm" variant="ghost" aria-label="Substituir arquivo" disabled={gravandoDoc}
-                          onClick={() => escolherArquivoGestor({ codigo: d.requisito_codigo, pessoa_id: d.pessoa_id, parte: Number(d.parte ?? 1), rotulo: rotuloParte(d), motivo: "substituicao" })}>
-                          <Replace className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() =>
-                            executar(
-                              () => acoes.avaliarDocumento.mutateAsync({ documento_id: d.id, status: "aprovado" }),
-                              "Documento aprovado",
-                            )}
-                        >
-                          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            const m = window.prompt("Por que este documento foi recusado?") ?? "";
-                            if (m.trim().length < 5) return;
-                            executar(
-                              () =>
-                                acoes.avaliarDocumento.mutateAsync({
-                                  documento_id: d.id, status: "recusado", motivo: m.trim(),
-                                }),
-                              "Documento recusado",
-                            );
-                          }}
-                        >
-                          <XCircle className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </div>
-                    {d.motivo_recusa && <p className="text-xs text-destructive mt-1">{d.motivo_recusa}</p>}
-                  </div>
-                ))}
-                {gruposSemVerso.map((d) => (
-                  <div key={`sv-${d.id}`} className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-2 text-sm">
-                    <span className="min-w-0 flex-1">
-                      <AlertTriangle className="inline h-4 w-4 mr-1 text-amber-600" />
-                      {tituloDocumento(d.requisito_codigo)} ({nomePessoa(d.pessoa_id)}): verso não enviado
-                    </span>
-                    <Button size="sm" variant="outline" disabled={gravandoDoc}
-                      onClick={() => escolherArquivoGestor({ codigo: d.requisito_codigo, pessoa_id: d.pessoa_id, parte: 2, rotulo: "Verso", motivo: "verso" })}>
-                      <Plus className="h-4 w-4 mr-1" /> Anexar Verso
+                {["aguardando_revisao", "aguardando_nova_versao", "em_preenchimento"].includes(status) && (
+                  <div className="space-y-2">
+                    <Label className="text-xs">Pedir correção ao candidato</Label>
+                    <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={2} maxLength={1000}
+                      placeholder="Descreva o que precisa ser corrigido." />
+                    <Button
+                      variant="default"
+                      disabled={motivo.trim().length < 5 || acoes.solicitarCorrecao.isPending}
+                      onClick={() => void pedirCorrecao()}
+                    >
+                      Devolver ficha para correção
                     </Button>
                   </div>
-                ))}
+                )}
+                {!vigentes.length && <p className="text-sm text-muted-foreground">Nenhum documento enviado ainda.</p>}
+                {gruposDocumentos.map((docs) => {
+                  const primeiro = docs[0];
+                  const semVerso = faltaVerso(primeiro.requisito_codigo, docs);
+                  return <section key={`${primeiro.requisito_codigo}:${primeiro.pessoa_id ?? ""}`} className="rounded-lg border p-3 space-y-2 text-sm">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="font-medium min-w-0 break-words">{tituloDocumento(primeiro.requisito_codigo)}</h4>
+                      {primeiro.pessoa_id && <span className="text-xs text-muted-foreground">{nomePessoa(primeiro.pessoa_id)}</span>}
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                    {docs.map((d) => <div key={d.id} className="flex min-w-0 flex-wrap items-center gap-1 border-b pb-2">
+                      <span className="text-xs mr-auto">{d.requisito_codigo === "ctps" && Number(d.parte ?? 1) === 1 ? "Carteira de trabalho" : rotuloParte(d)}</span>
+                      <Badge variant={d.status === "recusado" ? "destructive" : "secondary"}>{d.status === "aprovado" ? "Aprovado" : d.status === "recusado" ? "Recusado" : "Em análise"}</Badge>
+                      <Button size="icon" variant="ghost" className="h-10 w-10" aria-label={`Ver ${rotuloParte(d)}`} title="Visualizar" onClick={() => ver(d.id, `${tituloDocumento(d.requisito_codigo)} - ${rotuloParte(d)}`)}><Eye className="size-4" /></Button>
+                      {ehImagem(d) && <Button size="icon" variant="ghost" className="h-10 w-10" aria-label="Editar enquadramento" title="Editar enquadramento" disabled={gravandoDoc || abrindoFoto !== null} onClick={() => void abrirEnquadramento(d)}>{abrindoFoto === d.id ? <Loader2 className="size-4 animate-spin" /> : <Pencil className="size-4" />}</Button>}
+                      <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" className="h-10 w-10" aria-label="Ações do arquivo" title="Ações do arquivo"><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem disabled={gravandoDoc} onSelect={() => escolherArquivoGestor({ codigo: d.requisito_codigo, pessoa_id: d.pessoa_id, parte: Number(d.parte ?? 1), rotulo: rotuloParte(d), motivo: "substituicao" })}><Replace className="size-4 mr-2" />Substituir arquivo</DropdownMenuItem>
+                        <DropdownMenuItem disabled={baixandoUm === d.id} onSelect={() => void baixarUm(d)}><Download className="size-4 mr-2" />Baixar arquivo</DropdownMenuItem>
+                        {!d.pessoa_id && LEITURA.has(d.requisito_codigo) && <DropdownMenuItem disabled={relendo === d.requisito_codigo} onSelect={() => void relerDados(d.requisito_codigo)}><ScanText className="size-4 mr-2" />Reler dados do documento</DropdownMenuItem>}
+                        <DropdownMenuItem disabled={aprovandoDocs || acoes.avaliarDocumento.isPending || d.status === "aprovado"} onSelect={() => void executar(() => acoes.avaliarDocumento.mutateAsync({ documento_id: d.id, status: "aprovado" }), "Documento aprovado")}><CheckCircle2 className="size-4 mr-2" />Aprovar arquivo</DropdownMenuItem>
+                        <DropdownMenuItem disabled={aprovandoDocs || acoes.avaliarDocumento.isPending} onSelect={() => { const m = window.prompt("Por que este documento foi recusado?") ?? ""; if (m.trim().length >= 5) void executar(() => acoes.avaliarDocumento.mutateAsync({ documento_id: d.id, status: "recusado", motivo: m.trim() }), "Documento recusado"); }}><XCircle className="size-4 mr-2" />Recusar arquivo</DropdownMenuItem>
+                      </DropdownMenuContent></DropdownMenu>
+                      {d.motivo_recusa && <p className="w-full text-xs text-destructive break-words">{d.motivo_recusa}</p>}
+                    </div>)}
+                    </div>
+                    {semVerso && <div className="flex flex-wrap items-center gap-2 text-warning-foreground"><span className="text-xs mr-auto">Verso não enviado</span><Button size="sm" variant="outline" disabled={gravandoDoc} onClick={() => escolherArquivoGestor({ codigo: primeiro.requisito_codigo, pessoa_id: primeiro.pessoa_id, parte: 2, rotulo: "Verso", motivo: "verso" })}><Plus className="size-4 mr-1" />Anexar verso</Button></div>}
+                  </section>;
+                })}
+                {!encerrada && !!vigentes.length && !data.pendencias.length && !gruposSemVerso.length && !vigentes.some((d) => d.status === "recusado") && vigentes.some((d) => d.status !== "aprovado") && <Button disabled={aprovandoDocs || acoes.avaliarDocumento.isPending} onClick={() => void aprovarDocumentos()}>{aprovandoDocs && <Loader2 className="size-4 mr-2 animate-spin" />}Aprovar todos os documentos</Button>}
                 {!!data.pendencias.length && (
                   <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
                     <p className="font-semibold flex items-center gap-2">
@@ -1635,7 +1627,11 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                     e.target.value = "";
                     const a = alvoGestor.current;
                     alvoGestor.current = null;
-                    if (f && a) void gravarDocGestor(f, a);
+                    if (f && a) {
+                      if (a.codigo === "foto_3x4") {
+                        setEnquadrar({ fonte: URL.createObjectURL(f), codigo: a.codigo, pessoa_id: a.pessoa_id, parte: a.parte, rotulo: a.rotulo, titulo: tituloDocumento(a.codigo) });
+                      } else void gravarDocGestor(f, a);
+                    }
                   }}
                 />
                 <ArquivoVisualizadorDialog carregar={vendo?.carregar ?? null} titulo={vendo?.titulo ?? ""} onClose={() => setVendo(null)} />
@@ -1646,8 +1642,10 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                   textoConfirmar="Salvar Ajuste"
                   onCancelar={() => { if (enquadrar) URL.revokeObjectURL(enquadrar.fonte); setEnquadrar(null); }}
                   onConfirmar={async (f) => {
-                    const a = enquadrar!;
-                    await gravarDocGestor(f, { codigo: a.codigo, pessoa_id: a.pessoa_id, parte: a.parte, rotulo: a.rotulo, motivo: "enquadramento" });
+                    const a = enquadrar;
+                    if (!a) return;
+                    const salvo = await gravarDocGestor(f, { codigo: a.codigo, pessoa_id: a.pessoa_id, parte: a.parte, rotulo: a.rotulo, motivo: "enquadramento" });
+                    if (!salvo) throw new Error("O ajuste não foi salvo. Tente novamente.");
                     URL.revokeObjectURL(a.fonte);
                     setEnquadrar(null);
                   }}
@@ -1663,20 +1661,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
           </div>
         )}
 
-                {["aguardando_revisao", "aguardando_nova_versao", "em_preenchimento"].includes(status) && (
-                  <div className="space-y-2">
-                    <Label className="text-xs">Pedir correção ao candidato</Label>
-                    <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={2} maxLength={1000}
-                      placeholder="Descreva o que precisa ser corrigido." />
-                    <Button
-                      variant="outline"
-                      disabled={motivo.trim().length < 5 || acoes.solicitarCorrecao.isPending}
-                      onClick={() => void pedirCorrecao()}
-                    >
-                      Pedir Correção
-                    </Button>
-                  </div>
-                )}
+
 
                 {status === "aguardando_revisao" && (
                   <p className="rounded-lg border p-3 text-xs text-muted-foreground">

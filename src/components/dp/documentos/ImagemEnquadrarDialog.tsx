@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { limitarPanEnquadramento } from "@/lib/dp/enquadramento";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export type ModoEnquadramento = "retrato" | "documento";
@@ -43,10 +44,11 @@ export function ImagemEnquadrarDialog({ fonte, modo, titulo, textoConfirmar = "C
     if (!fonte) return;
     const url = typeof fonte === "string" ? fonte : URL.createObjectURL(fonte);
     const i = new Image();
-    i.onload = () => setImg(i);
-    i.onerror = () => setErro("Não foi possível abrir esta imagem.");
+    let ativo = true;
+    i.onload = () => { if (ativo) setImg(i); };
+    i.onerror = () => { if (ativo) setErro("Não foi possível abrir esta imagem."); };
     i.src = url;
-    return () => { if (typeof fonte !== "string") URL.revokeObjectURL(url); };
+    return () => { ativo = false; if (typeof fonte !== "string") URL.revokeObjectURL(url); };
   }, [fonte]);
 
   const deitado = giro % 180 !== 0;
@@ -73,15 +75,13 @@ export function ImagemEnquadrarDialog({ fonte, modo, titulo, textoConfirmar = "C
   const escala = base * zoom;
   const limitar = useCallback((p: { x: number; y: number }, z = zoom) => {
     const s = base * z;
-    const mx = Math.max(0, (imgW * s - quadro.w) / 2);
-    const my = Math.max(0, (imgH * s - quadro.h) / 2);
-    return { x: Math.min(mx, Math.max(-mx, p.x)), y: Math.min(my, Math.max(-my, p.y)) };
-  }, [base, imgW, imgH, quadro, zoom]);
+    return limitarPanEnquadramento(p, { w: imgW * s, h: imgH * s }, quadro, modo === "retrato");
+  }, [base, imgW, imgH, quadro, zoom, modo]);
 
   useEffect(() => { setPan((p) => limitar(p)); }, [zoom, giro, quadro, limitar]);
 
   const onDown = (e: React.PointerEvent) => {
-    (e.target as Element).setPointerCapture?.(e.pointerId);
+    e.currentTarget.setPointerCapture(e.pointerId);
     toques.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (toques.current.size === 2) {
       const [a, b] = [...toques.current.values()];
@@ -111,7 +111,7 @@ export function ImagemEnquadrarDialog({ fonte, modo, titulo, textoConfirmar = "C
   };
 
   const confirmar = async () => {
-    if (!img) return;
+    if (!img || !fonte) return;
     setSalvando(true);
     try {
       // Área visível do quadro convertida para pixels da imagem girada.
@@ -133,7 +133,7 @@ export function ImagemEnquadrarDialog({ fonte, modo, titulo, textoConfirmar = "C
       ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
       const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", 0.92));
       if (!blob) throw new Error("Não foi possível gerar a foto.");
-      const nome = (typeof fonte === "string" ? "foto" : fonte!.name.replace(/\.[^.]+$/, "")) + ".jpg";
+      const nome = (typeof fonte === "string" ? "foto" : fonte.name.replace(/\.[^.]+$/, "")) + ".jpg";
       await onConfirmar(new File([blob], nome, { type: "image/jpeg" }));
     } catch (e) {
       setErro((e as Error).message);
@@ -157,7 +157,7 @@ export function ImagemEnquadrarDialog({ fonte, modo, titulo, textoConfirmar = "C
         <div className="grid place-items-center">
           <div
             ref={quadroRef}
-            className="relative overflow-hidden rounded-md bg-muted select-none"
+            className="relative overflow-hidden rounded-md bg-background select-none"
             style={{ width: quadro.w, height: quadro.h, touchAction: "none" }}
             onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
             aria-label="Área de enquadramento"
