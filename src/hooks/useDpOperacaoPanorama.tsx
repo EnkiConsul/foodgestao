@@ -144,7 +144,9 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           supabase
             .from("dp_ferias_gozos")
             .select("colaborador_id, data_inicio, data_fim, status")
-            .in("status", ["aprovado", "em_gozo"])
+            // Inclui "concluido": férias já encerradas no mês continuam ausência
+            // nos dias passados (headcount histórico e baseline da operação).
+            .in("status", ["aprovado", "em_gozo", "concluido"])
             .is("cancelado_em", null)
             .eq("company_id", selectedCompanyId!)
             .lte("data_inicio", fim)
