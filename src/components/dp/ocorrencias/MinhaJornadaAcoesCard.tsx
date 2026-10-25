@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { AnexoFotoPdfPicker } from "@/components/dp/portal/AnexoFotoPdfPicker";
 import { prepararUpload } from "@/lib/storage/uploadPolicy";
 import { AlertTriangle, Clock, HeartPulse, HelpCircle, LogOut, Timer, UserX, Wrench } from "lucide-react";
@@ -239,6 +240,7 @@ export function MinhaJornadaAcoesCard() {
           );
         })}
       </div>
+      <Button asChild variant="link" className="mt-2 px-0"><Link to="/dp/meu/ocorrencias">Minhas Ocorrências</Link></Button>
       <p className="mt-2 text-xs text-muted-foreground">
         Informar aqui avisa a rotina na hora. A análise do gestor acontece depois.
       </p>

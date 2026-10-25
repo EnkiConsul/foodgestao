@@ -7,5 +7,6 @@ export function invalidarRotina(qc: QueryClient) {
     "dp_portal_equipe_fora_dia", "dp_minha_situacao_dia", "dp_folgas",
     "dp_folgas_efetivadas", "dp_dia_trabalho_excepcional_panorama",
     "dp_ocorrencias", "dp_ocorrencias_indicadores", "minhas_ocorrencias", "dp_ocorrencia_eventos",
+    "minhas_ocorrencias_periodo", "minhas_ocorrencias_mes", "dp_meus_marcadores_calendario", "dp_folgas_meu_cal",
   ].map((key) => qc.invalidateQueries({ queryKey: [key] })));
 }

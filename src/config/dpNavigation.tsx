@@ -202,6 +202,7 @@ const PORTAL_GROUPS: DpNavGroup[] = [
     icon: Calendar,
     matchPrefixes: [
       "/dp/meu/calendario",
+      "/dp/meu/ocorrencias",
       "/dp/meu/escala",
       "/dp/meu/rotina",
       "/dp/meu/convocacoes",
@@ -211,6 +212,7 @@ const PORTAL_GROUPS: DpNavGroup[] = [
     ],
     items: [
       { label: "Calendário", to: "/dp/meu/calendario", icon: Calendar, shortcut: true },
+      { label: "Minhas Ocorrências", to: "/dp/meu/ocorrencias", icon: ClipboardList, shortcut: true, shortLabel: "Ocorrências" },
       // "Minha Escala" só faz sentido para quem é chamado por convocação
       // (freelancer e intermitente); some do menu para quem tem escala fixa.
       { label: "Rotina", to: "/dp/meu/escala", icon: CalendarRange, shortcut: true },
