@@ -272,10 +272,25 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const acoes = useDpPreadmissaoGestor(preadmissaoId);
   const [aba, setAba] = useState("dados");
   /** Abas já abertas pelo gestor nesta conferência. */
-  const [vistas, setVistas] = useState<Set<string>>(new Set(["dados"]));
+  // Lembrado por ficha neste aparelho, para não exigir de novo as etapas já conferidas.
+  const chaveVistas = preadmissaoId ? `aveto:preadmissao:vistas:${preadmissaoId}` : null;
+  const lerVistas = (k: string | null): Set<string> => {
+    try {
+      const salvo = k ? JSON.parse(window.localStorage.getItem(k) ?? "[]") : [];
+      return new Set(["dados", ...(Array.isArray(salvo) ? salvo.filter((x) => typeof x === "string") : [])]);
+    } catch { return new Set(["dados"]); }
+  };
+  const [vistas, setVistasEstado] = useState<Set<string>>(() => lerVistas(chaveVistas));
+  const setVistas = (v: Set<string> | ((atual: Set<string>) => Set<string>)) => {
+    setVistasEstado((atual) => {
+      const novo = typeof v === "function" ? v(atual) : v;
+      try { if (chaveVistas) window.localStorage.setItem(chaveVistas, JSON.stringify([...novo])); } catch { /* sem armazenamento */ }
+      return novo;
+    });
+  };
   const [abaConf, setAbaConf] = useState("dados");
   const [abaPedida, setAbaPedida] = useState<{ aba: string; n: number } | null>(null);
-  useEffect(() => { setVistas(new Set(["dados"])); setAbaConf("dados"); setAbaPedida(null); }, [preadmissaoId]);
+  useEffect(() => { setVistasEstado(lerVistas(chaveVistas)); setAbaConf("dados"); setAbaPedida(null); }, [preadmissaoId]); // eslint-disable-line react-hooks/exhaustive-deps
   const marcarAba = (a: string) => { setAbaConf(a); setVistas((v) => (v.has(a) ? v : new Set([...v, a]))); };
   const [motivo, setMotivo] = useState("");
   const [retomando, setRetomando] = useState(false);
