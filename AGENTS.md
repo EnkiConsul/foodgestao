@@ -57,3 +57,4 @@
 - Pre-admission activation inherits the reviewed habitual sector into the employee and empty worked-day slots, preserving explicit daily sectors and validating company scope.
 - Provisional employee cards resolve admission by company-scoped routine ID and open the official review form; admission updates synchronize operational fields transactionally without formalizing the regime or replacing past schedule configurations.
 - Pre-admission document groups use requirement plus person identity and retain individual versioned decisions; portrait panning protects the face guide while document cropping protects all edges, using the shared geometry helper.
+- Portal access enters the consult-only state `aviso_pos_trabalho` after the last attendance of a running notice (decided in the DB wrapper over `dp_portal_decisao_base`); operational RPCs keep requiring `ativo`, so colleagues' routines are hidden automatically.
