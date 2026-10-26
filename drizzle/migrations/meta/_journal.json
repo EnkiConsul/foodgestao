@@ -1093,6 +1093,13 @@
       "when": 1792902648201,
       "tag": "0155_preadmissao_sincronizar_rotina_variavel_ambigua",
       "breakpoints": true
+    },
+    {
+      "idx": 156,
+      "version": "7",
+      "when": 1793020686136,
+      "tag": "0156_portal_aviso_pos_trabalho",
+      "breakpoints": true
     }
   ]
 }
