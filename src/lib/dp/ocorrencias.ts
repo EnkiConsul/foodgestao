@@ -288,7 +288,17 @@ export function tratativaJaDecididaPorAtestado(o: {
   );
 }
 
-/** Ocorrência que ainda exige tratativa de ponto pelo gestor. */
+/** Evento já definido (folga autorizada/compensatória ou dispensa do Art. 488): nunca pede tratativa. */
+export function eventoPreDefinido(o: {
+  tipo: string;
+  subtipo?: string | null;
+  folga_id?: string | null;
+  troca_id?: string | null;
+}): boolean {
+  return o.subtipo === "dispensa_aviso_art488" || ocorrenciaDeFolga(o);
+}
+
+/** Ocorrência que ainda exige decisão (tratativa) do gestor. */
 export function tratativaPendente(o: {
   tipo: string;
   estado: string;
@@ -305,32 +315,56 @@ export function tratativaPendente(o: {
     !!o.tratativa_ponto &&
     o.tratativa_status === "pendente" &&
     o.estado !== "cancelada" &&
+    !eventoPreDefinido(o) &&
     !tratativaJaDecididaPorAtestado(o)
   );
 }
 
-export type DiretrizPonto = "abonar" | "descontar" | "ajustar" | "decidir" | "outro";
+export type DiretrizPonto = "compensar" | "abonar" | "descontar" | "ajustar" | "decidir" | "outro";
 
 export const DIRETRIZ_LABEL: Record<DiretrizPonto, string> = {
-  abonar: "Abonar no ponto",
-  descontar: "Descontar na folha",
+  compensar: "Compensação",
+  abonar: "Abono",
+  descontar: "Desconto em Folha",
   ajustar: "Ajustar batida",
   decidir: "A decidir",
   outro: "Outros",
 };
 
-/** O que o gestor deve fazer no sistema de ponto com esta ocorrência. */
-export function diretrizPonto(o: Parameters<typeof tratativaPendente>[0]): DiretrizPonto | null {
+/** Decisões oficiais do gestor (nunca presumidas). */
+export const DECISAO_TRATATIVA_LABEL: Record<string, string> = {
+  compensacao: "Compensação",
+  abono: "Abono",
+  desconto: "Desconto em Folha",
+  confirmada: "Aceita",
+  ajuste_solicitado: "Ajuste solicitado",
+};
+
+/** Diretriz da ocorrência. Atrasos/faltas nunca presumem desconto: só a decisão do gestor define. */
+export function diretrizPonto(
+  o: Parameters<typeof tratativaPendente>[0] & { tratativa_decisao?: string | null },
+): DiretrizPonto | null {
   if (o.estado === "cancelada") return null;
   if (o.subtipo === "dispensa_aviso_art488") return "abonar";
   if (ocorrenciaDeFolga(o)) return o.subtipo === "troca_trabalho" ? "ajustar" : "abonar";
+  if (o.tratativa_decisao === "compensacao") return "compensar";
+  if (o.tratativa_decisao === "abono") return "abonar";
+  if (o.tratativa_decisao === "desconto") return "descontar";
   if (tratativaJaDecididaPorAtestado(o)) return "abonar";
   if (o.estado === "aguardando_confirmacao" || TIPOS_PREVISAO.includes(o.tipo as OcorrenciaTipo)) return "decidir";
   if (tratativaPendente(o)) return "decidir";
   if (o.tipo === "atestado" || o.tipo === "ausencia_justificada") return "abonar";
   if (o.tipo === "esquecimento_marcacao") return "ajustar";
-  if (["falta", "atraso", "saida_antecipada", "atraso_intervalo"].includes(o.tipo)) return "descontar";
+  if (["falta", "atraso", "saida_antecipada", "atraso_intervalo"].includes(o.tipo)) return "decidir";
   return "outro";
+}
+
+/** Colaborador/unidade com controle de ponto (define a linguagem "ponto" x "ocorrência"). */
+export function temControlePonto(o: {
+  colaborador?: { possui_folha_ponto?: boolean | null } | null;
+  unidade?: { possui_relogio_ponto?: boolean | null } | null;
+}): boolean {
+  return o.colaborador?.possui_folha_ponto !== false && o.unidade?.possui_relogio_ponto !== false;
 }
 
 /** Ocorrência que ainda pede atenção do gestor (alerta da tela inicial). */
@@ -347,5 +381,6 @@ export function ocorrenciaPedeAtencao(o: {
 }): boolean {
   if (o.estado === "cancelada") return false;
   if (tratativaJaDecididaPorAtestado(o)) return false;
+  if (eventoPreDefinido(o as Parameters<typeof eventoPreDefinido>[0])) return false;
   return o.analise_status !== "analisada" || tratativaPendente(o);
 }

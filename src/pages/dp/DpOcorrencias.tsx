@@ -373,14 +373,14 @@ export default function DpOcorrencias() {
               />
   );
   const contagemDiretriz = (() => {
-    const c: Record<DiretrizPonto, number> = { abonar: 0, descontar: 0, ajustar: 0, decidir: 0, outro: 0 };
+    const c: Record<DiretrizPonto, number> = { compensar: 0, abonar: 0, descontar: 0, ajustar: 0, decidir: 0, outro: 0 };
     for (const o of acoes.ocorrencias) { const d = diretrizPonto(o); if (d) c[d]++; }
     return c;
   })();
   const lista = diretriz ? acoes.ocorrencias.filter((o) => diretrizPonto(o) === diretriz) : acoes.ocorrencias;
   const copiarResumo = async () => {
     const linhas: string[] = [`Resumo do ponto — ${textoPeriodo}`];
-    for (const d of ["abonar", "descontar", "ajustar", "decidir"] as DiretrizPonto[]) {
+    for (const d of ["compensar", "abonar", "descontar", "ajustar", "decidir"] as DiretrizPonto[]) {
       const itens = acoes.ocorrencias.filter((o) => diretrizPonto(o) === d)
         .sort((a, b) => (a.colaborador?.nome ?? "").localeCompare(b.colaborador?.nome ?? "") || a.data_operacional.localeCompare(b.data_operacional));
       if (!itens.length) continue;
@@ -891,9 +891,9 @@ export default function DpOcorrencias() {
           </p>
         ) : (
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-5">
               {([
-                ["abonar", "🟢"], ["descontar", "🔴"], ["ajustar", "⏱️"], ["decidir", "⚖️"],
+                ["decidir", "⚖️"], ["compensar", "🔁"], ["abonar", "🟢"], ["descontar", "🔴"], ["ajustar", "⏱️"],
               ] as [DiretrizPonto, string][]).map(([d, emoji]) => (
                 <button
                   key={d}

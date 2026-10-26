@@ -11,9 +11,11 @@ describe("justificativas de folgas autorizadas", () => {
   it.each(["compensacao_feriado", "folga_extra", "troca_folga"])("%s tem diretriz abonar mesmo com tratativa pendente", (subtipo) => {
     expect(diretrizPonto({ ...base, subtipo })).toBe("abonar");
   });
-  it("folga já aprovada continua na fila de tratamento externo", () => {
-    expect(tratativaPendente(base)).toBe(true);
-    expect(ocorrenciaPedeAtencao(base)).toBe(true);
+  it("folga já aprovada é evento definido, sem pendência de tratativa", () => {
+    expect(tratativaPendente(base)).toBe(false);
+    expect(ocorrenciaPedeAtencao(base)).toBe(false);
+
+
     expect(tratativaJaDecididaPorAtestado(base)).toBe(false);
   });
   it("confirmação da justificativa encerra a pendência sem mudar o abono", () => {
