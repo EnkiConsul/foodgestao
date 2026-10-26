@@ -2,12 +2,7 @@ import { FileText, Home } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { usePortalAcesso } from "@/hooks/usePortalAcesso";
-
-function formatarData(iso: string | null): string | null {
-  if (!iso) return null;
-  const d = new Date(iso.length === 10 ? `${iso}T00:00:00` : iso);
-  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString("pt-BR");
-}
+import { dataBr } from "@/lib/dp/formato";
 
 /**
  * Guarda das telas operacionais do portal.
