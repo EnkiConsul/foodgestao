@@ -1100,6 +1100,13 @@
       "when": 1793020686136,
       "tag": "0156_portal_aviso_pos_trabalho",
       "breakpoints": true
+    },
+    {
+      "idx": 157,
+      "version": "7",
+      "when": 1793023836739,
+      "tag": "0157_ocorrencia_tratativa_compensacao_abono_desconto",
+      "breakpoints": true
     }
   ]
 }

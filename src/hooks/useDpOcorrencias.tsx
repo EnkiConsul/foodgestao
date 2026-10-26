@@ -125,8 +125,8 @@ export interface Ocorrencia {
   solicitacao_id?: string | null;
   subtipo?: string | null;
   created_at: string;
-  colaborador: { nome: string; nome_social?: string | null; cargo: string | null } | null;
-  unidade: { nome: string } | null;
+  colaborador: { nome: string; nome_social?: string | null; cargo: string | null; possui_folha_ponto?: boolean | null } | null;
+  unidade: { nome: string; possui_relogio_ponto?: boolean | null } | null;
   setor: { nome: string } | null;
 }
 
@@ -138,8 +138,8 @@ const COLS = `
   relevancia_operacional, analise_status, analisado_em, tratativa_ponto, tratativa_status,
   tratativa_decisao, tratativa_observacao, lancado_ponto_em, marcacao_alvo, documento_id, informada_em,
   antecedencia_minutos, motivo_cancelamento, created_at, troca_id, folga_id, solicitacao_id, subtipo,
-  colaborador:dp_colaboradores!dp_ocorrencias_colaborador_id_fkey(nome, nome_social, cargo),
-  unidade:dp_unidades!dp_ocorrencias_unidade_id_fkey(nome),
+  colaborador:dp_colaboradores!dp_ocorrencias_colaborador_id_fkey(nome, nome_social, cargo, possui_folha_ponto),
+  unidade:dp_unidades!dp_ocorrencias_unidade_id_fkey(nome, possui_relogio_ponto),
   setor:dp_setores!dp_ocorrencias_setor_id_fkey(nome)
 `;
 
@@ -465,7 +465,7 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
     },
     onSuccess: () => {
       invalidate();
-      toast.success("Ponto tratado. A ocorrência saiu das pendências.");
+      toast.success("Decisão registrada. A ocorrência saiu das pendências.");
     },
     onError: (e: Error) => toast.error(textoErroOcorrencia(e.message)),
   });
