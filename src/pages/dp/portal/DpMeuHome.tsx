@@ -34,6 +34,7 @@ import { MeuDesligamentoCard } from "@/components/dp/portal/MeuDesligamentoCard"
 export default function DpMeuHome() {
   const { user } = useAuth();
   const meu = useDpMeuResumo();
+  const { estado: estadoPortal } = usePortalAcesso();
 
   const colabId = useQuery({
     queryKey: ["colab_of", user?.id],
