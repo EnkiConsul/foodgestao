@@ -29,12 +29,13 @@ import { ConfirmarContatosPortal } from "@/components/dp/contatos/ConfirmarConta
 import { InstalarAppCard } from "@/components/dp/portal/InstalarAppCard";
 import { VerMenuCompleto } from "@/components/mobile/VerMenuCompleto";
 import { MeuDesligamentoCard } from "@/components/dp/portal/MeuDesligamentoCard";
+import { dataBr } from "@/lib/dp/formato";
 
 
 export default function DpMeuHome() {
   const { user } = useAuth();
   const meu = useDpMeuResumo();
-  const { estado: estadoPortal } = usePortalAcesso();
+  const { estado: estadoPortal, acessoAte } = usePortalAcesso();
 
   const colabId = useQuery({
     queryKey: ["colab_of", user?.id],
