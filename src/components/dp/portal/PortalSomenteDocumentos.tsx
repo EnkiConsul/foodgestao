@@ -18,7 +18,7 @@ export function PortalSomenteDocumentos({ children }: { children: React.ReactNod
   if (!somenteDocumentos) return <>{children}</>;
 
   const suspensa = estado === "empresa_suspensa_leitura";
-  const prazo = formatarData(acessoAte);
+  const prazo = acessoAte ? dataBr(acessoAte, "") : "";
 
   return (
     <div className="mx-auto max-w-md space-y-3 p-6 text-center">
