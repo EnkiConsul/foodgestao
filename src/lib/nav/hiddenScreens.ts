@@ -99,6 +99,7 @@ export const PORTAL_ROTAS_OPERACIONAIS: string[] = [
   "/dp/meu/convocacoes",
   "/dp/meu/trocas",
   "/dp/meu/ferias",
+  "/dp/meu/calculadora",
 ];
 
 export function portalRoutesSomenteDocumentos(somenteDocumentos: boolean | null | undefined): string[] {

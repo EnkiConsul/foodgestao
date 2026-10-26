@@ -27,7 +27,9 @@ export function PortalSomenteDocumentos({ children }: { children: React.ReactNod
       <p className="text-sm text-muted-foreground">
         {suspensa
           ? "Seu acesso está em modo de consulta. Você pode ver e baixar seus contracheques e documentos. Em caso de dúvidas, procure o setor de pessoal."
-          : "Com o vínculo encerrado, seu acesso fica apenas para consultar e baixar seus documentos."}
+          : estado === "aviso_pos_trabalho"
+            ? "Seu período de trabalho foi concluído. Até o término do contrato, o portal fica disponível para acompanhar seu desligamento e consultar seus documentos."
+            : "Com o vínculo encerrado, seu acesso fica apenas para consultar e baixar seus documentos."}
       </p>
       <Button asChild>
         <Link to="/dp/meu/documentos">Ver meus documentos</Link>

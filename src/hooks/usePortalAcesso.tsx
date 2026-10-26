@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 export type PortalEstado =
   | "ativo"
   | "desligado_no_prazo"
+  | "aviso_pos_trabalho"
   | "desligado_expirado"
   | "bloqueado"
   | "empresa_inativa"

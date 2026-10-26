@@ -32,6 +32,24 @@ export function CarenciaPortalBanner() {
     );
   }
 
+  if (estado === "aviso_pos_trabalho") {
+    return (
+      <div className="mx-3 mt-3 rounded-xl border border-border bg-muted/50 p-3 text-xs">
+        <div className="flex items-start gap-2">
+          <Info className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            <div className="font-semibold">Período de trabalho concluído</div>
+            <p className="text-muted-foreground mt-0.5">
+              Até o término do contrato, o portal fica disponível para acompanhar seu desligamento,
+              suas ocorrências e seus documentos. Após o término, você ainda terá 30 dias de acesso
+              para consultar e baixar seus documentos e recibos.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const dias = diasRestantesCarencia(acessoAte) ?? 0;
 
   return (
