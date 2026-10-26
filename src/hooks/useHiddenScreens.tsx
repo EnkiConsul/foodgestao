@@ -40,7 +40,7 @@ export function useHiddenScreens() {
   });
 
   const { data: vinculo } = useMeuVinculoPortal();
-  const { somenteDocumentos } = usePortalAcesso();
+  const { somenteDocumentos, estado: estadoPortal } = usePortalAcesso();
 
   const config = data ?? EMPTY_HIDDEN;
   const globais = useMemo(() => effectiveHiddenRoutes(config), [config]);
@@ -49,8 +49,10 @@ export function useHiddenScreens() {
     const set = new Set(globais);
     for (const r of portalRoutesForaDoVinculo(vinculo)) set.add(r);
     for (const r of portalRoutesSomenteDocumentos(somenteDocumentos)) set.add(r);
+    // Após o último comparecimento, comunicados da loja deixam de aparecer.
+    if (estadoPortal === "aviso_pos_trabalho") set.add("/dp/meu/mural");
     return set;
-  }, [globais, vinculo, somenteDocumentos]);
+  }, [globais, vinculo, somenteDocumentos, estadoPortal]);
 
   const salvar = useMutation({
     mutationFn: async (next: Partial<HiddenScreensConfig>) => {

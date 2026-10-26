@@ -8,6 +8,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDpMeuResumo } from "@/hooks/useDpMeuResumo";
+import { usePortalAcesso } from "@/hooks/usePortalAcesso";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AtalhosFavoritos } from "@/components/dp/home/AtalhosFavoritos";
@@ -109,6 +110,9 @@ export default function DpMeuHome() {
   );
 
   const folgaTexto = textoProximaFolga(proximaFolga, hojeISO);
+  // Sem comparecimento previsto (aviso pós-trabalho ou vínculo encerrado):
+  // a tela mostra só desligamento, documentos e ocorrências próprias.
+  const enxuto = estadoPortal === "aviso_pos_trabalho" || estadoPortal === "desligado_no_prazo";
 
 
   return (
@@ -136,11 +140,11 @@ export default function DpMeuHome() {
       <MeuDesligamentoCard />
 
       {/* Escolha mensal de folgas liberada: destaque no topo. */}
-      <CardEscolhaFolgaHome />
+      {!enxuto && <CardEscolhaFolgaHome />}
 
       {/* Resumo compacto logo abaixo da saudação: 2 por linha no celular. */}
-      <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-3">
-        <ResumoCard
+      <div className={enxuto ? "grid grid-cols-2 gap-2 sm:gap-4" : "grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-3"}>
+        {!enxuto && <ResumoCard
           icon={Calendar}
           label="Próxima folga"
           value={folgaTexto}
@@ -154,7 +158,7 @@ export default function DpMeuHome() {
               : "Sem folga prevista"
           }
           to="/dp/meu/calendario"
-        />
+        />}
         <ResumoCard
           icon={FileText}
           label="Meus Documentos"
@@ -167,14 +171,22 @@ export default function DpMeuHome() {
           to="/dp/meu/documentos"
           loading={ultimosDocs.isLoading || colabId.isLoading}
         />
-        <ResumoCard
+        {enxuto ? (
+          <ResumoCard
+            icon={ClipboardList}
+            label="Minhas Ocorrências"
+            value="Ver"
+            hint="Histórico do seu ponto"
+            to="/dp/meu/ocorrencias"
+          />
+        ) : <ResumoCard
           icon={MessageSquare}
           label="Avisos do Mural"
           value={String(msgs.data ?? 0)}
           hint={(msgs.data ?? 0) > 0 ? "Avisos não lidos" : "Nenhum aviso novo"}
           to="/dp/meu/mural"
           loading={msgs.isLoading}
-        />
+        />}
       </div>
 
       {/* Convite para instalar o app, no primeiro acesso pelo celular. */}
@@ -184,9 +196,9 @@ export default function DpMeuHome() {
       <MinhasPendenciasCard />
 
 
-      <MinhaJornadaAcoesCard />
+      {!enxuto && <MinhaJornadaAcoesCard />}
 
-      <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-2 min-w-0">
+      {!enxuto && <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-2 min-w-0">
 
         <section className="rounded-2xl border-2 border-[hsl(var(--dp-pending-border))] bg-[hsl(var(--dp-pending-bg))] p-4 sm:p-5 flex flex-col min-w-0">
           <div className="flex items-center gap-2 mb-4 flex-wrap">
@@ -225,11 +237,11 @@ export default function DpMeuHome() {
         </section>
 
         <AvisosNotificacoesCard />
-      </div>
+      </div>}
 
-      <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-2 min-w-0">
+      {!enxuto && <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-2 min-w-0">
         <AniversariantesCard variant="portal" />
-      </div>
+      </div>}
 
 
       <AtalhosFavoritos />
