@@ -17,12 +17,13 @@ function formatarData(iso: string | null): string | null {
  * A restrição também vale no banco — aqui é apenas a explicação para a pessoa.
  */
 export function PortalSomenteDocumentos({ children }: { children: React.ReactNode }) {
-  const { somenteDocumentos, estado, isLoading } = usePortalAcesso();
+  const { somenteDocumentos, estado, acessoAte, isLoading } = usePortalAcesso();
 
   if (isLoading) return <div className="p-6 text-sm text-muted-foreground">Carregando…</div>;
   if (!somenteDocumentos) return <>{children}</>;
 
   const suspensa = estado === "empresa_suspensa_leitura";
+  const prazo = formatarData(acessoAte);
 
   return (
     <div className="mx-auto max-w-md space-y-3 p-6 text-center">
