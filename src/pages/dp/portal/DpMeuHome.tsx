@@ -141,6 +141,15 @@ export default function DpMeuHome() {
 
       <MeuDesligamentoCard />
 
+      {/* Aviso do prazo de acesso documental após o término do contrato. */}
+      {enxuto && (
+        <p className="text-xs text-muted-foreground text-center px-4">
+          {acessoAte
+            ? `Seus documentos e recibos ficam disponíveis para consulta e download até ${dataBr(acessoAte)}.`
+            : "Após o término do contrato, seus documentos e recibos ficam disponíveis para consulta e download por 30 dias."}
+        </p>
+      )}
+
       {/* Escolha mensal de folgas liberada: destaque no topo. */}
       {!enxuto && <CardEscolhaFolgaHome />}
 
