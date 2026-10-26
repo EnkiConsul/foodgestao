@@ -57,12 +57,13 @@ function resolve(
   storedTo: string | null,
   otherTos: string[],
   options: NavLeaf[],
+  hidden: Set<string> = new Set(),
 ): NavLeaf {
   if (storedTo && !otherTos.includes(storedTo)) {
     const found = options.find((it) => it.to === storedTo);
     if (found) return found;
   }
-  if (!otherTos.includes(fallback.to)) return fallback;
+  if (!otherTos.includes(fallback.to) && !hidden.has(fallback.to)) return fallback;
   const alt = options.find((it) => !otherTos.includes(it.to) && it.to !== fallback.to);
   return alt ?? fallback;
 }
@@ -118,10 +119,10 @@ export function useModuleShortcuts(mod: ActiveModule) {
   const rawC = remote ? remote.c ?? null : localC;
 
   // Resolve garantindo A ≠ B ≠ C.
-  const shortcutA = resolve(config.defaultShortcutA, rawA, [], options);
-  const shortcutB = resolve(config.defaultShortcutB, rawB, [shortcutA.to], options);
+  const shortcutA = resolve(config.defaultShortcutA, rawA, [], options, hidden);
+  const shortcutB = resolve(config.defaultShortcutB, rawB, [shortcutA.to], options, hidden);
   const shortcutC = config.defaultShortcutC
-    ? resolve(config.defaultShortcutC, rawC, [shortcutA.to, shortcutB.to], options)
+    ? resolve(config.defaultShortcutC, rawC, [shortcutA.to, shortcutB.to], options, hidden)
     : shortcutA; // fallback quando o módulo não tem slot C
 
   // ── Migração one-shot: se acabou de logar e há dados no localStorage
