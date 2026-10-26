@@ -1,4 +1,4 @@
-import { tratativaPendente, tratativaJaDecididaPorAtestado, ocorrenciaDeFolga, diretrizPonto, DIRETRIZ_LABEL } from "@/lib/dp/ocorrencias";
+import { tratativaPendente, tratativaJaDecididaPorAtestado, ocorrenciaDeFolga, diretrizPonto, DIRETRIZ_LABEL, DECISAO_TRATATIVA_LABEL, temControlePonto } from "@/lib/dp/ocorrencias";
 import { nomeExibicao } from "@/lib/dp/nomeExibicao";
 import { useState } from "react";
 import {
@@ -87,8 +87,9 @@ export function OcorrenciaCard({
   const folgaAutorizada = ocorrenciaDeFolga(o);
   const diretriz = diretrizPonto(o);
   const tratarPendente = tratativaPendente(o);
+  const comPonto = temControlePonto(o);
   const abonoAtestado = !cancelada && tratativaJaDecididaPorAtestado(o) && o.tratativa_status === "pendente";
-  const conferirPendente = !tratarPendente && o.analise_status === "pendente" && !cancelada;
+  const conferirPendente = !tratarPendente && !folgaAutorizada && o.subtipo !== "dispensa_aviso_art488" && o.analise_status === "pendente" && !cancelada;
 
   return (
     <div className={cn("rounded-lg border p-3", COR_CLASSE[cor])}>
@@ -157,9 +158,10 @@ export function OcorrenciaCard({
               {DIRETRIZ_LABEL[diretriz]} · Sem impacto na assiduidade ou férias
             </p>
           )}
-          {!tratarPendente && o.tratativa_status !== "pendente" && o.tratativa_ponto && (
+          {!tratarPendente && !folgaAutorizada && o.tratativa_status !== "pendente" && o.tratativa_ponto && (
             <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-              <CheckCircle2 className="h-3 w-3" /> {TRATATIVA_LABEL[o.tratativa_status]}
+              <CheckCircle2 className="h-3 w-3" />{" "}
+              {(o.tratativa_decisao && DECISAO_TRATATIVA_LABEL[o.tratativa_decisao]) || TRATATIVA_LABEL[o.tratativa_status]}
               {o.tratativa_observacao ? ` · ${o.tratativa_observacao}` : ""}
             </p>
           )}
@@ -173,7 +175,7 @@ export function OcorrenciaCard({
           )}
           {tratarPendente && (
             <Button size="sm" onClick={onTratativa}>
-              <ClipboardCheck className="mr-1 h-3.5 w-3.5" /> Tratar ponto
+              <ClipboardCheck className="mr-1 h-3.5 w-3.5" /> {comPonto ? "Tratar ponto" : "Conferir ocorrência"}
             </Button>
           )}
           {conferirPendente && (
@@ -192,7 +194,7 @@ export function OcorrenciaCard({
               {validas.length ? "Ver cobertura" : "Cobrir"}
             </Button>
           )}
-          {onLancado && !cancelada && (
+          {onLancado && !cancelada && comPonto && (
             <Button
               size="sm"
               variant={o.lancado_ponto_em ? "secondary" : "outline"}
