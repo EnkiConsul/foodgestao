@@ -38,9 +38,19 @@ export function PortalSomenteDocumentos({ children }: { children: React.ReactNod
             ? "Seu período de trabalho foi concluído. Até o término do contrato, o portal fica disponível para acompanhar seu desligamento e consultar seus documentos."
             : "Com o vínculo encerrado, seu acesso fica apenas para consultar e baixar seus documentos."}
       </p>
-      <Button asChild>
-        <Link to="/dp/meu/documentos">Ver meus documentos</Link>
-      </Button>
+      {prazo && (
+        <p className="text-xs text-muted-foreground">
+          Seus documentos e recibos ficam disponíveis para consulta e download até {prazo}.
+        </p>
+      )}
+      <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+        <Button asChild>
+          <Link to="/dp/meu/documentos">Ver meus documentos</Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link to="/dp/meu"><Home className="mr-2 h-4 w-4" /> Ir para o início</Link>
+        </Button>
+      </div>
     </div>
   );
 }
