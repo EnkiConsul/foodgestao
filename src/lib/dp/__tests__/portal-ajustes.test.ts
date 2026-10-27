@@ -12,9 +12,9 @@ describe("aniversariantes no portal", () => {
     { colaboradorId: "c3", unidadeId: "u2", tipo: "nascimento" as const },
   ];
 
-  it("mostra só o próprio aniversário de contratação", () => {
+  it("mostra tempo de casa próprio e de colegas da mesma unidade", () => {
     const r = filtrarAniversariantesPortal(itens, eu);
-    expect(r.filter((i) => i.tipo === "contratacao")).toEqual([itens[0]]);
+    expect(r.filter((i) => i.tipo === "contratacao")).toEqual([itens[0], itens[1]]);
   });
 
   it("mostra nascimento apenas de colegas da mesma unidade", () => {
