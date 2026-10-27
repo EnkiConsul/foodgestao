@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { mensagemErroTroca } from "@/lib/dp/trocas-erros";
 import { dataComDiaSemana } from "@/lib/dp/troca-apresentacao";
 import { useDpOperacaoPanorama } from "@/hooks/useDpOperacaoPanorama";
-import { folgasDisponiveisTroca } from "@/lib/dp/troca-gestor";
+import { folgasDisponiveisTroca, folgasPropriasTroca } from "@/lib/dp/troca-gestor";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 
 type Pessoa = { id: string; nome: string; unidade_id: string | null; origem_cadastro: string | null };
@@ -57,6 +57,8 @@ function RegistrarTrocaGestorConteudo({ open, onOpenChange, unidadeId, dataInici
   const primeira = pessoas.data?.find(p => p.id === sol);
   const segunda = pessoas.data?.find(p => p.id === dest);
   const calendario = useDpOperacaoPanorama(mesFolgas, primeira?.unidade_id ?? unidadeId ?? null);
+  const datasProprias = folgasPropriasTroca(calendario.dias, sol, hojeIsoLocal());
+  const datasPrimeira = original && !datasProprias.includes(original) ? [original, ...datasProprias] : datasProprias;
   const datasColega = folgasDisponiveisTroca(calendario.dias, dest, sol, original, hojeIsoLocal());
   const diaOriginal = calendario.contarData(original);
   const colegas = (pessoas.data ?? []).filter(p => p.id !== sol && p.unidade_id === primeira?.unidade_id);
@@ -90,9 +92,15 @@ function RegistrarTrocaGestorConteudo({ open, onOpenChange, unidadeId, dataInici
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2"><Label htmlFor="troca-primeira">Primeira pessoa</Label><Select value={sol} onValueChange={v => { setSol(v); setDest(""); }} disabled={registrar.isPending}><SelectTrigger id="troca-primeira"><SelectValue placeholder="Selecionar" /></SelectTrigger><SelectContent>{(pessoas.data ?? []).filter(p => !unidadeId || p.unidade_id === unidadeId).map(p => <SelectItem key={p.id} value={p.id}>{p.nome}{p.origem_cadastro === "preadmissao_rotina" ? " · Em admissão" : ""}</SelectItem>)}</SelectContent></Select></div>
         <div className="space-y-2"><Label htmlFor="troca-segunda">Trocar com</Label><Select value={dest} onValueChange={setDest} disabled={!sol || registrar.isPending}><SelectTrigger id="troca-segunda"><SelectValue placeholder="Selecionar colega" /></SelectTrigger><SelectContent>{colegasOrdenados.map(p => <SelectItem key={p.id} value={p.id}>{p.nome}{p.origem_cadastro === "preadmissao_rotina" ? " · Em admissão" : ""}{trabalhaNoDia(p.id) ? " · Trabalha neste dia" : ""}</SelectItem>)}</SelectContent></Select></div>
-        <div className="space-y-2"><Label htmlFor="troca-original">Folga atual da primeira pessoa</Label><Input id="troca-original" type="date" value={original} onChange={e => setOriginal(e.target.value)} disabled={registrar.isPending} /></div>
-        <div className="space-y-2"><Label htmlFor="troca-mes-folgas">Mês das folgas do colega</Label><Input id="troca-mes-folgas" type="month" value={mesFolgas} onChange={e => { if (e.target.value) setMesFolgas(e.target.value); }} disabled={registrar.isPending} /></div>
+        
+        <div className="space-y-2"><Label htmlFor="troca-mes-folgas">Mês das folgas</Label><Input id="troca-mes-folgas" type="month" value={mesFolgas} onChange={e => { if (e.target.value) setMesFolgas(e.target.value); }} disabled={registrar.isPending} /></div>
       </div>
+      {sol && <div className="space-y-2">
+        <Label>Folga atual de {primeira?.nome}</Label>
+        {calendario.isLoading ? <p className="text-sm text-muted-foreground">Carregando folgas…</p> : datasPrimeira.length ?
+          <div className="grid gap-2 sm:grid-cols-2">{datasPrimeira.map(d => <Button key={d} variant={original === d ? "default" : "outline"} aria-pressed={original === d} className="h-auto min-h-11 whitespace-normal" disabled={registrar.isPending} onClick={() => setOriginal(d)}>{dataComDiaSemana(d)}</Button>)}</div> :
+          <p className="text-sm text-muted-foreground">Nenhuma folga futura desta pessoa neste mês.</p>}
+      </div>}
       {original && original < hojeIsoLocal() && <p role="alert" className="text-sm text-destructive">Esta folga já passou. O registro de troca não permite datas passadas.</p>}
       {dest && <div className="space-y-2">
         <Label>Folga de {segunda?.nome}</Label>

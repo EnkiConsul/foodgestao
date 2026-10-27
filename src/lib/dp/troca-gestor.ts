@@ -35,3 +35,9 @@ export type TrocaGestorPrevia = {
 export function argsTrocaGestor(input: Omit<TrocaGestorInput, "motivo" | "cienteDsr" | "notificar">) {
   return { _company: input.companyId, _sol: input.solicitanteId, _dest: input.destinoId, _original: input.dataOriginal, _proposta: input.dataProposta };
 }
+/** Real future days off of one person, offered as tap options (no manual date typing). */
+export function folgasPropriasTroca(dias: DiaTroca[], pessoaId: string, dataMinima?: string): string[] {
+  return dias.filter(dia => (!dataMinima || dia.data >= dataMinima) &&
+    dia.pessoas.some(p => p.colaborador_id === pessoaId && !p.avulso_id && ["folga_padrao", "folga_extra"].includes(p.categoria))
+  ).map(dia => dia.data).filter((data, index, datas) => datas.indexOf(data) === index).sort();
+}
