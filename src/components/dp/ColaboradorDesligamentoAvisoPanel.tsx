@@ -27,7 +27,8 @@ import { prepararUpload } from "@/lib/storage/uploadPolicy";
 import { sanitizeStorageFilename } from "@/lib/storage";
 import { DP_DOCUMENTOS_BUCKET } from "@/lib/documentoArquivo";
 import { registrarDocumento } from "@/lib/dp/documentos-oficial";
-import { Paperclip, X } from "lucide-react";
+import { Paperclip, X, EyeOff } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ExtratoAviso, type ExtratoAvisoDados } from "./ExtratoAviso";
 
 /**
@@ -164,6 +165,15 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
       return r.corpo.resultado as Resultado;
     },
   });
+  // Internal preparation: never read by the portal, so nothing reaches the employee before the conversation.
+  const prep = useQuery({
+    queryKey: ["dp_desligamento_preparacao", colaboradorId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("dp_desligamento_preparacoes").select("*").eq("colaborador_id", colaboradorId).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
   const recarregar = () => { void qc.invalidateQueries({ queryKey: ["dp_desligamento_processo", colaboradorId] }); void qc.invalidateQueries({ queryKey: ["dp_desligamento_projecao", colaboradorId] }); void qc.invalidateQueries({ queryKey: ["dp_desligamentos_agenda"] }); };
 
   const [cond, setCondState] = useState<CondicoesValor>({
@@ -198,6 +208,37 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
   const [fimImped, setFimImped] = useState(hojeIsoLocal());
   const [retConf, setRetConf] = useState(false);
 
+  const [confirmarAberto, setConfirmarAberto] = useState(false);
+  const [prepAplicada, setPrepAplicada] = useState(false);
+  useEffect(() => {
+    if (prepAplicada || rascunho || !prep.data) return;
+    const c = prep.data.condicoes as { cond?: Partial<CondicoesValor>; saldoTxt?: string; saldoUnidade?: "horas" | "dias"; horasDia?: string } | null;
+    if (c?.cond) setCondState((v) => ({ ...v, ...c.cond, comunicacao: c.cond?.comunicacao && c.cond.comunicacao >= hojeIsoLocal() ? c.cond.comunicacao : hojeIsoLocal() }));
+    if (c?.saldoTxt !== undefined) setSaldoTxt(c.saldoTxt);
+    if (c?.saldoUnidade) setSaldoUnidade(c.saldoUnidade);
+    if (c?.horasDia !== undefined) setHorasDia(c.horasDia);
+    setPrepAplicada(true);
+  }, [prep.data, prepAplicada, rascunho]);
+  const salvarPreparacao = async () => {
+    if (!selectedCompanyId) return;
+    setCarregando(true);
+    const { data: u } = await supabase.auth.getUser();
+    const { error } = await supabase.from("dp_desligamento_preparacoes").upsert({
+      company_id: selectedCompanyId, colaborador_id: colaboradorId, preparado_por: u.user?.id ?? null, updated_at: new Date().toISOString(),
+      condicoes: { cond, saldoTxt, saldoUnidade, horasDia },
+      previsao: previa ? { ultimo: previa.ultimo_comparecimento, efetiva: previa.data_efetiva, prazo: previa.prazo_10_dias } : null,
+    }, { onConflict: "colaborador_id" });
+    setCarregando(false);
+    if (error) { toast.error("Não foi possível salvar a preparação."); return; }
+    toast.success("Preparação salva. Nada aparece no app do colaborador.");
+    void qc.invalidateQueries({ queryKey: ["dp_desligamento_preparacao", colaboradorId] });
+  };
+  const descartarPreparacao = async () => {
+    const { error } = await supabase.from("dp_desligamento_preparacoes").delete().eq("colaborador_id", colaboradorId);
+    if (error) { toast.error("Não foi possível descartar a preparação."); return; }
+    toast.success("Preparação descartada.");
+    void qc.invalidateQueries({ queryKey: ["dp_desligamento_preparacao", colaboradorId] });
+  };
   const limpar = () => { setPrevia(null); setMensagem(null); setFormal(false); };
   const setCond = (p: Partial<CondicoesValor>) => { setCondState((c) => ({ ...c, ...p })); setCalendario(null); setBaseCalendario(null); setFolgas([]); limpar(); };
   const condBody = () => ({
@@ -228,13 +269,15 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
   /** Registra e, depois, guarda os anexos em Documentos (tipo Aviso Prévio). */
   const confirmarRegistro = async () => {
     setCarregando(true);
-    const r = await chamar({ acao: "confirmar", colaborador_id: colaboradorId, ...condBody(), comunicacao_formal: formal, idempotency_key: chave, esperado });
+    const r = await chamar({ acao: "confirmar", colaborador_id: colaboradorId, ...condBody(), comunicacao_formal: true, idempotency_key: chave, esperado });
     if (!r.ok) {
       setCarregando(false);
       if (r.corpo?.divergente) { setPrevia(r.corpo.resultado); setFormal(false); setMensagem({ texto: "As datas oficiais mudaram. Confira e confirme de novo.", erro: false }); }
       else setMensagem({ texto: r.corpo?.error ?? "Não foi possível concluir.", erro: true });
       return;
     }
+    await supabase.from("dp_desligamento_preparacoes").delete().eq("colaborador_id", colaboradorId);
+    void qc.invalidateQueries({ queryKey: ["dp_desligamento_preparacao", colaboradorId] });
     let falhas = 0;
     for (const escolhido of anexos) {
       try {
@@ -292,6 +335,7 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chavePrevia]);
 
+  const futura = cond.comunicacao > hojeIsoLocal();
   if (proc.isLoading) return <p className="text-sm text-muted-foreground">Carregando…</p>;
   if (proc.isError) return <Alert variant="destructive"><AlertDescription>Não foi possível carregar o desligamento.</AlertDescription></Alert>;
 
@@ -466,6 +510,10 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
   return secao("Registrar desligamento", null, <>
     <p className="text-sm text-muted-foreground">Informe o motivo e a data, mesmo que já tenham passado. O sistema mostra o último dia de trabalho e o prazo final do pagamento, com a jornada, a escala publicada e os feriados cadastrados.</p>
     {rascunho && <p className="text-xs text-muted-foreground">Dados trazidos da calculadora para conferência. Nada foi gravado.</p>}
+    <Alert><EyeOff className="h-4 w-4" /><AlertDescription className="space-y-2">
+      <p>{prep.data ? `Preparação salva em ${new Date(prep.data.updated_at).toLocaleDateString("pt-BR")}.` : "Você pode preparar antes da conversa."} Nada aparece no app do colaborador até você confirmar que a comunicação foi feita.</p>
+      {prep.data && <Button size="sm" variant="ghost" onClick={() => void descartarPreparacao()}>Descartar preparação</Button>}
+    </AlertDescription></Alert>
     <Condicoes v={cond} set={setCond} comMotivo />
     {Banco}
     {carregando && !previa && <p className="text-sm text-muted-foreground">Calculando as datas…</p>}
@@ -494,13 +542,25 @@ export function ColaboradorDesligamentoAvisoPanel({ colaboradorId, ativo, rascun
             </ul>)}
           <p className="text-xs text-muted-foreground">Os arquivos ficam na aba Documentos do colaborador, como Aviso Prévio.</p>
         </div>
-        <label className="flex items-start gap-2 text-sm">
-          <Checkbox checked={formal} onCheckedChange={(v) => setFormal(v === true)} aria-label="Comunicação formal entregue" />
-          A comunicação formal do aviso foi entregue ao colaborador em {br(previa.data_comunicacao)}. As datas passam a aparecer no portal dele.
-        </label>
         {pedidoDispensadoPendente && <p className="text-xs text-destructive">Marque as duas declarações (pedido escrito e aceite da empresa) para confirmar.</p>}
         {semAvisoPendente && <p className="text-xs text-destructive">Confirme a validação da data de término para este motivo.</p>}
-        <Button className="w-full sm:w-auto" onClick={() => void confirmarRegistro()} disabled={carregando || !formal || pedidoDispensadoPendente || semAvisoPendente || previa.diagnostico_escala?.apto === false}>{carregando ? "Registrando…" : "Confirmar desligamento"}</Button>
+        {futura && <p className="text-xs text-muted-foreground">A conversa está prevista para {br(cond.comunicacao)}. Salve a preparação agora e confirme a comunicação nesse dia.</p>}
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => void salvarPreparacao()} disabled={carregando}>Salvar preparação</Button>
+          <Button className="w-full sm:w-auto" onClick={() => setConfirmarAberto(true)} disabled={carregando || futura || pedidoDispensadoPendente || semAvisoPendente || previa.diagnostico_escala?.apto === false}>{carregando ? "Registrando…" : "Confirmar comunicação realizada"}</Button>
+        </div>
+        <AlertDialog open={confirmarAberto} onOpenChange={setConfirmarAberto}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>O colaborador já foi comunicado?</AlertDialogTitle>
+              <AlertDialogDescription>Confirme somente depois da conversa com o colaborador, realizada em {br(previa.data_comunicacao)}. A partir daqui, o aviso e as datas aparecem no app dele.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Ainda não</AlertDialogCancel>
+              <AlertDialogAction onClick={() => void confirmarRegistro()}>Sim, já foi comunicado</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     )}
   </>);

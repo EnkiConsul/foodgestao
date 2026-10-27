@@ -1121,6 +1121,13 @@
       "when": 1793095898590,
       "tag": "0159_troca_gestor_cancelamento_portal",
       "breakpoints": true
+    },
+    {
+      "idx": 160,
+      "version": "7",
+      "when": 1793122007068,
+      "tag": "0160_desligamento_preparacao_sem_portal",
+      "breakpoints": true
     }
   ]
 }

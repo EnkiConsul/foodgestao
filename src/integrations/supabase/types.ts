@@ -8273,6 +8273,61 @@ export type Database = {
           },
         ]
       }
+      dp_desligamento_preparacoes: {
+        Row: {
+          colaborador_id: string
+          company_id: string
+          condicoes: Json
+          created_at: string
+          id: string
+          preparado_por: string | null
+          previsao: Json | null
+          updated_at: string
+        }
+        Insert: {
+          colaborador_id: string
+          company_id: string
+          condicoes?: Json
+          created_at?: string
+          id?: string
+          preparado_por?: string | null
+          previsao?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          colaborador_id?: string
+          company_id?: string
+          condicoes?: Json
+          created_at?: string
+          id?: string
+          preparado_por?: string | null
+          previsao?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_desligamento_preparacoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: true
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_desligamento_preparacoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: true
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_desligamento_preparacoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_desligamento_processos: {
         Row: {
           aceite_empresa_confirmado: boolean
