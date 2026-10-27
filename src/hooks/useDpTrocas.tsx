@@ -26,6 +26,8 @@ export type DpTrocaPessoa = {
 } | null;
 
 export type DpTrocaRow = {
+  origem_registro?: string | null;
+  notificar_portal?: boolean;
   id: string;
   company_id: string;
   solicitante_id: string;
@@ -61,7 +63,7 @@ const PESSOA_SELECT =
 
 /**
  * Dados e mutations da tela de Trocas (DP, visão do gestor).
- * O gestor nunca responde em nome do colega: aprova (quando a unidade exige
+ * O gestor nunca responde em nome do colega: registro administrativo usa RPC própria. Aprova (quando a unidade exige
  * aprovação), recusa ou cancela uma troca já aprovada.
  * `filtros` controla busca, unidade, cargo, situação, período e ordenação.
  */

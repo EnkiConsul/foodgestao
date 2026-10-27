@@ -10,6 +10,7 @@ import { acoesGestorTroca } from "@/lib/dp/troca-acoes";
 import { motivoAprovacaoGestor } from "@/lib/dp/folga-remarcacao";
 import { dataComDiaSemana, metaStatusTroca, trocaInconsistente } from "@/lib/dp/troca-apresentacao";
 import { cn } from "@/lib/utils";
+import { trocaExigeTermo } from "@/lib/dp/troca-gestor";
 
 
 /** Nome + cargo de um colaborador envolvido na troca. */
@@ -57,7 +58,7 @@ export function TrocaCard({ troca, onOpen, onAprovar, onRecusar, onCancelar, onM
   const [termoAberto, setTermoAberto] = useState(false);
   const empresa = companies.find((c) => c.id === selectedCompanyId);
   const empresaTermo = { nome: empresa ? empresa.trade_name || empresa.name : "Empresa", cnpj: empresa?.cnpj };
-  const podeTermo = troca.status === "aprovada" && !inconsistente;
+  const podeTermo = troca.status === "aprovada" && !inconsistente && trocaExigeTermo(troca);
 
   return (
     <>
@@ -76,6 +77,7 @@ export function TrocaCard({ troca, onOpen, onAprovar, onRecusar, onCancelar, onM
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Badge className={cn("border", meta.className)}>{meta.label}</Badge>
+        {troca.origem_registro === "gestor" && <Badge variant="outline">Registrada pelo gestor</Badge>}
         {unidade && (
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
             <Building2 className="size-3.5" /> {unidade}
@@ -122,7 +124,7 @@ export function TrocaCard({ troca, onOpen, onAprovar, onRecusar, onCancelar, onM
           <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
           <span>
             Alerta de DSR: com esta troca, colaborador fica {alertaDsrDias} dias seguidos sem
-            descanso (mais de 6). Ciência registrada pelos colaboradores.
+            descanso (mais de 6). {troca.origem_registro === "gestor" ? "Ciência registrada pelo gestor." : "Ciência registrada pelos colaboradores."}
           </span>
         </div>
       ) : null}

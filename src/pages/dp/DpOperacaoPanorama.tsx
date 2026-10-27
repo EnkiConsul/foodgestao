@@ -1,5 +1,6 @@
 import { FeriadosDia } from "@/components/dp/FeriadoCategoriaBadge";
 import { PrazosRescisao } from "@/components/dp/calendario/PrazosRescisao";
+import { RegistrarTrocaGestorDialog } from "@/components/dp/trocas/RegistrarTrocaGestorDialog";
 import { textoFeriadosDia } from "@/lib/dp/feriados-apresentacao";
 import { Fragment, type ReactNode } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -1052,6 +1053,7 @@ export default function DpOperacaoPanorama({
   const { selectedCompanyId: companyIdCal } = useCompanyContext();
   const [folgaColab, setFolgaColab] = useState<string>("");
   const [folgaTriagem, setFolgaTriagem] = useState(false);
+  const [trocaGestorOpen, setTrocaGestorOpen] = useState(false);
 
   const [verSocios, setVerSocios] = useState(false);
   const { role } = useCompanyPermissions();
@@ -1481,6 +1483,7 @@ export default function DpOperacaoPanorama({
         actions={
           podeRegistrar ? (
             <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
+              <Button variant="outline" className="col-span-2 gap-2" onClick={() => setTrocaGestorOpen(true)}><ArrowLeftRight className="h-4 w-4" /> Registrar troca</Button>
               <Button
                 variant="outline"
                 className="min-w-0 gap-2 border-emerald-500/40 bg-emerald-500/10 px-2 text-emerald-700 hover:bg-emerald-500/20 hover:text-emerald-800 dark:text-emerald-300 sm:px-4"
@@ -1522,6 +1525,7 @@ export default function DpOperacaoPanorama({
           onDone={() => { setFolgaTriagem(false); setFolgaColab(""); }}
         />
       )}
+      <RegistrarTrocaGestorDialog open={trocaGestorOpen} onOpenChange={setTrocaGestorOpen} unidadeId={unidade || undefined} dataInicial={dataPopout ?? data} />
 
       <DpRegistrarAusenciaDialog
         open={ausenciaOpen}

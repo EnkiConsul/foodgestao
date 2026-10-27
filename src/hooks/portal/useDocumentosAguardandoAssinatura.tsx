@@ -137,6 +137,7 @@ export function useDocumentosAguardandoAssinatura() {
           .select("id, solicitante_id, destino_id, data_original, data_proposta, created_at, gestor_respondido_em, colega_respondido_em, solicitante_assinatura, destino_assinatura, solicitante:solicitante_id(nome), destino:destino_id(nome)")
           .or(`solicitante_id.eq.${cid},destino_id.eq.${cid}`)
           .eq("status", "aprovada")
+          .eq("origem_registro", "portal")
           .gte("data_original", corte.toISOString().slice(0, 10))
           .limit(20);
         const f = (d: string | null) => (d ? new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : "—");

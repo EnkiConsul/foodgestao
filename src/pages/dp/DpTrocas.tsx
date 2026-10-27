@@ -26,6 +26,8 @@ import {
 } from "@/lib/dp/trocas-filtros";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { mensagemErro } from "@/lib/dp/mensagemErro";
+import { useCompanyPermissions } from "@/hooks/useCompanyPermissions";
+import { RegistrarTrocaGestorDialog } from "@/components/dp/trocas/RegistrarTrocaGestorDialog";
 
 const STATUS_OPCOES: { value: string; label: string }[] = [
   { value: "todos", label: "Todos os status" },
@@ -39,6 +41,8 @@ const STATUS_OPCOES: { value: string; label: string }[] = [
 
 export default function DpTrocas() {
   const embedded = useDpEmbedded();
+  const { role } = useCompanyPermissions();
+  const [registrarOpen, setRegistrarOpen] = useState(false);
   const { selectedCompanyId } = useCompanyContext();
   /** Ciências de DSR (mais de 6 dias seguidos) ligadas às trocas. */
   const cienciasDsr = useQuery({
@@ -126,6 +130,7 @@ export default function DpTrocas() {
         icon={ArrowLeftRight}
         title="Histórico de Trocas Inteligentes"
         description="Acompanhe as permutas temporárias entre colaboradores."
+        actions={role === "owner" || role === "admin" ? <Button onClick={() => setRegistrarOpen(true)}><ArrowLeftRight className="mr-2 h-4 w-4" /> Registrar troca</Button> : undefined}
       />
 
       <DpFilters
@@ -271,6 +276,7 @@ export default function DpTrocas() {
         onRecusar={abrirRecusa}
         onCancelar={abrirCancelamento}
       />
+      <RegistrarTrocaGestorDialog open={registrarOpen} onOpenChange={setRegistrarOpen} />
 
       <RecusaDialog
         open={!!recusa}
