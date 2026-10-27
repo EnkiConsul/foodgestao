@@ -2055,7 +2055,7 @@ export default function DpOperacaoPanorama({
             {dataPopout && diaPopout ? conteudoDia(dataPopout, diaPopout) : (
               <p className="text-sm text-muted-foreground">Sem dados para este dia.</p>
             )}
-            {calendario && dataPopout && <AniversariantesCard competencia={dataPopout.slice(0, 7)} dataDia={dataPopout} unidadeId={unidadeId} />}
+            {dataPopout && <AniversariantesCard competencia={dataPopout.slice(0, 7)} dataDia={dataPopout} unidadeId={unidadeId} />}
             {calendario && dataPopout && diaPopout && companyIdCal && podeRegistrar && (
               <section className="space-y-3 border-t pt-3">
                 <h3 className="text-sm font-semibold">Limite e Regras de Folgas</h3>
