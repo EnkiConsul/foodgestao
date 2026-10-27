@@ -1715,6 +1715,7 @@ export default function DpOperacaoPanorama({
                   nomes={new Map((dia?.pessoas ?? []).filter((p) => !p.avulso_id).map((p) => [p.colaborador_id, p.nome]))}
                 />
               ) : undefined}
+            />
           )}
         </TabsContent>
 
