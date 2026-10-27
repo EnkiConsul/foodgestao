@@ -1705,7 +1705,16 @@ export default function DpOperacaoPanorama({
               onReativar={reativar}
               {...propsAvulsas}
               {...propsSetor}
-            />
+              acoesFolga={companyIdCal && podeRegistrar ? (id, fixa) => (
+                <FolgasDoDiaPainel
+                  companyId={companyIdCal}
+                  data={data}
+                  colaboradorId={id}
+                  folgaFixa={fixa}
+                  onRegistrarTroca={(colaboradorId) => abrirTrocaGestor(data, colaboradorId)}
+                  nomes={new Map((dia?.pessoas ?? []).filter((p) => !p.avulso_id).map((p) => [p.colaborador_id, p.nome]))}
+                />
+              ) : undefined}
           )}
         </TabsContent>
 
