@@ -87,3 +87,7 @@
 - [ ] Publicação desta leva (autorizada; aguarda resolução das falhas de regressão acima)
 - [x] Teste `calendario-rotina-p1.test.ts` alinhado à prioridade já existente da exceção por data: limite 1 permanece 1 mesmo com três folgas fixas; nove testes deste arquivo passaram.
 - [x] Assinatura do portal unificada: botão único "Visualizar e Assinar" (sem botão travado) abre tela cheia `DocumentoAssinarViewer`; PDF com várias páginas exige rubrica página a página antes de concluir (`src/lib/dp/rubrica.ts`). 13 testes novos/relacionados OK, suíte DP 1237 OK, build OK. Sem publicação e sem gravar dados reais.
+
+- [x] Botão de ajuste de folga liberado também na Rotina da Loja (Rotina do Dia e diálogo do dia, incluindo "Limite e Regras de Folgas" e Ações); 1.200 testes OK, conferido no navegador sem registrar nada real.
+- [x] Dica fixa no diálogo de troca: retroativo até 31 dias e "Mês das folgas" para ver folga de outro mês; motivo com exemplo e aviso de justificativa objetiva.
+- [x] Migração 0163 alinha o arquivo de migração à definição já aplicada no banco (troca retroativa 31 dias + flag retroativa).
