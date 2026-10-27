@@ -71,14 +71,14 @@ describe.sequential('troca administrativa — SQL isolado sem dados reais',()=>{
   expect((await db.query(`SELECT * FROM dp_trocas`)).rows).toHaveLength(0);
  });
  it('sete dias consecutivos afetados pela troca exigem ciência do gestor',async()=>{
-  await db.exec(`CREATE OR REPLACE FUNCTION private.dp_troca_folga_fixa_livre(uuid,date) RETURNS boolean LANGUAGE sql AS 'SELECT extract(dow from $2)=0'`);
+  await db.exec(`BEGIN; CREATE OR REPLACE FUNCTION private.dp_troca_folga_fixa_livre(uuid,date) RETURNS boolean LANGUAGE sql AS 'SELECT $1=''${sol}''::uuid AND extract(dow from $2)=0'`);
   const sunday=(await db.query<{d:string}>(`SELECT (CURRENT_DATE+(7-extract(dow from CURRENT_DATE)::int)%7+7)::text d`)).rows[0].d;
   const monday=(await db.query<{d:string}>(`SELECT ($1::date+1)::text d`,[sunday])).rows[0].d;
   await db.query(`INSERT INTO dp_folgas(colaborador_id,data) VALUES($1,$2)`,[dest,monday]);
   const r=await db.query<{v:{riscos:{colaborador_id:string;dias:number}[]}}>(`SELECT dp_troca_gestor_previa($1,$2,$3,$4,$5) v`,[company,sol,dest,sunday,monday]);
   expect(r.rows[0].v.riscos).toContainEqual({colaborador_id:sol,nome:'Pessoa CLT',dias:7});
   await expect(db.query(`SELECT dp_troca_gestor_registrar($1,$2,$3,$4,$5,$6,false,false)`,[company,sol,dest,sunday,monday,'Acordo informado'])).rejects.toThrow('DSR_CIENCIA_OBRIGATORIA');
-  await db.query(`DELETE FROM dp_folgas WHERE colaborador_id=$1 AND data=$2`,[dest,monday]);
+  await db.exec('ROLLBACK');
  });
  it('falha do motor desfaz troca e folgas na mesma transação',async()=>{
   await db.exec(`SELECT set_config('test.fail','on',false)`);
