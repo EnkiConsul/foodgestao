@@ -97,17 +97,24 @@ function RemarcarFolgaDialog({
   );
 }
 
-/** One adjust button per row: swap with a colleague (future dates only) or move just this day off. */
+/** One adjust button per row: asks whether the change is a swap with a colleague or an individual move. */
 function AjustarFolgaBotao({ onTrocar, onRemarcar }: { onTrocar?: () => void; onRemarcar: () => void }) {
+  const [escolha, setEscolha] = useState(false);
   if (!onTrocar) return <Button size="icon" variant="outline" className="h-8 w-8" title="Remarcar folga" aria-label="Remarcar folga" onClick={onRemarcar}><RefreshCw className="h-4 w-4" /></Button>;
+  const ir = (fn: () => void) => { setEscolha(false); fn(); };
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild><Button size="icon" variant="outline" className="h-8 w-8" title="Ajustar folga" aria-label="Ajustar folga"><Repeat className="h-4 w-4" /></Button></DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem className="min-h-11" onSelect={onTrocar}><ArrowLeftRight className="mr-2 h-4 w-4" />Trocar com colega</DropdownMenuItem>
-        <DropdownMenuItem className="min-h-11" onSelect={onRemarcar}><CalendarClock className="mr-2 h-4 w-4" />Remarcar só esta folga</DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <Button size="icon" variant="outline" className="h-8 w-8" title="Ajustar folga" aria-label="Ajustar folga" onClick={() => setEscolha(true)}><RefreshCw className="h-4 w-4" /></Button>
+      <Dialog open={escolha} onOpenChange={setEscolha}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Como deseja ajustar esta folga?</DialogTitle></DialogHeader>
+          <div className="grid gap-2">
+            <Button variant="outline" className="h-auto min-h-11 justify-start whitespace-normal py-3 text-left" onClick={() => ir(onTrocar)}><ArrowLeftRight className="mr-2 h-4 w-4 shrink-0" /><span><strong className="block">Trocar com colega</strong><span className="text-xs text-muted-foreground">As duas pessoas trocam as folgas ao mesmo tempo.</span></span></Button>
+            <Button variant="outline" className="h-auto min-h-11 justify-start whitespace-normal py-3 text-left" onClick={() => ir(onRemarcar)}><CalendarClock className="mr-2 h-4 w-4 shrink-0" /><span><strong className="block">Remarcar só esta folga</strong><span className="text-xs text-muted-foreground">Move a folga só desta pessoa para outro dia.</span></span></Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -165,7 +172,7 @@ function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito, onRegi
   });
   return (
     <>
-      <AjustarFolgaBotao onTrocar={onRegistrarTroca && data >= hojeIsoLocal() ? () => onRegistrarTroca(colaboradorId) : undefined} onRemarcar={() => setAberto(true)} />
+      <AjustarFolgaBotao onTrocar={onRegistrarTroca ? () => onRegistrarTroca(colaboradorId) : undefined} onRemarcar={() => setAberto(true)} />
       <Dialog open={aberto} onOpenChange={(o) => { setAberto(o); if (!o) setRevisar(false); }}>
         <DialogContent className="max-w-md">
           {data < hojeIsoLocal() && (
@@ -430,7 +437,7 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
     if (!i) return null;
     return (
       <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
-        <AjustarFolgaBotao onTrocar={onRegistrarTroca && !passado ? () => onRegistrarTroca(colaboradorId) : undefined} onRemarcar={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConsome(true); }} />
+        <AjustarFolgaBotao onTrocar={onRegistrarTroca ? () => onRegistrarTroca(colaboradorId) : undefined} onRemarcar={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConsome(true); }} />
         <Button size="icon" variant="outline" className="h-8 w-8 border-destructive/40 text-destructive hover:bg-destructive/10" title="Cancelar Folga" aria-label="Cancelar Folga" onClick={() => { setAcao({ item: i, tipo: "cancelar" }); setMotivo(""); }}><X className="h-4 w-4" /></Button>
         <RemarcarFolgaDialog
           aberto={acao?.item.key === i.key && acao.tipo === "remarcar"}
