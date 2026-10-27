@@ -616,6 +616,14 @@ export default function DpAtestados() {
                   )}
                 </div>
               </div>
+              {tipoDoc === "atestado" && Number(dias) > LIMITE_DIAS_ATESTADO_EMPRESA && (
+                <div role="status" className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
+                  <p className="font-semibold">Será registrado como Licença INSS</p>
+                  <p className="text-muted-foreground">
+                    Acima de 15 dias, a empresa paga só os 15 primeiros; a partir do 16º dia o colaborador deve ser encaminhado à perícia do INSS (Lei 8.213/91, art. 60).
+                  </p>
+                </div>
+              )}
               <FundamentoLegalCard tipo={tipoDoc} inicio={dataDoc} fim={dataDoc && Number(dias) > 1 ? sugestaoFimDias(dataDoc, Number(dias)) : dataDoc} />
 
 
