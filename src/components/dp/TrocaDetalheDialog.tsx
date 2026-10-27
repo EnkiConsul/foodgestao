@@ -10,6 +10,7 @@ import { dataComDiaSemana, metaStatusTroca, trocaInconsistente } from "@/lib/dp/
 import type { DpTrocaRow } from "@/hooks/useDpTrocas";
 import { acoesGestorTroca, textoDecisaoGestor } from "@/lib/dp/troca-acoes";
 import { cn } from "@/lib/utils";
+import { trocaExigeTermo } from "@/lib/dp/troca-gestor";
 
 function dataHora(iso: string | null) {
   return iso ? format(new Date(iso), "dd/MM/yyyy HH:mm") : null;
@@ -66,13 +67,13 @@ export function TrocaDetalheDialog({
   if (!troca) return null;
   const empresa = companies.find((c) => c.id === selectedCompanyId);
   const empresaTermo = { nome: empresa ? empresa.trade_name || empresa.name : "Empresa", cnpj: empresa?.cnpj };
-  const podeTermo = troca.status === "aprovada" && !trocaInconsistente(troca);
+  const podeTermo = troca.status === "aprovada" && !trocaInconsistente(troca) && trocaExigeTermo(troca);
 
   const meta = metaStatusTroca(troca.status);
   const acoes = acoesGestorTroca(troca.status, troca.modo);
   const decisao = textoDecisaoGestor(troca.gestor_resposta);
   const modoTexto =
-    troca.modo === "direta"
+    troca.origem_registro === "gestor" ? "Ajuste operacional autorizado pelo gestor, sem aceite ou assinatura em nome dos colaboradores." : troca.modo === "direta"
       ? "Nesta unidade a troca é direta: vale o aceite do colega."
       : troca.modo === "proibida"
         ? "Nesta unidade a troca de folga está desativada."
@@ -169,7 +170,7 @@ export function TrocaDetalheDialog({
             Histórico
           </div>
           <ul className="space-y-2">
-            <Linha titulo="Pedido enviado" quando={dataHora(troca.created_at)} />
+            <Linha titulo={troca.origem_registro === "gestor" ? "Registrada pelo gestor" : "Pedido enviado"} quando={dataHora(troca.created_at)} />
             {troca.colega_resposta && (
               <Linha
                 titulo="Resposta do colega"

@@ -1107,6 +1107,13 @@
       "when": 1793023836739,
       "tag": "0157_ocorrencia_tratativa_compensacao_abono_desconto",
       "breakpoints": true
+    },
+    {
+      "idx": 158,
+      "version": "7",
+      "when": 1793062953529,
+      "tag": "0158_troca_gestor_admissao",
+      "breakpoints": true
     }
   ]
 }

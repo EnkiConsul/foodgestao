@@ -1,4 +1,5 @@
 import { completarPartesTrocas } from "@/lib/dp/troca-partes";
+import { trocaExigeTermo } from "@/lib/dp/troca-gestor";
 import { CienciaFaltaTrocaBox, TEXTO_CIENCIA_FALTA_TROCA } from "@/components/dp/CienciaFaltaTrocaBox";
 import { Link } from "react-router-dom";
 import { sugerirPushContextual } from "@/components/dp/PushSoftPrompt";
@@ -152,7 +153,8 @@ export default function DpMeuTrocas() {
   useEffect(() => {
     if (!lerParaAssinar || !list.data) return;
     const t = (list.data as any[]).find((x) => x.id === lerParaAssinar);
-    if (t) setTermo(t);
+    if (t && trocaExigeTermo(t)) setTermo(t);
+    else if (t) limparParamAssinar();
     else { setAssinarTermo(lerParaAssinar); }
     setLerParaAssinar(null);
   }, [lerParaAssinar, list.data]);
@@ -545,7 +547,7 @@ export default function DpMeuTrocas() {
                       {t.cancelamento_motivo && <div className="mt-1">Motivo: {t.cancelamento_motivo}</div>}
                     </div>
                   )}
-                  {t.status === "aprovada" && (() => {
+                  {t.status === "aprovada" && trocaExigeTermo(t) && (() => {
                     const meId = meRef.data?.id;
                     const minhaPendente = (t.solicitante_id === meId && !t.solicitante_assinatura) || (t.destino_id === meId && !t.destino_assinatura);
                     const colegaPendente = (t.solicitante_id === meId && !t.destino_assinatura) || (t.destino_id === meId && !t.solicitante_assinatura);
@@ -563,6 +565,7 @@ export default function DpMeuTrocas() {
                   })()}
                   {t.status === "aprovada" && (
                     <div className="flex flex-wrap gap-2 pt-1">
+                      {trocaExigeTermo(t) ? (
                       <Button
                         size="sm"
                         variant="outline"
@@ -571,6 +574,7 @@ export default function DpMeuTrocas() {
                       >
                         <FileText className="h-4 w-4 mr-1" /> Ver termo da troca
                       </Button>
+                      ) : <span className="text-xs text-muted-foreground">Troca autorizada pelo gestor; sem assinatura pendente.</span>}
                       {!t.cancelamento_solicitado_em && !trocaJaPassou(t) && (
                         <Button size="sm" variant="ghost" onClick={() => setPedirCancel(t.id)}>
                           <Ban className="h-4 w-4 mr-1" /> Solicitar Cancelamento da Troca
@@ -589,7 +593,7 @@ export default function DpMeuTrocas() {
           onOpenChange={(v) => { if (!v) { setTermo(null); limparParamAssinar(); } }}
           onAssinar={(() => {
             const meId = meRef.data?.id; const t = termo as any;
-            if (!t || t.status !== "aprovada") return undefined;
+            if (!t || t.status !== "aprovada" || !trocaExigeTermo(t)) return undefined;
             const pend = (t.solicitante_id === meId && !t.solicitante_assinatura) || (t.destino_id === meId && !t.destino_assinatura);
             return pend ? () => { setAssinarTermo(t.id); setTermo(null); } : undefined;
           })()}

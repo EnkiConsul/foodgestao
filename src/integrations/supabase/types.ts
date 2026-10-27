@@ -13649,6 +13649,8 @@ export type Database = {
           gestor_resposta: string | null
           id: string
           motivo: string
+          notificar_portal: boolean
+          origem_registro: string
           solicitante_assinado_em: string | null
           solicitante_assinatura: string | null
           solicitante_id: string
@@ -13674,6 +13676,8 @@ export type Database = {
           gestor_resposta?: string | null
           id?: string
           motivo: string
+          notificar_portal?: boolean
+          origem_registro?: string
           solicitante_assinado_em?: string | null
           solicitante_assinatura?: string | null
           solicitante_id: string
@@ -13699,6 +13703,8 @@ export type Database = {
           gestor_resposta?: string | null
           id?: string
           motivo?: string
+          notificar_portal?: boolean
+          origem_registro?: string
           solicitante_assinado_em?: string | null
           solicitante_assinatura?: string | null
           solicitante_id?: string
@@ -21571,6 +21577,29 @@ export type Database = {
         Returns: Json
       }
       dp_troca_cancelar_self: { Args: { p_id: string }; Returns: Json }
+      dp_troca_gestor_previa: {
+        Args: {
+          _company: string
+          _dest: string
+          _original: string
+          _proposta: string
+          _sol: string
+        }
+        Returns: Json
+      }
+      dp_troca_gestor_registrar: {
+        Args: {
+          _ciente_dsr?: boolean
+          _company: string
+          _dest: string
+          _motivo: string
+          _notificar?: boolean
+          _original: string
+          _proposta: string
+          _sol: string
+        }
+        Returns: Json
+      }
       dp_troca_propor: {
         Args: {
           p_data_original: string
