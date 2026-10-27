@@ -10,7 +10,7 @@ export const TIPO_AUSENCIA_LABEL: Record<TipoAusenciaCalendario, string> = {
   folga: "Folgas",
   ferias: "Férias",
   falta: "Faltas",
-  atestado: "Atestados / Licenças",
+  atestado: "Atestados / Afastamentos",
   indisponibilidade: "Indisponibilidade de Convocação",
   outras: "Demais ausências",
 };
