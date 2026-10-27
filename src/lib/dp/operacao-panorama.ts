@@ -496,14 +496,15 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
       folga_troca:
         categoria === "folga_padrao" &&
         (folgasPor.get(colab.id) ?? []).some((f) => f.origem === "troca"),
-      folga_rotulo: (categoria === "folga_extra" || categoria === "folga_padrao")
+      folga_rotulo: rotuloAusenciaAtual ?? ((categoria === "folga_extra" || categoria === "folga_padrao")
         ? (() => { const f = (folgasPor.get(colab.id) ?? [])[0]; return f ? rotuloFolga(f) : undefined; })()
-        : undefined,
+        : undefined),
       folga_fixa_dows: (colab.config?.dias ?? []).filter((d) => !d.trabalha).map((d) => d.dow),
       origem: horario?.origem ?? "jornada",
       ...extrasSemSetor,
     });
   };
+  let rotuloAusenciaAtual: string | undefined;
 
 
   for (const colab of colaboradores) {
@@ -517,8 +518,15 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
     }
 
     if (ausencia) {
-      // Suspensão disciplinar aparece na faixa de atestados/afastamentos.
+      // Suspensão disciplinar aparece na faixa de atestados/afastamentos;
+      // atestado acima de 15 dias corridos é rotulado como Licença INSS.
+      rotuloAusenciaAtual = rotuloAfastamento(
+        ausencia.tipo === "suspensao" ? "suspensao" : ausencia.subtipo ?? ausencia.tipo,
+        ausencia.inicio,
+        ausencia.fim,
+      );
       registrar(colab, ausencia.tipo === "suspensao" ? "atestado" : ausencia.tipo);
+      rotuloAusenciaAtual = undefined;
       continue;
     }
 
