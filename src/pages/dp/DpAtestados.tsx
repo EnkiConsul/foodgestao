@@ -41,6 +41,8 @@ import {
   TIPO_AFASTAMENTO_LABEL,
   isTipoLicenca,
   labelAfastamento,
+  rotuloAfastamento,
+  LIMITE_DIAS_ATESTADO_EMPRESA,
   duracaoPadrao,
   type TipoAfastamento,
 } from "@/lib/dp/licencas";
@@ -219,13 +221,13 @@ export default function DpAtestados() {
     },
     tipo: {
       label: "Tipo", sortKey: "tipo" as const,
-      value: (r: Row) => labelAfastamento(r.tipo),
+      value: (r: Row) => rotuloAfastamento(r.tipo, r.data_alvo, r.data_fim),
       render: (r: Row) => (
         <Badge
           variant="outline"
           className={`max-w-full truncate ${isTipoLicenca(r.tipo) ? "border-primary/30 bg-primary/10 text-primary" : ""}`}
         >
-          {labelAfastamento(r.tipo)}
+          {rotuloAfastamento(r.tipo, r.data_alvo, r.data_fim)}
         </Badge>
       ),
     },
@@ -614,6 +616,14 @@ export default function DpAtestados() {
                   )}
                 </div>
               </div>
+              {tipoDoc === "atestado" && Number(dias) > LIMITE_DIAS_ATESTADO_EMPRESA && (
+                <div role="status" className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
+                  <p className="font-semibold">Será registrado como Licença INSS</p>
+                  <p className="text-muted-foreground">
+                    Acima de 15 dias, a empresa paga só os 15 primeiros; a partir do 16º dia o colaborador deve ser encaminhado à perícia do INSS (Lei 8.213/91, art. 60).
+                  </p>
+                </div>
+              )}
               <FundamentoLegalCard tipo={tipoDoc} inicio={dataDoc} fim={dataDoc && Number(dias) > 1 ? sugestaoFimDias(dataDoc, Number(dias)) : dataDoc} />
 
 
@@ -770,7 +780,7 @@ export default function DpAtestados() {
                       {afastadoAgora && <Badge variant="outline" className="shrink-0 border-primary/30 bg-primary/10 text-primary">Fora hoje</Badge>}
                     </div>
                     <div className="truncate text-xs text-muted-foreground">
-                      {labelAfastamento(r.tipo)}{unitName ? ` · ${unitName}` : ""}
+                      {rotuloAfastamento(r.tipo, r.data_alvo, r.data_fim)}{unitName ? ` · ${unitName}` : ""}
                     </div>
                   </div>
                   <div className="text-sm tabular-nums sm:w-56 sm:shrink-0">
@@ -804,7 +814,7 @@ export default function DpAtestados() {
               {detalhe && (
                 <div className="min-h-0 space-y-4 overflow-y-auto p-4 text-sm">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="outline">{labelAfastamento(detalhe.tipo)}</Badge>
+                    <Badge variant="outline">{rotuloAfastamento(detalhe.tipo, detalhe.data_alvo, detalhe.data_fim)}</Badge>
                     <Badge variant="outline" className={STATUS_BADGE[detalhe.status].className}>{STATUS_BADGE[detalhe.status].label}</Badge>
                   </div>
                   <div className="grid grid-cols-2 gap-4 border-y py-3">
@@ -862,7 +872,7 @@ export default function DpAtestados() {
       <DocumentPreview
         open={!!preview}
         onOpenChange={(v) => { if (!v) setPreview(null); }}
-        title={preview ? `${labelAfastamento(preview.tipo)} — ${preview.dp_colaboradores?.nome ?? ""}` : undefined}
+        title={preview ? `${rotuloAfastamento(preview.tipo, preview.data_alvo, preview.data_fim)} — ${preview.dp_colaboradores?.nome ?? ""}` : undefined}
         bucket={BUCKET}
         path={preview?.arquivo_path}
         toolbar={preview && (
