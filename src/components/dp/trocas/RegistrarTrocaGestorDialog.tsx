@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { mensagemErroTroca } from "@/lib/dp/trocas-erros";
 import { dataComDiaSemana } from "@/lib/dp/troca-apresentacao";
 import { useDpOperacaoPanorama } from "@/hooks/useDpOperacaoPanorama";
-import { folgasDisponiveisTroca } from "@/lib/dp/troca-gestor";
+import { folgasDisponiveisTroca, folgasPropriasTroca } from "@/lib/dp/troca-gestor";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 
 type Pessoa = { id: string; nome: string; unidade_id: string | null; origem_cadastro: string | null };

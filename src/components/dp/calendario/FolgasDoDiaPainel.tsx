@@ -11,7 +11,8 @@ import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { RefreshCw, X, AlertTriangle, ArrowLeftRight, CalendarClock } from "lucide-react";
+import { RefreshCw, X, AlertTriangle, ArrowLeftRight, CalendarClock, Repeat } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { emitirTermoTrocaGestor, termoTrocaGestorParagrafos, ORIGEM_TROCA_LABEL, type AssinaturaTermo, type OrigemTrocaGestor } from "@/lib/dp/termo-troca-gestor";
 
@@ -96,6 +97,20 @@ function RemarcarFolgaDialog({
   );
 }
 
+/** One adjust button per row: swap with a colleague (future dates only) or move just this day off. */
+function AjustarFolgaBotao({ onTrocar, onRemarcar }: { onTrocar?: () => void; onRemarcar: () => void }) {
+  if (!onTrocar) return <Button size="icon" variant="outline" className="h-8 w-8" title="Remarcar folga" aria-label="Remarcar folga" onClick={onRemarcar}><RefreshCw className="h-4 w-4" /></Button>;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild><Button size="icon" variant="outline" className="h-8 w-8" title="Ajustar folga" aria-label="Ajustar folga"><Repeat className="h-4 w-4" /></Button></DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem className="min-h-11" onSelect={onTrocar}><ArrowLeftRight className="mr-2 h-4 w-4" />Trocar com colega</DropdownMenuItem>
+        <DropdownMenuItem className="min-h-11" onSelect={onRemarcar}><CalendarClock className="mr-2 h-4 w-4" />Remarcar só esta folga</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 /** Troca da folga fixa pelo gestor: a pessoa trabalha neste dia e folga no novo, com termo. */
 function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito, onRegistrarTroca }: { companyId: string; colaboradorId: string; data: string; nome: string; onFeito: () => void; onRegistrarTroca?: (id: string) => void }) {
   const qc = useQueryClient();
@@ -106,6 +121,12 @@ function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito, onRegi
   const [assinatura, setAssinatura] = useState<AssinaturaTermo>("digital");
   const [revisar, setRevisar] = useState(false);
   const [consome, setConsome] = useState(true);
+  const admissaoQ = useQuery({
+    queryKey: ["dp_colaborador_origem", colaboradorId],
+    enabled: aberto,
+    queryFn: async () => ((await supabase.from("dp_colaboradores").select("origem_cadastro").eq("id", colaboradorId).maybeSingle()).data as { origem_cadastro?: string | null } | null)?.origem_cadastro === "preadmissao_rotina",
+  });
+  const emAdmissao = admissaoQ.data === true;
   const empresaQ = useQuery({
     queryKey: ["empresa_nome", companyId],
     enabled: aberto,
@@ -120,6 +141,7 @@ function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito, onRegi
         p_colaborador: colaboradorId, p_data_fixa: data, p_data_nova: novaData, p_motivo: texto, p_consome_vaga: consome,
       } as never);
       if (error) throw error;
+      if (emAdmissao) return;
       const { data: emp } = await supabase.from("companies").select("name").eq("id", companyId).maybeSingle();
       const bytes = await emitirTermoTrocaGestor({
         companyId, colaboradorId, empresa: (emp as { name?: string } | null)?.name ?? "Empresa", nome,
@@ -131,7 +153,7 @@ function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito, onRegi
       }
     },
     onSuccess: () => {
-      toast.success(assinatura === "digital" ? "Folga trocada. Termo enviado ao Portal para assinatura." : "Folga trocada. Termo pronto para imprimir.");
+      toast.success(emAdmissao ? "Folga remarcada. Ajuste operacional registrado, sem termo." : assinatura === "digital" ? "Folga trocada. Termo enviado ao Portal para assinatura." : "Folga trocada. Termo pronto para imprimir.");
       setAberto(false); setRevisar(false); setNovaData(""); setOrigem(""); setMotivo(""); setConsome(true);
       qc.invalidateQueries({ queryKey: ["dp_dia_trabalho_excepcional"] });
       qc.invalidateQueries({ queryKey: ["dp_dia_trabalho_excepcional_panorama"] });
@@ -143,8 +165,7 @@ function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito, onRegi
   });
   return (
     <>
-      {onRegistrarTroca && <Button size="icon" variant="outline" className="h-8 w-8" title="Trocar com um colega" aria-label="Trocar com um colega" onClick={() => onRegistrarTroca(colaboradorId)}><ArrowLeftRight className="h-4 w-4" /></Button>}
-      <Button size="icon" variant="outline" className="h-8 w-8" title="Remarcar só esta folga" aria-label="Remarcar só esta folga" onClick={() => setAberto(true)}>{onRegistrarTroca ? <CalendarClock className="h-4 w-4" /> : <RefreshCw className="h-4 w-4" />}</Button>
+      <AjustarFolgaBotao onTrocar={onRegistrarTroca && data >= hojeIsoLocal() ? () => onRegistrarTroca(colaboradorId) : undefined} onRemarcar={() => setAberto(true)} />
       <Dialog open={aberto} onOpenChange={(o) => { setAberto(o); if (!o) setRevisar(false); }}>
         <DialogContent className="max-w-md">
           {data < hojeIsoLocal() && (
@@ -152,7 +173,7 @@ function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito, onRegi
           )}
           <DialogHeader>
             <DialogTitle>{revisar ? "Conferir Termo de Alteração de Folga" : "Remarcar Folga Fixa"}</DialogTitle>
-            <DialogDescription>{nome} trabalha neste dia e folga na nova data. Um termo é gerado para assinatura.</DialogDescription>
+            <DialogDescription>{emAdmissao ? `${nome} está em admissão: ajuste operacional da rotina, sem termo ou assinatura.` : `${nome} trabalha neste dia e folga na nova data. Um termo é gerado para assinatura.`}</DialogDescription>
           </DialogHeader>
           {revisar && origem ? (
             <div className="max-h-[50vh] space-y-2 overflow-y-auto rounded-lg border bg-muted/30 p-3 text-sm">
@@ -182,13 +203,13 @@ function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito, onRegi
               <Label>Motivo (opcional)</Label>
               <Textarea rows={2} value={motivo} onChange={(e) => setMotivo(e.target.value)} />
             </div>
-            <div className="space-y-1.5">
+            {!emAdmissao && <div className="space-y-1.5">
               <Label>Assinatura do termo</Label>
               <RadioGroup value={assinatura} onValueChange={(v) => setAssinatura(v as AssinaturaTermo)}>
                 <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="digital" /> Digital pelo Portal</label>
                 <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="manual" /> Impressa, assinatura à mão</label>
               </RadioGroup>
-            </div>
+            </div>}
           </div>
           )}
           <DialogFooter>
@@ -203,8 +224,9 @@ function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito, onRegi
                 <Button onClick={() => {
                   if (!novaData) return toast.error("Escolha o dia em que a pessoa vai folgar.");
                   if (!origem) return toast.error("Informe se a troca foi pedida pelo colaborador ou pela empresa.");
+                  if (emAdmissao) return m.mutate();
                   setRevisar(true);
-                }}>Ver Termo</Button>
+                }} disabled={m.isPending || admissaoQ.isLoading}>{emAdmissao ? "Confirmar Ajuste" : "Ver Termo"}</Button>
               </>
             )}
           </DialogFooter>
@@ -408,8 +430,7 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
     if (!i) return null;
     return (
       <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
-        {onRegistrarTroca && <Button size="icon" variant="outline" className="h-8 w-8" title="Trocar com um colega" aria-label="Trocar com um colega" onClick={() => onRegistrarTroca(colaboradorId)}><ArrowLeftRight className="h-4 w-4" /></Button>}
-        <Button size="icon" variant="outline" className="h-8 w-8" title="Remarcar só esta folga" aria-label="Remarcar só esta folga" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConsome(true); }}><CalendarClock className="h-4 w-4" /></Button>
+        <AjustarFolgaBotao onTrocar={onRegistrarTroca && !passado ? () => onRegistrarTroca(colaboradorId) : undefined} onRemarcar={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConsome(true); }} />
         <Button size="icon" variant="outline" className="h-8 w-8 border-destructive/40 text-destructive hover:bg-destructive/10" title="Cancelar Folga" aria-label="Cancelar Folga" onClick={() => { setAcao({ item: i, tipo: "cancelar" }); setMotivo(""); }}><X className="h-4 w-4" /></Button>
         <RemarcarFolgaDialog
           aberto={acao?.item.key === i.key && acao.tipo === "remarcar"}
