@@ -37,7 +37,7 @@ export function CondicoesDesligamento({ v, set, comMotivo, planejamento = false 
       )}
       <div className="space-y-1">
         <Label htmlFor="desl-com">{semAviso ? "Data do término" : pedido ? "Data do pedido" : "Data da comunicação"}</Label>
-        <Input id="desl-com" type="date" value={v.comunicacao} max={planejamento ? undefined : hojeIsoLocal()} onChange={(e) => set({ comunicacao: e.target.value })} />
+        <Input id="desl-com" type="date" value={v.comunicacao} max={planejamento ? undefined : new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10)} onChange={(e) => set({ comunicacao: e.target.value })} />
       </div>
       {!semAviso && (
         <div className="space-y-1">
