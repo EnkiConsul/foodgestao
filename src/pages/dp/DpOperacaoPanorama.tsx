@@ -1,5 +1,6 @@
 import { FeriadosDia } from "@/components/dp/FeriadoCategoriaBadge";
 import { PrazosRescisao } from "@/components/dp/calendario/PrazosRescisao";
+import { IniciosTrabalho } from "@/components/dp/calendario/IniciosTrabalho";
 import { RegistrarTrocaGestorDialog } from "@/components/dp/trocas/RegistrarTrocaGestorDialog";
 import { textoFeriadosDia } from "@/lib/dp/feriados-apresentacao";
 import { Fragment, type ReactNode } from "react";
@@ -1028,7 +1029,8 @@ export default function DpOperacaoPanorama({
   onFecharDetalhe,
   inicioEmLinha = false,
   inicioCabecalho,
-}: { modo?: "operacao" | "calendario"; topo?: ReactNode; detalheInicial?: { data: string; unidadeId: string; periodo?: "todos" | "dia" | "noite" }; onFecharDetalhe?: () => void; inicioEmLinha?: boolean; inicioCabecalho?: ReactNode } = {}) {
+  onUnidadeDetalheChange,
+}: { modo?: "operacao" | "calendario"; topo?: ReactNode; detalheInicial?: { data: string; unidadeId: string; periodo?: "todos" | "dia" | "noite" }; onFecharDetalhe?: () => void; inicioEmLinha?: boolean; inicioCabecalho?: ReactNode; onUnidadeDetalheChange?: (id: string) => void } = {}) {
   const calendario = modo === "calendario";
   const embutido = Boolean(detalheInicial);
   const isMobile = useIsMobile();
@@ -1142,6 +1144,11 @@ export default function DpOperacaoPanorama({
 
   const trocarUnidade = (v: string) => {
     setUnidade(v);
+    setContagemTurno(null);
+    setPeriodoPopout("todos");
+    setDetalheCategoria(null);
+    setDetalheAvulso(null);
+    onUnidadeDetalheChange?.(v);
     save({ extras: { ...(prefs.extras ?? {}), [UNIDADE_KEY]: v } });
   };
 
@@ -1964,6 +1971,7 @@ export default function DpOperacaoPanorama({
       </>}
 
       {inicioEmLinha && <PrazosRescisao data={data} unidadeId={unidadeId} />}
+      {inicioEmLinha && <IniciosTrabalho data={data} unidadeId={unidadeId} />}
       {inicioEmLinha && <section className="space-y-2" aria-label="Visão oficial do dia">
         {dia && <>
           <div className="flex flex-wrap items-center gap-1 rounded-xl border border-primary/20 bg-calendar-day-header px-2 py-1.5 text-xs text-calendar-header-foreground">
@@ -1983,7 +1991,7 @@ export default function DpOperacaoPanorama({
           {dia.aguardando > 0 && <p className="text-xs text-muted-foreground">{dia.aguardando} aguardando</p>}
           <FeriadosDia dia={dia} />
           {conteudoDia(data, dia, true)}
-          <AniversariantesCard compacto competencia={data.slice(0, 7)} dataDia={data} unidadeId={unidadeId} />
+          <AniversariantesCard competencia={data.slice(0, 7)} dataDia={data} unidadeId={unidadeId} />
         </>}
         {!dia && <p className="text-xs text-muted-foreground">Sem dados para este dia.</p>}
       </section>}
@@ -2035,12 +2043,19 @@ export default function DpOperacaoPanorama({
               </Popover>
             )}
           </DialogHeader>
+          <div className="shrink-0 space-y-1.5 border-b pb-2" aria-label="Unidade da rotina do dia">
+            <p className="break-words text-sm font-semibold" aria-live="polite">{nomeUnidade ?? (unidade === "todas" ? "Todas as unidades" : "Selecionar unidade")}</p>
+            {panorama.unidades.length > 1 && <div className="flex min-w-0 gap-2 overflow-x-auto pb-1" role="group" aria-label="Trocar unidade do dia">
+              {panorama.unidades.map((u) => <Button key={u.id} variant={unidade === u.id ? "default" : "outline"} size="sm" className="min-h-11 max-w-[240px] shrink-0 rounded-full" aria-pressed={unidade === u.id} onClick={() => trocarUnidade(u.id)}><span className="truncate">{u.nome}</span></Button>)}
+            </div>}
+          </div>
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
             {dataPopout && <PrazosRescisao data={dataPopout} unidadeId={unidadeId} />}
+            {dataPopout && <IniciosTrabalho data={dataPopout} unidadeId={unidadeId} />}
             {dataPopout && diaPopout ? conteudoDia(dataPopout, diaPopout) : (
               <p className="text-sm text-muted-foreground">Sem dados para este dia.</p>
             )}
-            {calendario && dataPopout && <AniversariantesCard compacto competencia={dataPopout.slice(0, 7)} dataDia={dataPopout} unidadeId={unidadeId} />}
+            {calendario && dataPopout && <AniversariantesCard competencia={dataPopout.slice(0, 7)} dataDia={dataPopout} unidadeId={unidadeId} />}
             {calendario && dataPopout && diaPopout && companyIdCal && podeRegistrar && (
               <section className="space-y-3 border-t pt-3">
                 <h3 className="text-sm font-semibold">Limite e Regras de Folgas</h3>

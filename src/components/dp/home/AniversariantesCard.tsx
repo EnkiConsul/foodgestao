@@ -18,7 +18,7 @@ const CHIP_CLS =
   "flex h-11 w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg border bg-card px-1.5 py-1 text-xs shadow-sm transition-colors hover:bg-muted active:bg-muted md:h-7 md:w-auto md:shrink-0 md:flex-row md:justify-start md:gap-1.5 md:rounded-full md:px-2.5 md:whitespace-nowrap";
 
 export function AniversariantesCard({ variant = "admin", compacto = false, emFaixa = false, chip = false, competencia, dataDia, unidadeId }: { variant?: "admin" | "portal"; compacto?: boolean; emFaixa?: boolean; chip?: boolean; competencia?: string; dataDia?: string; unidadeId?: string | null }) {
-  const { data: todos = [], isLoading, isError, refetch } = useDpAniversariantes30d(competencia);
+  const { data: todos = [], isLoading, isError, refetch } = useDpAniversariantes30d(competencia, variant);
   const { data: eu } = useMeuVinculoPortal();
   const [aberto, setAberto] = useState(false);
   const [target, setTarget] = useState<AnivItem | null>(null);
@@ -32,16 +32,16 @@ export function AniversariantesCard({ variant = "admin", compacto = false, emFai
     : todos;
   const data = visiveis.filter((a) => (!unidadeId || a.unidadeId === unidadeId) && (!dataDia || `${a.data.getFullYear()}-${String(a.data.getMonth() + 1).padStart(2, "0")}-${String(a.data.getDate()).padStart(2, "0")}` === dataDia));
   if (dataDia && !isLoading && !isError && !data.length) return null;
-  const lista = <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+  const lista = <div className={cn("space-y-3 pr-1", !dataDia && "max-h-[420px] overflow-y-auto")}>
         {isLoading && <p role="status" className="py-4 text-sm text-muted-foreground">Carregando aniversariantes…</p>}
         {isError && <div className="space-y-2"><p className="text-sm text-muted-foreground">Não foi possível carregar os aniversariantes.</p><Button variant="outline" onClick={() => refetch()}>Tentar novamente</Button></div>}
         {!isLoading && !isError && data.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">Nenhum aniversariante {dataDia ? "neste dia" : competencia ? "neste mês" : "nos próximos 30 dias"}.</p>}
         {data.map((a) => (
-          <div key={a.id} className="flex items-start gap-3 rounded-xl bg-card border border-border p-3">
+          <div key={a.id} className="flex items-start gap-3 rounded-lg bg-card border border-border p-3">
             <div className={cn("h-11 w-11 rounded-full flex flex-col items-center justify-center shrink-0 text-[10px] font-semibold leading-none", a.tipo === "nascimento" ? "bg-[hsl(var(--dp-birthday-nasc))]" : "bg-[hsl(var(--dp-birthday-contrat))]")}><span className="text-sm">{a.diaMes.slice(0, 2)}</span><span className="opacity-70">{a.diaMes.slice(3)}</span></div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium break-words leading-snug">{toUpperCadastro(a.nome)}</p>
-              <div className="flex flex-wrap items-center justify-between gap-2 mt-1"><Badge variant="outline" className="text-[10px]">{a.tipo === "nascimento" ? "Nascimento" : "Contratação"}</Badge><span className="text-[11px] text-muted-foreground">{a.tipo === "nascimento" ? `${a.faltamDias < 0 ? "Completou" : "Completa"} ${a.anosCompletos} anos` : `${a.anosCompletos} ${a.anosCompletos === 1 ? "ano" : "anos"} de casa`}</span></div>
+              <div className="flex flex-wrap items-center justify-between gap-2 mt-1"><Badge variant="outline" className="text-[10px]">{a.tipo === "nascimento" ? "Nascimento" : "Contratação"}</Badge><span className="text-[11px] text-muted-foreground">{a.tipo === "nascimento" ? portal ? "Aniversário de nascimento" : `${a.faltamDias < 0 ? "Completou" : "Completa"} ${a.anosCompletos} anos` : `${a.anosCompletos} ${a.anosCompletos === 1 ? "ano" : "anos"} de casa`}</span></div>
               <div className="flex flex-wrap items-center justify-between gap-2 mt-1"><span className="text-[11px] text-muted-foreground break-words">{a.unidade ? `🏢 ${a.unidade}` : ""}</span><span className="text-[11px] text-muted-foreground inline-flex items-center gap-1"><Clock className="h-3 w-3" />{a.faltamDias === 0 ? "Hoje" : a.faltamDias < 0 ? `Há ${-a.faltamDias} ${a.faltamDias === -1 ? "dia" : "dias"}` : `Faltam ${a.faltamDias} ${a.faltamDias === 1 ? "dia" : "dias"}`}</span></div>
               {!portal && <div className="flex items-center justify-end gap-1.5 mt-2"><Button size="sm" variant="outline" className="min-h-9 text-xs flex-1" onClick={() => setTarget(a)}><MessageSquare className="h-3 w-3 mr-1" />WhatsApp</Button><Button asChild size="sm" variant="outline" className="min-h-9 text-xs flex-1"><Link to={`/dp/mensagens?to=${a.colaboradorId}`}><MessageCircle className="h-3 w-3 mr-1" />Comunicado</Link></Button></div>}
             </div>
@@ -50,13 +50,13 @@ export function AniversariantesCard({ variant = "admin", compacto = false, emFai
       </div>;
 
   const gatilhoChip = (
-    <button type="button" onClick={() => setAberto(true)} className={CHIP_CLS} title="Ver aniversariantes" aria-label={`Ver aniversariantes: ${data.length}`}>
+    <Button variant="ghost" type="button" onClick={() => setAberto(true)} className={CHIP_CLS} title="Ver aniversariantes" aria-label={`Ver aniversariantes: ${data.length}`}>
       <span className="flex items-center gap-1.5">
         <Cake className="h-3.5 w-3.5 shrink-0 text-calendar-dominical" aria-hidden="true" />
         <span className="font-bold tabular-nums">{isError ? "—" : data.length}</span>
       </span>
       <span className="min-w-0 truncate text-center text-[11px] leading-tight text-muted-foreground md:text-left md:text-xs">aniversariantes</span>
-    </button>
+    </Button>
   );
 
   const painel = isMobile ? (
@@ -80,9 +80,9 @@ export function AniversariantesCard({ variant = "admin", compacto = false, emFai
 
   return (
     <>
-      {chip ? (
+      {chip && !dataDia ? (
         isLoading ? null : isError || data.length > 0 ? gatilhoChip : null
-      ) : compacto ? (
+      ) : compacto && !dataDia ? (
         <>
           <Button variant="outline" onClick={() => setAberto(true)} className={cn("h-auto min-w-0 w-full justify-start rounded-2xl bg-card text-left", emFaixa ? "min-h-11 gap-1 px-2 py-2 sm:gap-2 sm:px-3" : "grid min-h-12 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-1.5 gap-y-1 px-2.5 py-3 sm:flex sm:gap-3 sm:px-4")} aria-label="Ver aniversariantes">
             <span className={cn("shrink-0 items-center justify-center rounded-lg bg-calendar-dominical/15 text-calendar-dominical", emFaixa ? "hidden h-7 w-7 sm:flex" : "hidden h-9 w-9 sm:flex")}><Cake className="h-4 w-4" /></span>
@@ -99,21 +99,21 @@ export function AniversariantesCard({ variant = "admin", compacto = false, emFai
         <div className={cn("min-w-0", competencia ? "space-y-3" : "rounded-2xl border-2 border-[hsl(var(--dp-birthday-border))] bg-[hsl(var(--dp-birthday-bg))] p-5")}>
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <Cake className="h-5 w-5 text-primary shrink-0" />
-            <h2 className="text-base sm:text-lg font-semibold min-w-0 break-words">Aniversariantes</h2>
+            <h2 className="text-base sm:text-lg font-semibold min-w-0 break-words">{dataDia ? "Aniversariantes do dia" : "Aniversariantes"}</h2>
             <Badge className="ml-1 bg-primary text-primary-foreground rounded-full h-6 min-w-6 px-2 shrink-0">
               {data.length}
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground mb-4">
             {portal
-              ? "Colegas da sua unidade e seu tempo de casa"
+              ? "Nascimento e tempo de casa da sua unidade"
                : dataDia ? "Nascimento e tempo de casa neste dia" : competencia ? "Nascimento e tempo de casa neste mês" : "Aniversários de nascimento e de contratação nos próximos 30 dias"}
           </p>
 
           {lista}
         </div>
       )}
-      {(chip || compacto) && painel}
+      {!dataDia && chip && painel}
 
       <WhatsappComposerDialog
         open={!!target}

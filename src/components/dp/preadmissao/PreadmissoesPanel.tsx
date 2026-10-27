@@ -5,7 +5,8 @@
  * Nada aqui grava direto no banco — todas as ações passam pelas rotinas do
  * servidor, que reconferem empresa, permissão e a fase da ficha.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Ban, CalendarClock, Eye, Loader2, RefreshCw, Trash2, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -100,6 +101,16 @@ export function PreadmissoesPanel({
   const convidando = convidarAberto ?? convidandoLocal;
   const setConvidando = (v: boolean) => (onConvidarChange ? onConvidarChange(v) : setConvidandoLocal(v));
   const [revisando, setRevisando] = useState<string | null>(null);
+  const [params, setParams] = useSearchParams();
+  useEffect(() => {
+    const id = params.get("preadmissao");
+    if (!id || isLoading) return;
+    if (lista.some((p) => p.id === id)) setRevisando(id);
+    else toast.error("Esta admissão não está disponível nesta empresa.");
+    const next = new URLSearchParams(params);
+    next.delete("preadmissao");
+    setParams(next, { replace: true });
+  }, [params, setParams, lista, isLoading]);
   // Ficha marcada para exclusão (confirmação em janela própria).
   const [excluindo, setExcluindo] = useState<{ id: string; nome: string } | null>(null);
   const [aba, setAba] = useState<"fichas" | "regras">("fichas");

@@ -3,7 +3,7 @@
  *
  * No portal aparecem apenas:
  * - aniversários de nascimento de colegas da mesma unidade (e o próprio);
- * - o aniversário de contratação do próprio colaborador.
+ * - tempo de casa elegível do próprio colaborador e de colegas da unidade.
  *
  * A tela administrativa continua mostrando tudo.
  */
@@ -18,7 +18,7 @@ export function filtrarAniversariantesPortal<T extends AnivFiltravel>(
   eu: { colaboradorId: string | null; unidadeId: string | null },
 ): T[] {
   return itens.filter((a) => {
-    if (a.tipo === "contratacao") return !!eu.colaboradorId && a.colaboradorId === eu.colaboradorId;
+    if (!eu.colaboradorId) return false;
     if (a.colaboradorId === eu.colaboradorId) return true;
     if (!eu.unidadeId) return false;
     return a.unidadeId === eu.unidadeId;

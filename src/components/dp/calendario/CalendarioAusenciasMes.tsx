@@ -1,12 +1,13 @@
 import { FeriadosDia } from "@/components/dp/FeriadoCategoriaBadge";
 import { useDpDesligamentosAgenda } from "@/hooks/useDpDesligamentosAgenda";
+import { useDpIniciosCalendario } from "@/hooks/useDpIniciosCalendario";
 import { PrazosRescisao } from "./PrazosRescisao";
 import { textoFeriadosDia } from "@/lib/dp/feriados-apresentacao";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { gerarCalendarioMesPdf, type CelulaPdf } from "@/lib/dp/calendario-mes-pdf";
-import { Cake, Moon, SlidersHorizontal, Sun, Users, AlertTriangle, X, Lock, CalendarHeart, Palmtree, Stethoscope, Repeat, CalendarOff, Coffee, Flame, FileDown, Maximize2, Minimize2, Loader2 } from "lucide-react";
+import { Cake, Moon, SlidersHorizontal, Sun, Users, UserPlus, AlertTriangle, X, Lock, CalendarHeart, Palmtree, Stethoscope, Repeat, CalendarOff, Coffee, Flame, FileDown, Maximize2, Minimize2, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -119,6 +120,8 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
 
   const ini = diasBrutos[0]?.data, fimMes = diasBrutos[diasBrutos.length - 1]?.data;
   const { data: aniversariantes = [] } = useDpAniversariantes30d(ini?.slice(0, 7));
+  const { data: inicios = [] } = useDpIniciosCalendario(ini?.slice(0, 7) ?? selecionado.slice(0, 7));
+  const iniciosDoDia = (iso: string) => inicios.filter((e) => (!unidadeId || e.unidadeId === unidadeId) && e.data === iso);
   const aniversariosDoDia = (iso: string) => aniversariantes.filter((a) => (!unidadeId || a.unidadeId === unidadeId) && a.diaMes === `${iso.slice(8)}/${iso.slice(5, 7)}`);
   const bloqueiosQuery = useBloqueiosEfetivos(selectedCompanyId, unidadeId, ini, fimMes);
   const parciaisQuery = useBloqueiosParciais(selectedCompanyId, unidadeId, ini, fimMes);
@@ -522,6 +525,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
               ),
               chips: (
                 <>
+                  {iniciosDoDia(d.data).map((e) => <span key={e.id} className="inline-flex shrink-0 items-center gap-1 rounded-md border border-primary/30 px-2 py-0.5 text-[10px] font-semibold text-primary"><UserPlus className="h-3 w-3" />{e.tipo === "prevista" ? "Admissão prevista" : e.tipo === "formal" ? "Admissão" : "Início"}: {primeiroNome(e.nome)}</span>)}
                   {prazosDoDia(d.data).map((p) => <span key={p.id} className="inline-flex shrink-0 rounded-md border border-primary/40 px-2 py-0.5 text-[10px] font-semibold text-primary">Rescisão: {primeiroNome(p.colaborador?.nome ?? "Colaborador")}</span>)}
                   {aus.slice(0, 3).map((a) => (
                     <span key={`${a.colaborador_id}-${a.tipo}`} title={rotulo(a, d.data)} className={cn("inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase", tomDe(a, d.data), d.data < hoje && "opacity-60")}>
@@ -592,6 +596,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                     </div>
                     {aniversariosDoDia(d.data).length > 0 && <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-foreground" title={aniversariosDoDia(d.data).map((a) => `${a.nome} · ${a.tipo === "nascimento" ? "Nascimento" : "Contratação"}`).join("; ")}><Cake className="h-3.5 w-3.5 shrink-0 text-primary" />{aniversariosDoDia(d.data).length} aniversariante(s)</span>}
                     {prazosDoDia(d.data).map((p) => <span key={p.id} className="break-words text-[10px] font-semibold text-primary">Rescisão: {primeiroNome(p.colaborador?.nome ?? "Colaborador")}</span>)}
+                    {iniciosDoDia(d.data).map((e) => <span key={e.id} className="inline-flex items-center gap-1 break-words text-[10px] font-semibold text-primary"><UserPlus className="h-3 w-3 shrink-0" />{e.tipo === "prevista" ? "Admissão prevista" : e.tipo === "formal" ? "Admissão" : "Início"}: {primeiroNome(e.nome)}</span>)}
                     <div className={cn("mt-0.5", compacto ? "grid grid-cols-2 gap-1" : "flex flex-col gap-1")}>
                       {visiveis.map((a) => (
                         <span key={`${a.colaborador_id}-${a.tipo}`} className={cn("inline-flex min-w-0 items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase shadow-sm", tomDe(a, d.data))} title={rotulo(a, d.data)}>

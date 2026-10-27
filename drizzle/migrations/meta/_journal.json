@@ -1128,6 +1128,13 @@
       "when": 1793122007068,
       "tag": "0160_desligamento_preparacao_sem_portal",
       "breakpoints": true
+    },
+    {
+      "idx": 161,
+      "version": "7",
+      "when": 1793141590689,
+      "tag": "0161_portal_aniversariantes_privacidade",
+      "breakpoints": true
     }
   ]
 }

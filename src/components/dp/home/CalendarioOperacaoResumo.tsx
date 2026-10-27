@@ -1,8 +1,9 @@
 import { textoFeriadosDia } from "@/lib/dp/feriados-apresentacao";
 import { Suspense, useEffect, useMemo, useReducer, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, BedSingle, Cake, CalendarDays, ChevronLeft, ChevronRight, ExternalLink, FileHeart, Flame, Moon, Palmtree, Sun, Users, UserX } from "lucide-react";
+import { AlertTriangle, BedSingle, Cake, CalendarDays, ChevronLeft, ChevronRight, ExternalLink, FileHeart, Flame, Moon, Palmtree, Sun, Users, UserX, UserPlus } from "lucide-react";
 import { useDpAniversariantes30d } from "@/hooks/useDpAniversariantes30d";
+import { useDpIniciosCalendario } from "@/hooks/useDpIniciosCalendario";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,8 @@ export function CalendarioOperacaoResumo() {
   const [periodo, setPeriodo] = useState<PeriodoTurno>("todos");
   const [detalhe, setDetalhe] = useState<{ data: string; unidadeId: string; periodo: PeriodoTurno } | null>(null);
   const { data: aniversariantes = [] } = useDpAniversariantes30d(competencia);
+  const { data: inicios = [] } = useDpIniciosCalendario(competencia);
+  const iniciosDoDia = (data: string) => inicios.filter((e) => e.unidadeId === unidade && e.data === data);
   const aniversariosDoDia = (data: string) => aniversariantes.filter((a) => a.unidadeId === unidade && a.diaMes === `${data.slice(8)}/${data.slice(5, 7)}`);
   const { prefs, save } = useDpUserPrefs();
   const qc = useQueryClient();
@@ -157,6 +160,7 @@ export function CalendarioOperacaoResumo() {
                       {AUSENCIAS_MES.filter((a) => a.valor(d) > 0).map(({ label, Icon, cor, valor }) => <span key={label} className={cn("flex min-w-0 items-center justify-center gap-0.5 rounded-sm py-0.5 text-[10px] leading-none tabular-nums", cor)}><Icon className="h-2.5 w-2.5 shrink-0" /><span>{valor(d)}</span></span>)}
                     </span>
                     {aniversariosDoDia(d.data).length > 0 && <span className="mt-auto inline-flex items-center gap-0.5 text-[10px] text-foreground" title="Aniversários de nascimento e contratação"><Cake className="h-3 w-3 shrink-0 text-primary" />{aniversariosDoDia(d.data).length}</span>}
+                    {iniciosDoDia(d.data).length > 0 && <span className="inline-flex items-center gap-0.5 text-[10px] text-primary" title={iniciosDoDia(d.data).map((e) => e.nome).join(", ")} aria-label={`${iniciosDoDia(d.data).length} inícios de trabalho`}><UserPlus className="h-3 w-3" />{iniciosDoDia(d.data).length}</span>}
                   </Button>)}
                 </div>
               </div>
@@ -178,7 +182,7 @@ export function CalendarioOperacaoResumo() {
           </>}
       </Card>
       {detalhe && <Suspense fallback={<p role="status" className="py-2 text-xs text-muted-foreground">Abrindo detalhes do dia…</p>}>
-        <CalendarioOficial modo="calendario" detalheInicial={detalhe} onFecharDetalhe={() => setDetalhe(null)} />
+        <CalendarioOficial modo="calendario" detalheInicial={detalhe} onUnidadeDetalheChange={(id) => setUnidade(id)} onFecharDetalhe={() => setDetalhe(null)} />
       </Suspense>}
     </>
   );
