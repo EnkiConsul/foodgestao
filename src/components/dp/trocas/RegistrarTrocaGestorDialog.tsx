@@ -103,6 +103,7 @@ function RegistrarTrocaGestorConteudo({ open, onOpenChange, unidadeId, dataInici
         
         <div className="space-y-2"><Label htmlFor="troca-mes-folgas">Mês das folgas</Label><Input id="troca-mes-folgas" type="month" value={mesFolgas} onChange={e => { if (e.target.value) setMesFolgas(e.target.value); }} disabled={registrar.isPending} /></div>
       </div>
+      <p className="text-xs text-muted-foreground">Trocas retroativas valem até 31 dias para trás. Folga em outro mês? Ajuste o campo "Mês das folgas" para vê-la.</p>
       {sol && <div className="space-y-2">
         <Label>Folga atual de {primeira?.nome}</Label>
         {calendario.isLoading ? <p className="text-sm text-muted-foreground">Carregando folgas…</p> : datasPrimeira.length ?
@@ -124,7 +125,7 @@ function RegistrarTrocaGestorConteudo({ open, onOpenChange, unidadeId, dataInici
       {retroativa && <div className="space-y-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm"><p>Uma das datas já passou. A troca será registrada como retroativa e altera o histórico das duas pessoas.</p><label className="flex items-start gap-2"><Checkbox checked={cienteRetro} onCheckedChange={v => setCienteRetro(v === true)} disabled={registrar.isPending} /><span>Confirmo que esta troca já aconteceu ou foi combinada com as duas pessoas.</span></label></div>}
       {emAdmissao && <p className="text-sm text-muted-foreground">Pessoa em admissão: registro operacional, sem termo ou assinatura. A troca não efetiva a admissão.</p>}
       {riscos.length > 0 && <div className="space-y-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{riscos.map(r => <p key={r.colaborador_id}>{r.nome}: previsão de {r.dias} dias seguidos sem descanso. Recomenda-se antecipar a folga para respeitar o limite de 6 dias.</p>)}<label className="flex items-start gap-2"><Checkbox checked={ciente} onCheckedChange={v => setCiente(v === true)} disabled={registrar.isPending} /><span>Estou ciente do alerta de descanso. Esta autorização não afasta as obrigações trabalhistas.</span></label></div>}
-      <div className="space-y-2"><Label htmlFor="troca-motivo">Motivo e acordo informado ao gestor</Label><Textarea id="troca-motivo" value={motivo} onChange={e => setMotivo(e.target.value)} disabled={registrar.isPending} /></div>
+      <div className="space-y-2"><Label htmlFor="troca-motivo">Motivo e acordo informado ao gestor</Label><Textarea id="troca-motivo" value={motivo} onChange={e => setMotivo(e.target.value)} disabled={registrar.isPending} placeholder="Ex.: cobertura combinada entre as pessoas, ajuste da escala, pedido do colaborador." /><p className="text-xs text-muted-foreground">Justificativa objetiva fortalece o registro em eventuais fiscalizações.</p></div>
       <label className="flex items-start gap-2 text-sm"><Checkbox checked={notificar} onCheckedChange={v => setNotificar(v === true)} disabled={registrar.isPending} /><span>Notificar colaboradores com acesso ao portal, sem solicitar assinatura.</span></label>
       {erro && <p role="alert" className="text-sm text-destructive">{erro}</p>}
     </div>

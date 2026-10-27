@@ -1463,7 +1463,7 @@ export default function DpOperacaoPanorama({
                 regimes={regimesColab}
                 periodosHabituais={periodosHab}
                 onContagemTurno={setContagemTurno}
-                acoesFolga={calendario && companyIdCal && podeRegistrar ? (id, fixa) => (
+                acoesFolga={companyIdCal && podeRegistrar ? (id, fixa) => (
                   <FolgasDoDiaPainel
                     companyId={companyIdCal}
                     data={dataDoDetalhe}
@@ -2056,7 +2056,7 @@ export default function DpOperacaoPanorama({
               <p className="text-sm text-muted-foreground">Sem dados para este dia.</p>
             )}
             {dataPopout && <AniversariantesCard competencia={dataPopout.slice(0, 7)} dataDia={dataPopout} unidadeId={unidadeId} />}
-            {calendario && dataPopout && diaPopout && companyIdCal && podeRegistrar && (
+            {dataPopout && diaPopout && companyIdCal && podeRegistrar && (
               <section className="space-y-3 border-t pt-3">
                 <h3 className="text-sm font-semibold">Limite e Regras de Folgas</h3>
                 <RegrasDoDiaPainel
