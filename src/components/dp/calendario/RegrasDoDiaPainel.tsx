@@ -33,6 +33,7 @@ interface Props {
   ocupantes?: { nome: string; cargoId?: string | null; setorId?: string | null }[];
   /** Quem ocupa vaga de folga mas está de atestado/licença no dia. */
   afastadosNaVaga?: string[];
+  onRegistrarTroca?: () => void;
 }
 
 const STATUS_TROCA: Record<string, string> = {
@@ -45,7 +46,7 @@ const STATUS_TROCA: Record<string, string> = {
  * Bloqueio de data, limite de folgas e trocas do dia, pelas mesmas rotinas
  * do Calendário de Folgas (o servidor valida permissões e regras).
  */
-export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nomes, ocultarBloqueio, ocupantes, afastadosNaVaga }: Props) {
+export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nomes, ocultarBloqueio, ocupantes, afastadosNaVaga, onRegistrarTroca }: Props) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [motivo, setMotivo] = useState("");
@@ -229,6 +230,7 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
 
       <div className="space-y-1.5">
         <p className="text-xs font-medium text-muted-foreground">Trocas que envolvem este dia</p>
+        {onRegistrarTroca && <Button variant="outline" size="sm" onClick={onRegistrarTroca}>Registrar troca</Button>}
         {!trocasDaUnidade.length && <p className="text-xs text-muted-foreground">Nenhuma troca neste dia.</p>}
         <ul className="space-y-1">
           {trocasDaUnidade.map((t) => (

@@ -26,6 +26,7 @@
 - Troca de plano/ciclo só por `billing_v2_plan_change_quote/schedule/cancel`: upgrade e mensal→anual são imediatos com crédito proporcional; downgrade e anual→mensal ficam em `pending_plan_change` e `billing_v2_apply_scheduled_changes` revalida uso na renovação — valor calculado no banco.
 - Read subdirectory `AGENTS.md` before edits.
 - Manager-created swaps use a dedicated authorized atomic RPC and immutable origin; reuse the leave motor and linked evidence, never synthesize participant consent/signatures or external attendance postings.
+- Manager swap shortcuts retain employee/date context and offer leave dates from the shared operational calendar, with server preview and atomic registration remaining authoritative to avoid invented dates or bypassed checks.
 - Pre-admission correction/retake uses a service-only atomic RPC with expected version and actor audit; retake is explicit, never triggered by an upload, and never bypasses admission checks. Renew the existing non-revoked invite without shortening its expiry or exposing/regenerating its token; WhatsApp refers to the previously received link.
 - Portal request refusals are classified by server domain tokens before notifying; preserve transport errors for audit and never classify Pix failures by matching prose.
 - Stale-bundle recovery shares a 30-second sessionStorage guard across global, lazy and boundary handlers; without persistent storage only manual recovery is safe.

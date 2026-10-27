@@ -14,16 +14,25 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { mensagemErroTroca } from "@/lib/dp/trocas-erros";
 import { dataComDiaSemana } from "@/lib/dp/troca-apresentacao";
+import { useDpOperacaoPanorama } from "@/hooks/useDpOperacaoPanorama";
+import { folgasDisponiveisTroca } from "@/lib/dp/troca-gestor";
+import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 
 type Pessoa = { id: string; nome: string; unidade_id: string | null; origem_cadastro: string | null };
-type Props = { open: boolean; onOpenChange: (open: boolean) => void; unidadeId?: string; dataInicial?: string };
+type Props = { open: boolean; onOpenChange: (open: boolean) => void; unidadeId?: string; dataInicial?: string; colaboradorInicialId?: string };
 
-export function RegistrarTrocaGestorDialog({ open, onOpenChange, unidadeId, dataInicial }: Props) {
+export function RegistrarTrocaGestorDialog(props: Props) {
+  // Mount the calendar reads only while the dialog is open.
+  return props.open ? <RegistrarTrocaGestorConteudo {...props} /> : null;
+}
+
+function RegistrarTrocaGestorConteudo({ open, onOpenChange, unidadeId, dataInicial, colaboradorInicialId }: Props) {
   const { selectedCompanyId } = useCompanyContext();
   const [sol, setSol] = useState("");
   const [dest, setDest] = useState("");
   const [original, setOriginal] = useState("");
   const [proposta, setProposta] = useState("");
+  const [mesFolgas, setMesFolgas] = useState((dataInicial ?? hojeIsoLocal()).slice(0, 7));
   const [motivo, setMotivo] = useState("");
   const [ciente, setCiente] = useState(false);
   const [notificar, setNotificar] = useState(false);
@@ -31,8 +40,8 @@ export function RegistrarTrocaGestorDialog({ open, onOpenChange, unidadeId, data
   const registrar = useRegistrarTrocaGestor();
   useEffect(() => {
     if (!open) return;
-    setSol(""); setDest(""); setOriginal(dataInicial ?? ""); setProposta(""); setMotivo(""); setCiente(false); setNotificar(false); setErro(null);
-  }, [open, dataInicial, selectedCompanyId]);
+    setSol(colaboradorInicialId ?? ""); setDest(""); setOriginal(dataInicial ?? ""); setProposta(""); setMesFolgas((dataInicial ?? hojeIsoLocal()).slice(0, 7)); setMotivo(""); setCiente(false); setNotificar(false); setErro(null);
+  }, [open, dataInicial, colaboradorInicialId, selectedCompanyId]);
   useEffect(() => { setCiente(false); setErro(null); }, [sol, dest, original, proposta]);
 
   const pessoas = useQuery({
@@ -46,6 +55,16 @@ export function RegistrarTrocaGestorDialog({ open, onOpenChange, unidadeId, data
   });
   const primeira = pessoas.data?.find(p => p.id === sol);
   const segunda = pessoas.data?.find(p => p.id === dest);
+  const calendario = useDpOperacaoPanorama(mesFolgas, primeira?.unidade_id ?? unidadeId ?? null);
+  const datasColega = folgasDisponiveisTroca(calendario.dias, dest, sol, original);
+  const diaOriginal = calendario.diaDe(original);
+  const colegas = (pessoas.data ?? []).filter(p => p.id !== sol && p.unidade_id === primeira?.unidade_id);
+  const trabalhaNoDia = (id: string) => diaOriginal?.pessoas.some(p => p.colaborador_id === id && !p.avulso_id && ["fixo", "convocado_aceito", "atrasado", "saida_antecipada"].includes(p.categoria));
+  const colegasOrdenados = [...colegas].sort((a, b) => Number(!!trabalhaNoDia(b.id)) - Number(!!trabalhaNoDia(a.id)) || a.nome.localeCompare(b.nome, "pt-BR"));
+  useEffect(() => { setProposta(""); }, [sol, dest, original, mesFolgas]);
+  useEffect(() => {
+    if (proposta && !calendario.isLoading && !datasColega.includes(proposta)) setProposta("");
+  }, [proposta, calendario.isLoading, datasColega]);
   const input = { companyId: selectedCompanyId ?? "", solicitanteId: sol, destinoId: dest, dataOriginal: original, dataProposta: proposta };
   const completo = !!selectedCompanyId && !!sol && !!dest && !!original && !!proposta && sol !== dest && original !== proposta;
   const previa = useQuery({ queryKey: ["dp_troca_gestor_previa", input], enabled: open && completo, retry: false, staleTime: 0, queryFn: () => previaTrocaGestor(input) });
@@ -69,10 +88,16 @@ export function RegistrarTrocaGestorDialog({ open, onOpenChange, unidadeId, data
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2"><Label htmlFor="troca-primeira">Primeira pessoa</Label><Select value={sol} onValueChange={v => { setSol(v); setDest(""); }} disabled={registrar.isPending}><SelectTrigger id="troca-primeira"><SelectValue placeholder="Selecionar" /></SelectTrigger><SelectContent>{(pessoas.data ?? []).filter(p => !unidadeId || p.unidade_id === unidadeId).map(p => <SelectItem key={p.id} value={p.id}>{p.nome}{p.origem_cadastro === "preadmissao_rotina" ? " · Em admissão" : ""}</SelectItem>)}</SelectContent></Select></div>
-        <div className="space-y-2"><Label htmlFor="troca-segunda">Segunda pessoa</Label><Select value={dest} onValueChange={setDest} disabled={!sol || registrar.isPending}><SelectTrigger id="troca-segunda"><SelectValue placeholder="Selecionar" /></SelectTrigger><SelectContent>{(pessoas.data ?? []).filter(p => p.id !== sol && p.unidade_id === primeira?.unidade_id).map(p => <SelectItem key={p.id} value={p.id}>{p.nome}{p.origem_cadastro === "preadmissao_rotina" ? " · Em admissão" : ""}</SelectItem>)}</SelectContent></Select></div>
+        <div className="space-y-2"><Label htmlFor="troca-segunda">Trocar com</Label><Select value={dest} onValueChange={setDest} disabled={!sol || registrar.isPending}><SelectTrigger id="troca-segunda"><SelectValue placeholder="Selecionar colega" /></SelectTrigger><SelectContent>{colegasOrdenados.map(p => <SelectItem key={p.id} value={p.id}>{p.nome}{p.origem_cadastro === "preadmissao_rotina" ? " · Em admissão" : ""}{trabalhaNoDia(p.id) ? " · Trabalha neste dia" : ""}</SelectItem>)}</SelectContent></Select></div>
         <div className="space-y-2"><Label htmlFor="troca-original">Folga atual da primeira pessoa</Label><Input id="troca-original" type="date" value={original} onChange={e => setOriginal(e.target.value)} disabled={registrar.isPending} /></div>
-        <div className="space-y-2"><Label htmlFor="troca-proposta">Folga atual da segunda pessoa</Label><Input id="troca-proposta" type="date" value={proposta} onChange={e => setProposta(e.target.value)} disabled={registrar.isPending} /></div>
+        <div className="space-y-2"><Label htmlFor="troca-mes-folgas">Mês das folgas do colega</Label><Input id="troca-mes-folgas" type="month" value={mesFolgas} onChange={e => { if (e.target.value) setMesFolgas(e.target.value); }} disabled={registrar.isPending} /></div>
       </div>
+      {dest && <div className="space-y-2">
+        <Label>Folga de {segunda?.nome}</Label>
+        {calendario.isLoading ? <p className="text-sm text-muted-foreground">Carregando folgas…</p> : calendario.isError ? <p role="alert" className="text-sm text-destructive">Não foi possível carregar as folgas. <Button variant="link" onClick={() => void calendario.refetch()}>Tentar novamente</Button></p> : datasColega.length ?
+          <div className="grid gap-2 sm:grid-cols-2">{datasColega.map(d => <Button key={d} variant={proposta === d ? "default" : "outline"} aria-pressed={proposta === d} className="h-auto min-h-11 whitespace-normal" disabled={registrar.isPending} onClick={() => setProposta(d)}>{dataComDiaSemana(d)}</Button>)}</div> :
+          <p className="text-sm text-muted-foreground">Nenhuma folga disponível para esta troca neste mês.</p>}
+      </div>}
       {pessoas.isLoading && <p className="text-sm text-muted-foreground">Carregando pessoas…</p>}
       {pessoas.isError && <p role="alert" className="text-sm text-destructive">Não foi possível carregar as pessoas. <Button variant="link" onClick={() => void pessoas.refetch()}>Tentar novamente</Button></p>}
       {completo && <div className="space-y-2 border-y border-border py-3 text-sm"><p><strong>{dataComDiaSemana(original)}</strong>: {primeira?.nome} trabalha; {segunda?.nome} folga.</p><p><strong>{dataComDiaSemana(proposta)}</strong>: {segunda?.nome} trabalha; {primeira?.nome} folga.</p></div>}
