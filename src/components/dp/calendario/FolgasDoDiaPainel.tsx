@@ -11,7 +11,7 @@ import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { RefreshCw, X, AlertTriangle } from "lucide-react";
+import { RefreshCw, X, AlertTriangle, ArrowLeftRight, CalendarClock } from "lucide-react";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { emitirTermoTrocaGestor, termoTrocaGestorParagrafos, ORIGEM_TROCA_LABEL, type AssinaturaTermo, type OrigemTrocaGestor } from "@/lib/dp/termo-troca-gestor";
 
@@ -24,6 +24,7 @@ interface Props {
   colaboradorId?: string;
   /** A folga do dia é a fixa da jornada (sem registro): oferece "Trocar". */
   folgaFixa?: boolean;
+  onRegistrarTroca?: (colaboradorId: string) => void;
 }
 
 interface FolgaDia {
@@ -96,7 +97,7 @@ function RemarcarFolgaDialog({
 }
 
 /** Troca da folga fixa pelo gestor: a pessoa trabalha neste dia e folga no novo, com termo. */
-function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito }: { companyId: string; colaboradorId: string; data: string; nome: string; onFeito: () => void }) {
+function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito, onRegistrarTroca }: { companyId: string; colaboradorId: string; data: string; nome: string; onFeito: () => void; onRegistrarTroca?: (id: string) => void }) {
   const qc = useQueryClient();
   const [aberto, setAberto] = useState(false);
   const [novaData, setNovaData] = useState("");
@@ -142,7 +143,8 @@ function TrocarFolgaFixa({ companyId, colaboradorId, data, nome, onFeito }: { co
   });
   return (
     <>
-      <Button size="icon" variant="outline" className="ml-auto h-8 w-8" title="Remarcar Folga" aria-label="Remarcar Folga" onClick={() => setAberto(true)}><RefreshCw className="h-4 w-4" /></Button>
+      {onRegistrarTroca && <Button size="icon" variant="outline" className="h-8 w-8" title="Trocar com um colega" aria-label="Trocar com um colega" onClick={() => onRegistrarTroca(colaboradorId)}><ArrowLeftRight className="h-4 w-4" /></Button>}
+      <Button size="icon" variant="outline" className="h-8 w-8" title="Remarcar só esta folga" aria-label="Remarcar só esta folga" onClick={() => setAberto(true)}>{onRegistrarTroca ? <CalendarClock className="h-4 w-4" /> : <RefreshCw className="h-4 w-4" />}</Button>
       <Dialog open={aberto} onOpenChange={(o) => { setAberto(o); if (!o) setRevisar(false); }}>
         <DialogContent className="max-w-md">
           {data < hojeIsoLocal() && (
@@ -276,7 +278,7 @@ function CancelarFolgaFixa({ companyId, colaboradorId, data, nome, passado, data
  * Calendário de Folgas (dp_folga_admin_cancelar / dp_folga_admin_remarcar).
  * A folga fixa da jornada é trocada por dp_folga_admin_trocar_fixa.
  */
-export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folgaFixa }: Props) {
+export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folgaFixa, onRegistrarTroca }: Props) {
   const qc = useQueryClient();
   const [acao, setAcao] = useState<{ item: FolgaDia; tipo: "cancelar" | "remarcar" } | null>(null);
   const [motivo, setMotivo] = useState("");
@@ -398,7 +400,7 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
       const nome = (nomes.get(colaboradorId) ?? "").split(" ")[0] || "Colaborador";
       return (
         <div className="ml-auto flex items-center gap-1">
-          <TrocarFolgaFixa companyId={companyId} colaboradorId={colaboradorId} data={data} nome={nome} onFeito={invalidar} />
+          <TrocarFolgaFixa companyId={companyId} colaboradorId={colaboradorId} data={data} nome={nome} onFeito={invalidar} onRegistrarTroca={onRegistrarTroca} />
           <CancelarFolgaFixa companyId={companyId} colaboradorId={colaboradorId} data={data} nome={nome} passado={passado} dataBr={dataBr} onFeito={invalidar} />
         </div>
       );
@@ -406,7 +408,8 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
     if (!i) return null;
     return (
       <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
-        <Button size="icon" variant="outline" className="h-8 w-8" title="Remarcar Folga" aria-label="Remarcar Folga" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConsome(true); }}><RefreshCw className="h-4 w-4" /></Button>
+        {onRegistrarTroca && <Button size="icon" variant="outline" className="h-8 w-8" title="Trocar com um colega" aria-label="Trocar com um colega" onClick={() => onRegistrarTroca(colaboradorId)}><ArrowLeftRight className="h-4 w-4" /></Button>}
+        <Button size="icon" variant="outline" className="h-8 w-8" title="Remarcar só esta folga" aria-label="Remarcar só esta folga" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConsome(true); }}><CalendarClock className="h-4 w-4" /></Button>
         <Button size="icon" variant="outline" className="h-8 w-8 border-destructive/40 text-destructive hover:bg-destructive/10" title="Cancelar Folga" aria-label="Cancelar Folga" onClick={() => { setAcao({ item: i, tipo: "cancelar" }); setMotivo(""); }}><X className="h-4 w-4" /></Button>
         <RemarcarFolgaDialog
           aberto={acao?.item.key === i.key && acao.tipo === "remarcar"}

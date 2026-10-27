@@ -1054,6 +1054,11 @@ export default function DpOperacaoPanorama({
   const [folgaColab, setFolgaColab] = useState<string>("");
   const [folgaTriagem, setFolgaTriagem] = useState(false);
   const [trocaGestorOpen, setTrocaGestorOpen] = useState(false);
+  const [trocaContexto, setTrocaContexto] = useState<{ colaboradorId?: string; data: string } | null>(null);
+  const abrirTrocaGestor = (diaTroca: string, colaboradorId?: string) => {
+    setTrocaContexto({ colaboradorId, data: diaTroca });
+    setTrocaGestorOpen(true);
+  };
 
   const [verSocios, setVerSocios] = useState(false);
   const { role } = useCompanyPermissions();
@@ -1451,12 +1456,13 @@ export default function DpOperacaoPanorama({
                 regimes={regimesColab}
                 periodosHabituais={periodosHab}
                 onContagemTurno={setContagemTurno}
-                acoesFolga={calendario && companyIdCal ? (id, fixa) => (
+                acoesFolga={calendario && companyIdCal && podeRegistrar ? (id, fixa) => (
                   <FolgasDoDiaPainel
                     companyId={companyIdCal}
                     data={dataDoDetalhe}
                     colaboradorId={id}
                     folgaFixa={fixa}
+                    onRegistrarTroca={(colaboradorId) => abrirTrocaGestor(dataDoDetalhe, colaboradorId)}
                     nomes={new Map(diaDoDetalhe.pessoas.filter((p) => !p.avulso_id).map((p) => [p.colaborador_id, p.nome]))}
                   />
                 ) : undefined}
@@ -1483,7 +1489,7 @@ export default function DpOperacaoPanorama({
         actions={
           podeRegistrar ? (
             <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
-              <Button variant="outline" className="col-span-2 gap-2" onClick={() => setTrocaGestorOpen(true)}><ArrowLeftRight className="h-4 w-4" /> Registrar troca</Button>
+              <Button variant="outline" className="col-span-2 gap-2" onClick={() => abrirTrocaGestor(dataPopout ?? data)}><ArrowLeftRight className="h-4 w-4" /> Registrar troca</Button>
               <Button
                 variant="outline"
                 className="min-w-0 gap-2 border-emerald-500/40 bg-emerald-500/10 px-2 text-emerald-700 hover:bg-emerald-500/20 hover:text-emerald-800 dark:text-emerald-300 sm:px-4"
@@ -1525,7 +1531,7 @@ export default function DpOperacaoPanorama({
           onDone={() => { setFolgaTriagem(false); setFolgaColab(""); }}
         />
       )}
-      <RegistrarTrocaGestorDialog open={trocaGestorOpen} onOpenChange={setTrocaGestorOpen} unidadeId={unidade || undefined} dataInicial={dataPopout ?? data} />
+      <RegistrarTrocaGestorDialog open={trocaGestorOpen} onOpenChange={setTrocaGestorOpen} unidadeId={unidade || undefined} dataInicial={trocaContexto?.data ?? data} colaboradorInicialId={trocaContexto?.colaboradorId} />
 
       <DpRegistrarAusenciaDialog
         open={ausenciaOpen}
@@ -2019,6 +2025,7 @@ export default function DpOperacaoPanorama({
               <Popover><PopoverTrigger asChild><Button size="sm" className="h-8 rounded-full px-3 text-xs"><MoreHorizontal className="mr-1 h-4 w-4" />Ações</Button></PopoverTrigger>
                 <PopoverContent align="end" className="w-80 max-w-[calc(100vw-2rem)] space-y-1 rounded-xl p-2">
                   {podeRegistrar && <>
+                    <Button variant="ghost" className="h-10 w-full justify-start gap-2 text-xs" onClick={() => abrirTrocaGestor(dataPopout)}><ArrowLeftRight className="h-4 w-4" />Registrar troca</Button>
                     <Button variant="ghost" className="h-10 w-full justify-start gap-2 text-xs" onClick={() => { setAusenciaData(dataPopout); setAusenciaMotivo(undefined); setAusenciaOpen(true); }}><Plus className="h-4 w-4 text-calendar-falta" />Registrar Ausência</Button>
                     <Button variant="ghost" className="h-10 w-full justify-start gap-2 text-xs" onClick={() => abrirNovaAvulsa(dataPopout)}><UserPlus className="h-4 w-4 text-primary" />Mão de Obra Extra</Button>
                   </>}
@@ -2042,6 +2049,7 @@ export default function DpOperacaoPanorama({
                   unidadeId={unidadeId}
                   data={dataPopout}
                   ocultarBloqueio
+                  onRegistrarTroca={() => abrirTrocaGestor(dataPopout)}
                   folgasNoDia={diaPopout.pessoas.filter((p) => String(p.categoria).startsWith("folga")).length}
                   ocupantes={diaPopout.pessoas.filter((p) => String(p.categoria).startsWith("folga")).map((p) => ({ nome: p.nome, cargoId: p.cargo_id ?? null, setorId: p.setor_id ?? null }))}
                   nomes={new Map(diaPopout.pessoas.filter((p) => !p.avulso_id).map((p) => [p.colaborador_id, p.nome]))}
