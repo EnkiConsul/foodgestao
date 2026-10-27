@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeftRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +28,7 @@ export function RegistrarTrocaGestorDialog(props: Props) {
 
 function RegistrarTrocaGestorConteudo({ open, onOpenChange, unidadeId, dataInicial, colaboradorInicialId }: Props) {
   const { selectedCompanyId } = useCompanyContext();
+  const qc = useQueryClient();
   const [sol, setSol] = useState("");
   const [dest, setDest] = useState("");
   const [original, setOriginal] = useState("");
@@ -57,7 +58,7 @@ function RegistrarTrocaGestorConteudo({ open, onOpenChange, unidadeId, dataInici
   const segunda = pessoas.data?.find(p => p.id === dest);
   const calendario = useDpOperacaoPanorama(mesFolgas, primeira?.unidade_id ?? unidadeId ?? null);
   const datasColega = folgasDisponiveisTroca(calendario.dias, dest, sol, original);
-  const diaOriginal = calendario.diaDe(original);
+  const diaOriginal = calendario.contarData(original);
   const colegas = (pessoas.data ?? []).filter(p => p.id !== sol && p.unidade_id === primeira?.unidade_id);
   const trabalhaNoDia = (id: string) => diaOriginal?.pessoas.some(p => p.colaborador_id === id && !p.avulso_id && ["fixo", "convocado_aceito", "atrasado", "saida_antecipada"].includes(p.categoria));
   const colegasOrdenados = [...colegas].sort((a, b) => Number(!!trabalhaNoDia(b.id)) - Number(!!trabalhaNoDia(a.id)) || a.nome.localeCompare(b.nome, "pt-BR"));
@@ -94,7 +95,7 @@ function RegistrarTrocaGestorConteudo({ open, onOpenChange, unidadeId, dataInici
       </div>
       {dest && <div className="space-y-2">
         <Label>Folga de {segunda?.nome}</Label>
-        {calendario.isLoading ? <p className="text-sm text-muted-foreground">Carregando folgas…</p> : calendario.isError ? <p role="alert" className="text-sm text-destructive">Não foi possível carregar as folgas. <Button variant="link" onClick={() => void calendario.refetch()}>Tentar novamente</Button></p> : datasColega.length ?
+        {calendario.isLoading ? <p className="text-sm text-muted-foreground">Carregando folgas…</p> : calendario.error ? <p role="alert" className="text-sm text-destructive">Não foi possível carregar as folgas. <Button variant="link" onClick={() => void qc.invalidateQueries({ queryKey: ["dp_panorama_base"] })}>Tentar novamente</Button></p> : datasColega.length ?
           <div className="grid gap-2 sm:grid-cols-2">{datasColega.map(d => <Button key={d} variant={proposta === d ? "default" : "outline"} aria-pressed={proposta === d} className="h-auto min-h-11 whitespace-normal" disabled={registrar.isPending} onClick={() => setProposta(d)}>{dataComDiaSemana(d)}</Button>)}</div> :
           <p className="text-sm text-muted-foreground">Nenhuma folga disponível para esta troca neste mês.</p>}
       </div>}
