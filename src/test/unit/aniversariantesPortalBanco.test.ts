@@ -28,7 +28,7 @@ beforeAll(async () => {
 afterAll(() => db.close());
 describe.sequential("aniversariantes com privacidade no servidor", () => {
   it("não devolve idade nem ano de nascimento para colegas", async () => {
-    const { rows } = await db.query<Record<string,unknown>>("select * from dp_portal_aniversariantes('2026-10') where tipo='nascimento'");
+    const { rows } = await db.query<Record<string,unknown>>("select colaborador_id,nome,cargo,unidade_id,unidade_nome,tipo,data_evento::text,anos_casa,faltam_dias from dp_portal_aniversariantes('2026-10') where tipo='nascimento'");
     expect(rows.map((r) => r.nome)).toContain("Provisória");
     for (const r of rows) { expect(r.anos_casa).toBeNull(); expect(Object.keys(r)).not.toContain("data_nascimento"); expect(r.data_evento).toBe("2026-10-12"); }
   });
@@ -42,18 +42,18 @@ describe.sequential("aniversariantes com privacidade no servidor", () => {
     expect(rows.some((r) => r.nome==='Provisória'||r.nome==='Zero anos')).toBe(false);
   });
   it("conversão conta só o período formal", async () => {
-    expect((await db.query("select anos_casa,data_evento from dp_portal_aniversariantes('2026-10') where nome='Convertido'")).rows).toEqual([{anos_casa:1,data_evento:'2026-10-15'}]);
+    expect((await db.query("select anos_casa,data_evento::text from dp_portal_aniversariantes('2026-10') where nome='Convertido'")).rows).toEqual([{anos_casa:1,data_evento:'2026-10-15'}]);
   });
   it("recontratação não soma contrato anterior", async () => {
-    expect((await db.query("select anos_casa,data_evento from dp_portal_aniversariantes('2026-10') where nome='Recontratado'")).rows).toEqual([{anos_casa:1,data_evento:'2026-10-18'}]);
+    expect((await db.query("select anos_casa,data_evento::text from dp_portal_aniversariantes('2026-10') where nome='Recontratado'")).rows).toEqual([{anos_casa:1,data_evento:'2026-10-18'}]);
   });
   it("nega visitante", async () => {
     await db.exec('SET ROLE anon');
-    await expect(db.query("select * from dp_portal_aniversariantes('2026-10')")).rejects.toThrow(/permission denied/);
+    await expect(db.query("select colaborador_id,nome,cargo,unidade_id,unidade_nome,tipo,data_evento::text,anos_casa,faltam_dias from dp_portal_aniversariantes('2026-10')")).rejects.toThrow(/permission denied/);
     await db.exec('RESET ROLE');
   });
   it("sem vínculo ativo não devolve colegas", async () => {
     await db.exec(`SET app.actor='${uuid(9)}';`);
-    expect((await db.query("select * from dp_portal_aniversariantes('2026-10')")).rows).toEqual([]);
+    expect((await db.query("select colaborador_id,nome,cargo,unidade_id,unidade_nome,tipo,data_evento::text,anos_casa,faltam_dias from dp_portal_aniversariantes('2026-10')")).rows).toEqual([]);
   });
 });
