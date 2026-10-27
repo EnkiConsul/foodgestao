@@ -21037,6 +21037,20 @@ export type Database = {
           status: string
         }[]
       }
+      dp_portal_aniversariantes: {
+        Args: { p_competencia?: string }
+        Returns: {
+          anos_casa: number
+          cargo: string
+          colaborador_id: string
+          data_evento: string
+          faltam_dias: number
+          nome: string
+          tipo: string
+          unidade_id: string
+          unidade_nome: string
+        }[]
+      }
       dp_portal_confirmar_contatos: {
         Args: { _contatos: Json; _whatsapp: string }
         Returns: undefined
