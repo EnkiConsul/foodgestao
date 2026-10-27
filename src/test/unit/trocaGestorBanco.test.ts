@@ -43,6 +43,7 @@ beforeAll(async()=>{
  INSERT INTO dp_ocorrencias(troca_id,colaborador_id,subtipo,tratativa_ponto,tratativa_status) VALUES(t.id,t.solicitante_id,'troca_folga',true,'pendente'),(t.id,t.destino_id,'troca_folga',true,'pendente'),(t.id,t.solicitante_id,'troca_trabalho',true,'pendente'),(t.id,t.destino_id,'troca_trabalho',true,'pendente');
  RETURN '{}'::jsonb; END $$;`);
  await db.exec(readFileSync('supabase/migrations/20261027010500_troca_gestor_admissao.sql','utf8'));
+ await db.exec(readFileSync('drizzle/migrations/0159_troca_gestor_cancelamento_portal.sql','utf8'));
  await db.exec(`CREATE TRIGGER notificacao AFTER INSERT OR UPDATE ON dp_trocas FOR EACH ROW EXECUTE FUNCTION dp_notif_troca();`);
  const dates=await db.query<{a:string;b:string}>(`SELECT (CURRENT_DATE+1)::text a,(CURRENT_DATE+3)::text b`);dayA=dates.rows[0].a;dayB=dates.rows[0].b;
  await db.query(`INSERT INTO dp_folgas(colaborador_id,data) VALUES($1,$2),($3,$4)`,[sol,dayA,dest,dayB]);
