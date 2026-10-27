@@ -175,6 +175,21 @@ export function labelAfastamento(tipo: string | null | undefined): string {
   return tipo ?? "Afastamento";
 }
 
+/** Até 15 dias a empresa paga (Atestado); a partir do 16º dia é benefício do INSS (Lei 8.213/91, art. 60). */
+export const LIMITE_DIAS_ATESTADO_EMPRESA = 15;
+
+/** Dias corridos do afastamento (início e fim inclusive). */
+export function diasCorridos(inicio: string, fim?: string | null): number {
+  return differenceInCalendarDays(parseISO(fim || inicio), parseISO(inicio)) + 1;
+}
+
+/** Rótulo pelo tipo e pela duração: atestado com mais de 15 dias vira "Licença INSS". */
+export function rotuloAfastamento(tipo: string | null | undefined, inicio?: string | null, fim?: string | null): string {
+  if (tipo === "atestado" && inicio && diasCorridos(inicio, fim) > LIMITE_DIAS_ATESTADO_EMPRESA) return "Licença INSS";
+  if (tipo === "suspensao") return "Suspensão";
+  return labelAfastamento(tipo);
+}
+
 /** Duração padrão do tipo, quando existir. */
 export function duracaoPadrao(tipo: string | null | undefined): number | null {
   if (!tipo) return null;

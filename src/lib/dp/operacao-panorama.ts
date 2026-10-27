@@ -109,6 +109,8 @@ export interface AusenciaPanorama {
   fim: string;
   /** Suspensão disciplinar entra como ausência do dia (mesma faixa do atestado). */
   tipo: "ferias" | "atestado" | "suspensao";
+  /** Tipo exato da solicitação (atestado, licenca_maternidade...), para o rótulo. */
+  subtipo?: string | null;
 }
 
 export interface OcorrenciaPanorama {
