@@ -276,7 +276,11 @@ export default function DpTrocas() {
         onRecusar={abrirRecusa}
         onCancelar={abrirCancelamento}
       />
-      <RegistrarTrocaGestorDialog open={registrarOpen} onOpenChange={setRegistrarOpen} />
+      <RegistrarTrocaGestorDialog
+        open={registrarOpen}
+        onOpenChange={setRegistrarOpen}
+        unidadeId={filtros.unidadeId !== "todas" ? filtros.unidadeId : undefined}
+      />
 
       <RecusaDialog
         open={!!recusa}
