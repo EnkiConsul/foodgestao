@@ -112,6 +112,8 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
   };
   const iconeAus = (a: AusenciaCalendario) =>
     a.tipo === "indisponibilidade" ? "⚠️" : a.tipo === "falta" || a.tipo === "atestado" ? "❌" : null;
+  const motivoCurto = (a: AusenciaCalendario) =>
+    a.troca ? "Troca" : a.rotulo ?? ({ folga: "Folga", ferias: "Férias", falta: "Falta", atestado: "Atestado", indisponibilidade: "Indisponível", outras: "Ausente" } as const)[a.tipo];
   const rotulo = (a: AusenciaCalendario, iso: string) =>
     `${a.nome} · ${a.rotulo ?? (a.tipo === "folga" ? "Folga" : TIPO_AUSENCIA_LABEL[a.tipo])}${a.troca ? " (troca)" : ""}`;
 
@@ -289,7 +291,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
     { label: "Folga semanal", cls: TOM.folga, n: resumoMes.semanal, pdf: PDF_COR.folga },
     { label: "Folga dominical", cls: TOM_DOMINICAL, n: resumoMes.dominical, pdf: PDF_DOMINICAL },
     { label: "Férias", cls: TOM.ferias, n: resumoMes.ferias, pdf: PDF_COR.ferias },
-    { label: "Atestado / Licença", cls: TOM.atestado, n: resumoMes.atestado, pdf: PDF_COR.atestado },
+    { label: "Atestado / Afastamento", cls: TOM.atestado, n: resumoMes.atestado, pdf: PDF_COR.atestado },
     { label: "Coberto por folguista", cls: TOM.outras, n: resumoMes.outras, pdf: PDF_COR.outras },
   ].filter((l) => l.n > 0);
 
@@ -611,24 +613,30 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                     })()}
                   </button>
                 </HoverCardTrigger>
-                <HoverCardContent side="top" className="w-64 space-y-2 p-3 text-xs">
+                <HoverCardContent side="top" className="w-72 space-y-2.5 p-3 text-xs">
                   <p className="font-bold first-letter:uppercase">
                     {new Date(`${d.data}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "short" })}
                     {d.feriado_nome ? ` · ${textoFeriadosDia(d)}` : ""}
                   </p>
                   <div>
-                    <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-primary">Trabalhando ({trab.length})</p>
+                    <p className="mb-1 text-[11px] font-semibold text-primary">Trabalhando ({trab.length})</p>
                     {trab.length ? [...porSetor].map(([s, ns]) => (
                       <p key={s} className="line-clamp-2">
-                        <span className="text-muted-foreground">{s} ({ns.length}):</span>{" "}
+                        <span className="font-medium normal-case text-muted-foreground first-letter:uppercase">{s.charAt(0) + s.slice(1).toLowerCase()} ({ns.length}):</span>{" "}
                         {ns.slice(0, 6).join(", ")}{ns.length > 6 ? ` +${ns.length - 6}` : ""}
                       </p>
                     )) : <p className="text-muted-foreground">Ninguém escalado.</p>}
                   </div>
                   {aus.length > 0 && (
                     <div>
-                      <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Ausentes ({aus.length})</p>
-                      <p>{aus.map((a) => rotulo(a, d.data)).join(" · ")}</p>
+                      <p className="mb-1 text-[11px] font-semibold text-muted-foreground">Ausentes ({aus.length})</p>
+                      <div className="flex flex-wrap gap-1">
+                        {aus.map((a) => (
+                          <span key={`${a.colaborador_id}-${a.tipo}`} className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px]", tomDe(a, d.data))}>
+                            <span className="font-semibold">{primeiroNome(a.nome)}</span><span className="opacity-80">· {motivoCurto(a)}</span>
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   )}
                   <p className="text-[10px] text-muted-foreground">Clique para gerenciar o dia.</p>
