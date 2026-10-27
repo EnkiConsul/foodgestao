@@ -11,8 +11,7 @@ import { DpDialogShell } from "@/components/dp/DpDialogShell";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { RefreshCw, X, AlertTriangle, ArrowLeftRight, CalendarClock, Repeat } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { RefreshCw, X, AlertTriangle, ArrowLeftRight, CalendarClock } from "lucide-react";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { emitirTermoTrocaGestor, termoTrocaGestorParagrafos, ORIGEM_TROCA_LABEL, type AssinaturaTermo, type OrigemTrocaGestor } from "@/lib/dp/termo-troca-gestor";
 
