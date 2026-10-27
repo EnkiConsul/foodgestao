@@ -97,5 +97,21 @@ describe.sequential('troca administrativa — SQL isolado sem dados reais',()=>{
  it('recusa duplicata e origem alterada para fingir dispensa de assinatura',async()=>{
   await expect(db.query(`SELECT dp_troca_gestor_registrar($1,$2,$3,$4,$5,$6,$7,$8)`,args())).rejects.toThrow('DUPLICATE_REQUEST');
   await expect(db.exec(`UPDATE dp_trocas SET origem_registro='portal'`)).rejects.toThrow('imutável');
+  });
+ it('participante pede cancelamento sem ser gestor, sem alterar mais nada',async()=>{
+  const solUser='00000000-0000-4000-8000-000000000006';
+  await db.query(`UPDATE dp_colaboradores SET user_id=$1 WHERE id=$2`,[solUser,sol]);
+  await db.query(`SELECT set_config('test.actor',$1,false)`,[solUser]);
+  await db.query(`UPDATE dp_trocas SET cancelamento_solicitado_em=now(),cancelamento_solicitado_por=$1,cancelamento_motivo='Preciso desfazer a troca combinada',updated_at=now()`,[sol]);
+  const r=await db.query<{p:uuid;s:string;a:string|null}>(`SELECT cancelamento_solicitado_por p,status s,solicitante_assinatura a FROM dp_trocas`);
+  expect(r.rows[0].p).toBe(sol); expect(r.rows[0].s).toBe('aprovada'); expect(r.rows[0].a).toBeNull();
+ });
+ it('participante não altera outros campos nem pede cancelamento por terceiro',async()=>{
+  const solUser='00000000-0000-4000-8000-000000000006';
+  await expect(db.exec(`UPDATE dp_trocas SET status='cancelada'`)).rejects.toThrow('FORBIDDEN');
+  await expect(db.query(`UPDATE dp_trocas SET cancelamento_solicitado_em=now(),cancelamento_solicitado_por=$1,cancelamento_motivo='Tentativa em nome de outro'`,[dest])).rejects.toThrow('FORBIDDEN');
+  await db.query(`SELECT set_config('test.actor',$1,false)`,[manager]);
+  await db.query(`UPDATE dp_trocas SET cancelamento_solicitado_em=NULL,cancelamento_solicitado_por=NULL,cancelamento_motivo=NULL,updated_at=now()`);
+  expect((await db.query(`SELECT cancelamento_solicitado_em FROM dp_trocas`)).rows[0].cancelamento_solicitado_em).toBeNull();
  });
 });
