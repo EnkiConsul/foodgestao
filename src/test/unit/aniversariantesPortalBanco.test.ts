@@ -8,7 +8,7 @@ const db = new PGlite({ fsBundle: new NodeBlob([readFileSync("node_modules/@elec
 const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12,"0")}`;
 beforeAll(async () => {
   await db.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role; CREATE SCHEMA auth;
-    CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT nullif(current_setting('app.user',true),'')::uuid $$;
+    CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT nullif(current_setting('app.actor',true),'')::uuid $$;
     CREATE FUNCTION public.dp_colaborador_ativo_of(u uuid) RETURNS uuid LANGUAGE sql AS $$ SELECT u WHERE u='${uuid(1)}'::uuid $$;
     CREATE TABLE public.dp_unidades(id uuid,company_id uuid,nome text);
     CREATE TABLE public.dp_colaboradores(id uuid,company_id uuid,unidade_id uuid,nome text,cargo text,data_nascimento date,data_admissao date,data_base_contagem date,regime text,vinculo_label text,origem_cadastro text,ativo boolean,deleted_at timestamptz);
@@ -23,7 +23,7 @@ beforeAll(async () => {
       ('${uuid(7)}','${uuid(20)}','${uuid(10)}','Convertido','Cargo',NULL,'2020-10-01','2025-10-15','clt',NULL,NULL,true,NULL),
       ('${uuid(8)}','${uuid(20)}','${uuid(10)}','Recontratado','Cargo',NULL,'2025-10-18','2020-10-01','clt',NULL,NULL,true,NULL);`);
   await db.exec(readFileSync("drizzle/migrations/0161_portal_aniversariantes_privacidade.sql","utf8"));
-  await db.exec(`SET app.user='${uuid(1)}';`);
+  await db.exec(`SET app.actor='${uuid(1)}';`);
 },30000);
 afterAll(() => db.close());
 describe.sequential("aniversariantes com privacidade no servidor", () => {
@@ -53,7 +53,7 @@ describe.sequential("aniversariantes com privacidade no servidor", () => {
     await db.exec('RESET ROLE');
   });
   it("sem vínculo ativo não devolve colegas", async () => {
-    await db.exec(`SET app.user='${uuid(9)}';`);
+    await db.exec(`SET app.actor='${uuid(9)}';`);
     expect((await db.query("select * from dp_portal_aniversariantes('2026-10')")).rows).toEqual([]);
   });
 });
