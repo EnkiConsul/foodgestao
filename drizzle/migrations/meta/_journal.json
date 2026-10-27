@@ -1114,6 +1114,13 @@
       "when": 1793062953529,
       "tag": "0158_troca_gestor_admissao",
       "breakpoints": true
+    },
+    {
+      "idx": 159,
+      "version": "7",
+      "when": 1793095898590,
+      "tag": "0159_troca_gestor_cancelamento_portal",
+      "breakpoints": true
     }
   ]
 }
