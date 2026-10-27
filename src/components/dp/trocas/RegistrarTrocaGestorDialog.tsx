@@ -18,6 +18,12 @@ import { useDpOperacaoPanorama } from "@/hooks/useDpOperacaoPanorama";
 import { folgasDisponiveisTroca, folgasPropriasTroca } from "@/lib/dp/troca-gestor";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 
+/** Retroactive manager swaps are accepted up to 31 days back (mirrors the server limit). */
+function dataMinimaTroca(): string {
+  const d = new Date(`${hojeIsoLocal()}T12:00:00`); d.setDate(d.getDate() - 31);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 type Pessoa = { id: string; nome: string; unidade_id: string | null; origem_cadastro: string | null };
 type Props = { open: boolean; onOpenChange: (open: boolean) => void; unidadeId?: string; dataInicial?: string; colaboradorInicialId?: string };
 
@@ -36,6 +42,7 @@ function RegistrarTrocaGestorConteudo({ open, onOpenChange, unidadeId, dataInici
   const [mesFolgas, setMesFolgas] = useState((dataInicial ?? hojeIsoLocal()).slice(0, 7));
   const [motivo, setMotivo] = useState("");
   const [ciente, setCiente] = useState(false);
+  const [cienteRetro, setCienteRetro] = useState(false);
   const [notificar, setNotificar] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const registrar = useRegistrarTrocaGestor();
@@ -43,7 +50,7 @@ function RegistrarTrocaGestorConteudo({ open, onOpenChange, unidadeId, dataInici
     if (!open) return;
     setSol(colaboradorInicialId ?? ""); setDest(""); setOriginal(dataInicial ?? ""); setProposta(""); setMesFolgas((dataInicial ?? hojeIsoLocal()).slice(0, 7)); setMotivo(""); setCiente(false); setNotificar(false); setErro(null);
   }, [open, dataInicial, colaboradorInicialId, selectedCompanyId]);
-  useEffect(() => { setCiente(false); setErro(null); }, [sol, dest, original, proposta]);
+  useEffect(() => { setCiente(false); setCienteRetro(false); setErro(null); }, [sol, dest, original, proposta]);
 
   const pessoas = useQuery({
     queryKey: ["dp_troca_gestor_pessoas", selectedCompanyId], enabled: open && !!selectedCompanyId,
@@ -57,9 +64,9 @@ function RegistrarTrocaGestorConteudo({ open, onOpenChange, unidadeId, dataInici
   const primeira = pessoas.data?.find(p => p.id === sol);
   const segunda = pessoas.data?.find(p => p.id === dest);
   const calendario = useDpOperacaoPanorama(mesFolgas, primeira?.unidade_id ?? unidadeId ?? null);
-  const datasProprias = folgasPropriasTroca(calendario.dias, sol, hojeIsoLocal());
+  const datasProprias = folgasPropriasTroca(calendario.dias, sol, dataMinimaTroca());
   const datasPrimeira = original && !datasProprias.includes(original) ? [original, ...datasProprias] : datasProprias;
-  const datasColega = folgasDisponiveisTroca(calendario.dias, dest, sol, original, hojeIsoLocal());
+  const datasColega = folgasDisponiveisTroca(calendario.dias, dest, sol, original, dataMinimaTroca());
   const diaOriginal = calendario.contarData(original);
   const colegas = (pessoas.data ?? []).filter(p => p.id !== sol && p.unidade_id === primeira?.unidade_id);
   const trabalhaNoDia = (id: string) => diaOriginal?.pessoas.some(p => p.colaborador_id === id && !p.avulso_id && ["fixo", "convocado_aceito", "atrasado", "saida_antecipada"].includes(p.categoria));
@@ -72,9 +79,10 @@ function RegistrarTrocaGestorConteudo({ open, onOpenChange, unidadeId, dataInici
   const completo = !!selectedCompanyId && !!sol && !!dest && !!original && !!proposta && sol !== dest && original !== proposta;
   const previa = useQuery({ queryKey: ["dp_troca_gestor_previa", input], enabled: open && completo, retry: false, staleTime: 0, queryFn: () => previaTrocaGestor(input) });
   const riscos = previa.data?.riscos ?? [];
+  const retroativa = completo && (original < hojeIsoLocal() || proposta < hojeIsoLocal());
   const emAdmissao = primeira?.origem_cadastro === "preadmissao_rotina" || segunda?.origem_cadastro === "preadmissao_rotina";
   const salvar = async () => {
-    if (!completo || !previa.isSuccess || (riscos.length > 0 && !ciente)) return;
+    if (!completo || !previa.isSuccess || (riscos.length > 0 && !ciente) || (retroativa && !cienteRetro)) return;
     setErro(null);
     try {
       await registrar.mutateAsync({ ...input, motivo, cienteDsr: ciente, notificar });
@@ -84,7 +92,7 @@ function RegistrarTrocaGestorConteudo({ open, onOpenChange, unidadeId, dataInici
   };
   return <DpDialogShell open={open} onOpenChange={v => !registrar.isPending && onOpenChange(v)} icon={ArrowLeftRight} title="Registrar troca" footer={<>
     <Button variant="outline" disabled={registrar.isPending} onClick={() => onOpenChange(false)}>Cancelar</Button>
-    <Button disabled={!completo || !previa.isSuccess || previa.isFetching || motivo.trim().length < 3 || (riscos.length > 0 && !ciente) || registrar.isPending} onClick={() => void salvar()}>
+    <Button disabled={!completo || !previa.isSuccess || previa.isFetching || motivo.trim().length < 3 || (riscos.length > 0 && !ciente) || (retroativa && !cienteRetro) || registrar.isPending} onClick={() => void salvar()}>
       {registrar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Registrar troca
     </Button>
   </>}>
@@ -99,9 +107,9 @@ function RegistrarTrocaGestorConteudo({ open, onOpenChange, unidadeId, dataInici
         <Label>Folga atual de {primeira?.nome}</Label>
         {calendario.isLoading ? <p className="text-sm text-muted-foreground">Carregando folgas…</p> : datasPrimeira.length ?
           <div className="grid gap-2 sm:grid-cols-2">{datasPrimeira.map(d => <Button key={d} variant={original === d ? "default" : "outline"} aria-pressed={original === d} className="h-auto min-h-11 whitespace-normal" disabled={registrar.isPending} onClick={() => setOriginal(d)}>{dataComDiaSemana(d)}</Button>)}</div> :
-          <p className="text-sm text-muted-foreground">Nenhuma folga futura desta pessoa neste mês.</p>}
+          <p className="text-sm text-muted-foreground">Nenhuma folga desta pessoa disponível neste mês.</p>}
       </div>}
-      {original && original < hojeIsoLocal() && <p role="alert" className="text-sm text-destructive">Esta folga já passou. O registro de troca não permite datas passadas.</p>}
+      {original && original < dataMinimaTroca() && <p role="alert" className="text-sm text-destructive">Esta folga tem mais de 31 dias. Trocas retroativas só valem para o último mês.</p>}
       {dest && <div className="space-y-2">
         <Label>Folga de {segunda?.nome}</Label>
         {calendario.isLoading ? <p className="text-sm text-muted-foreground">Carregando folgas…</p> : calendario.error ? <p role="alert" className="text-sm text-destructive">Não foi possível carregar as folgas. <Button variant="link" onClick={() => void qc.invalidateQueries({ queryKey: ["dp_panorama_base"] })}>Tentar novamente</Button></p> : datasColega.length ?
@@ -113,6 +121,7 @@ function RegistrarTrocaGestorConteudo({ open, onOpenChange, unidadeId, dataInici
       {completo && <div className="space-y-2 border-y border-border py-3 text-sm"><p><strong>{dataComDiaSemana(original)}</strong>: {primeira?.nome} trabalha; {segunda?.nome} folga.</p><p><strong>{dataComDiaSemana(proposta)}</strong>: {segunda?.nome} trabalha; {primeira?.nome} folga.</p></div>}
       {completo && previa.isFetching && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Conferindo folgas e descanso…</p>}
       {completo && previa.isError && <div role="alert" className="text-sm text-destructive">{mensagemErroTroca(previa.error.message)} <Button variant="link" onClick={() => void previa.refetch()}>Conferir novamente</Button></div>}
+      {retroativa && <div className="space-y-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm"><p>Uma das datas já passou. A troca será registrada como retroativa e altera o histórico das duas pessoas.</p><label className="flex items-start gap-2"><Checkbox checked={cienteRetro} onCheckedChange={v => setCienteRetro(v === true)} disabled={registrar.isPending} /><span>Confirmo que esta troca já aconteceu ou foi combinada com as duas pessoas.</span></label></div>}
       {emAdmissao && <p className="text-sm text-muted-foreground">Pessoa em admissão: registro operacional, sem termo ou assinatura. A troca não efetiva a admissão.</p>}
       {riscos.length > 0 && <div className="space-y-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{riscos.map(r => <p key={r.colaborador_id}>{r.nome}: previsão de {r.dias} dias seguidos sem descanso. Recomenda-se antecipar a folga para respeitar o limite de 6 dias.</p>)}<label className="flex items-start gap-2"><Checkbox checked={ciente} onCheckedChange={v => setCiente(v === true)} disabled={registrar.isPending} /><span>Estou ciente do alerta de descanso. Esta autorização não afasta as obrigações trabalhistas.</span></label></div>}
       <div className="space-y-2"><Label htmlFor="troca-motivo">Motivo e acordo informado ao gestor</Label><Textarea id="troca-motivo" value={motivo} onChange={e => setMotivo(e.target.value)} disabled={registrar.isPending} /></div>
