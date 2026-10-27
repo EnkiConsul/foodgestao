@@ -29,7 +29,7 @@ CREATE TRIGGER trg_dp_trocas_exige_assinatura BEFORE INSERT OR UPDATE ON public.
 CREATE OR REPLACE FUNCTION private.dp_troca_gestor_validar(_company uuid,_sol uuid,_dest uuid,_original date,_proposta date)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
 DECLARE a public.dp_colaboradores%ROWTYPE; b public.dp_colaboradores%ROWTYPE; p record; d date;
- hoje date; seq integer; maior integer; riscos jsonb:='[]'::jsonb; descanso boolean; cfg jsonb; trabalha boolean;
+ hoje date; seq integer; maior integer; riscos jsonb:='[]'::jsonb; descanso boolean; cfg jsonb; trabalha boolean; passa_cedida boolean;
 BEGIN
  IF auth.uid() IS NULL OR NOT (private.is_company_admin_or_owner(auth.uid(),_company) OR public.is_super_admin(auth.uid())) THEN RAISE EXCEPTION 'FORBIDDEN' USING ERRCODE='42501'; END IF;
  IF _sol IS NULL OR _dest IS NULL OR _sol=_dest OR _original IS NULL OR _proposta IS NULL OR _original=_proposta OR abs(_original-_proposta)>62 THEN RAISE EXCEPTION 'INVALID_INPUT: duas pessoas e datas diferentes, até 62 dias entre elas'; END IF;
@@ -49,13 +49,13 @@ BEGIN
   IF NOT EXISTS(SELECT 1 FROM public.dp_folgas f WHERE f.colaborador_id=p.cid AND f.data=p.cedida AND f.status<>'cancelada') AND NOT private.dp_troca_folga_fixa_livre(p.cid,p.cedida) THEN RAISE EXCEPTION 'TROCA_SEM_FOLGA_PROPRIA: % não tem folga na data oferecida',p.nome; END IF;
   IF EXISTS(SELECT 1 FROM public.dp_folgas f WHERE f.colaborador_id=p.cid AND f.data=p.nova AND f.status<>'cancelada') OR private.dp_troca_folga_fixa_livre(p.cid,p.nova) THEN RAISE EXCEPTION 'TROCA_JA_TEM_FOLGA: % já tem descanso na data recebida',p.nome; END IF;
   IF private.dp_regra_bloqueia_colaborador(p.cid,p.nova) IS NOT NULL THEN RAISE EXCEPTION 'TROCA_DATA_BLOQUEADA'; END IF;
-  seq:=0; maior:=0;
+  seq:=0; maior:=0; passa_cedida:=false;
   FOR d IN SELECT generate_series(least(_original,_proposta)-21,greatest(_original,_proposta)+21,interval '1 day')::date LOOP
    SELECT i.tipo='trabalho' INTO trabalha FROM public.dp_escala_itens i JOIN public.dp_escalas e ON e.id=i.escala_id WHERE i.colaborador_id=p.cid AND i.data=d AND e.status='publicada' ORDER BY i.updated_at DESC LIMIT 1;
    descanso := (d NOT IN (p.cedida,p.nova) AND trabalha IS false) OR d=p.nova OR (d<>p.cedida AND (private.dp_troca_folga_fixa_livre(p.cid,d) OR EXISTS(SELECT 1 FROM public.dp_folgas f WHERE f.colaborador_id=p.cid AND f.data=d AND f.status<>'cancelada') OR private.dp_colab_afastado_em(p.cid,d) OR public.dp_rotina_ausencia_operacional_em(p.cid,d)));
    IF EXISTS(SELECT 1 FROM public.dp_colaboradores c WHERE c.id=p.cid AND coalesce(c.origem_cadastro,'')<>'preadmissao_rotina' AND c.data_admissao>d) THEN descanso:=true; END IF;
-   IF descanso THEN seq:=0; ELSE seq:=seq+1; END IF;
-   IF d BETWEEN least(_original,_proposta)-7 AND greatest(_original,_proposta)+7 THEN maior:=greatest(maior,seq); END IF;
+   IF descanso THEN seq:=0; passa_cedida:=false; ELSE seq:=seq+1; passa_cedida:=passa_cedida OR d=p.cedida; END IF;
+   IF passa_cedida THEN maior:=greatest(maior,seq); END IF;
   END LOOP;
   IF maior>=7 THEN riscos:=riscos || jsonb_build_array(jsonb_build_object('colaborador_id',p.cid,'nome',p.nome,'dias',maior)); END IF;
  END LOOP;
