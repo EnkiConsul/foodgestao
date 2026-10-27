@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { invalidarRotina } from "@/lib/dp/rotina-cache";
 import { argsTrocaGestor, type TrocaGestorInput, type TrocaGestorPrevia } from "@/lib/dp/troca-gestor";
 
-const rpc = supabase.rpc as unknown as (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+const rpc = supabase.rpc.bind(supabase) as unknown as (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
 
 export async function previaTrocaGestor(input: Parameters<typeof argsTrocaGestor>[0]): Promise<TrocaGestorPrevia> {
   const { data, error } = await rpc("dp_troca_gestor_previa", argsTrocaGestor(input));
