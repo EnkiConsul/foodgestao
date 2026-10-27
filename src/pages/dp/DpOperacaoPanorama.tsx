@@ -1463,7 +1463,7 @@ export default function DpOperacaoPanorama({
                 regimes={regimesColab}
                 periodosHabituais={periodosHab}
                 onContagemTurno={setContagemTurno}
-                acoesFolga={calendario && companyIdCal && podeRegistrar ? (id, fixa) => (
+                acoesFolga={companyIdCal && podeRegistrar ? (id, fixa) => (
                   <FolgasDoDiaPainel
                     companyId={companyIdCal}
                     data={dataDoDetalhe}
@@ -1705,6 +1705,16 @@ export default function DpOperacaoPanorama({
               onReativar={reativar}
               {...propsAvulsas}
               {...propsSetor}
+              acoesFolga={companyIdCal && podeRegistrar ? (id, fixa) => (
+                <FolgasDoDiaPainel
+                  companyId={companyIdCal}
+                  data={data}
+                  colaboradorId={id}
+                  folgaFixa={fixa}
+                  onRegistrarTroca={(colaboradorId) => abrirTrocaGestor(data, colaboradorId)}
+                  nomes={new Map((dia?.pessoas ?? []).filter((p) => !p.avulso_id).map((p) => [p.colaborador_id, p.nome]))}
+                />
+              ) : undefined}
             />
           )}
         </TabsContent>
@@ -2029,7 +2039,7 @@ export default function DpOperacaoPanorama({
                 <FeriadosDia dia={diaPopout} />
               )}
             </DialogDescription>
-            {calendario && dataPopout && diaPopout && (
+            {dataPopout && diaPopout && (
               <Popover><PopoverTrigger asChild><Button size="sm" className="h-8 rounded-full px-3 text-xs"><MoreHorizontal className="mr-1 h-4 w-4" />Ações</Button></PopoverTrigger>
                 <PopoverContent align="end" className="w-80 max-w-[calc(100vw-2rem)] space-y-1 rounded-xl p-2">
                   {podeRegistrar && <>
@@ -2056,7 +2066,7 @@ export default function DpOperacaoPanorama({
               <p className="text-sm text-muted-foreground">Sem dados para este dia.</p>
             )}
             {dataPopout && <AniversariantesCard competencia={dataPopout.slice(0, 7)} dataDia={dataPopout} unidadeId={unidadeId} />}
-            {calendario && dataPopout && diaPopout && companyIdCal && podeRegistrar && (
+            {dataPopout && diaPopout && companyIdCal && podeRegistrar && (
               <section className="space-y-3 border-t pt-3">
                 <h3 className="text-sm font-semibold">Limite e Regras de Folgas</h3>
                 <RegrasDoDiaPainel
