@@ -2029,7 +2029,7 @@ export default function DpOperacaoPanorama({
                 <FeriadosDia dia={diaPopout} />
               )}
             </DialogDescription>
-            {calendario && dataPopout && diaPopout && (
+            {dataPopout && diaPopout && (
               <Popover><PopoverTrigger asChild><Button size="sm" className="h-8 rounded-full px-3 text-xs"><MoreHorizontal className="mr-1 h-4 w-4" />Ações</Button></PopoverTrigger>
                 <PopoverContent align="end" className="w-80 max-w-[calc(100vw-2rem)] space-y-1 rounded-xl p-2">
                   {podeRegistrar && <>
