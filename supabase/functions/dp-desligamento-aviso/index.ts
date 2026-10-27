@@ -118,7 +118,9 @@ async function calcular(admin: any, c: Colab, b: Cond, previa = false, processoI
   if (!previa && SEM_AVISO_ASSISTIDO.has(b.motivo) && b.confirmacao_sem_aviso !== true)
     return { resp: json(400, { error: "Este motivo exige determinação factual ou jurídica. Confirme que a data de término foi validada (ex.: abandono caracterizado, aposentadoria que encerra o vínculo) antes de registrar." }) };
   const hoje = hojeSP();
-  if (b.data_comunicacao > hoje) return { resp: json(400, { error: "A comunicação não pode ser futura: registre depois de comunicar formalmente." }) };
+  // Preparation may simulate a planned conversation (up to 30 days); recording never accepts a future date.
+  if (!previa && b.data_comunicacao > hoje) return { resp: json(400, { error: "A comunicação não pode ser futura: confirme depois da conversa com o colaborador." }) };
+  if (previa && b.data_comunicacao > somar(hoje, 30)) return { resp: json(400, { error: "Prepare com a conversa prevista para os próximos 30 dias." }) };
   // Registro tardio é permitido: o gestor pode lançar dias ou semanas depois.
 
   // Jornada e escala só são exigidas quando há aviso com jornadas (trabalhado).
