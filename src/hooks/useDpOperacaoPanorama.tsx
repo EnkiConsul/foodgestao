@@ -552,6 +552,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
         inicio: a.data_alvo!,
         fim: a.data_fim ?? a.data_alvo!,
         tipo: "atestado" as const,
+        subtipo: a.tipo,
       }));
     // Suspensão disciplinar: afastamento de `data` até data + (dias - 1).
     const deSuspensao: AusenciaPanorama[] = (d.suspensoes ?? []).map((s) => ({

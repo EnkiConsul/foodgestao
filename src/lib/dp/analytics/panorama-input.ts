@@ -263,6 +263,7 @@ export async function carregarPanorama(
         inicio: a.data_alvo!,
         fim: a.data_fim ?? a.data_alvo!,
         tipo: "atestado" as const,
+        subtipo: a.tipo,
       })),
     ...(suspensoes.data ?? []).map((s) => ({
       colaborador_id: s.colaborador_id,

@@ -8,6 +8,7 @@
 // Funções puras — nenhuma dependência de React ou Supabase.
 // ------------------------------------------------------------------
 
+import { rotuloAfastamento } from "@/lib/dp/licencas";
 import {
   cargaLiquidaHoras,
   turnoViraODia,
