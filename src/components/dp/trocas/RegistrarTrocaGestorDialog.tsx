@@ -57,7 +57,7 @@ function RegistrarTrocaGestorConteudo({ open, onOpenChange, unidadeId, dataInici
   const primeira = pessoas.data?.find(p => p.id === sol);
   const segunda = pessoas.data?.find(p => p.id === dest);
   const calendario = useDpOperacaoPanorama(mesFolgas, primeira?.unidade_id ?? unidadeId ?? null);
-  const datasColega = folgasDisponiveisTroca(calendario.dias, dest, sol, original);
+  const datasColega = folgasDisponiveisTroca(calendario.dias, dest, sol, original, hojeIsoLocal());
   const diaOriginal = calendario.contarData(original);
   const colegas = (pessoas.data ?? []).filter(p => p.id !== sol && p.unidade_id === primeira?.unidade_id);
   const trabalhaNoDia = (id: string) => diaOriginal?.pessoas.some(p => p.colaborador_id === id && !p.avulso_id && ["fixo", "convocado_aceito", "atrasado", "saida_antecipada"].includes(p.categoria));
@@ -93,6 +93,7 @@ function RegistrarTrocaGestorConteudo({ open, onOpenChange, unidadeId, dataInici
         <div className="space-y-2"><Label htmlFor="troca-original">Folga atual da primeira pessoa</Label><Input id="troca-original" type="date" value={original} onChange={e => setOriginal(e.target.value)} disabled={registrar.isPending} /></div>
         <div className="space-y-2"><Label htmlFor="troca-mes-folgas">Mês das folgas do colega</Label><Input id="troca-mes-folgas" type="month" value={mesFolgas} onChange={e => { if (e.target.value) setMesFolgas(e.target.value); }} disabled={registrar.isPending} /></div>
       </div>
+      {original && original < hojeIsoLocal() && <p role="alert" className="text-sm text-destructive">Esta folga já passou. O registro de troca não permite datas passadas.</p>}
       {dest && <div className="space-y-2">
         <Label>Folga de {segunda?.nome}</Label>
         {calendario.isLoading ? <p className="text-sm text-muted-foreground">Carregando folgas…</p> : calendario.error ? <p role="alert" className="text-sm text-destructive">Não foi possível carregar as folgas. <Button variant="link" onClick={() => void qc.invalidateQueries({ queryKey: ["dp_panorama_base"] })}>Tentar novamente</Button></p> : datasColega.length ?
