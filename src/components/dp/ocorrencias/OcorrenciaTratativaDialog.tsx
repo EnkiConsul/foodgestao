@@ -43,13 +43,13 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, mo
   const informado = (ocorrencia.horario_real ?? "").slice(0, 5);
   const horarioValido = /^([01]\d|2[0-3]):[0-5]\d$/.test(horario);
   const horarioMudou = ajustavel && horarioValido && horario !== informado;
-  const observacaoMudou = observacao.trim() !== (ocorrencia.tratativa_observacao ?? "").trim();
+  const observacaoMudou = observacao.trim() !== (modo === "editar" ? "" : ocorrencia.tratativa_observacao ?? "").trim();
   const ajusteMudou = ajustavel && (horarioMudou || marcacao !== (ocorrencia.marcacao_alvo ?? null) || observacaoMudou);
   const jaTratada = ocorrencia.tratativa_status !== "pendente";
 
   const footer = (
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap [&_button]:min-h-11">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" disabled={saving} onClick={() => onOpenChange(false)}>
             Fechar
           </Button>
           {jornada ? (
@@ -162,7 +162,9 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, mo
             )}
           </div>
           <p className="text-xs text-muted-foreground">
-            {jornada
+            {modo === "editar"
+              ? "A correção preserva a justificativa original e não conclui a conferência. O lançamento no ponto externo continua separado."
+              : jornada
               ? "Escolha a decisão: Compensação (o tempo será compensado), Abono ou Desconto em Folha. Nada é descontado sem a sua escolha."
               : comPonto
                 ? "Ao decidir, a ocorrência já sai das pendências. O ponto em si é ajustado por quem faz o tratamento."

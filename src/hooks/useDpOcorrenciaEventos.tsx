@@ -10,6 +10,7 @@ export interface OcorrenciaEvento {
   valor_anterior: string | null;
   valor_novo: string | null;
   created_at: string;
+  metadata?: { observacao?: string | null } | null;
 }
 
 /** Histórico de mudanças de uma ocorrência (auditoria). */
@@ -23,7 +24,7 @@ export function useDpOcorrenciaEventos(ocorrenciaId: string | null) {
       if (!selectedCompanyId || !ocorrenciaId) return [];
       const { data, error } = await supabase
         .from("dp_ocorrencia_eventos")
-        .select("id, ocorrencia_id, tipo_evento, campo, valor_anterior, valor_novo, created_at")
+        .select("id, ocorrencia_id, tipo_evento, campo, valor_anterior, valor_novo, created_at, metadata")
         .eq("company_id", selectedCompanyId)
         .eq("ocorrencia_id", ocorrenciaId)
         .order("created_at", { ascending: true });

@@ -195,6 +195,7 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
     qc.invalidateQueries({ queryKey: ["dp_ocorrencias_indicadores"] });
     qc.invalidateQueries({ queryKey: ["dp_ocorrencia_eventos"] });
     qc.invalidateQueries({ queryKey: ["minhas_ocorrencias"] });
+    qc.invalidateQueries({ queryKey: ["minhas_ocorrencias_mes"] });
     void invalidarRotina(qc);
   };
 
