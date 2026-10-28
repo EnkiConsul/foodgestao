@@ -45,7 +45,10 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, on
   const jornada = TIPOS_DECISAO_JORNADA.includes(ocorrencia.tipo);
   const ajustavel = !!onAjustarHorario && TIPOS_AJUSTE_HORARIO.includes(ocorrencia.tipo);
   const informado = (ocorrencia.horario_real ?? "").slice(0, 5);
-  const horarioMudou = ajustavel && /^\d{2}:\d{2}$/.test(horario) && horario !== informado;
+  const horarioValido = /^([01]\d|2[0-3]):[0-5]\d$/.test(horario);
+  const horarioMudou = ajustavel && horarioValido && horario !== informado;
+  const observacaoMudou = observacao.trim() !== (ocorrencia.tratativa_observacao ?? "").trim();
+  const ajusteMudou = ajustavel && (horarioMudou || observacaoMudou);
   const jaTratada = ocorrencia.tratativa_status !== "pendente";
 
   return (
@@ -81,18 +84,25 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, on
                 className="w-36"
               />
               <p className="text-xs text-muted-foreground">
-                {informado ? `Informado pelo colaborador: ${informado}. ` : ""}Altere se o horário correto for outro.
+                {informado ? `Horário registrado: ${informado}. ` : ""}Altere se o horário correto for outro.
               </p>
             </div>
           )}
           <div className="space-y-1.5">
-            <Label>{horarioMudou ? "Motivo do ajuste *" : "Observação (opcional)"}</Label>
+            <Label htmlFor="observacao-tratativa">{ajustavel ? "Motivo do ajuste" : "Observação (opcional)"}</Label>
             <Textarea
+              id="observacao-tratativa"
+              aria-describedby={ajustavel ? "motivo-ajuste-ajuda" : undefined}
               rows={2}
               value={observacao}
               onChange={(e) => setObservacao(e.target.value)}
               placeholder={comPonto && r.horario ? `Ex.: considerar ${r.batida?.toLowerCase() ?? "marcação"} às ${r.horario}.` : ""}
             />
+            {ajustavel && (
+              <p id="motivo-ajuste-ajuda" className={ajusteMudou && observacao.trim().length < 3 ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>
+                Informe o motivo do ajuste (mínimo de 3 caracteres).
+              </p>
+            )}
           </div>
           <p className="text-xs text-muted-foreground">
             {jornada
@@ -119,14 +129,21 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, on
                 Compensação
               </Button>
             </>
-          ) : horarioMudou ? (
+          ) : ajustavel ? (
+            <>
             <Button
-              disabled={saving || observacao.trim().length < 3}
+              disabled={saving || !horarioValido || !ajusteMudou || observacao.trim().length < 3}
               onClick={() => onAjustarHorario?.({ horario, observacao: observacao.trim() })}
             >
-              Salvar horário {horario}
+              {saving ? "Salvando…" : "Salvar ajuste"}
             </Button>
-          ) : jaTratada && ajustavel ? null : (
+            {!jaTratada && !ajusteMudou && (
+              <Button disabled={saving} onClick={() => onSubmit({ decisao: "confirmada", observacao })}>
+                {r.horario ? `Aceitar ${r.horario}` : "Aceitar"}
+              </Button>
+            )}
+            </>
+          ) : (
             <>
               {comPonto && (
                 <Button variant="outline" disabled={saving} onClick={() => onSubmit({ decisao: "ajuste_solicitado", observacao })}>
