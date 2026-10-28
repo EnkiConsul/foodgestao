@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { tratativaPendente, diretrizPonto, DIRETRIZ_LABEL, rotuloTipoOcorrencia, type DiretrizPonto } from "@/lib/dp/ocorrencias";
 import { Helmet } from "react-helmet-async";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -84,6 +84,7 @@ export default function DpOcorrencias() {
   const { selectedCompanyId } = useCompanyContext();
   const colaboradorParam = searchParams.get("colaborador");
   const dataParam = searchParams.get("data");
+  const entradaContextual = useRef(searchParams.has("id") || !!colaboradorParam || !!dataParam);
   // Corte salvo no navegador: o filtro inicial já nasce no período dele.
   const [corte, setCorteState] = useState<number>(() =>
     lerCorte(typeof window !== "undefined" ? window.localStorage.getItem("dp_ocorrencias_corte") : null),
@@ -150,7 +151,7 @@ export default function DpOcorrencias() {
       const c = lerCorte(String(data));
       window.localStorage.setItem("dp_ocorrencias_corte", String(c));
       setCorteState((atual) => {
-        if (atual !== c && !colaboradorParam && !dataParam) setFiltros(filtrosIniciais(c));
+        if (atual !== c && !entradaContextual.current) setFiltros(filtrosIniciais(c));
         return c;
       });
     });
