@@ -20,11 +20,12 @@ export function useDpOcorrenciaEventos(ocorrenciaId: string | null) {
     queryKey: ["dp_ocorrencia_eventos", selectedCompanyId, ocorrenciaId],
     enabled: !!selectedCompanyId && !!ocorrenciaId,
     queryFn: async () => {
+      if (!selectedCompanyId || !ocorrenciaId) return [];
       const { data, error } = await supabase
         .from("dp_ocorrencia_eventos")
         .select("id, ocorrencia_id, tipo_evento, campo, valor_anterior, valor_novo, created_at")
-        .eq("company_id", selectedCompanyId!)
-        .eq("ocorrencia_id", ocorrenciaId!)
+        .eq("company_id", selectedCompanyId)
+        .eq("ocorrencia_id", ocorrenciaId)
         .order("created_at", { ascending: true });
       if (error) throw error;
       return (data ?? []) as unknown as OcorrenciaEvento[];
@@ -42,6 +43,7 @@ export const EVENTO_LABEL: Record<string, string> = {
   ocorrencia_classificada: "Impactos revisados",
   ocorrencia_analisada: "Análise registrada",
   ocorrencia_tratada: "Tratativa de ponto",
+  horario_ajustado_gestor: "Horário ajustado pelo gestor",
   ocorrencia_cancelada: "Ocorrência cancelada",
   cobertura_criada: "Cobertura proposta",
   cobertura_decidida: "Cobertura aprovada ou recusada",

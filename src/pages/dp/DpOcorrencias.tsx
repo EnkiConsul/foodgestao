@@ -80,7 +80,7 @@ const PERIODOS: { value: OcorrenciaPeriodo; label: string }[] = [
 
 export default function DpOcorrencias() {
   const embedded = useDpEmbedded();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { selectedCompanyId } = useCompanyContext();
   const colaboradorParam = searchParams.get("colaborador");
   const dataParam = searchParams.get("data");
@@ -229,6 +229,7 @@ export default function DpOcorrencias() {
   const [idAlvo, setIdAlvo] = useState<string | null>(idParam);
   useEffect(() => {
     if (!idParam) return;
+    setIdAlvo(idParam);
     let vivo = true;
     supabase
       .from("dp_ocorrencias")
@@ -252,7 +253,12 @@ export default function DpOcorrencias() {
     if (!alvo) return;
     setIdAlvo(null);
     if (alvo.tratativa_status === "pendente" && alvo.estado !== "cancelada") setTratativa(alvo);
-  }, [idAlvo, acoes.ocorrencias]);
+    setSearchParams((atual) => {
+      const proximos = new URLSearchParams(atual);
+      proximos.delete("id");
+      return proximos;
+    }, { replace: true });
+  }, [idAlvo, acoes.ocorrencias, setSearchParams]);
   const { data: colaboradores = [] } = useDpColaboradores();
   const { data: unidades = [] } = useDpUnidades();
   const { setores } = useDpSetores(filtros.unidadeId === "all" ? null : filtros.unidadeId);
@@ -525,6 +531,22 @@ export default function DpOcorrencias() {
         );
       })()}
 
+      {(filtros.colaboradorId !== "all" || filtros.data) && (
+        <div className="my-2 flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted px-2 py-1.5 text-xs">
+          {filtros.colaboradorId !== "all" && (
+            <>
+              <span>Lista mostrando só <strong>{colaboradores.find((p) => p.id === filtros.colaboradorId)?.nome ?? "colaborador selecionado"}</strong></span>
+              <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setFiltros((f) => ({ ...f, colaboradorId: "all" }))}>Ver todos ✕</Button>
+            </>
+          )}
+          {filtros.data && (
+            <>
+              <span>{textoPeriodo}</span>
+              <Button size="sm" variant="ghost" className="h-7 px-2" onClick={voltarAoMes}>Ver mês completo</Button>
+            </>
+          )}
+        </div>
+      )}
       {(() => {
         type CardInd = { key: string; emoji: string; label: string; valor: number; detalhe?: string; aplicar: Partial<OcorrenciaFiltros> };
         const cards: CardInd[] = [
@@ -572,20 +594,9 @@ export default function DpOcorrencias() {
             setFiltros((f) => ({ ...f, colaboradorId: "all", tipo: "all", cobertura: "all", somentePendentes: false, ...c.aplicar }));
           }
         };
-        const nomeFiltrado = filtros.colaboradorId !== "all"
-          ? colaboradores.find((p) => p.id === filtros.colaboradorId)?.nome
-          : null;
         return (
           <div>
             <p className="mb-1.5 text-xs text-muted-foreground">{textoPeriodo} · totais da unidade · toque para filtrar</p>
-            {nomeFiltrado && (
-              <div className="mb-2 flex flex-wrap items-center gap-2 rounded-md border border-primary/40 bg-primary/5 px-2 py-1.5 text-xs">
-                <span>Lista mostrando só <strong>{nomeFiltrado}</strong></span>
-                <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => setFiltros((f) => ({ ...f, colaboradorId: "all" }))}>
-                  Ver todos ✕
-                </Button>
-              </div>
-            )}
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-8">
               {cards.map((c) => (
                 <button
