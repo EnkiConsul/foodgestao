@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { rotuloTipoOcorrencia, ocorrenciaDeFolga, temControlePonto } from "@/lib/dp/ocorrencias";
 
@@ -22,26 +23,36 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   saving?: boolean;
   onSubmit: (input: { decisao: string; observacao: string }) => void;
+  /** Gestor grava o horário real apurado (esquecimento/divergência). */
+  onAjustarHorario?: (input: { horario: string; observacao: string }) => void;
 }
 
+const TIPOS_AJUSTE_HORARIO = ["esquecimento_marcacao", "divergencia_jornada"];
+
 /** Decisão do gestor sobre o que precisa ser considerado depois no ponto. */
-export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, onSubmit }: Props) {
+export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, onSubmit, onAjustarHorario }: Props) {
   const [observacao, setObservacao] = useState("");
+  const [horario, setHorario] = useState("");
 
   useEffect(() => {
     setObservacao(ocorrencia?.tratativa_observacao ?? "");
-  }, [ocorrencia?.id, ocorrencia?.tratativa_observacao]);
+    setHorario((ocorrencia?.horario_real ?? "").slice(0, 5));
+  }, [ocorrencia?.id, ocorrencia?.tratativa_observacao, ocorrencia?.horario_real]);
 
   if (!ocorrencia) return null;
   const r = resumoTratativa(ocorrencia);
   const comPonto = temControlePonto(ocorrencia);
   const jornada = TIPOS_DECISAO_JORNADA.includes(ocorrencia.tipo);
+  const ajustavel = !!onAjustarHorario && TIPOS_AJUSTE_HORARIO.includes(ocorrencia.tipo);
+  const informado = (ocorrencia.horario_real ?? "").slice(0, 5);
+  const horarioMudou = ajustavel && /^\d{2}:\d{2}$/.test(horario) && horario !== informado;
+  const jaTratada = ocorrencia.tratativa_status !== "pendente";
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{comPonto ? "Tratar ponto" : "Conferir ocorrência"}</DialogTitle>
+          <DialogTitle>{jaTratada && ajustavel ? "Ajustar horário" : comPonto ? "Tratar ponto" : "Conferir ocorrência"}</DialogTitle>
           <DialogDescription>{ocorrencia.colaborador?.nome}</DialogDescription>
         </DialogHeader>
 
@@ -59,8 +70,23 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, on
               <p className="mt-1 text-sm italic text-muted-foreground">“{ocorrencia.justificativa_inicial}”</p>
             )}
           </div>
+          {ajustavel && (
+            <div className="space-y-1.5">
+              <Label htmlFor="horario-apurado">Horário real apurado</Label>
+              <Input
+                id="horario-apurado"
+                type="time"
+                value={horario}
+                onChange={(e) => setHorario(e.target.value)}
+                className="w-36"
+              />
+              <p className="text-xs text-muted-foreground">
+                {informado ? `Informado pelo colaborador: ${informado}. ` : ""}Altere se o horário correto for outro.
+              </p>
+            </div>
+          )}
           <div className="space-y-1.5">
-            <Label>Observação (opcional)</Label>
+            <Label>{horarioMudou ? "Motivo do ajuste *" : "Observação (opcional)"}</Label>
             <Textarea
               rows={2}
               value={observacao}
