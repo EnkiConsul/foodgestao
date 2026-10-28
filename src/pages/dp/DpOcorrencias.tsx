@@ -928,9 +928,7 @@ export default function DpOcorrencias() {
                   Mostrar todas
                 </Button>
               )}
-              <Button size="sm" variant="outline" className="sm:ml-auto" onClick={() => void copiarResumo()}>
-                Copiar resumo do ponto
-              </Button>
+              <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="ml-auto" aria-label="Opções da lista" title="Opções da lista"><ClipboardList className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => void copiarResumo()}>Copiar resumo do ponto</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
             </div>
             {visao === "dia" ? (
               <div className="space-y-4">{lista.map((o) => renderCard(o))}</div>

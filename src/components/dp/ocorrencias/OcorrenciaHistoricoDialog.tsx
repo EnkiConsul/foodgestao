@@ -21,7 +21,7 @@ function registro(valor: string | null) {
   if (!valor) return "Sem registro";
   try {
     const dados = JSON.parse(valor) as { horario_real?: string; marcacao_alvo?: string };
-    const marcacao = dados.marcacao_alvo && Object.hasOwn(MARCACAO_LABEL, dados.marcacao_alvo)
+    const marcacao = dados.marcacao_alvo && Object.prototype.hasOwnProperty.call(MARCACAO_LABEL, dados.marcacao_alvo)
       ? MARCACAO_LABEL[dados.marcacao_alvo as OcorrenciaMarcacao] : "Sem marcação";
     return `${marcacao} · ${dados.horario_real?.slice(0, 5) ?? "Sem horário"}`;
   } catch { return valor; }
