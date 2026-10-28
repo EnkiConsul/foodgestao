@@ -43,6 +43,7 @@ export const EVENTO_LABEL: Record<string, string> = {
   ocorrencia_classificada: "Impactos revisados",
   ocorrencia_analisada: "Análise registrada",
   ocorrencia_tratada: "Tratativa de ponto",
+  registro_retificado_gestor: "Registro corrigido pelo gestor",
   horario_ajustado_gestor: "Horário ajustado pelo gestor",
   ocorrencia_cancelada: "Ocorrência cancelada",
   cobertura_criada: "Cobertura proposta",

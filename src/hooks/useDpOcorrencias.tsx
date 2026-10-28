@@ -192,6 +192,9 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["dp_ocorrencias"] });
+    qc.invalidateQueries({ queryKey: ["dp_ocorrencias_indicadores"] });
+    qc.invalidateQueries({ queryKey: ["dp_ocorrencia_eventos"] });
+    qc.invalidateQueries({ queryKey: ["minhas_ocorrencias"] });
     void invalidarRotina(qc);
   };
 
@@ -472,27 +475,26 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
 
   /** Gestor define o horário real apurado (esquecimento/divergência), mesmo após tratativa concluída. */
   const ajustarHorario = useMutation({
-    mutationFn: async (input: { id: string; horario: string; observacao: string; marcarAnalisada?: boolean }) => {
-      const { error } = await supabase.rpc("dp_ocorrencia_ajustar_horario", {
+    mutationFn: async (input: { id: string; horario: string; observacao: string; marcacaoAlvo?: OcorrenciaMarcacao; horarioAnterior: string | null; marcacaoAnterior: OcorrenciaMarcacao | null; concluir?: boolean }) => {
+      const { error } = await supabase.rpc("dp_ocorrencia_editar_registro", {
         _ocorrencia_id: input.id,
         _horario_real: input.horario,
+        _marcacao_alvo: input.marcacaoAlvo ?? null,
         _observacao: input.observacao,
+        _horario_anterior: input.horarioAnterior,
+        _marcacao_anterior: input.marcacaoAnterior,
+        _concluir: input.concluir ?? false,
       });
       if (error) throw error;
-      if (input.marcarAnalisada) {
-        const { error: e2 } = await supabase.rpc("dp_ocorrencia_analisar", {
-          _ocorrencia_id: input.id,
-          _status: "analisada",
-          _observacao: input.observacao,
-        });
-        if (e2) throw e2;
-      }
     },
     onSuccess: () => {
       invalidate();
-      toast.success("Horário ajustado e registrado no histórico da ocorrência.");
+      toast.success("Ocorrência corrigida e registrada no histórico.");
     },
-    onError: (e: Error) => toast.error(textoErroOcorrencia(e.message)),
+    onError: (e: Error) => {
+      if (e.message.includes("OCORRENCIA_REGISTRO_DESATUALIZADO")) { invalidate(); toast.error("O registro mudou em outro aparelho. Feche e reabra a edição antes de salvar."); }
+      else toast.error(textoErroOcorrencia(e.message));
+    },
   });
 
   const cancelar = useMutation({
