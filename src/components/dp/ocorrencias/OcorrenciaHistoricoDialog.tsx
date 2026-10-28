@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useDpOcorrenciaEventos, textoEvento } from "@/hooks/useDpOcorrenciaEventos";
-import { TIPO_LABEL } from "@/lib/dp/ocorrencias";
+import { TIPO_LABEL, MARCACAO_LABEL, type OcorrenciaMarcacao } from "@/lib/dp/ocorrencias";
 import type { Ocorrencia } from "@/hooks/useDpOcorrencias";
 
 interface Props {
@@ -16,6 +16,16 @@ const fmt = (iso: string) =>
     hour: "2-digit",
     minute: "2-digit",
   });
+
+function registro(valor: string | null) {
+  if (!valor) return "Sem registro";
+  try {
+    const dados = JSON.parse(valor) as { horario_real?: string; marcacao_alvo?: string };
+    const marcacao = dados.marcacao_alvo && Object.prototype.hasOwnProperty.call(MARCACAO_LABEL, dados.marcacao_alvo)
+      ? MARCACAO_LABEL[dados.marcacao_alvo as OcorrenciaMarcacao] : "Sem marcação";
+    return `${marcacao} · ${dados.horario_real?.slice(0, 5) ?? "Sem horário"}`;
+  } catch { return valor; }
+}
 
 export function OcorrenciaHistoricoDialog({ ocorrencia, onOpenChange }: Props) {
   const { eventos, loading } = useDpOcorrenciaEventos(ocorrencia?.id ?? null);
@@ -48,7 +58,13 @@ export function OcorrenciaHistoricoDialog({ ocorrencia, onOpenChange }: Props) {
                     {fmt(e.created_at)}
                   </Badge>
                 </div>
-                {e.campo && (
+                {e.tipo_evento === "registro_retificado_gestor" ? (
+                  <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                    <p>Antes: {registro(e.valor_anterior)}</p>
+                    <p>Depois: {registro(e.valor_novo)}</p>
+                    {e.metadata?.observacao && <p>Motivo: {e.metadata.observacao}</p>}
+                  </div>
+                ) : e.campo && (
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {e.campo}
                     {e.valor_anterior ? `: de ${e.valor_anterior}` : ""}

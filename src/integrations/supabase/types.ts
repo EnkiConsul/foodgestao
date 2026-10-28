@@ -20862,6 +20862,18 @@ export type Database = {
         }
         Returns: undefined
       }
+      dp_ocorrencia_editar_registro: {
+        Args: {
+          _concluir?: boolean
+          _horario_anterior: string
+          _horario_real: string
+          _marcacao_alvo: Database["public"]["Enums"]["dp_ocorrencia_marcacao"]
+          _marcacao_anterior: Database["public"]["Enums"]["dp_ocorrencia_marcacao"]
+          _observacao: string
+          _ocorrencia_id: string
+        }
+        Returns: undefined
+      }
       dp_ocorrencia_marcar_lancado: {
         Args: { _id: string; _lancado: boolean }
         Returns: undefined

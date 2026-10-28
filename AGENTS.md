@@ -47,6 +47,7 @@
 - Exceptional leave occurrence evidence is generated transactionally from linked leave/request/swap records; source cancellation retires evidence and server triggers protect its impact fields, while point treatment remains independently pending for external accounting.
 - Occurrence quick filters use the shared type-query helper before the result limit; leave/swap filtering uses source links instead of labels so both absence and worked-day evidence remain visible.
 - Occurrence notification focus is consumed with URL replacement and preserved during asynchronous period loading; portal time labels remain neutral unless persisted audit evidence identifies the author, avoiding attribution from confirmation alone.
+- Occurrence fact edits use a dedicated manager-only RPC with locked expected fact values and before/after audit; editing preserves original justification and treatment decisions unless the manager explicitly concludes treatment. Reuse ResponsiveDialog for editing/treatment on mobile.
 <!-- LOVABLE:BEGIN -->
 - Home calendar details reuse the official operation controller via lazyWithRetry; semantic calendar tokens preserve themed absence colors and deploy recovery.
 - Document management hosts import and history in a modal; confirmed session completion refreshes the unified list without scrolling the page.

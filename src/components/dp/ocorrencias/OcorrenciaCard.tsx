@@ -8,6 +8,8 @@ import {
   ChevronUp,
   ClipboardCheck,
   Clock,
+  Pencil,
+  MoreHorizontal,
   History as HistoryIcon,
   ShieldAlert,
   UserPlus,
@@ -15,6 +17,7 @@ import {
 } from "lucide-react";
 import { resumoTratativa } from "@/lib/dp/ocorrencia-resumo";
 
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -46,6 +49,7 @@ interface Props {
   coberturas?: OcorrenciaCobertura[];
   onConfirmar: () => void;
   onTratativa: () => void;
+  onEditar?: () => void;
   onAnalisar: () => void;
   onCancelar: () => void;
   onCobrir?: () => void;
@@ -62,6 +66,7 @@ export function OcorrenciaCard({
   coberturas = [],
   onConfirmar,
   onTratativa,
+  onEditar,
   onAnalisar,
   onCancelar,
   onCobrir,
@@ -78,6 +83,7 @@ export function OcorrenciaCard({
   const cor = corOcorrencia(o);
   const previsao = TIPOS_PREVISAO.includes(o.tipo);
   const data = new Date(`${o.data_operacional}T12:00:00`).toLocaleDateString("pt-BR", {
+    weekday: "short",
     day: "2-digit",
     month: "2-digit",
   });
@@ -92,11 +98,11 @@ export function OcorrenciaCard({
   const conferirPendente = !tratarPendente && !folgaAutorizada && o.subtipo !== "dispensa_aviso_art488" && o.analise_status === "pendente" && !cancelada;
 
   return (
-    <div className={cn("rounded-lg border p-3", COR_CLASSE[cor])}>
+    <div className={cn("rounded-lg border p-4 sm:p-5", COR_CLASSE[cor])}>
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
         <div className="min-w-0 w-full sm:w-auto sm:flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-medium">{nomeExibicao(o.colaborador) || "Colaborador"}</span>
+            <span className="font-semibold break-words">{nomeExibicao(o.colaborador) || "Colaborador"}</span>
             <Badge variant="outline" className="text-xs">
               {data}
             </Badge>
@@ -108,7 +114,7 @@ export function OcorrenciaCard({
           </div>
 
           {/* Linha principal: o que houve, em qual batida e a que horas */}
-          <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+          <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
             <Badge variant="outline" className={cn("text-xs", COR_BADGE[cor])}>
               {previsao && <AlertTriangle className="mr-1 h-3 w-3" />}
               {r.titulo}
@@ -129,7 +135,7 @@ export function OcorrenciaCard({
           </p>
 
           {o.justificativa_inicial && (
-            <p className="mt-1 text-sm italic text-muted-foreground">“{o.justificativa_inicial}”</p>
+            <p className="mt-3 border-l-2 border-border py-1 pl-3 text-sm leading-relaxed italic text-muted-foreground break-words">“{o.justificativa_inicial}”</p>
           )}
 
           {validas.length > 0 && (
@@ -167,20 +173,20 @@ export function OcorrenciaCard({
           )}
         </div>
 
-        <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto">
+        <div className="mt-4 flex w-full flex-wrap items-center gap-2 border-t border-border pt-4 sm:mt-0 sm:w-full [&_button]:min-h-11">
           {o.estado === "aguardando_confirmacao" && (
             <Button size="sm" variant="outline" onClick={onConfirmar}>
               <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Confirmar
             </Button>
           )}
           {tratarPendente && (
-            <Button size="sm" onClick={onTratativa}>
+            <Button size="sm" className="flex-1 sm:flex-none" onClick={onTratativa}>
               <ClipboardCheck className="mr-1 h-3.5 w-3.5" /> {comPonto ? "Tratar ponto" : "Conferir ocorrência"}
             </Button>
           )}
-          {!tratarPendente && !cancelada && ["esquecimento_marcacao", "divergencia_jornada"].includes(o.tipo) && (
-            <Button size="sm" variant="outline" onClick={onTratativa}>
-              <ClipboardCheck className="mr-1 h-3.5 w-3.5" /> Ajustar horário
+          {!cancelada && onEditar && ["esquecimento_marcacao", "divergencia_jornada"].includes(o.tipo) && (
+            <Button size="sm" variant="outline" onClick={onEditar}>
+              <Pencil className="mr-2 h-4 w-4" /> Editar
             </Button>
           )}
           {conferirPendente && (
@@ -193,23 +199,17 @@ export function OcorrenciaCard({
               <ShieldAlert className="mr-1 h-3.5 w-3.5" /> Decidir prêmio
             </Button>
           )}
-          {cobrivel && onCobrir && (
-            <Button size="sm" variant={validas.length ? "ghost" : "outline"} onClick={onCobrir}>
-              <UserPlus className="mr-1 h-3.5 w-3.5" />
-              {validas.length ? "Ver cobertura" : "Cobrir"}
-            </Button>
-          )}
-          {onLancado && !cancelada && comPonto && (
-            <Button
-              size="sm"
-              variant={o.lancado_ponto_em ? "secondary" : "outline"}
-              title={o.lancado_ponto_em ? "Clique para desmarcar" : "Marque depois de lançar no seu sistema de ponto"}
-              onClick={() => onLancado(!o.lancado_ponto_em)}
-            >
-              <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
-              {o.lancado_ponto_em ? "Lançado no ponto" : "Marcar como lançado"}
-            </Button>
-          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="icon" variant="outline" aria-label="Mais ações" title="Mais ações"><MoreHorizontal className="h-4 w-4" /></Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {cobrivel && onCobrir && <DropdownMenuItem onSelect={onCobrir}>{validas.length ? "Ver cobertura" : "Cobrir ausência"}</DropdownMenuItem>}
+              {onLancado && !cancelada && comPonto && <DropdownMenuItem onSelect={() => onLancado(!o.lancado_ponto_em)}>{o.lancado_ponto_em ? "Desmarcar lançamento no ponto" : "Marcar como lançado"}</DropdownMenuItem>}
+              {onHistorico && <DropdownMenuItem onSelect={onHistorico}>Histórico</DropdownMenuItem>}
+              {!cancelada && !folgaAutorizada && <DropdownMenuItem onSelect={onCancelar}>Cancelar ocorrência</DropdownMenuItem>}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button size="sm" variant="ghost" onClick={() => setDetalhes((v) => !v)}>
             {detalhes ? <ChevronUp className="mr-1 h-3.5 w-3.5" /> : <ChevronDown className="mr-1 h-3.5 w-3.5" />}
             Detalhes
@@ -218,7 +218,7 @@ export function OcorrenciaCard({
       </div>
 
       {detalhes && (
-        <div className="mt-3 space-y-2 border-t border-border pt-2 text-xs">
+        <div className="mt-4 space-y-3 border-t border-border pt-4 text-xs">
           <p className="text-muted-foreground">
             {rotuloTipoOcorrencia(o)} · {ESTADO_LABEL[o.estado]} · {ORIGEM_LABEL[o.origem]}
             {o.unidade?.nome ? ` · ${o.unidade.nome}` : ""}

@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import { ArrowLeftRight, Check, ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Plus } from "lucide-react";
+import { ArrowLeftRight, Check, ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Plus, SlidersHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -108,6 +108,8 @@ export default function DpOcorrencias() {
   const [visao, setVisao] = useState<"dia" | "colaborador">("dia");
   const [diretriz, setDiretriz] = useState<DiretrizPonto | null>(null);
   const [maisFiltros, setMaisFiltros] = useState(false);
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  const [modoTratativa, setModoTratativa] = useState<"editar" | "tratar">("tratar");
 
   const [confirmar, setConfirmar] = useState<Ocorrencia | null>(null);
   const [tratativa, setTratativa] = useState<Ocorrencia | null>(null);
@@ -253,7 +255,7 @@ export default function DpOcorrencias() {
     const alvo = acoes.ocorrencias.find((o) => o.id === idAlvo);
     if (!alvo) return;
     setIdAlvo(null);
-    if (alvo.tratativa_status === "pendente" && alvo.estado !== "cancelada") setTratativa(alvo);
+    if (alvo.tratativa_status === "pendente" && alvo.estado !== "cancelada") { setModoTratativa("tratar"); setTratativa(alvo); }
     setSearchParams((atual) => {
       const proximos = new URLSearchParams(atual);
       proximos.delete("id");
@@ -363,7 +365,8 @@ export default function DpOcorrencias() {
                 ocorrencia={o}
                 coberturas={acoes.coberturasPorOcorrencia.get(o.id) ?? []}
                 onConfirmar={() => setConfirmar(o)}
-                onTratativa={() => setTratativa(o)}
+                onTratativa={() => { setModoTratativa("tratar"); setTratativa(o); }}
+                onEditar={() => { setModoTratativa("editar"); setTratativa(o); }}
                 onAnalisar={() => acoes.analisar.mutate({ id: o.id, status: "analisada" })}
                 onCancelar={() => setCancelarId(o.id)}
                 onCobrir={() => abrirCobertura(o)}
@@ -424,7 +427,7 @@ export default function DpOcorrencias() {
       <DpPageHeader
         icon={ClipboardList}
         title="Ocorrências"
-        description="O que estava previsto na jornada e o que realmente aconteceu. Não altera o ponto: registra o fato, a justificativa e a decisão."
+        
         actions={
           <Button onClick={() => setNovaOpen(true)}>
             <Plus className="mr-1 h-4 w-4" /> Registrar ocorrência
@@ -438,7 +441,7 @@ export default function DpOcorrencias() {
         const br = (x: string) => `${x.slice(8, 10)}/${x.slice(5, 7)}`;
         const mesInteiroAtivo = !!compAtual;
         return (
-          <div className="sticky top-14 z-20 flex flex-wrap items-center gap-2 rounded-2xl border bg-card/95 px-3 py-2 shadow-sm backdrop-blur md:static md:bg-card">
+          <div className="flex flex-wrap items-center gap-2 py-2">
             <div className="flex w-full min-w-0 items-center justify-between rounded-full border bg-background p-0.5 sm:w-auto">
               <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 rounded-full" aria-label="Mês anterior" onClick={() => irMes(-1)}>
                 <ChevronLeft className="h-4 w-4" />
@@ -501,8 +504,8 @@ export default function DpOcorrencias() {
                     if (!r?.from) return;
                     setFiltros((f) => ({
                       ...f, periodo: "personalizado", data: null,
-                      periodoInicio: format(r.from!, "yyyy-MM-dd"),
-                      periodoFim: format(r.to ?? r.from!, "yyyy-MM-dd"),
+                      periodoInicio: format(r.from, "yyyy-MM-dd"),
+                      periodoFim: format(r.to ?? r.from, "yyyy-MM-dd"),
                     }));
                   }}
                   className="pointer-events-auto mx-auto p-0"
@@ -510,7 +513,7 @@ export default function DpOcorrencias() {
                 <Button onClick={() => setCalAberto(false)}>Aplicar</Button>
               </DialogContent>
             </Dialog>
-            <Select value={String(corte)} onValueChange={(v) => setCorte(Number(v))}>
+            <div className="hidden md:contents"><Select value={String(corte)} onValueChange={(v) => setCorte(Number(v))}>
               <SelectTrigger className="h-8 w-auto shrink-0 rounded-full text-xs" aria-label="Período de apuração">
                 <SelectValue />
               </SelectTrigger>
@@ -528,6 +531,7 @@ export default function DpOcorrencias() {
                 {unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
               </SelectContent>
             </Select>
+            </div>
           </div>
         );
       })()}
@@ -592,28 +596,16 @@ export default function DpOcorrencias() {
           if (ativo(c)) {
             setFiltros((f) => ({ ...f, tipo: "all", cobertura: "all", somentePendentes: false }));
           } else {
-            setFiltros((f) => ({ ...f, colaboradorId: "all", tipo: "all", cobertura: "all", somentePendentes: false, ...c.aplicar }));
+            setFiltros((f) => ({ ...filtrosIniciais(corte), periodo: f.periodo, periodoInicio: f.periodoInicio, periodoFim: f.periodoFim, data: f.data, unidadeId: f.unidadeId, ...c.aplicar }));
           }
         };
         return (
           <div>
-            <p className="mb-1.5 text-xs text-muted-foreground">{textoPeriodo} · totais da unidade · toque para filtrar</p>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-8">
-              {cards.map((c) => (
-                <button
-                  key={c.key}
-                  type="button"
-                  onClick={() => clicar(c)}
-                  aria-pressed={ativo(c)}
-                  className={cn(
-                    "flex flex-col items-stretch justify-start rounded-lg border bg-card p-2 text-center shadow-sm transition-colors hover:border-primary/50 hover:bg-muted/40 sm:p-3",
-                    ativo(c) && "border-primary bg-primary/10",
-                  )}
-                >
-                  <p className="flex min-h-[1.5em] items-start justify-center gap-1 truncate text-xs font-semibold leading-tight text-foreground sm:text-sm"><span aria-hidden>{c.emoji}</span><span className="truncate">{c.label}</span></p>
-                  <p className="text-base font-bold leading-tight sm:text-lg">{c.valor}</p>
-                  {c.detalhe && <p className="truncate text-[10px] text-muted-foreground">{c.detalhe}</p>}
-                </button>
+            <div className="flex gap-2 overflow-x-auto pb-2" aria-label="Totais da unidade">
+              {cards.sort((a, b) => Number(b.key === "pendentes") - Number(a.key === "pendentes")).map((c) => (
+                <Button key={c.key} variant={ativo(c) ? "default" : "outline"} onClick={() => { clicar(c); setDiretriz(null); }} aria-pressed={ativo(c)} title={c.detalhe} className="min-h-11 shrink-0 gap-2 px-3">
+                  <span aria-hidden>{c.emoji}</span> {c.label} <span className="font-bold tabular-nums">{c.valor}</span>
+                </Button>
               ))}
             </div>
           </div>
@@ -630,7 +622,8 @@ export default function DpOcorrencias() {
         </div>
       )}
 
-      <DpFilters
+      <div className="hidden md:flex justify-end py-2"><Button variant="outline" onClick={() => setFiltrosAbertos((v) => !v)}><SlidersHorizontal className="mr-2 h-4 w-4" />Filtros{activeCount ? ` (${activeCount})` : ""}</Button></div>
+      <div className={cn(!filtrosAbertos && "md:hidden")}><DpFilters
         search={{
           value: filtros.busca,
           onChange: (v) => set("busca", v),
@@ -685,8 +678,8 @@ export default function DpOcorrencias() {
                       ...f,
                       periodo: "personalizado",
                       data: null,
-                      periodoInicio: format(r.from!, "yyyy-MM-dd"),
-                      periodoFim: format(r.to ?? r.from!, "yyyy-MM-dd"),
+                      periodoInicio: format(r.from, "yyyy-MM-dd"),
+                      periodoFim: format(r.to ?? r.from, "yyyy-MM-dd"),
                     }));
                   }}
                   className={cn("p-3 pointer-events-auto")}
@@ -902,9 +895,11 @@ export default function DpOcorrencias() {
         </DpFilterField>
         </>
         )}
-      </DpFilters>
+        <DpFilterField label="Unidade"><Select value={filtros.unidadeId} onValueChange={(v) => setFiltros((f) => ({ ...f, unidadeId: v, setorId: "all" }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todas as unidades</SelectItem>{unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}</SelectContent></Select></DpFilterField>
+        <DpFilterField label="Período de apuração"><Select value={String(corte)} onValueChange={(v) => setCorte(Number(v))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="0">Mês civil</SelectItem>{Array.from({ length: 27 }, (_, i) => i + 2).map((c) => <SelectItem key={c} value={String(c)}>Corte: {c} a {c - 1}</SelectItem>)}</SelectContent></Select></DpFilterField>
+      </DpFilters></div>
 
-      <DpContentCard>
+      <section className="py-3">
         {acoes.loading ? (
           <TableSkeleton rows={5} columns={4} />
         ) : acoes.isError ? (
@@ -915,23 +910,9 @@ export default function DpOcorrencias() {
           </p>
         ) : (
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-2 lg:grid-cols-5">
-              {([
-                ["decidir", "⚖️"], ["compensar", "🔁"], ["abonar", "🟢"], ["descontar", "🔴"], ["ajustar", "⏱️"],
-              ] as [DiretrizPonto, string][]).map(([d, emoji]) => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => setDiretriz((v) => (v === d ? null : d))}
-                  aria-pressed={diretriz === d}
-                  className={cn(
-                    "rounded-xl border p-3 text-left transition-colors",
-                    diretriz === d ? "border-primary bg-primary/10" : "border-border hover:bg-muted",
-                  )}
-                >
-                  <div className="text-xs font-medium text-muted-foreground">{emoji} {DIRETRIZ_LABEL[d]}</div>
-                  <div className="text-2xl font-bold tabular-nums">{contagemDiretriz[d]}</div>
-                </button>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {(["decidir", "compensar", "abonar", "descontar", "ajustar"] as DiretrizPonto[]).filter((d) => contagemDiretriz[d] > 0).map((d) => (
+                <Button key={d} variant={diretriz === d ? "default" : "outline"} className="min-h-11 shrink-0 gap-2" onClick={() => setDiretriz((v) => v === d ? null : d)} aria-pressed={diretriz === d}>{DIRETRIZ_LABEL[d]} <span className="font-semibold tabular-nums">{contagemDiretriz[d]}</span></Button>
               ))}
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -947,12 +928,10 @@ export default function DpOcorrencias() {
                   Mostrar todas
                 </Button>
               )}
-              <Button size="sm" variant="outline" className="sm:ml-auto" onClick={() => void copiarResumo()}>
-                Copiar resumo do ponto
-              </Button>
+              <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="ml-auto" aria-label="Opções da lista" title="Opções da lista"><ClipboardList className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => void copiarResumo()}>Copiar resumo do ponto</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
             </div>
             {visao === "dia" ? (
-              <div className="space-y-2">{lista.map((o) => renderCard(o))}</div>
+              <div className="space-y-4">{lista.map((o) => renderCard(o))}</div>
             ) : (
               porColaborador.map(([id, g]) => {
                 const aTratar = g.linhas.filter((o) => tratativaPendente(o)).length;
@@ -973,7 +952,7 @@ export default function DpOcorrencias() {
             )}
           </div>
         )}
-      </DpContentCard>
+      </section>
       </div>
 
       <OcorrenciaFormDialog
@@ -1008,12 +987,13 @@ export default function DpOcorrencias() {
 
       <OcorrenciaTratativaDialog
         ocorrencia={tratativa}
+        modo={modoTratativa}
         onOpenChange={(open) => !open && setTratativa(null)}
         saving={acoes.tratar.isPending || acoes.ajustarHorario.isPending}
-        onAjustarHorario={({ horario, observacao }) =>
+        onAjustarHorario={({ horario, observacao, marcacaoAlvo }) =>
           tratativa &&
           acoes.ajustarHorario.mutate(
-            { id: tratativa.id, horario, observacao, marcarAnalisada: tratativa.analise_status === "pendente" },
+            { id: tratativa.id, horario, observacao, marcacaoAlvo, horarioAnterior: tratativa.horario_real, marcacaoAnterior: tratativa.marcacao_alvo, concluir: modoTratativa === "tratar" },
             { onSuccess: () => setTratativa(null) },
           )
         }
