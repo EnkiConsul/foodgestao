@@ -17,7 +17,7 @@ function abrir() {
 describe("ajuste de horário pelo gestor", () => {
   it("corrige retorno do intervalo para saída sem alterar o horário", () => {
     const ajustar = abrir();
-    fireEvent.click(screen.getByRole("button", { name: "Saída", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: /^Saída$/ }));
     fireEvent.change(screen.getByLabelText("Motivo do ajuste"), { target: { value: "Esquecimento na saída" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar ajuste" }));
     expect(ajustar).toHaveBeenCalledExactlyOnceWith({ horario: "08:30", observacao: "Esquecimento na saída", marcacaoAlvo: "saida" });
