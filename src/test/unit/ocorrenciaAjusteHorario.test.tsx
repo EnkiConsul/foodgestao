@@ -15,6 +15,13 @@ function abrir() {
   return ajustar;
 }
 describe("ajuste de horário pelo gestor", () => {
+  it("corrige retorno do intervalo para saída sem alterar o horário", () => {
+    const ajustar = abrir();
+    fireEvent.click(screen.getByRole("button", { name: "Saída", exact: true }));
+    fireEvent.change(screen.getByLabelText("Motivo do ajuste"), { target: { value: "Esquecimento na saída" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar ajuste" }));
+    expect(ajustar).toHaveBeenCalledExactlyOnceWith({ horario: "08:30", observacao: "Esquecimento na saída", marcacaoAlvo: "saida" });
+  });
   it("não envia ajuste sem alteração", () => {
     const ajustar = abrir();
     const salvar = screen.getByRole("button", { name: "Salvar ajuste" });
