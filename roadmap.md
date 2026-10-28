@@ -1,4 +1,6 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
+- [ ] Disponibilizar edição explícita de marcação/horário/motivo auditada, sem modificar ocorrências reais.
+- [ ] Compactar topo/filtros, dar respiro aos cards e abrir edição/tratativa em gaveta no celular; testar sem publicar.
 - [x] Refinar ajuste de horário (ação sempre visível e motivo), rótulo de auditoria e limpeza do foco/filtros de notificação. Portal usa “Horário registrado”, pois a leitura segura atual não identifica autoria; não presumir ajuste pelo gestor. 42 testes passaram; ajuste/filtros conferidos autenticados sem salvar Karen ou publicar. Gravação real não exercitada por restrição do usuário.
 - [x] Aplicar elegibilidade e marco do vínculo atual no aniversário de contratação; nascimento sem filtro de vínculo e idade só gestor, tempo de casa para colegas da unidade. RPC mínima 0161 aplicada sem dados alterados; isolamento, privacidade e contagem testados em PostgreSQL isolado.
 - [x] Sinalizar inícios provisórios/admissões previstas/formais nos dois calendários, aniversariantes do dia abertos e troca de unidade sem fechar; atalho abriu a conferência oficial da Verônica em leitura.
