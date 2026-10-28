@@ -577,7 +577,15 @@ export default function DpOcorrencias() {
           : null;
         return (
           <div>
-            <p className="mb-1.5 text-xs text-muted-foreground">{textoPeriodo} · toque para filtrar</p>
+            <p className="mb-1.5 text-xs text-muted-foreground">{textoPeriodo} · totais da unidade · toque para filtrar</p>
+            {nomeFiltrado && (
+              <div className="mb-2 flex flex-wrap items-center gap-2 rounded-md border border-primary/40 bg-primary/5 px-2 py-1.5 text-xs">
+                <span>Lista mostrando só <strong>{nomeFiltrado}</strong></span>
+                <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => setFiltros((f) => ({ ...f, colaboradorId: "all" }))}>
+                  Ver todos ✕
+                </Button>
+              </div>
+            )}
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-8">
               {cards.map((c) => (
                 <button
