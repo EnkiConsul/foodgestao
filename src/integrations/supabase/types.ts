@@ -20780,6 +20780,14 @@ export type Database = {
         Args: { _descricao: string; _ocorrencia_id: string; _titulo: string }
         Returns: undefined
       }
+      dp_ocorrencia_ajustar_horario: {
+        Args: {
+          _horario_real: string
+          _observacao: string
+          _ocorrencia_id: string
+        }
+        Returns: undefined
+      }
       dp_ocorrencia_analisar: {
         Args: {
           _observacao?: string

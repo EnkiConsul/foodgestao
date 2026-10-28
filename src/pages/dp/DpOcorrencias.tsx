@@ -564,16 +564,28 @@ export default function DpOcorrencias() {
         if (cards.length === 0) return null;
         const ativo = (c: CardInd) =>
           Object.entries(c.aplicar).every(([k, v]) => filtros[k as keyof OcorrenciaFiltros] === v);
+        // Os cards contam a unidade inteira; ao filtrar por eles, solta o colaborador para a lista bater com o número.
         const clicar = (c: CardInd) => {
           if (ativo(c)) {
             setFiltros((f) => ({ ...f, tipo: "all", cobertura: "all", somentePendentes: false }));
           } else {
-            setFiltros((f) => ({ ...f, tipo: "all", cobertura: "all", somentePendentes: false, ...c.aplicar }));
+            setFiltros((f) => ({ ...f, colaboradorId: "all", tipo: "all", cobertura: "all", somentePendentes: false, ...c.aplicar }));
           }
         };
+        const nomeFiltrado = filtros.colaboradorId !== "all"
+          ? colaboradores.find((p) => p.id === filtros.colaboradorId)?.nome
+          : null;
         return (
           <div>
-            <p className="mb-1.5 text-xs text-muted-foreground">{textoPeriodo} · toque para filtrar</p>
+            <p className="mb-1.5 text-xs text-muted-foreground">{textoPeriodo} · totais da unidade · toque para filtrar</p>
+            {nomeFiltrado && (
+              <div className="mb-2 flex flex-wrap items-center gap-2 rounded-md border border-primary/40 bg-primary/5 px-2 py-1.5 text-xs">
+                <span>Lista mostrando só <strong>{nomeFiltrado}</strong></span>
+                <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => setFiltros((f) => ({ ...f, colaboradorId: "all" }))}>
+                  Ver todos ✕
+                </Button>
+              </div>
+            )}
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-8">
               {cards.map((c) => (
                 <button
@@ -985,7 +997,14 @@ export default function DpOcorrencias() {
       <OcorrenciaTratativaDialog
         ocorrencia={tratativa}
         onOpenChange={(open) => !open && setTratativa(null)}
-        saving={acoes.tratar.isPending}
+        saving={acoes.tratar.isPending || acoes.ajustarHorario.isPending}
+        onAjustarHorario={({ horario, observacao }) =>
+          tratativa &&
+          acoes.ajustarHorario.mutate(
+            { id: tratativa.id, horario, observacao, marcarAnalisada: tratativa.analise_status === "pendente" },
+            { onSuccess: () => setTratativa(null) },
+          )
+        }
         onSubmit={({ decisao, observacao }) =>
           tratativa &&
           acoes.tratar.mutate(

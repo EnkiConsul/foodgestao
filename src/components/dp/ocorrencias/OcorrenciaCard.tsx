@@ -178,6 +178,11 @@ export function OcorrenciaCard({
               <ClipboardCheck className="mr-1 h-3.5 w-3.5" /> {comPonto ? "Tratar ponto" : "Conferir ocorrência"}
             </Button>
           )}
+          {!tratarPendente && !cancelada && ["esquecimento_marcacao", "divergencia_jornada"].includes(o.tipo) && (
+            <Button size="sm" variant="outline" onClick={onTratativa}>
+              <ClipboardCheck className="mr-1 h-3.5 w-3.5" /> Ajustar horário
+            </Button>
+          )}
           {conferirPendente && (
             <Button size="sm" variant="outline" onClick={onAnalisar}>
               <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Conferido

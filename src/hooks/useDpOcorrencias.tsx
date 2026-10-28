@@ -470,6 +470,31 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
     onError: (e: Error) => toast.error(textoErroOcorrencia(e.message)),
   });
 
+  /** Gestor define o horário real apurado (esquecimento/divergência), mesmo após tratativa concluída. */
+  const ajustarHorario = useMutation({
+    mutationFn: async (input: { id: string; horario: string; observacao: string; marcarAnalisada?: boolean }) => {
+      const { error } = await supabase.rpc("dp_ocorrencia_ajustar_horario", {
+        _ocorrencia_id: input.id,
+        _horario_real: input.horario,
+        _observacao: input.observacao,
+      });
+      if (error) throw error;
+      if (input.marcarAnalisada) {
+        const { error: e2 } = await supabase.rpc("dp_ocorrencia_analisar", {
+          _ocorrencia_id: input.id,
+          _status: "analisada",
+          _observacao: input.observacao,
+        });
+        if (e2) throw e2;
+      }
+    },
+    onSuccess: () => {
+      invalidate();
+      toast.success("Horário ajustado e registrado no histórico da ocorrência.");
+    },
+    onError: (e: Error) => toast.error(textoErroOcorrencia(e.message)),
+  });
+
   const cancelar = useMutation({
     mutationFn: async (input: { id: string; motivo: string }) => {
       const { error } = await supabase.rpc("dp_ocorrencia_cancelar", {
@@ -562,6 +587,7 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
     decidirAssiduidade,
     analisar,
     tratar,
+    ajustarHorario,
     cancelar,
     criarCobertura,
     decidirCobertura,
