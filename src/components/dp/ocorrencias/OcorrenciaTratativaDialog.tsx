@@ -119,11 +119,18 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, on
                 Compensação
               </Button>
             </>
-          ) : (
+          ) : horarioMudou ? (
+            <Button
+              disabled={saving || observacao.trim().length < 3}
+              onClick={() => onAjustarHorario?.({ horario, observacao: observacao.trim() })}
+            >
+              Salvar horário {horario}
+            </Button>
+          ) : jaTratada && ajustavel ? null : (
             <>
               {comPonto && (
                 <Button variant="outline" disabled={saving} onClick={() => onSubmit({ decisao: "ajuste_solicitado", observacao })}>
-                  Pedir ajuste do ponto
+                  Anotar ajuste p/ quem lança o ponto
                 </Button>
               )}
               <Button disabled={saving} onClick={() => onSubmit({ decisao: "confirmada", observacao })}>
