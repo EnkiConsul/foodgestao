@@ -5,7 +5,7 @@ import type { Ocorrencia } from "@/hooks/useDpOcorrencias";
 
 const ocorrencia = {
   id: "sintetica", tipo: "esquecimento_marcacao", estado: "confirmada",
-  horario_real: "08:30:00", tratativa_status: "concluida", tratativa_observacao: "Conferido",
+  horario_real: "08:30:00", marcacao_alvo: "intervalo_retorno", tratativa_status: "concluida", tratativa_observacao: "Conferido",
   colaborador: { nome: "Pessoa fictícia", possui_folha_ponto: true },
 } as Ocorrencia;
 afterEach(cleanup);
@@ -30,13 +30,13 @@ describe("ajuste de horário pelo gestor", () => {
     expect(salvar).toBeDisabled();
     fireEvent.change(screen.getByLabelText("Motivo do ajuste"), { target: { value: "  Conferência  " } });
     fireEvent.click(salvar);
-    expect(ajustar).toHaveBeenCalledExactlyOnceWith({ horario: "08:45", observacao: "Conferência" });
+    expect(ajustar).toHaveBeenCalledExactlyOnceWith({ horario: "08:45", observacao: "Conferência", marcacaoAlvo: "intervalo_retorno" });
   });
   it("permite corrigir somente a observação preservando o horário", () => {
     const ajustar = abrir();
     fireEvent.change(screen.getByLabelText("Motivo do ajuste"), { target: { value: "Nova conferência" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar ajuste" }));
-    expect(ajustar).toHaveBeenCalledExactlyOnceWith({ horario: "08:30", observacao: "Nova conferência" });
+    expect(ajustar).toHaveBeenCalledExactlyOnceWith({ horario: "08:30", observacao: "Nova conferência", marcacaoAlvo: "intervalo_retorno" });
   });
   it("não envia ajuste com horário vazio", () => {
     const ajustar = abrir();
