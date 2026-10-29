@@ -18,14 +18,14 @@ export function useRegistrarTrocaGestor() {
   const tentativa = useRef<{ chave: string; requisicao: string; arquivos: { colaborador_id: string; file_path: string; file_size: number }[]; pronto: boolean } | null>(null);
   return useMutation({
     mutationFn: async (input: TrocaGestorInput) => {
-      const previa = await previaTrocaGestor(input);
-      if (!previa.participantes) throw new Error("Não foi possível conferir quem assinará os termos. Tente novamente.");
       const chave = JSON.stringify(input);
       if (tentativa.current?.chave !== chave) tentativa.current = { chave, requisicao: crypto.randomUUID(), arquivos: [], pronto: false };
       const atual = tentativa.current;
       if (!atual) throw new Error("Não foi possível preparar a troca.");
       const { requisicao, arquivos } = atual;
       if (!atual.pronto) {
+      const previa = await previaTrocaGestor(input);
+      if (!previa.participantes) throw new Error("Não foi possível conferir quem assinará os termos. Tente novamente.");
       for (const p of participantesComTermo(previa.participantes)) {
         if (arquivos.some(a => a.colaborador_id === p.colaborador_id)) continue;
         // Only the participant's civil name and dates; internal reasons may mention the colleague.
