@@ -28,8 +28,10 @@ describe("ajuste de horário pelo gestor", () => {
   it("não reenvia decisão de ocorrência concluída sem alteração", () => {
     const ajustar = vi.fn();
     const decidir = vi.fn();
-    render(<OcorrenciaTratativaDialog ocorrencia={ocorrencia} onOpenChange={vi.fn()} onSubmit={decidir} onAjustarHorario={ajustar} />);
-    fireEvent.click(screen.getByRole("button", { name: "Salvar ajuste" }));
+    const fechar = vi.fn();
+    render(<OcorrenciaTratativaDialog ocorrencia={ocorrencia} onOpenChange={fechar} onSubmit={decidir} onAjustarHorario={ajustar} />);
+    fireEvent.click(screen.getByRole("button", { name: "Fechar" }));
+    expect(fechar).toHaveBeenCalledExactlyOnceWith(false);
     expect(ajustar).not.toHaveBeenCalled();
     expect(decidir).not.toHaveBeenCalled();
   });
@@ -40,6 +42,24 @@ describe("ajuste de horário pelo gestor", () => {
     fireEvent.click(screen.getByRole("button", { name: "Confirmar batida" }));
     expect(decidir).toHaveBeenCalledExactlyOnceWith({ decisao: "confirmada", observacao: "" });
     expect(ajustar).not.toHaveBeenCalled();
+  });
+  it("confirma horário inalterado com observação opcional sem exigir motivo de correção", () => {
+    const decidir = vi.fn();
+    const ajustar = vi.fn();
+    render(<OcorrenciaTratativaDialog ocorrencia={{ ...ocorrencia, tratativa_status: "pendente", tratativa_observacao: null }} onOpenChange={vi.fn()} onSubmit={decidir} onAjustarHorario={ajustar} />);
+    fireEvent.change(screen.getByLabelText("Observação (opcional)"), { target: { value: "Ok" } });
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar batida" }));
+    expect(decidir).toHaveBeenCalledExactlyOnceWith({ decisao: "confirmada", observacao: "Ok" });
+    expect(ajustar).not.toHaveBeenCalled();
+  });
+  it("exige motivo ao corrigir uma marcação pendente", () => {
+    const ajustar = vi.fn();
+    const decidir = vi.fn();
+    render(<OcorrenciaTratativaDialog ocorrencia={{ ...ocorrencia, tratativa_status: "pendente", tratativa_observacao: null }} onOpenChange={vi.fn()} onSubmit={decidir} onAjustarHorario={ajustar} />);
+    fireEvent.click(screen.getByRole("button", { name: /^Saída$/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Salvar ajuste e confirmar" }));
+    expect(ajustar).not.toHaveBeenCalled();
+    expect(decidir).not.toHaveBeenCalled();
   });
   it("corrige a saída e conclui no mesmo envio auditado", () => {
     const ajustar = vi.fn();
