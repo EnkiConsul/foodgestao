@@ -15,6 +15,27 @@ function abrir() {
   return ajustar;
 }
 describe("ajuste de horário pelo gestor", () => {
+  it.each(["esquecimento_marcacao", "divergencia_jornada"])("confirma %s sem horário, sem inventar dados ou exigir motivo", (tipo) => {
+    const decidir = vi.fn();
+    const ajustar = vi.fn();
+    render(<OcorrenciaTratativaDialog ocorrencia={{ ...ocorrencia, tipo, horario_real: null, marcacao_alvo: null, tratativa_status: "pendente", tratativa_observacao: null }} onOpenChange={vi.fn()} onSubmit={decidir} onAjustarHorario={ajustar} />);
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar batida" }));
+    expect(decidir).toHaveBeenCalledExactlyOnceWith({ decisao: "confirmada", observacao: "" });
+    expect(ajustar).not.toHaveBeenCalled();
+  });
+  it("exige horário válido quando a marcação sem horário é corrigida", () => {
+    const decidir = vi.fn();
+    const ajustar = vi.fn();
+    render(<OcorrenciaTratativaDialog ocorrencia={{ ...ocorrencia, horario_real: null, tratativa_status: "pendente", tratativa_observacao: null }} onOpenChange={vi.fn()} onSubmit={decidir} onAjustarHorario={ajustar} />);
+    fireEvent.click(screen.getByRole("button", { name: /^Saída$/ }));
+    fireEvent.change(screen.getByLabelText("Motivo do ajuste"), { target: { value: "Correção do relato" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar ajuste e confirmar" }));
+    expect(decidir).not.toHaveBeenCalled();
+    expect(ajustar).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText("Horário real apurado"), { target: { value: "18:45" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar ajuste e confirmar" }));
+    expect(ajustar).toHaveBeenCalledExactlyOnceWith({ horario: "18:45", marcacaoAlvo: "saida", observacao: "Correção do relato", concluir: true });
+  });
   it("ajusta ocorrência já tratada pelo fluxo único sem substituir sua decisão", () => {
     const ajustar = vi.fn();
     const decidir = vi.fn();
