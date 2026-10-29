@@ -1,0 +1,12 @@
+.ocorrencias-print-frame { position: fixed; width: 1px; height: 1px; bottom: 0; visibility: hidden; border: 0; }
+@media print {
+  @page { size: A4 landscape; margin: 12mm; }
+  #relatorio-ocorrencias { font-size: 10pt; }
+  .ocorrencias-print-table { min-width: 0; table-layout: fixed; }
+  .ocorrencias-print-table th, .ocorrencias-print-table td { overflow-wrap: anywhere; }
+  .ocorrencias-print-table thead { display: table-header-group; }
+  .ocorrencias-print-table tr { break-inside: avoid; }
+  .ocorrencias-print-grupo + .ocorrencias-print-grupo { break-before: page; }
+  .ocorrencias-print-grupo h3 { break-after: avoid; }
+  #relatorio-ocorrencias .overflow-x-auto { overflow: visible; }
+}
