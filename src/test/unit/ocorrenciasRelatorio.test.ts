@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { agruparRelatorio, agruparFeriasLista, csvRelatorio, linhasOcorrencia } from '@/lib/dp/ocorrencias-relatorio';
+import { agruparRelatorio, agruparFeriasLista, feedOrdenadoComFerias, csvRelatorio, linhasOcorrencia } from '@/lib/dp/ocorrencias-relatorio';
 import { fetchAllPages } from '@/lib/supabase/fetchAllPages';
 import { aplicarTipoOcorrencia } from '@/lib/dp/ocorrencias-filtro';
 import { tratativaPendente } from '@/lib/dp/ocorrencias';
@@ -29,6 +29,7 @@ describe('relatório mensal de ocorrências', () => {
   it('erro na segunda página não gera relatório parcial', async () => { await expect(fetchAllPages(async from => ({data:from===0 ? Array(1000).fill(1):null,error:from ? new Error('falha'):null}))).rejects.toThrow('falha'); });
   it('30 dias de férias agrupados em um período', () => { const lista=Array.from({length:30},(_,i)=>o({id:String(i),data_operacional:`2026-10-${String(i+1).padStart(2,'0')}`,subtipo:'ferias',ferias_gozo_id:'g'})); expect(agruparFeriasLista(lista).ferias).toHaveLength(1); expect(agruparRelatorio(lista)[0]?.ocorrencias).toHaveLength(30); });
   it('não agrupa férias de pessoas distintas', () => expect(agruparFeriasLista([o({subtipo:'ferias',ferias_gozo_id:'g'}),o({colaborador_id:'2',subtipo:'ferias',ferias_gozo_id:'g'})]).ferias).toHaveLength(2));
+  it('férias ficam na posição cronológica do feed', () => { const l=[o({id:'a',data_operacional:'2026-10-20'}),o({id:'f1',subtipo:'ferias',ferias_gozo_id:'g',data_operacional:'2026-10-12'}),o({id:'f2',subtipo:'ferias',ferias_gozo_id:'g',data_operacional:'2026-10-11'}),o({id:'b',data_operacional:'2026-10-05'})]; const f=feedOrdenadoComFerias(l); expect(f.map(i=>i.tipo)).toEqual(['ocorrencia','ferias','ocorrencia']); expect(f[1].tipo==='ferias' && f[1].grupo.map(x=>x.id)).toEqual(['f2','f1']); });
   it('férias não pedem tratamento', () => expect(tratativaPendente(o({subtipo:'ferias'}))).toBe(false));
   it('trabalho por troca não pede corrigir batida fictícia', () => expect(tratativaPendente(o({subtipo:'troca_trabalho'}))).toBe(false));
   it('falta real ainda precisa decisão', () => expect(tratativaPendente(o({tipo:'falta'}))).toBe(true));
