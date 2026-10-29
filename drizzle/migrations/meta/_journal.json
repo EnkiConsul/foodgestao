@@ -1191,6 +1191,13 @@
       "when": 1793286319820,
       "tag": "0169_ocorrencias_fontes_cancelamento_auditoria",
       "breakpoints": true
+    },
+    {
+      "idx": 170,
+      "version": "7",
+      "when": 1793286378675,
+      "tag": "0170_ocorrencias_decisao_preautorizada",
+      "breakpoints": true
     }
   ]
 }
