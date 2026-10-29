@@ -4,7 +4,7 @@ import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { rotuloTipoOcorrencia, ocorrenciaDeFolga, temControlePonto, MARCACAO_LABEL, type OcorrenciaMarcacao } from "@/lib/dp/ocorrencias";
+import { rotuloTipoOcorrencia, temControlePonto, MARCACAO_LABEL, DECISAO_TRATATIVA_LABEL, TRATATIVA_LABEL, type OcorrenciaMarcacao } from "@/lib/dp/ocorrencias";
 
 /** Tipos de jornada em que o gestor decide entre Compensação, Abono ou Desconto em Folha. */
 const TIPOS_DECISAO_JORNADA = ["atraso", "falta", "saida_antecipada", "atraso_intervalo"];
@@ -51,19 +51,23 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, mo
   const ajusteMudou = ajustavel && (horarioMudou || marcacao !== (ocorrencia.marcacao_alvo ?? null) || observacaoMudou);
   const jaTratada = ocorrencia.tratativa_status !== "pendente";
 
-  const confirmar = () => {
-    if (ajustavel && ajusteMudou) {
-      onAjustarHorario?.({ horario, observacao: observacao.trim(), ...(marcacao ? { marcacaoAlvo: marcacao } : {}), ...(modo === "tratar" ? { concluir: jaTratada ? false : concluir } : {}) });
-    } else {
-      onSubmit({ decisao: jornada ? decisao ?? "" : decisao ?? "confirmada", observacao });
-    }
-  };
+  const soConferir = jaTratada && !ajusteMudou && modo !== "editar";
   const invalido = ajustavel
     ? !horarioValido || (ocorrencia.tipo === "esquecimento_marcacao" && !marcacao) || (ajusteMudou && observacao.trim().length < 3) || ((modo === "editar" || jaTratada) && !ajusteMudou)
     : jornada && !decisao;
+  const confirmar = () => {
+    if (saving || ocorrencia.estado === "cancelada") return;
+    if (soConferir) { onOpenChange(false); return; }
+    if (invalido) return;
+    if (ajustavel && ajusteMudou) {
+      onAjustarHorario?.({ horario, observacao: observacao.trim(), ...(marcacao ? { marcacaoAlvo: marcacao } : {}), ...(modo === "tratar" ? { concluir: jaTratada ? false : concluir } : {}) });
+    } else if (!jaTratada) {
+      onSubmit({ decisao: jornada ? decisao ?? "" : decisao ?? "confirmada", observacao: observacao.trim() });
+    }
+  };
   const footer = (
-    <Button className="min-h-12 w-full whitespace-normal" disabled={saving || !!invalido} onClick={confirmar}>
-      {saving ? "Salvando…" : ajustavel ? modo === "editar" || jaTratada ? "Salvar ajuste" : ajusteMudou ? concluir ? "Salvar ajuste e confirmar" : "Salvar ajuste e manter pendente" : comPonto ? "Confirmar batida" : "Confirmar ocorrência" : "Confirmar decisão"}
+    <Button className="min-h-12 w-full whitespace-normal" disabled={saving || (!soConferir && !!invalido)} onClick={confirmar}>
+      {saving ? "Salvando…" : soConferir ? "Fechar" : ajustavel ? modo === "editar" || jaTratada ? "Salvar ajuste" : ajusteMudou ? concluir ? "Salvar ajuste e confirmar" : "Salvar ajuste e manter pendente" : comPonto ? "Confirmar batida" : "Confirmar ocorrência" : "Confirmar decisão"}
     </Button>
   );
 
@@ -75,6 +79,12 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, mo
       footer={footer}
     >
         <div className="space-y-4">
+          {jaTratada && (
+            <p role="status" className="rounded-md border border-border bg-muted p-3 text-sm">
+              {ocorrencia.tratativa_status === "concluida" ? "Conferência concluída" : TRATATIVA_LABEL[ocorrencia.tratativa_status]}
+              {ocorrencia.tratativa_decisao ? ` · ${DECISAO_TRATATIVA_LABEL[ocorrencia.tratativa_decisao] ?? ocorrencia.tratativa_decisao}` : ""}. Sem nova confirmação pendente.
+            </p>
+          )}
           <div className="space-y-2 border-b border-border pb-4">
             <p className="text-sm font-medium">{r.titulo}</p>
             <p className="mt-1 text-lg font-semibold tabular-nums">
@@ -91,7 +101,7 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, mo
           {ajustavel && (
             <div className="space-y-4">
               <fieldset className="space-y-2">
-                <legend className="text-sm font-medium">Marcação a corrigir</legend>
+                <legend className="text-sm font-medium">Marcação informada</legend>
                 <div className="grid grid-cols-2 gap-2">
                   {(["entrada", "intervalo_inicio", "intervalo_retorno", "saida"] as OcorrenciaMarcacao[]).map((valor) => (
                     <Button key={valor} variant={marcacao === valor ? "default" : "outline"} className="min-h-11 whitespace-normal px-2" aria-pressed={marcacao === valor} disabled={saving} onClick={() => setMarcacao(valor)}>{MARCACAO_LABEL[valor]}</Button>
@@ -112,7 +122,7 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, mo
               </p>
             </div>
           )}
-          {jornada && (
+          {jornada && !jaTratada && (
             <fieldset className="space-y-2">
               <legend className="text-sm font-medium">Decisão</legend>
               <div className="grid gap-2">
@@ -122,7 +132,7 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, mo
               </div>
             </fieldset>
           )}
-          {!jornada && !ajustavel && comPonto && (
+          {!jornada && !ajustavel && comPonto && !jaTratada && (
             <fieldset className="space-y-2">
               <legend className="text-sm font-medium">Decisão</legend>
               <div className="grid gap-2">
@@ -132,7 +142,7 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, mo
             </fieldset>
           )}
           <div className="space-y-1.5">
-            <Label htmlFor="observacao-tratativa">{ajustavel ? "Motivo do ajuste" : "Observação (opcional)"}</Label>
+            <Label htmlFor="observacao-tratativa">{ajustavel && (ajusteMudou || modo === "editar") ? "Motivo do ajuste" : "Observação (opcional)"}</Label>
             <Textarea
               id="observacao-tratativa"
               aria-describedby={ajustavel ? "motivo-ajuste-ajuda" : undefined}
@@ -144,7 +154,7 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, mo
             />
             {ajustavel && (
               <p id="motivo-ajuste-ajuda" className={ajusteMudou && observacao.trim().length < 3 ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>
-                Informe o motivo do ajuste (mínimo de 3 caracteres).
+                {ajusteMudou || modo === "editar" ? "Informe o motivo do ajuste (mínimo de 3 caracteres)." : "Sem alterar a marcação ou o horário, não é necessário justificar."}
               </p>
             )}
           </div>

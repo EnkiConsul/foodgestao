@@ -254,7 +254,7 @@ export default function DpOcorrencias() {
     const alvo = acoes.ocorrencias.find((o) => o.id === idAlvo);
     if (!alvo) return;
     setIdAlvo(null);
-    if (alvo.tratativa_status === "pendente" && alvo.estado !== "cancelada") setTratativa(alvo);
+    if (alvo.estado !== "cancelada") setTratativa(alvo);
     setSearchParams((atual) => {
       const proximos = new URLSearchParams(atual);
       proximos.delete("id");

@@ -89,8 +89,9 @@ export function OcorrenciaCard({
   const comPonto = temControlePonto(o);
   const abonoAtestado = !cancelada && tratativaJaDecididaPorAtestado(o) && o.tratativa_status === "pendente";
   const ajustavel = !cancelada && ["esquecimento_marcacao", "divergencia_jornada"].includes(o.tipo);
+  const ajustavelPendente = ajustavel && o.tratativa_status === "pendente";
   const controleLancamento = !cancelada && !tratarPendente && o.tratativa_status !== "pendente" && !!onLancado && comPonto;
-  const conferirPendente = !tratarPendente && !folgaAutorizada && o.subtipo !== "dispensa_aviso_art488" && o.analise_status === "pendente" && !cancelada;
+  const conferirPendente = !tratarPendente && !folgaAutorizada && o.subtipo !== "dispensa_aviso_art488" && o.analise_status === "pendente" && !cancelada && o.tratativa_status !== "concluida";
 
   return (
     <div className={cn("rounded-lg border p-4 sm:p-5", COR_CLASSE[cor])}>
@@ -106,6 +107,7 @@ export function OcorrenciaCard({
                 Cancelada
               </Badge>
             )}
+            {!cancelada && o.tratativa_status === "concluida" && <Badge variant="outline" className="gap-1 text-xs"><CheckCircle2 className="h-3.5 w-3.5" />Conferida</Badge>}
           </div>
 
           {/* Linha principal: o que houve, em qual batida e a que horas */}
@@ -175,8 +177,8 @@ export function OcorrenciaCard({
         </div>
 
         <div className="mt-4 flex w-full flex-wrap items-center gap-2 border-t border-border pt-4 sm:mt-0 sm:w-full [&_button]:min-h-11">
-          {!cancelada && (tratarPendente || conferirPendente || ajustavel || o.estado === "aguardando_confirmacao") && (
-            <Button className="min-h-12 min-w-0 flex-1 whitespace-normal" onClick={o.estado === "aguardando_confirmacao" ? onConfirmar : tratarPendente || ajustavel ? onTratativa : onAnalisar}>
+          {!cancelada && o.tratativa_status !== "concluida" && (tratarPendente || conferirPendente || ajustavelPendente || o.estado === "aguardando_confirmacao") && (
+            <Button className="min-h-12 min-w-0 flex-1 whitespace-normal" onClick={o.estado === "aguardando_confirmacao" ? onConfirmar : tratarPendente || ajustavelPendente ? onTratativa : onAnalisar}>
               <ClipboardCheck className="mr-2 h-4 w-4 shrink-0" />
               {o.estado === "aguardando_confirmacao" || !comPonto ? "Conferir ocorrência" : "Tratar ponto"}
             </Button>
@@ -188,6 +190,7 @@ export function OcorrenciaCard({
             <DropdownMenuContent align="end" className="[&_[role=menuitem]]:min-h-11">
               {cobrivel && onCobrir && <DropdownMenuItem onSelect={onCobrir}>{validas.length ? "Ver cobertura" : "Cobrir ausência"}</DropdownMenuItem>}
               <DropdownMenuItem onSelect={() => setDetalhes(true)}>Ver detalhes e impactos</DropdownMenuItem>
+              {ajustavel && o.tratativa_status !== "pendente" && <DropdownMenuItem onSelect={onTratativa}>Retificar marcação/horário</DropdownMenuItem>}
               {controleLancamento && <DropdownMenuItem onSelect={() => onLancado?.(!o.lancado_ponto_em)}>{o.lancado_ponto_em ? "Desfazer lançamento" : "Marcar como lançado"}</DropdownMenuItem>}
               {estadoPremio === "aguardando" && !cancelada && onDecidirAssiduidade && <DropdownMenuItem onSelect={onDecidirAssiduidade}>Decidir prêmio</DropdownMenuItem>}
               {onHistorico && <DropdownMenuItem onSelect={onHistorico}>Histórico</DropdownMenuItem>}
