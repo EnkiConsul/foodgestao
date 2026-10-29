@@ -11524,6 +11524,7 @@ export type Database = {
           minutos: number | null
           motivo_cancelamento: string | null
           origem: Database["public"]["Enums"]["dp_ocorrencia_origem"]
+          origem_evidencia: Json | null
           previsto_entrada: string | null
           previsto_saida: string | null
           relevancia_operacional: boolean
@@ -11579,6 +11580,7 @@ export type Database = {
           minutos?: number | null
           motivo_cancelamento?: string | null
           origem?: Database["public"]["Enums"]["dp_ocorrencia_origem"]
+          origem_evidencia?: Json | null
           previsto_entrada?: string | null
           previsto_saida?: string | null
           relevancia_operacional?: boolean
@@ -11634,6 +11636,7 @@ export type Database = {
           minutos?: number | null
           motivo_cancelamento?: string | null
           origem?: Database["public"]["Enums"]["dp_ocorrencia_origem"]
+          origem_evidencia?: Json | null
           previsto_entrada?: string | null
           previsto_saida?: string | null
           relevancia_operacional?: boolean

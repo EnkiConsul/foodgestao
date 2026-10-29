@@ -1184,6 +1184,13 @@
       "when": 1793286149836,
       "tag": "0168_folga_classificacao_compensatoria_aditiva",
       "breakpoints": true
+    },
+    {
+      "idx": 169,
+      "version": "7",
+      "when": 1793286319820,
+      "tag": "0169_ocorrencias_fontes_cancelamento_auditoria",
+      "breakpoints": true
     }
   ]
 }
