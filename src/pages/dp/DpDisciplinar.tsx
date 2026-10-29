@@ -215,8 +215,8 @@ export default function DpDisciplinar() {
   const [observacao, setObservacao] = useState("");
   const [motivoSel, setMotivoSel] = useState("");
   const [antecedentesIds, setAntecedentesIds] = useState<string[]>([]);
-  useEffect(() => { setAntecedentesIds([]); }, [colaboradorId, selectedCompanyId, tipo, caminho]);
   const [caminho, setCaminho] = useState<"gerar" | "importar">("gerar");
+  useEffect(() => { setAntecedentesIds([]); }, [colaboradorId, selectedCompanyId, tipo, caminho]);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [confirmo, setConfirmo] = useState(false);
   const [elogioVis, setElogioVis] = useState<"privado" | "individual" | "publico">("privado");
