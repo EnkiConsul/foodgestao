@@ -83,12 +83,12 @@ export function OcorrenciaCard({
 
   const r = resumoTratativa(o);
   const cancelada = o.estado === "cancelada";
-  const folgaAutorizada = ocorrenciaDeFolga(o);
+  const folgaAutorizada = ocorrenciaDeFolga(o) || ["ferias", "troca_trabalho", "dispensa_aviso_art488"].includes(o.subtipo ?? "");
   const diretriz = diretrizPonto(o);
   const tratarPendente = tratativaPendente(o);
   const comPonto = temControlePonto(o);
   const abonoAtestado = !cancelada && tratativaJaDecididaPorAtestado(o) && o.tratativa_status === "pendente";
-  const ajustavel = !cancelada && ["esquecimento_marcacao", "divergencia_jornada"].includes(o.tipo);
+  const ajustavel = !cancelada && !folgaAutorizada && ["esquecimento_marcacao", "divergencia_jornada"].includes(o.tipo);
   const ajustavelPendente = ajustavel && o.tratativa_status === "pendente";
   const controleLancamento = !cancelada && !tratarPendente && o.tratativa_status !== "pendente" && !!onLancado && comPonto;
   const conferirPendente = !tratarPendente && !folgaAutorizada && o.subtipo !== "dispensa_aviso_art488" && o.analise_status === "pendente" && !cancelada && o.tratativa_status !== "concluida";

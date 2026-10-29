@@ -139,6 +139,7 @@ export function ocorrenciaDeFolga(o: { folga_id?: string | null; troca_id?: stri
 }
 
 export function rotuloTipoOcorrencia(o: { tipo: OcorrenciaTipo; troca_id?: string | null; subtipo?: string | null }): string {
+  if (o.subtipo === "ferias") return "Férias";
   if (o.subtipo === "dispensa_aviso_art488") return "Dispensa do aviso (Art. 488)";
   if (o.subtipo === "banco_horas_aviso") return "Folga compensatória (banco no aviso)";
   if (o.subtipo === "compensacao_feriado") return "Folga compensatória (feriado)";
@@ -295,7 +296,7 @@ export function eventoPreDefinido(o: {
   folga_id?: string | null;
   troca_id?: string | null;
 }): boolean {
-  return o.subtipo === "dispensa_aviso_art488" || ocorrenciaDeFolga(o);
+  return ["dispensa_aviso_art488", "ferias", "troca_trabalho"].includes(o.subtipo ?? "") || ocorrenciaDeFolga(o);
 }
 
 /** Ocorrência que ainda exige decisão (tratativa) do gestor. */

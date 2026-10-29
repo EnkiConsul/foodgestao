@@ -124,20 +124,22 @@ export interface Ocorrencia {
   folga_id?: string | null;
   solicitacao_id?: string | null;
   subtipo?: string | null;
+  ferias_gozo_id?: string | null;
+  trabalho_excepcional_id?: string | null;
   created_at: string;
   colaborador: { nome: string; nome_social?: string | null; cargo: string | null; possui_folha_ponto?: boolean | null } | null;
   unidade: { nome: string; possui_relogio_ponto?: boolean | null } | null;
   setor: { nome: string } | null;
 }
 
-const COLS = `
+export const OCORRENCIAS_COLS = `
   id, colaborador_id, unidade_id, setor_id, data_operacional, tipo, estado, origem,
   previsto_entrada, previsto_saida, horario_previsto, horario_estimado, horario_real, minutos,
   justificativa_inicial, justificativa_final, impacta_assiduidade, impacta_ferias,
   assiduidade_risco, assiduidade_risco_motivo, assiduidade_observacao, assiduidade_decidido_em,
   relevancia_operacional, analise_status, analisado_em, tratativa_ponto, tratativa_status,
   tratativa_decisao, tratativa_observacao, lancado_ponto_em, marcacao_alvo, documento_id, informada_em,
-  antecedencia_minutos, motivo_cancelamento, created_at, troca_id, folga_id, solicitacao_id, subtipo,
+  antecedencia_minutos, motivo_cancelamento, created_at, troca_id, folga_id, solicitacao_id, subtipo, ferias_gozo_id, trabalho_excepcional_id,
   colaborador:dp_colaboradores!dp_ocorrencias_colaborador_id_fkey(nome, nome_social, cargo, possui_folha_ponto),
   unidade:dp_unidades!dp_ocorrencias_unidade_id_fkey(nome, possui_relogio_ponto),
   setor:dp_setores!dp_ocorrencias_setor_id_fkey(nome)
@@ -205,8 +207,8 @@ export function useDpOcorrencias(filtros: OcorrenciaFiltros) {
     queryFn: async () => {
       let q = supabase
         .from("dp_ocorrencias")
-        .select(COLS)
-        .eq("company_id", selectedCompanyId!)
+        .select(OCORRENCIAS_COLS)
+        .eq("company_id", selectedCompanyId ?? "")
         .order("data_operacional", { ascending: false })
         .order("created_at", { ascending: false })
         .limit(500);
