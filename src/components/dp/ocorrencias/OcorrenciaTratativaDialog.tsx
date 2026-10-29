@@ -55,7 +55,7 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, mo
     if (ajustavel && ajusteMudou) {
       onAjustarHorario?.({ horario, observacao: observacao.trim(), ...(marcacao ? { marcacaoAlvo: marcacao } : {}), ...(modo === "tratar" ? { concluir: jaTratada ? false : concluir } : {}) });
     } else {
-      onSubmit({ decisao: jornada ? decisao ?? "" : "confirmada", observacao });
+      onSubmit({ decisao: jornada ? decisao ?? "" : decisao ?? "confirmada", observacao });
     }
   };
   const invalido = ajustavel
@@ -119,6 +119,15 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, mo
                 {[["compensacao", "Compensação"], ["abono", "Abono"], ["desconto", "Desconto em Folha"]].map(([valor, label]) => (
                   <Button key={valor} variant={decisao === valor ? "default" : "outline"} className="min-h-12" aria-pressed={decisao === valor} disabled={saving} onClick={() => setDecisao(valor)}>{label}</Button>
                 ))}
+              </div>
+            </fieldset>
+          )}
+          {!jornada && !ajustavel && comPonto && (
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium">Decisão</legend>
+              <div className="grid gap-2">
+                <Button variant={decisao !== "ajuste_solicitado" ? "default" : "outline"} className="min-h-12" aria-pressed={decisao !== "ajuste_solicitado"} disabled={saving} onClick={() => setDecisao("confirmada")}>Confirmar ocorrência</Button>
+                <Button variant={decisao === "ajuste_solicitado" ? "default" : "outline"} className="min-h-12" aria-pressed={decisao === "ajuste_solicitado"} disabled={saving} onClick={() => setDecisao("ajuste_solicitado")}>Registrar orientação de ajuste</Button>
               </div>
             </fieldset>
           )}
