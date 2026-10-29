@@ -45,7 +45,8 @@ beforeAll(async()=>{
  await db.exec(readFileSync('supabase/migrations/20261027010500_troca_gestor_admissao.sql','utf8'));
  await db.exec(readFileSync('drizzle/migrations/0159_troca_gestor_cancelamento_portal.sql','utf8'));
  await db.exec(`CREATE TRIGGER notificacao AFTER INSERT OR UPDATE ON dp_trocas FOR EACH ROW EXECUTE FUNCTION dp_notif_troca();`);
- const dates=await db.query<{a:string;b:string}>(`SELECT (CURRENT_DATE+1)::text a,(CURRENT_DATE+3)::text b`);dayA=dates.rows[0].a;dayB=dates.rows[0].b;
+ // Stable Monday/Wednesday fixture: neither receiving day accidentally becomes Sunday as time advances.
+ const dates=await db.query<{a:string;b:string}>(`SELECT (CURRENT_DATE+(8-extract(dow from CURRENT_DATE)::int)%7+7)::text a,(CURRENT_DATE+(8-extract(dow from CURRENT_DATE)::int)%7+9)::text b`);dayA=dates.rows[0].a;dayB=dates.rows[0].b;
  await db.query(`INSERT INTO dp_folgas(colaborador_id,data) VALUES($1,$2),($3,$4)`,[sol,dayA,dest,dayB]);
 },30000);
 afterAll(()=>db.close());
@@ -72,7 +73,7 @@ describe.sequential('troca administrativa — SQL isolado sem dados reais',()=>{
   expect((await db.query(`SELECT * FROM dp_trocas`)).rows).toHaveLength(0);
  });
  it('sete dias consecutivos afetados pela troca exigem ciência do gestor',async()=>{
-  await db.exec(`BEGIN; CREATE OR REPLACE FUNCTION private.dp_troca_folga_fixa_livre(uuid,date) RETURNS boolean LANGUAGE sql AS 'SELECT $1=''${sol}''::uuid AND extract(dow from $2)=0'`);
+  await db.exec(`BEGIN; UPDATE dp_folgas SET status='cancelada'; CREATE OR REPLACE FUNCTION private.dp_troca_folga_fixa_livre(uuid,date) RETURNS boolean LANGUAGE sql AS 'SELECT $1=''${sol}''::uuid AND extract(dow from $2)=0'`);
   const sunday=(await db.query<{d:string}>(`SELECT (CURRENT_DATE+(7-extract(dow from CURRENT_DATE)::int)%7+7)::text d`)).rows[0].d;
   const monday=(await db.query<{d:string}>(`SELECT ($1::date+1)::text d`,[sunday])).rows[0].d;
   await db.query(`INSERT INTO dp_folgas(colaborador_id,data) VALUES($1,$2)`,[dest,monday]);

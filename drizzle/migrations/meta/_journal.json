@@ -1163,6 +1163,13 @@
       "when": 1793230054227,
       "tag": "0165_ocorrencia_edicao_marcacao_auditada",
       "breakpoints": true
+    },
+    {
+      "idx": 166,
+      "version": "7",
+      "when": 1793255308614,
+      "tag": "0166_troca_gestor_termos_individuais",
+      "breakpoints": true
     }
   ]
 }

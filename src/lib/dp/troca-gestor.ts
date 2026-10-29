@@ -30,7 +30,15 @@ export type TrocaGestorInput = {
 export type TrocaGestorPrevia = {
   riscos: { colaborador_id: string; nome: string; dias: number }[];
   em_admissao: boolean;
+  participantes?: ParticipanteTermoTroca[];
 };
+
+export type ParticipanteTermoTroca = { colaborador_id: string; nome: string; formal: boolean; portal: boolean; data_original: string; data_nova: string; empresa: string };
+
+/** Terms are individual GED documents; administrative authorization never becomes consent. */
+export function participantesComTermo(participantes: ParticipanteTermoTroca[]): ParticipanteTermoTroca[] {
+  return participantes.filter(p => p.formal);
+}
 
 export function argsTrocaGestor(input: Omit<TrocaGestorInput, "motivo" | "cienteDsr" | "notificar">) {
   return { _company: input.companyId, _sol: input.solicitanteId, _dest: input.destinoId, _original: input.dataOriginal, _proposta: input.dataProposta };
