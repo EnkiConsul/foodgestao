@@ -47,7 +47,7 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, mo
   const informado = (ocorrencia.horario_real ?? "").slice(0, 5);
   const horarioValido = /^([01]\d|2[0-3]):[0-5]\d$/.test(horario);
   const horarioMudou = ajustavel && horarioValido && horario !== informado;
-  const observacaoMudou = observacao.trim() !== (modo === "editar" ? "" : ocorrencia.tratativa_observacao ?? "").trim();
+  const observacaoMudou = (modo === "editar" || ocorrencia.tratativa_status !== "pendente") && observacao.trim() !== (modo === "editar" ? "" : ocorrencia.tratativa_observacao ?? "").trim();
   const ajusteMudou = ajustavel && (horarioMudou || marcacao !== (ocorrencia.marcacao_alvo ?? null) || observacaoMudou);
   const jaTratada = ocorrencia.tratativa_status !== "pendente";
 

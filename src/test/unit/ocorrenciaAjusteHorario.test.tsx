@@ -47,8 +47,9 @@ describe("ajuste de horário pelo gestor", () => {
     const decidir = vi.fn();
     const ajustar = vi.fn();
     render(<OcorrenciaTratativaDialog ocorrencia={{ ...ocorrencia, tratativa_status: "pendente", tratativa_observacao: null }} onOpenChange={vi.fn()} onSubmit={decidir} onAjustarHorario={ajustar} />);
+    fireEvent.change(screen.getByLabelText("Observação (opcional)"), { target: { value: "Ok" } });
     fireEvent.click(screen.getByRole("button", { name: "Confirmar batida" }));
-    expect(decidir).toHaveBeenCalledExactlyOnceWith({ decisao: "confirmada", observacao: "" });
+    expect(decidir).toHaveBeenCalledExactlyOnceWith({ decisao: "confirmada", observacao: "Ok" });
     expect(ajustar).not.toHaveBeenCalled();
   });
   it("exige motivo ao corrigir uma marcação pendente", () => {
