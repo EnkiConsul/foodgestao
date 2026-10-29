@@ -44,7 +44,6 @@ interface Props {
   coberturas?: OcorrenciaCobertura[];
   onConfirmar: () => void;
   onTratativa: () => void;
-  onEditar?: () => void;
   onAnalisar: () => void;
   onCancelar: () => void;
   onCobrir?: () => void;
@@ -61,7 +60,6 @@ export function OcorrenciaCard({
   coberturas = [],
   onConfirmar,
   onTratativa,
-  onEditar,
   onAnalisar,
   onCancelar,
   onCobrir,
@@ -90,7 +88,8 @@ export function OcorrenciaCard({
   const tratarPendente = tratativaPendente(o);
   const comPonto = temControlePonto(o);
   const abonoAtestado = !cancelada && tratativaJaDecididaPorAtestado(o) && o.tratativa_status === "pendente";
-  const ajustavel = !cancelada && !!onEditar && ["esquecimento_marcacao", "divergencia_jornada"].includes(o.tipo);
+  const ajustavel = !cancelada && ["esquecimento_marcacao", "divergencia_jornada"].includes(o.tipo);
+  const controleLancamento = !cancelada && !tratarPendente && o.tratativa_status !== "pendente" && !!onLancado && comPonto;
   const conferirPendente = !tratarPendente && !folgaAutorizada && o.subtipo !== "dispensa_aviso_art488" && o.analise_status === "pendente" && !cancelada;
 
   return (
@@ -167,28 +166,29 @@ export function OcorrenciaCard({
               {o.tratativa_observacao ? ` · ${o.tratativa_observacao}` : ""}
             </p>
           )}
+          {controleLancamento && (
+            <Badge variant="outline" className="mt-2 gap-1 text-xs">
+              {o.lancado_ponto_em ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
+              {o.lancado_ponto_em ? "Lançado" : "Lançamento pendente"}
+            </Badge>
+          )}
         </div>
 
         <div className="mt-4 flex w-full flex-wrap items-center gap-2 border-t border-border pt-4 sm:mt-0 sm:w-full [&_button]:min-h-11">
-          {!cancelada && (tratarPendente || conferirPendente || o.estado === "aguardando_confirmacao") && (
+          {!cancelada && (tratarPendente || conferirPendente || ajustavel || o.estado === "aguardando_confirmacao") && (
             <Button className="min-h-12 min-w-0 flex-1 whitespace-normal" onClick={o.estado === "aguardando_confirmacao" ? onConfirmar : tratarPendente || ajustavel ? onTratativa : onAnalisar}>
               <ClipboardCheck className="mr-2 h-4 w-4 shrink-0" />
-              {o.estado === "aguardando_confirmacao" ? "Conferir ocorrência" : ajustavel && comPonto ? "Confirmar batida" : "Tratar ocorrência"}
-            </Button>
-          )}
-          {!cancelada && !tratarPendente && o.tratativa_status !== "pendente" && onLancado && comPonto && (
-            <Button size="sm" variant="outline" className="min-h-11 min-w-0 flex-1 whitespace-normal" onClick={() => onLancado(!o.lancado_ponto_em)} aria-pressed={!!o.lancado_ponto_em}>
-              <CheckCircle2 className="mr-2 h-4 w-4 shrink-0" />{o.lancado_ponto_em ? "Lançamento registrado" : "Registrar lançamento"}
+              {o.estado === "aguardando_confirmacao" || !comPonto ? "Conferir ocorrência" : "Tratar ponto"}
             </Button>
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button size="icon" variant="outline" aria-label="Mais ações" title="Mais ações"><MoreHorizontal className="h-4 w-4" /></Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="[&_[role=menuitem]]:min-h-11">
               {cobrivel && onCobrir && <DropdownMenuItem onSelect={onCobrir}>{validas.length ? "Ver cobertura" : "Cobrir ausência"}</DropdownMenuItem>}
               <DropdownMenuItem onSelect={() => setDetalhes(true)}>Ver detalhes e impactos</DropdownMenuItem>
-              {ajustavel && !tratarPendente && <DropdownMenuItem onSelect={onEditar}>Ajustar batida</DropdownMenuItem>}
+              {controleLancamento && <DropdownMenuItem onSelect={() => onLancado?.(!o.lancado_ponto_em)}>{o.lancado_ponto_em ? "Desfazer lançamento" : "Marcar como lançado"}</DropdownMenuItem>}
               {estadoPremio === "aguardando" && !cancelada && onDecidirAssiduidade && <DropdownMenuItem onSelect={onDecidirAssiduidade}>Decidir prêmio</DropdownMenuItem>}
               {onHistorico && <DropdownMenuItem onSelect={onHistorico}>Histórico</DropdownMenuItem>}
               {!cancelada && !folgaAutorizada && <DropdownMenuItem onSelect={onCancelar}>Cancelar ocorrência</DropdownMenuItem>}
@@ -219,7 +219,7 @@ export function OcorrenciaCard({
           )}
           <div className="flex flex-col gap-4">
             {(["assiduidade", "ferias"] as const).map((campo) => (
-              <div key={campo} className="flex items-center gap-2">
+              <div key={campo} className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-muted-foreground">{campo === "assiduidade" ? "Perde assiduidade" : "Desconta férias"}</span>
                 <Select
                   value={campo === "assiduidade" ? o.impacta_assiduidade : o.impacta_ferias}
