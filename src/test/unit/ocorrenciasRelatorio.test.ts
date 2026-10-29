@@ -34,4 +34,17 @@ describe('relatório mensal de ocorrências', () => {
   it('falta real ainda precisa decisão', () => expect(tratativaPendente(o({tipo:'falta'}))).toBe(true));
   it('filtro férias consulta subtipo antes do limite', () => {const q={or:vi.fn(),eq:vi.fn()}; q.eq.mockReturnValue(q); aplicarTipoOcorrencia(q,'ferias'); expect(q.eq).toHaveBeenCalledWith('subtipo','ferias');});
   it('folgas inclui trabalho excepcional sem troca de colega', () => { const q={or:vi.fn(),eq:vi.fn()}; q.or.mockReturnValue(q); aplicarTipoOcorrencia(q,'folgas_trocas'); expect(q.or).toHaveBeenCalledWith('folga_id.not.is.null,troca_id.not.is.null,trabalho_excepcional_id.not.is.null'); });
+});import { calcularFechamentoContabil, variacaoOcorrencia } from '@/lib/dp/ocorrencias-relatorio';
+import { rotuloFolga } from '@/lib/dp/folga-apresentacao';
+import { FILTRO_FOLGAS_FICHA } from '@/components/dp/ocorrencias/ColaboradorOcorrenciasCard';
+describe('fechamento contábil', () => {
+  it('soma só descontos decididos', () => { const r=calcularFechamentoContabil([o({tipo:'atraso',minutos:45,tratativa_decisao:'desconto',tratativa_status:'concluida'}),o({id:'b',tipo:'atraso',minutos:30})]); expect(r.minutosDesconto).toBe(45); });
+  it('falta descontada conta como falta integral', () => expect(calcularFechamentoContabil([o({tipo:'falta',tratativa_decisao:'desconto',tratativa_status:'concluida'})]).faltasDesconto).toBe(1));
+  it('abono e compensação somam abonadas', () => expect(calcularFechamentoContabil([o({tipo:'atraso',minutos:20,tratativa_decisao:'abono'}),o({id:'b',tipo:'atraso',minutos:10,tratativa_decisao:'compensacao'})]).minutosAbonados).toBe(30));
+  it('férias contam dias, não pendência', () => { const r=calcularFechamentoContabil([o({subtipo:'ferias'})]); expect([r.diasFerias,r.pendencias]).toEqual([1,0]); });
+  it('falta sem decisão é pendência', () => expect(calcularFechamentoContabil([o({tipo:'falta'})]).pendencias).toBe(1));
+  it('férias mostram traço em vez de não informado', () => expect(linhasOcorrencia(o({subtipo:'ferias'}))[3]).toBe('—'));
+  it('variação formatada', () => expect(variacaoOcorrencia(o({tipo:'atraso',minutos:90}))).toBe('+1h 30min'));
+  it('folga remanejada rotulada', () => expect(rotuloFolga({direito_origem:'folga_fixa_deslocada'})).toBe('Folga remanejada (troca de escala)'));
+  it('ficha inclui trabalho excepcional e compensação de feriado', () => { expect(FILTRO_FOLGAS_FICHA).toContain('trabalho_excepcional_id.not.is.null'); expect(FILTRO_FOLGAS_FICHA).toContain('compensacao_feriado'); });
 });

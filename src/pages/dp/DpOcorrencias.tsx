@@ -962,7 +962,7 @@ export default function DpOcorrencias() {
       </section>
       </div>
 
-      {relatorioOpen && <OcorrenciasRelatorioDialog open={relatorioOpen} onOpenChange={setRelatorioOpen} mes={mesReferencia} corte={corte} unidadeId={filtros.unidadeId} setorId={filtros.setorId} />}
+      {relatorioOpen && <OcorrenciasRelatorioDialog open={relatorioOpen} onOpenChange={setRelatorioOpen} mes={mesReferencia} corte={corte} unidadeId={filtros.unidadeId} setorId={filtros.setorId} colaboradorId={filtros.colaboradorId} />}
       <OcorrenciaFormDialog
         open={novaOpen}
         onOpenChange={setNovaOpen}
