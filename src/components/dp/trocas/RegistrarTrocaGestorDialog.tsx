@@ -88,7 +88,7 @@ function RegistrarTrocaGestorConteudo({ open, onOpenChange, unidadeId, dataInici
   };
   return <DpDialogShell open={open} onOpenChange={v => !registrar.isPending && onOpenChange(v)} icon={ArrowLeftRight} title="Registrar troca" footer={<>
     <Button variant="outline" disabled={registrar.isPending} onClick={() => onOpenChange(false)}>Cancelar</Button>
-    <Button disabled={!completo || !previa.isSuccess || previa.isFetching || motivo.trim().length < 3 || (riscos.length > 0 && !ciente) || (retroativa && !cienteRetro) || registrar.isPending} onClick={() => void salvar()}>
+    <Button disabled={!completo || !previa.isSuccess || !previa.data?.participantes || previa.isFetching || motivo.trim().length < 3 || (riscos.length > 0 && !ciente) || (retroativa && !cienteRetro) || registrar.isPending} onClick={() => void salvar()}>
       {registrar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Registrar troca
     </Button>
   </>}>
