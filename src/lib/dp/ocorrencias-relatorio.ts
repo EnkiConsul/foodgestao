@@ -37,6 +37,20 @@ export function agruparFeriasLista(lista: Ocorrencia[]): { normais: Ocorrencia[]
   }
   return { normais, ferias: [...grupos.values()].map(g => g.sort((a,b) => a.data_operacional.localeCompare(b.data_operacional))) };
 }
+/** Feed em ordem: cada período de férias aparece na posição do seu primeiro dia na lista original. */
+export type ItemFeed = { tipo: 'ocorrencia'; o: Ocorrencia } | { tipo: 'ferias'; grupo: Ocorrencia[] };
+export function feedOrdenadoComFerias(lista: Ocorrencia[]): ItemFeed[] {
+  const grupos = new Map<string, Ocorrencia[]>(); const itens: ItemFeed[] = [];
+  for (const o of lista) {
+    if (o.subtipo !== 'ferias') { itens.push({ tipo: 'ocorrencia', o }); continue; }
+    const key = `${o.colaborador_id}:${o.ferias_gozo_id ?? o.id}:${o.estado}`;
+    const g = grupos.get(key);
+    if (g) { g.push(o); continue; }
+    const novo = [o]; grupos.set(key, novo); itens.push({ tipo: 'ferias', grupo: novo });
+  }
+  for (const g of grupos.values()) g.sort((a,b) => a.data_operacional.localeCompare(b.data_operacional));
+  return itens;
+}
 const IMPACTO_LABEL: Record<string, string> = { sim: 'Sim', nao: 'Não', aguardando: 'Aguardando decisão' };
 const SUBTIPOS_DESCANSO = new Set(['ferias','troca_folga','compensacao_feriado','banco_horas_aviso','dispensa_aviso_art488','folga_compensatoria','folga_extra','folga_fixa_deslocada']);
 /** Férias, folgas e trocas autorizadas: não há jornada a conferir nem horário a informar. */
