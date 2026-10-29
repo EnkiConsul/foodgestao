@@ -4,5 +4,6 @@ export function rotuloFolga(f: { tipo?: string | null; extra?: boolean | null; d
   if (f.subtipo === "banco_horas_aviso" || f.direito_origem === "banco_horas_desligamento") return "Folga compensatória (banco no aviso)";
   if (f.subtipo === "compensacao_feriado" || f.direito_origem === "compensacao_feriado") return "Folga compensatória (feriado)";
   if (f.subtipo === "folga_compensatoria" || f.direito_origem === "banco_horas") return "Folga compensatória";
+  if (f.direito_origem === "folga_fixa_deslocada") return "Folga remanejada (troca de escala)";
   return f.tipo === "extra" || f.extra ? "Folga extra autorizada" : "Folga";
 }

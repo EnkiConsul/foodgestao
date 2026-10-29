@@ -39,6 +39,8 @@ function rotuloMes(data: string): string {
 }
 
 /** Ocorrências do colaborador agrupadas por mês, para a ficha. */
+// eslint-disable-next-line react-refresh/only-export-components
+export const FILTRO_FOLGAS_FICHA = "folga_id.not.is.null,troca_id.not.is.null,trabalho_excepcional_id.not.is.null,subtipo.in.(troca_trabalho,troca_folga,compensacao_feriado,banco_horas_aviso,dispensa_aviso_art488)";
 export function ColaboradorOcorrenciasCard({ colaboradorId, somenteFolgas = false }: { colaboradorId: string | null; somenteFolgas?: boolean }) {
   const { selectedCompanyId } = useCompanyContext();
 
@@ -54,7 +56,7 @@ export function ColaboradorOcorrenciasCard({ colaboradorId, somenteFolgas = fals
         .eq("colaborador_id", colaboradorId)
         .order("data_operacional", { ascending: false })
         .limit(120);
-      if (somenteFolgas) consulta = consulta.or("folga_id.not.is.null,troca_id.not.is.null,subtipo.eq.dispensa_aviso_art488");
+      if (somenteFolgas) consulta = consulta.or(FILTRO_FOLGAS_FICHA);
       const { data, error } = await consulta;
       if (error) throw error;
       return (data ?? []) as unknown as Linha[];
