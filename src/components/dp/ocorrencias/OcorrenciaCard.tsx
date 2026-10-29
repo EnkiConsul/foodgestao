@@ -111,7 +111,7 @@ export function OcorrenciaCard({
           </div>
 
           {/* Linha principal: o que houve, em qual batida e a que horas */}
-          <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+          <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
             <Badge variant="outline" className={cn("text-xs", COR_BADGE[cor])}>
               {previsao && <AlertTriangle className="mr-1 h-3 w-3" />}
               {r.titulo}
@@ -129,20 +129,20 @@ export function OcorrenciaCard({
             {!r.batida && !r.horario && resumoOperacional(o) !== r.titulo && (
               <span className="text-xs text-muted-foreground">{resumoOperacional(o)}</span>
             )}
-          </p>
+          </div>
 
           {o.justificativa_inicial && (
             <p className="mt-3 border-l-2 border-border py-1 pl-3 text-sm leading-relaxed italic text-muted-foreground break-words">“{o.justificativa_inicial}”</p>
           )}
 
           {validas.length > 0 && (
-            <p className="mt-1 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+            <div className="mt-1 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
               <UserPlus className="h-3 w-3" />
               Cobertura: {validas.map((c) => c.substituto?.nome ?? c.apoio?.nome ?? "sem nome").join(", ")}
               <Badge variant="outline" className="text-[10px]">
                 {COBERTURA_STATUS_LABEL[validas[0].status]}
               </Badge>
-            </p>
+            </div>
           )}
           {o.assiduidade_risco && (
             <p className="mt-1 flex flex-wrap items-center gap-1 rounded-md border border-warning/40 bg-warning/5 px-2 py-1 text-xs">
