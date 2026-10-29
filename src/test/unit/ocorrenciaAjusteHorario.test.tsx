@@ -15,7 +15,7 @@ function abrir() {
   return ajustar;
 }
 describe("ajuste de horário pelo gestor", () => {
-  it.each(["esquecimento_marcacao", "divergencia_jornada"])("confirma %s sem horário, sem inventar dados ou exigir motivo", (tipo) => {
+  it.each(["esquecimento_marcacao", "divergencia_jornada"] as const)("confirma %s sem horário, sem inventar dados ou exigir motivo", (tipo) => {
     const decidir = vi.fn();
     const ajustar = vi.fn();
     render(<OcorrenciaTratativaDialog ocorrencia={{ ...ocorrencia, tipo, horario_real: null, marcacao_alvo: null, tratativa_status: "pendente", tratativa_observacao: null }} onOpenChange={vi.fn()} onSubmit={decidir} onAjustarHorario={ajustar} />);
