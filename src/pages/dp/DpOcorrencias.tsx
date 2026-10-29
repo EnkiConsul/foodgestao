@@ -23,7 +23,7 @@ import { mensagemErro } from "@/lib/dp/mensagemErro";
 import { MotivoDialog } from "@/components/dp/MotivoDialog";
 import { OcorrenciaCard } from "@/components/dp/ocorrencias/OcorrenciaCard";
 import { OcorrenciasRelatorioDialog } from "@/components/dp/ocorrencias/OcorrenciasRelatorioDialog";
-import { agruparFeriasLista } from "@/lib/dp/ocorrencias-relatorio";
+import { feedOrdenadoComFerias } from "@/lib/dp/ocorrencias-relatorio";
 import { OcorrenciaConfirmarDialog } from "@/components/dp/ocorrencias/OcorrenciaConfirmarDialog";
 import { OcorrenciaFormDialog } from "@/components/dp/ocorrencias/OcorrenciaFormDialog";
 import { OcorrenciaTratativaDialog } from "@/components/dp/ocorrencias/OcorrenciaTratativaDialog";
@@ -389,7 +389,7 @@ export default function DpOcorrencias() {
     return c;
   })();
   const lista = diretriz ? acoes.ocorrencias.filter((o) => diretrizPonto(o) === diretriz) : acoes.ocorrencias;
-  const listaAgrupada = agruparFeriasLista(lista);
+  const feedDia = feedOrdenadoComFerias(lista);
   const copiarResumo = async () => {
     const linhas: string[] = [`Resumo do ponto — ${textoPeriodo}`];
     for (const d of ["compensar", "abonar", "descontar", "ajustar", "decidir"] as DiretrizPonto[]) {
@@ -938,7 +938,7 @@ export default function DpOcorrencias() {
               <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="ml-auto" aria-label="Opções da lista" title="Opções da lista"><ClipboardList className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => void copiarResumo()}>Copiar resumo do ponto</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
             </div>
             {visao === "dia" ? (
-              <div className="space-y-4">{listaAgrupada.normais.map((o) => renderCard(o))}{listaAgrupada.ferias.map(g => <details key={g[0]?.id} className="rounded-lg border border-border p-4"><summary className="cursor-pointer text-sm font-medium">{g[0]?.colaborador?.nome} · Férias · {g[0]?.data_operacional.split('-').reverse().join('/')} a {g[g.length - 1]?.data_operacional.split('-').reverse().join('/')} · {g.length} dias</summary><div className="mt-3 space-y-3">{g.map(o => renderCard(o))}</div></details>)}</div>
+              <div className="space-y-4">{feedDia.map((it) => it.tipo === 'ocorrencia' ? renderCard(it.o) : <details key={it.grupo[0]?.id} className="rounded-lg border border-border p-4"><summary className="min-h-11 cursor-pointer text-sm font-medium">{it.grupo[0]?.colaborador?.nome} · Férias · {it.grupo[0]?.data_operacional.split('-').reverse().join('/')} a {it.grupo[it.grupo.length - 1]?.data_operacional.split('-').reverse().join('/')} · {it.grupo.length} dias</summary><div className="mt-3 space-y-3">{it.grupo.map(o => renderCard(o))}</div></details>)}</div>
             ) : (
               porColaborador.map(([id, g]) => {
                 const aTratar = g.linhas.filter((o) => tratativaPendente(o)).length;
