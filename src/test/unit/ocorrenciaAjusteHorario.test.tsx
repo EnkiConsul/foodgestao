@@ -11,10 +11,44 @@ const ocorrencia = {
 afterEach(cleanup);
 function abrir() {
   const ajustar = vi.fn();
-  render(<OcorrenciaTratativaDialog ocorrencia={ocorrencia} onOpenChange={vi.fn()} onSubmit={vi.fn()} onAjustarHorario={ajustar} />);
+  render(<OcorrenciaTratativaDialog modo="editar" ocorrencia={ocorrencia} onOpenChange={vi.fn()} onSubmit={vi.fn()} onAjustarHorario={ajustar} />);
   return ajustar;
 }
 describe("ajuste de horário pelo gestor", () => {
+  it("confirma esquecimento sem classificá-lo como falta ou desconto", () => {
+    const decidir = vi.fn();
+    const ajustar = vi.fn();
+    render(<OcorrenciaTratativaDialog ocorrencia={{ ...ocorrencia, tratativa_status: "pendente", tratativa_observacao: null }} onOpenChange={vi.fn()} onSubmit={decidir} onAjustarHorario={ajustar} />);
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar batida" }));
+    expect(decidir).toHaveBeenCalledExactlyOnceWith({ decisao: "confirmada", observacao: "" });
+    expect(ajustar).not.toHaveBeenCalled();
+  });
+  it("corrige a saída e conclui no mesmo envio auditado", () => {
+    const ajustar = vi.fn();
+    render(<OcorrenciaTratativaDialog ocorrencia={{ ...ocorrencia, tratativa_status: "pendente", tratativa_observacao: null }} onOpenChange={vi.fn()} onSubmit={vi.fn()} onAjustarHorario={ajustar} />);
+    fireEvent.click(screen.getByRole("button", { name: /^Saída$/ }));
+    fireEvent.change(screen.getByLabelText("Motivo do ajuste"), { target: { value: "Esqueceu a saída" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar ajuste e confirmar" }));
+    expect(ajustar).toHaveBeenCalledExactlyOnceWith({ horario: "08:30", marcacaoAlvo: "saida", observacao: "Esqueceu a saída", concluir: true });
+  });
+  it("preserva pendência quando gestor escolhe apenas corrigir", () => {
+    const ajustar = vi.fn();
+    render(<OcorrenciaTratativaDialog ocorrencia={{ ...ocorrencia, tratativa_status: "pendente", tratativa_observacao: null }} onOpenChange={vi.fn()} onSubmit={vi.fn()} onAjustarHorario={ajustar} />);
+    fireEvent.click(screen.getByRole("button", { name: /^Saída$/ }));
+    fireEvent.change(screen.getByLabelText("Motivo do ajuste"), { target: { value: "Conferência parcial" } });
+    fireEvent.click(screen.getByRole("checkbox", { name: "Concluir conferência ao salvar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Salvar ajuste e manter pendente" }));
+    expect(ajustar).toHaveBeenCalledExactlyOnceWith({ horario: "08:30", marcacaoAlvo: "saida", observacao: "Conferência parcial", concluir: false });
+  });
+  it("não presume decisão financeira para atraso", () => {
+    const decidir = vi.fn();
+    render(<OcorrenciaTratativaDialog ocorrencia={{ ...ocorrencia, tipo: "atraso", tratativa_status: "pendente" }} onOpenChange={vi.fn()} onSubmit={decidir} />);
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar decisão" }));
+    expect(decidir).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Compensação" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar decisão" }));
+    expect(decidir).toHaveBeenCalledExactlyOnceWith({ decisao: "compensacao", observacao: "Conferido" });
+  });
   it("corrige retorno do intervalo para saída sem alterar o horário", () => {
     const ajustar = abrir();
     fireEvent.click(screen.getByRole("button", { name: /^Saída$/ }));

@@ -63,13 +63,13 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, mo
     : jornada && !decisao;
   const footer = (
     <Button className="min-h-12 w-full whitespace-normal" disabled={saving || !!invalido} onClick={confirmar}>
-      {saving ? "Salvando…" : ajustavel ? ajusteMudou ? modo === "editar" || jaTratada ? "Salvar ajuste" : concluir ? "Salvar ajuste e confirmar" : "Salvar ajuste e manter pendente" : "Confirmar batida" : "Confirmar decisão"}
+      {saving ? "Salvando…" : ajustavel ? modo === "editar" || jaTratada ? "Salvar ajuste" : ajusteMudou ? concluir ? "Salvar ajuste e confirmar" : "Salvar ajuste e manter pendente" : comPonto ? "Confirmar batida" : "Confirmar ocorrência" : "Confirmar decisão"}
     </Button>
   );
 
   return (
     <ResponsiveDialog open onOpenChange={(open) => !saving && onOpenChange(open)}
-      title={ajustavel ? modo === "editar" || jaTratada ? "Ajustar batida" : "Confirmar batida" : "Tratar ocorrência"}
+      title={ajustavel && comPonto ? modo === "editar" || jaTratada ? "Ajustar batida" : "Confirmar batida" : "Tratar ocorrência"}
       description={`${ocorrencia.colaborador?.nome ?? "Colaborador"} · ${ocorrencia.data_operacional?.split("-").reverse().join("/") ?? ""}`}
       className="sm:max-w-md"
       footer={footer}
