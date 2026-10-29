@@ -1170,6 +1170,13 @@
       "when": 1793255308614,
       "tag": "0166_troca_gestor_termos_individuais",
       "breakpoints": true
+    },
+    {
+      "idx": 167,
+      "version": "7",
+      "when": 1793285963145,
+      "tag": "0167_ocorrencias_ferias_remarcacoes_rastreaveis",
+      "breakpoints": true
     }
   ]
 }
