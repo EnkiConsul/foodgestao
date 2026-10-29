@@ -73,7 +73,7 @@ describe.sequential('troca administrativa — SQL isolado sem dados reais',()=>{
   expect((await db.query(`SELECT * FROM dp_trocas`)).rows).toHaveLength(0);
  });
  it('sete dias consecutivos afetados pela troca exigem ciência do gestor',async()=>{
-  await db.exec(`BEGIN; CREATE OR REPLACE FUNCTION private.dp_troca_folga_fixa_livre(uuid,date) RETURNS boolean LANGUAGE sql AS 'SELECT $1=''${sol}''::uuid AND extract(dow from $2)=0'`);
+  await db.exec(`BEGIN; UPDATE dp_folgas SET status='cancelada'; CREATE OR REPLACE FUNCTION private.dp_troca_folga_fixa_livre(uuid,date) RETURNS boolean LANGUAGE sql AS 'SELECT $1=''${sol}''::uuid AND extract(dow from $2)=0'`);
   const sunday=(await db.query<{d:string}>(`SELECT (CURRENT_DATE+(7-extract(dow from CURRENT_DATE)::int)%7+7)::text d`)).rows[0].d;
   const monday=(await db.query<{d:string}>(`SELECT ($1::date+1)::text d`,[sunday])).rows[0].d;
   await db.query(`INSERT INTO dp_folgas(colaborador_id,data) VALUES($1,$2)`,[dest,monday]);
