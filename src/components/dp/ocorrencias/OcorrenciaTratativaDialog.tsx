@@ -46,14 +46,14 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, mo
   const ajustavel = !!onAjustarHorario && TIPOS_AJUSTE_HORARIO.includes(ocorrencia.tipo);
   const informado = (ocorrencia.horario_real ?? "").slice(0, 5);
   const horarioValido = /^([01]\d|2[0-3]):[0-5]\d$/.test(horario);
-  const horarioMudou = ajustavel && horarioValido && horario !== informado;
+  const horarioMudou = ajustavel && horario !== informado;
   const observacaoMudou = (modo === "editar" || ocorrencia.tratativa_status !== "pendente") && observacao.trim() !== (modo === "editar" ? "" : ocorrencia.tratativa_observacao ?? "").trim();
   const ajusteMudou = ajustavel && (horarioMudou || marcacao !== (ocorrencia.marcacao_alvo ?? null) || observacaoMudou);
   const jaTratada = ocorrencia.tratativa_status !== "pendente";
 
   const soConferir = jaTratada && !ajusteMudou && modo !== "editar";
   const invalido = ajustavel
-    ? !horarioValido || (ocorrencia.tipo === "esquecimento_marcacao" && !marcacao) || (ajusteMudou && observacao.trim().length < 3) || ((modo === "editar" || jaTratada) && !ajusteMudou)
+    ? ((ajusteMudou || modo === "editar") && (!horarioValido || (ocorrencia.tipo === "esquecimento_marcacao" && !marcacao) || observacao.trim().length < 3)) || ((modo === "editar" || jaTratada) && !ajusteMudou)
     : jornada && !decisao;
   const confirmar = () => {
     if (saving || ocorrencia.estado === "cancelada") return;
@@ -118,7 +118,9 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, mo
                 disabled={saving}
               />
               <p className="text-xs text-muted-foreground">
-                {informado ? `Horário registrado: ${informado}. ` : ""}Altere se o horário correto for outro.
+                {ajusteMudou || modo === "editar"
+                  ? !horarioValido ? "Informe um horário válido para salvar o ajuste." : `Horário registrado: ${informado || "não informado"}.`
+                  : informado ? `Horário registrado: ${informado}. Altere se o horário correto for outro.` : "Horário não informado. A confirmação preserva o registro sem horário."}
               </p>
             </div>
           )}
