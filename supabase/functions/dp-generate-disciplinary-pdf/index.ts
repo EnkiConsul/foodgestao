@@ -80,9 +80,10 @@ Deno.serve(async (req) => {
     const parsed = BodySchema.safeParse(await req.json());
     if (!parsed.success) return json({ error: parsed.error.flatten().fieldErrors }, 400);
 
-    const url = Deno.env.get("SUPABASE_URL")!;
-    const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const url = Deno.env.get("SUPABASE_URL");
+    const anon = Deno.env.get("SUPABASE_ANON_KEY");
+    const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!url || !anon || !service) return json({ error: "Serviço indisponível." }, 500);
     const supabaseUser = createClient(url, anon, { global: { headers: { Authorization: `Bearer ${user.token}` } } });
 
     const { data: reg, error: regErr } = await supabaseUser
@@ -93,6 +94,9 @@ Deno.serve(async (req) => {
     }
     if (!(await requireCompanyAccess(user.id, String(reg.company_id)))) {
       return json({ error: "Sem permissão para esta operação." }, 403);
+    }
+    if (reg.removido_em || !["advertencia_escrita", "suspensao"].includes(reg.tipo)) {
+      return json({ error: "Este registro não permite gerar carta formal." }, 400);
     }
 
     const svc = createClient(url, service);
@@ -122,7 +126,10 @@ Deno.serve(async (req) => {
     // Vários motivos chegam unidos por " + " (concurso de infrações, punição única).
     const motivos = motivo.split(" + ").map((m) => m.trim()).filter(Boolean);
     const alineas = [...new Set(motivos.map((m) => ALINEA_POR_MOTIVO[norm(m)]).filter(Boolean))].sort();
-    const transcricoes = alineas.map((al) => ART_482.find((l) => l.startsWith(`${al})`))!).filter(Boolean);
+    const transcricoes = alineas.flatMap((al) => {
+      const linha = ART_482.find((l) => l.startsWith(`${al})`));
+      return linha ? [linha] : [];
+    });
 
     const desenhar = async (escala: number, quebrar = false) => {
       const pdf = await PDFDocument.create();
@@ -156,6 +163,14 @@ Deno.serve(async (req) => {
           for (const par of safe(text).split("\n")) {
             let line = "";
             for (const w of par.split(/\s+/).filter(Boolean)) {
+              if (f.widthOfTextAtSize(w, size) > maxW) {
+                if (line) { out.push(line); line = ""; }
+                for (const char of w) {
+                  if (line && f.widthOfTextAtSize(line + char, size) > maxW) { out.push(line); line = ""; }
+                  line += char;
+                }
+                continue;
+              }
               const t = line ? `${line} ${w}` : w;
               if (f.widthOfTextAtSize(t, size) > maxW && line) { out.push(line); line = w; } else line = t;
             }
@@ -219,6 +234,12 @@ Deno.serve(async (req) => {
         texto("Descrição Dos Fatos", { f: bold, gap: 1 });
         texto(String(reg.descricao ?? "-"), { align: "justify", gap: 6 });
 
+        if (reg.reincidencia_texto) {
+          texto("Histórico Anterior Referenciado", { f: bold, size: 9, gap: 2 });
+          texto(String(reg.reincidencia_texto), { size: 9, align: "justify", gap: 4 });
+          texto("Os registros citados contextualizam o histórico; esta medida se refere exclusivamente aos novos fatos descritos.", { size: 9, align: "justify", gap: 6 });
+        }
+
         if (transcricoes.length) {
           texto("Transcrição Do Dispositivo Legal (Art. 482 Da CLT)", { f: bold, size: 8.5, color: cinza, gap: 1 });
           for (const l of transcricoes) texto(l, { size: 8.5, color: cinza, gap: 0, indent: 8 });
@@ -253,22 +274,23 @@ Deno.serve(async (req) => {
     };
 
     // Cada via precisa caber em uma folha: reduz a escala só se necessário.
-    let pdf!: PDFDocument;
-    for (const e of [1, 0.94, 0.88, 0.82, 0.76, 0.7]) {
+    let pdf: PDFDocument | undefined;
+    for (const e of [1, 0.94, 0.88]) {
       const r = await desenhar(e);
       pdf = r.pdf;
       if (r.cabe) break;
-      if (e === 0.7) pdf = (await desenhar(0.7, true)).pdf;
+      if (e === 0.88) pdf = (await desenhar(0.88, true)).pdf;
     }
-
+    if (!pdf) return json({ error: "Não foi possível montar o documento." }, 500);
     const bytes = await pdf.save();
-    const path = `${reg.company_id}/${reg.id}.pdf`;
-    const up = await svc.storage.from(BUCKET).upload(path, bytes, { contentType: "application/pdf", upsert: true });
+    const path = `${reg.company_id}/${reg.id}/modelo-${crypto.randomUUID()}.pdf`;
+    const up = await svc.storage.from(BUCKET).upload(path, bytes, { contentType: "application/pdf", upsert: false });
     if (up.error) {
       console.error("[dp-generate-disciplinary-pdf]", up.error.message);
       return json({ error: "Não foi possível concluir a operação." }, 500);
     }
-    await svc.from("dp_registros_disciplinares").update({ pdf_storage_path: path }).eq("id", reg.id);
+    const updated = await svc.from("dp_registros_disciplinares").update({ pdf_storage_path: path }).eq("id", reg.id);
+    if (updated.error) return json({ error: "Modelo gerado, mas não foi possível vinculá-lo ao registro." }, 500);
     const signed = await svc.storage.from(BUCKET).createSignedUrl(path, 300);
     return json({ path, signed_url: signed.data?.signedUrl });
   } catch (e) {
