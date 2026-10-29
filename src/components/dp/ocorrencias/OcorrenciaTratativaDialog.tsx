@@ -69,7 +69,7 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, mo
 
   return (
     <ResponsiveDialog open onOpenChange={(open) => !saving && onOpenChange(open)}
-      title={ajustavel && comPonto ? modo === "editar" || jaTratada ? "Ajustar batida" : "Confirmar batida" : "Tratar ocorrência"}
+      title={comPonto ? "Tratar ponto" : "Conferir ocorrência"}
       description={`${ocorrencia.colaborador?.nome ?? "Colaborador"} · ${ocorrencia.data_operacional?.split("-").reverse().join("/") ?? ""}`}
       className="sm:max-w-md"
       footer={footer}

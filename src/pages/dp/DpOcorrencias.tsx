@@ -109,7 +109,6 @@ export default function DpOcorrencias() {
   const [diretriz, setDiretriz] = useState<DiretrizPonto | null>(null);
   const [maisFiltros, setMaisFiltros] = useState(false);
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
-  const [modoTratativa, setModoTratativa] = useState<"editar" | "tratar">("tratar");
 
   const [confirmar, setConfirmar] = useState<Ocorrencia | null>(null);
   const [tratativa, setTratativa] = useState<Ocorrencia | null>(null);
@@ -255,7 +254,7 @@ export default function DpOcorrencias() {
     const alvo = acoes.ocorrencias.find((o) => o.id === idAlvo);
     if (!alvo) return;
     setIdAlvo(null);
-    if (alvo.tratativa_status === "pendente" && alvo.estado !== "cancelada") { setModoTratativa("tratar"); setTratativa(alvo); }
+    if (alvo.tratativa_status === "pendente" && alvo.estado !== "cancelada") setTratativa(alvo);
     setSearchParams((atual) => {
       const proximos = new URLSearchParams(atual);
       proximos.delete("id");
@@ -365,8 +364,7 @@ export default function DpOcorrencias() {
                 ocorrencia={o}
                 coberturas={acoes.coberturasPorOcorrencia.get(o.id) ?? []}
                 onConfirmar={() => setConfirmar(o)}
-                onTratativa={() => { setModoTratativa("tratar"); setTratativa(o); }}
-                onEditar={() => { setModoTratativa("editar"); setTratativa(o); }}
+                onTratativa={() => setTratativa(o)}
                 onAnalisar={() => acoes.analisar.mutate({ id: o.id, status: "analisada" })}
                 onCancelar={() => setCancelarId(o.id)}
                 onCobrir={() => abrirCobertura(o)}
@@ -987,13 +985,12 @@ export default function DpOcorrencias() {
 
       <OcorrenciaTratativaDialog
         ocorrencia={tratativa}
-        modo={modoTratativa}
         onOpenChange={(open) => !open && setTratativa(null)}
         saving={acoes.tratar.isPending || acoes.ajustarHorario.isPending}
         onAjustarHorario={({ horario, observacao, marcacaoAlvo, concluir }) =>
           tratativa &&
           acoes.ajustarHorario.mutate(
-            { id: tratativa.id, horario, observacao, marcacaoAlvo, horarioAnterior: tratativa.horario_real, marcacaoAnterior: tratativa.marcacao_alvo, concluir: concluir ?? modoTratativa === "tratar" },
+            { id: tratativa.id, horario, observacao, marcacaoAlvo, horarioAnterior: tratativa.horario_real, marcacaoAnterior: tratativa.marcacao_alvo, concluir: concluir ?? false },
             { onSuccess: () => setTratativa(null) },
           )
         }
