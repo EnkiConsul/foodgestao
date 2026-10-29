@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -245,23 +246,12 @@ export function MinhaJornadaAcoesCard() {
         Informar aqui avisa a rotina na hora. A análise do gestor acontece depois.
       </p>
 
-      <Dialog open={!!aberta} onOpenChange={(open) => !open && fechar()}>
-        <DialogContent className="max-w-md max-h-[85svh] overflow-y-auto overflow-x-hidden">
-          <DialogHeader>
-            <DialogTitle>
-              {opcao?.pedeQuando && frases
-                ? quando === "ocorrido"
-                  ? frases.ocorrido
-                  : frases.previsto
-                : (opcao?.label ?? "")}
-            </DialogTitle>
-            <DialogDescription>
-              {aberta === "falta"
-                ? "Avisar não é o mesmo que ter a ausência aprovada — o gestor analisa depois."
-                : (opcao?.descricao ?? "")}
-            </DialogDescription>
-          </DialogHeader>
-
+      <ResponsiveDialog open={!!aberta} onOpenChange={(open) => !open && fechar()}
+        title={opcao?.pedeQuando && frases ? quando === "ocorrido" ? frases.ocorrido : frases.previsto : opcao?.label ?? ""}
+        description={aberta === "falta" ? "O gestor analisa a ausência depois do envio." : opcao?.descricao ?? ""}
+        className="sm:max-w-md"
+        footer={<Button className="min-h-12 w-full" onClick={enviar} disabled={registrar.isPending || enviandoAtestado || !motivo.trim() || faltaHorario || faltaAtraso}>Enviar</Button>}
+      >
           <div className="space-y-4">
             {opcao?.pedeQuando && frases && (
               <div className="space-y-2">
@@ -296,10 +286,11 @@ export function MinhaJornadaAcoesCard() {
                       key={m.id}
                       size="sm"
                       variant={momento === m.id ? "default" : "outline"}
-                      className="h-auto min-h-9 justify-start whitespace-normal py-2 text-left leading-snug"
+                      className="h-auto min-h-12 justify-between gap-2 whitespace-normal py-2 text-left leading-snug"
                       onClick={() => setMomento(m.id)}
                     >
-                      {m.label}
+                      <span>{m.label}</span>
+                      {(m.id === "entrada" ? entrada : m.id === "saida" ? saida : null) && <span className="shrink-0 text-xs tabular-nums">Previsto {m.id === "entrada" ? entrada : saida}</span>}
                     </Button>
                   ))}
                 </div>
@@ -320,7 +311,7 @@ export function MinhaJornadaAcoesCard() {
                       : "Horário em que o fato aconteceu"}
                   {aberta === "outro" ? " (opcional)" : ""}
                 </Label>
-                <Input type="time" value={horario} onChange={(e) => setHorario(e.target.value)} />
+                <Input className="min-h-11 text-base" type="time" value={horario} onChange={(e) => setHorario(e.target.value)} />
                 {aberta === "atraso" && entrada && (
                   <p className="text-xs text-muted-foreground">Entrada prevista {entrada}</p>
                 )}
@@ -366,25 +357,7 @@ export function MinhaJornadaAcoesCard() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={fechar}>
-              Voltar
-            </Button>
-            <Button
-              onClick={enviar}
-              disabled={
-                registrar.isPending ||
-                enviandoAtestado ||
-                !motivo.trim() ||
-                faltaHorario ||
-                faltaAtraso
-              }
-            >
-              Enviar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </ResponsiveDialog>
     </section>
   );
 }
