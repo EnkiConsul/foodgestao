@@ -28,9 +28,17 @@ export type DadosTermoGestor = {
   folgaFixa: boolean; consomeVaga?: boolean;
   cnpj?: string | null; cpf?: string | null; cargo?: string | null; unidade?: string | null; matricula?: string | null;
   emitidoPor?: string | null;
+  trocaEntrePessoas?: boolean;
 };
 
 export function termoTrocaGestorParagrafos(d: DadosTermoGestor): string[] {
+  if (d.trocaEntrePessoas) return [
+    `1. Alteração pontual. A folga de ${br(d.dataFixa)} passa a ser dia de trabalho; o descanso será concedido em ${br(d.dataNova)}, sem alteração permanente das folgas contratuais.`,
+    "2. Registro. A alteração foi autorizada pelo gestor. Esta autorização não representa assinatura ou consentimento do(a) empregado(a).",
+    "3. Descanso. Permanecem exigíveis os limites legais de jornada e descanso e as disposições coletivas aplicáveis. A assinatura não afasta essas obrigações.",
+    "4. Demais condições. Permanecem inalteradas a remuneração e as demais condições contratuais.",
+    "5. Ciência. Ao assinar, o(a) empregado(a) declara ter lido a alteração das datas de sua própria folga.",
+  ];
   const tipo = d.folgaFixa ? "folga fixa semanal" : "folga";
   const base = [
     `1. Alteração. A ${tipo} prevista para ${br(d.dataFixa)} passa a ser dia normal de trabalho, e o descanso correspondente será gozado em ${br(d.dataNova)}, sem prejuízo da remuneração.`,
