@@ -45,7 +45,8 @@ beforeAll(async()=>{
  await db.exec(readFileSync('supabase/migrations/20261027010500_troca_gestor_admissao.sql','utf8'));
  await db.exec(readFileSync('drizzle/migrations/0159_troca_gestor_cancelamento_portal.sql','utf8'));
  await db.exec(`CREATE TRIGGER notificacao AFTER INSERT OR UPDATE ON dp_trocas FOR EACH ROW EXECUTE FUNCTION dp_notif_troca();`);
- const dates=await db.query<{a:string;b:string}>(`SELECT (CURRENT_DATE+1)::text a,(CURRENT_DATE+3)::text b`);dayA=dates.rows[0].a;dayB=dates.rows[0].b;
+ // Stable Monday/Wednesday fixture: neither receiving day accidentally becomes Sunday as time advances.
+ const dates=await db.query<{a:string;b:string}>(`SELECT (CURRENT_DATE+(8-extract(dow from CURRENT_DATE)::int)%7+7)::text a,(CURRENT_DATE+(8-extract(dow from CURRENT_DATE)::int)%7+9)::text b`);dayA=dates.rows[0].a;dayB=dates.rows[0].b;
  await db.query(`INSERT INTO dp_folgas(colaborador_id,data) VALUES($1,$2),($3,$4)`,[sol,dayA,dest,dayB]);
 },30000);
 afterAll(()=>db.close());
