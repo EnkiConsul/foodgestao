@@ -82,7 +82,8 @@ function RegistrarTrocaGestorConteudo({ open, onOpenChange, unidadeId, dataInici
     setErro(null);
     try {
       await registrar.mutateAsync({ ...input, motivo, cienteDsr: ciente, notificar: true });
-      toast.success("Troca registrada", { description: "Rotina e justificativas atualizadas para as duas pessoas." });
+      const assinam = (previa.data?.participantes ?? []).filter(p => participantesComTermo([p]).length > 0).map(p => p.nome.split(" ")[0]);
+      toast.success("Troca registrada", { description: assinam.length ? `Rotina atualizada. Termo enviado para assinatura de ${assinam.join(" e ")}.` : "Rotina atualizada. Nenhum termo precisa de assinatura." });
       onOpenChange(false);
     } catch (e) { setErro(mensagemErroTroca(e instanceof Error ? e.message : "")); }
   };
@@ -100,8 +101,8 @@ function RegistrarTrocaGestorConteudo({ open, onOpenChange, unidadeId, dataInici
       <p className="text-xs text-muted-foreground">Trocas retroativas valem até 31 dias para trás.</p>
       {sol && <div className="space-y-2">
         <div className="grid grid-cols-2 gap-2" aria-label="Pessoa no calendário">
-          <Button variant={pessoaCalendario === "primeira" ? "default" : "outline"} aria-pressed={pessoaCalendario === "primeira"} className="h-auto min-h-11 whitespace-normal break-words" disabled={registrar.isPending} onClick={() => setPessoaCalendario("primeira")}>{primeira?.nome}</Button>
-          <Button variant={pessoaCalendario === "segunda" ? "default" : "outline"} aria-pressed={pessoaCalendario === "segunda"} className="h-auto min-h-11 whitespace-normal break-words" disabled={!dest || !original || registrar.isPending} onClick={() => setPessoaCalendario("segunda")}>{segunda?.nome ?? "Colega"}</Button>
+          <Button variant={pessoaCalendario === "primeira" ? "default" : "outline"} aria-pressed={pessoaCalendario === "primeira"} className="h-auto min-h-11 whitespace-normal break-words" disabled={registrar.isPending} onClick={() => { setPessoaCalendario("primeira"); if (original) setMesFolgas(original.slice(0, 7)); }}>{primeira?.nome}</Button>
+          <Button variant={pessoaCalendario === "segunda" ? "default" : "outline"} aria-pressed={pessoaCalendario === "segunda"} className="h-auto min-h-11 whitespace-normal break-words" disabled={!dest || !original || registrar.isPending} onClick={() => { setPessoaCalendario("segunda"); if (proposta) setMesFolgas(proposta.slice(0, 7)); }}>{segunda?.nome ?? "Colega"}</Button>
         </div>
         <TrocaMiniCalendario mes={mesFolgas} onMesChange={setMesFolgas} hoje={hojeIsoLocal()} disponiveis={pessoaCalendario === "primeira" ? datasPrimeira : datasColega} selecionada={pessoaCalendario === "primeira" ? original : proposta} outraData={pessoaCalendario === "primeira" ? proposta : original} carregando={calendario.isLoading} disabled={registrar.isPending} onSelecionar={d => { if (pessoaCalendario === "primeira") { setOriginal(d); if (dest) setPessoaCalendario("segunda"); } else setProposta(d); }} />
         {!calendario.isLoading && !(pessoaCalendario === "primeira" ? datasPrimeira : datasColega).length && <p className="text-sm text-muted-foreground">Nenhuma folga disponível para esta pessoa neste mês.</p>}

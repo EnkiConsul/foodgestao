@@ -30,7 +30,7 @@ export function TrocaMiniCalendario({ mes, onMesChange, hoje, disponiveis, selec
         const atual = data === selecionada;
         const envolvida = data === outraData;
         return <Button key={data} variant={atual ? "default" : livre ? "outline" : "ghost"}
-          aria-label={`${data}${livre ? ", folga disponível" : ""}${envolvida ? ", outra data da troca" : ""}${data === hoje ? ", hoje" : ""}`}
+          aria-label={`${new Date(`${data}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}${livre ? ", folga disponível" : ""}${envolvida ? ", outra data da troca" : ""}${data === hoje ? ", hoje" : ""}`}
           aria-pressed={atual} aria-current={data === hoje ? "date" : undefined}
           disabled={disabled || carregando || !livre} onClick={() => onSelecionar(data)}
           className={cn("relative h-11 w-full min-w-0 p-0 text-sm disabled:opacity-60", envolvida && !atual && "border-2 border-primary bg-primary/10 text-primary", !livre && !envolvida && "text-muted-foreground")}>
@@ -38,7 +38,7 @@ export function TrocaMiniCalendario({ mes, onMesChange, hoje, disponiveis, selec
         </Button>;
       })}
     </div>
-    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground"><span>◯ Folga disponível</span><span className="text-primary">● Data selecionada</span><span>• Hoje</span></div>
+    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground"><span className="flex items-center gap-1.5"><span aria-hidden="true" className="h-3 w-3 rounded border border-input" />Folga disponível</span><span className="flex items-center gap-1.5"><span aria-hidden="true" className="h-3 w-3 rounded bg-primary" />Selecionada</span>{outraData && <span className="flex items-center gap-1.5"><span aria-hidden="true" className="h-3 w-3 rounded border-2 border-primary bg-primary/10" />Data da outra pessoa</span>}<span className="flex items-center gap-1.5"><span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-primary" />Hoje</span></div>
     {carregando && <p role="status" className="text-sm text-muted-foreground">Carregando folgas…</p>}
   </section>;
 }
