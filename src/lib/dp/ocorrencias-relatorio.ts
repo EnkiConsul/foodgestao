@@ -37,19 +37,21 @@ export function agruparFeriasLista(lista: Ocorrencia[]): { normais: Ocorrencia[]
   }
   return { normais, ferias: [...grupos.values()].map(g => g.sort((a,b) => a.data_operacional.localeCompare(b.data_operacional))) };
 }
-/** Feed em ordem: cada período de férias aparece na posição do seu primeiro dia na lista original. */
-export type ItemFeed = { tipo: 'ocorrencia'; o: Ocorrencia } | { tipo: 'ferias'; grupo: Ocorrencia[] };
+/** Feed em ordem: férias agrupadas por período; demais ocorrências de dias seguidos, mesmo colaborador, tipo e motivo viram um bloco (relatório segue dia a dia). Faltas injustificadas ficam separadas. */
+export type ItemFeed = { tipo: 'ocorrencia'; o: Ocorrencia } | { tipo: 'ferias' | 'bloco'; grupo: Ocorrencia[] };
+const diaNum = (d: string) => Math.round(Date.parse(d + 'T12:00:00Z') / 86400000);
 export function feedOrdenadoComFerias(lista: Ocorrencia[]): ItemFeed[] {
-  const grupos = new Map<string, Ocorrencia[]>(); const itens: ItemFeed[] = [];
+  const abertos = new Map<string, { item: Extract<ItemFeed, { grupo: Ocorrencia[] }>; min: number; max: number }>(); const itens: ItemFeed[] = [];
   for (const o of lista) {
-    if (o.subtipo !== 'ferias') { itens.push({ tipo: 'ocorrencia', o }); continue; }
-    const key = `${o.colaborador_id}:${o.ferias_gozo_id ?? o.id}:${o.estado}`;
-    const g = grupos.get(key);
-    if (g) { g.push(o); continue; }
-    const novo = [o]; grupos.set(key, novo); itens.push({ tipo: 'ferias', grupo: novo });
+    const ferias = o.subtipo === 'ferias';
+    if (!ferias && o.tipo === 'falta' && !o.justificativa_inicial) { itens.push({ tipo: 'ocorrencia', o }); continue; }
+    const key = ferias ? `f:${o.colaborador_id}:${o.ferias_gozo_id ?? o.id}:${o.estado}` : `b:${o.colaborador_id}:${o.tipo}:${o.subtipo ?? ''}:${o.estado}:${o.tratativa_status}:${(o.justificativa_inicial ?? '').trim().toLowerCase()}`;
+    const n = diaNum(o.data_operacional); const g = abertos.get(key);
+    if (g && (ferias || n === g.min - 1 || n === g.max + 1)) { g.item.grupo.push(o); g.min = Math.min(g.min, n); g.max = Math.max(g.max, n); continue; }
+    const item = { tipo: ferias ? 'ferias' as const : 'bloco' as const, grupo: [o] }; abertos.set(key, { item, min: n, max: n }); itens.push(item);
   }
-  for (const g of grupos.values()) g.sort((a,b) => a.data_operacional.localeCompare(b.data_operacional));
-  return itens;
+  for (const it of itens) if (it.tipo !== 'ocorrencia') it.grupo.sort((a,b) => a.data_operacional.localeCompare(b.data_operacional));
+  return itens.map(it => it.tipo === 'bloco' && it.grupo.length === 1 ? { tipo: 'ocorrencia', o: it.grupo[0] } : it);
 }
 const IMPACTO_LABEL: Record<string, string> = { sim: 'Sim', nao: 'Não', aguardando: 'Aguardando decisão' };
 const SUBTIPOS_DESCANSO = new Set(['ferias','troca_folga','compensacao_feriado','banco_horas_aviso','dispensa_aviso_art488','folga_compensatoria','folga_extra','folga_fixa_deslocada']);
