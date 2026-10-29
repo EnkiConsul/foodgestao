@@ -15,6 +15,24 @@ function abrir() {
   return ajustar;
 }
 describe("ajuste de horário pelo gestor", () => {
+  it("ajusta ocorrência já tratada pelo fluxo único sem substituir sua decisão", () => {
+    const ajustar = vi.fn();
+    const decidir = vi.fn();
+    render(<OcorrenciaTratativaDialog ocorrencia={ocorrencia} onOpenChange={vi.fn()} onSubmit={decidir} onAjustarHorario={ajustar} />);
+    fireEvent.click(screen.getByRole("button", { name: /^Saída$/ }));
+    fireEvent.change(screen.getByLabelText("Motivo do ajuste"), { target: { value: "Correção do relato" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar ajuste" }));
+    expect(ajustar).toHaveBeenCalledExactlyOnceWith({ horario: "08:30", marcacaoAlvo: "saida", observacao: "Correção do relato", concluir: false });
+    expect(decidir).not.toHaveBeenCalled();
+  });
+  it("não reenvia decisão de ocorrência concluída sem alteração", () => {
+    const ajustar = vi.fn();
+    const decidir = vi.fn();
+    render(<OcorrenciaTratativaDialog ocorrencia={ocorrencia} onOpenChange={vi.fn()} onSubmit={decidir} onAjustarHorario={ajustar} />);
+    fireEvent.click(screen.getByRole("button", { name: "Salvar ajuste" }));
+    expect(ajustar).not.toHaveBeenCalled();
+    expect(decidir).not.toHaveBeenCalled();
+  });
   it("confirma esquecimento sem classificá-lo como falta ou desconto", () => {
     const decidir = vi.fn();
     const ajustar = vi.fn();
