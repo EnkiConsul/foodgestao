@@ -40,6 +40,8 @@ import { useDpTableColumns } from "@/hooks/useDpTableColumns";
 import { notifyError } from "@/lib/notifyError";
 import { fetchAllPages } from "@/lib/supabase/fetchAllPages";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { DisciplinarAntecedentes } from "@/components/dp/disciplinar/DisciplinarAntecedentes";
+import { DisciplinarMotivos } from "@/components/dp/disciplinar/DisciplinarMotivos";
 
 const BUCKET = "dp-disciplinar";
 
@@ -137,6 +139,8 @@ type Registro = {
   via_assinada_path: string | null;
   via_assinada_em: string | null;
   created_at: string;
+  antecedentes_ids?: string[];
+  reincidencia_texto?: string | null;
   dp_colaboradores: { nome: string; unidade_id: string | null } | null;
 };
 
@@ -210,6 +214,8 @@ export default function DpDisciplinar() {
   }, [regimeSel, colaboradorId, tipo, colabs.isLoading]);
   const [observacao, setObservacao] = useState("");
   const [motivoSel, setMotivoSel] = useState("");
+  const [antecedentesIds, setAntecedentesIds] = useState<string[]>([]);
+  useEffect(() => { setAntecedentesIds([]); }, [colaboradorId, selectedCompanyId, tipo, caminho]);
   const [caminho, setCaminho] = useState<"gerar" | "importar">("gerar");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [confirmo, setConfirmo] = useState(false);
@@ -229,6 +235,7 @@ export default function DpDisciplinar() {
   const [fDataInicio, setFDataInicio] = useState("");
   const [fDataFim, setFDataFim] = useState("");
   const [fTipo, setFTipo] = useState("todos");
+  const [busca, setBusca] = useState("");
 
   // edição
   const [editUnidadeId, setEditUnidadeId] = useState("");
@@ -238,17 +245,20 @@ export default function DpDisciplinar() {
   const [editElogioVis, setEditElogioVis] = useState<"privado" | "individual" | "publico">("privado");
   const [editDias, setEditDias] = useState("0");
   const [editObs, setEditObs] = useState("");
+  const [editMotivo, setEditMotivo] = useState("");
+  const [editAntecedentes, setEditAntecedentes] = useState<string[]>([]);
 
   const list = useQuery({
     queryKey: ["dp_disciplinar", selectedCompanyId],
     enabled: !!selectedCompanyId,
     queryFn: async () => {
+      if (!selectedCompanyId) return [];
       // Leitura em lotes com ordem estável: nada some acima de 1.000 registros.
       const data = await fetchAllPages<Registro>((from, to) =>
         supabase
           .from("dp_registros_disciplinares")
           .select("*, dp_colaboradores(nome, unidade_id)")
-          .eq("company_id", selectedCompanyId!)
+          .eq("company_id", selectedCompanyId)
           .is("removido_em", null)
           .order("data", { ascending: false })
           .order("id", { ascending: true })
@@ -262,6 +272,7 @@ export default function DpDisciplinar() {
 
   const filtered = useMemo(() => {
     return rows.filter((r) => {
+      if (busca.trim() && ![r.dp_colaboradores?.nome, r.motivo, r.descricao].filter(Boolean).join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(busca.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase())) return false;
       if (fUnidade !== "todos" && r.dp_colaboradores?.unidade_id !== fUnidade) return false;
       if (fColab !== "todos" && r.colaborador_id !== fColab) return false;
       if (fTipo !== "todos" && r.tipo !== fTipo) return false;
@@ -269,7 +280,7 @@ export default function DpDisciplinar() {
       if (fDataFim && r.data > fDataFim) return false;
       return true;
     });
-  }, [rows, fUnidade, fColab, fTipo, fDataInicio, fDataFim]);
+  }, [rows, fUnidade, fColab, fTipo, fDataInicio, fDataFim, busca]);
 
   const colabsHistorico = useMemo(
     () => (colabs.data ?? []).filter((c) => fUnidade === "todos" || c.unidade_id === fUnidade),
@@ -338,7 +349,7 @@ export default function DpDisciplinar() {
           <button
             type="button"
             className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
-            onClick={() => setPreview({ title: `Registro — ${r.dp_colaboradores?.nome ?? ""}`, path: r.pdf_storage_path! })}
+            onClick={() => setPreview({ title: `Registro — ${r.dp_colaboradores?.nome ?? ""}`, path: r.pdf_storage_path ?? "" })}
           >
             <FileIcon className="h-4 w-4" />
             {fileKind.label}
@@ -420,7 +431,9 @@ export default function DpDisciplinar() {
     setEditData(editing.data);
     setEditTipo(editing.tipo);
     setEditDias(String(editing.suspensao_dias ?? 0));
-    setEditObs(editing.descricao ?? editing.motivo ?? "");
+    setEditObs(editing.descricao ?? "");
+    setEditMotivo(editing.motivo ?? "");
+    setEditAntecedentes(editing.antecedentes_ids ?? []);
     setEditElogioVis(((editing as any).elogio_visibilidade ?? "privado") as typeof editElogioVis);
   }, [editing]);
 
@@ -480,9 +493,10 @@ export default function DpDisciplinar() {
         colaboradorId,
         tipo,
         data: dataDoc,
-        motivo: (formal ? motivoTxt : observacao) || TIPO_LABEL[tipo] || tipo,
+        motivo: (PUNITIVOS.includes(tipo) ? motivoTxt || observacao : observacao) || TIPO_LABEL[tipo] || tipo,
         descricao: observacao || null,
         suspensaoDias: diasN > 0 ? diasN : null,
+        antecedentesIds: formal && caminho === "gerar" ? antecedentesIds : [],
       });
 
       if (tipo === "elogio" && elogioVis !== "privado") {
@@ -505,9 +519,10 @@ export default function DpDisciplinar() {
           : "Registro cadastrado com sucesso",
       );
       if (res.gerarModelo) genPdf.mutate(res.registroId);
-      setUnidadeId(""); setColaboradorId(""); setDataDoc(""); setTipo(""); setDias("0"); setObservacao(""); setPendingFile(null); setConfirmo(false); setElogioVis("privado"); setMotivoSel(""); setCaminho("gerar"); setCampoPendente(null);
+      setUnidadeId(""); setColaboradorId(""); setDataDoc(""); setTipo(""); setDias("0"); setObservacao(""); setPendingFile(null); setConfirmo(false); setElogioVis("privado"); setMotivoSel(""); setCaminho("gerar"); setCampoPendente(null); setAntecedentesIds([]);
       if (fileRef.current) fileRef.current.value = "";
       qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
+      qc.invalidateQueries({ queryKey: ["dp_disciplinar_antecedentes"] });
       setTab("historico");
     },
     onError: (e: any) => notifyError(e, { surface: "Medidas disciplinares", action: "concluir a ação", fallback: "Erro ao cadastrar" }),
@@ -528,6 +543,7 @@ export default function DpDisciplinar() {
       toast.success(troca ? "Via substituída. A anterior ficou guardada no histórico." : "Via assinada importada e disponível ao colaborador");
       setViaPara(null); setViaArquivo(null); setViaConfirmo(false); setViaMotivo("");
       qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
+      qc.invalidateQueries({ queryKey: ["dp_disciplinar_antecedentes"] });
     },
     onError: (e: any) => notifyError(e, { surface: "Medidas disciplinares", action: "importar a via assinada", fallback: "Erro ao importar a via" }),
   });
@@ -541,6 +557,7 @@ export default function DpDisciplinar() {
     onSuccess: () => {
       toast.success("Registro excluído");
       qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
+      qc.invalidateQueries({ queryKey: ["dp_disciplinar_antecedentes"] });
       setToDelete(null);
     },
     onError: (e: any) => notifyError(e, { surface: "Medidas disciplinares", action: "concluir a ação", fallback: "Erro ao excluir" }),
@@ -552,6 +569,7 @@ export default function DpDisciplinar() {
       if (!editColaboradorId) throw new Error("Selecione o colaborador");
       if (!editData) throw new Error("Informe a data");
       if (!editTipo) throw new Error("Selecione o tipo");
+      if (isFormal(editTipo) && !editMotivo.trim()) throw new Error("Informe o motivo da medida.");
       const diasN = parseInt(editDias || "0", 10);
       await corrigirDisciplinar({
         id: editing.id,
@@ -559,8 +577,9 @@ export default function DpDisciplinar() {
         data: editData,
         tipo: editTipo,
         suspensaoDias: diasN > 0 ? diasN : null,
-        descricao: editObs || null,
-        motivo: editObs || TIPO_LABEL[editTipo] || editTipo,
+        descricao: editObs,
+        motivo: editMotivo.trim() || editing.motivo,
+        ...(editing.via_assinada_path ? {} : { antecedentesIds: isFormal(editTipo) ? editAntecedentes : [] }),
       });
       if (editTipo === "elogio" && editing && editElogioVis !== ((editing as any).elogio_visibilidade ?? "privado")) {
         const { error } = await (supabase.rpc as any)("dp_elogio_divulgar", { p_registro_id: editing.id, p_visibilidade: editElogioVis });
@@ -570,6 +589,7 @@ export default function DpDisciplinar() {
     onSuccess: () => {
       toast.success("Registro atualizado");
       qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
+      qc.invalidateQueries({ queryKey: ["dp_disciplinar_antecedentes"] });
       setEditing(null);
     },
     onError: (e: any) => notifyError(e, { surface: "Medidas disciplinares", action: "concluir a ação", fallback: "Erro ao atualizar" }),
@@ -586,6 +606,7 @@ export default function DpDisciplinar() {
       toast.success("Modelo gerado. Imprima e colha as assinaturas.");
       if (data.signed_url) abrirNoApp({ url: data.signed_url, titulo: "Documento disciplinar" }) || window.open(data.signed_url, "_blank");
       qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
+      qc.invalidateQueries({ queryKey: ["dp_disciplinar_antecedentes"] });
     },
     onError: (e: any) => notifyError(e, { surface: "Medidas disciplinares", action: "concluir a ação", fallback: "Erro ao gerar PDF" }),
   });
@@ -736,56 +757,10 @@ export default function DpDisciplinar() {
                 </div>
               )}
 
-              {isFormal(tipo) && (
-                <div className="space-y-2">
-                  <Label htmlFor="motivo-disc">Motivos * <span className="font-normal text-muted-foreground">(marque um ou mais)</span></Label>
-                  <div id="motivo-disc" className={`space-y-1 rounded-md border p-2 ${campoPendente === "motivo" ? "border-destructive ring-1 ring-destructive" : ""}`}>
-                    {MOTIVOS.map((m) => {
-                      const marcados = motivoSel.split(" + ").filter((s) => s.trim());
-                      const on = marcados.includes(m.label);
-                      return (
-                        <label key={m.label} className="flex cursor-pointer items-start gap-2 rounded px-1 py-1.5 hover:bg-muted/50">
-                          <Checkbox
-                            checked={on}
-                            className="mt-0.5"
-                            onCheckedChange={(v) => {
-                              const outros = marcados.filter((x) => x !== m.label);
-                              const novo = v === true ? [...outros, m.label] : outros;
-                              const ordem = (x: string) => { const i = MOTIVOS.findIndex((k) => k.label === x); return i < 0 ? 99 : i; };
-                              novo.sort((a, b) => ordem(a) - ordem(b));
-                              setMotivoSel(novo.join(" + "));
-                              if (campoPendente === "motivo") setCampoPendente(null);
-                            }}
-                          />
-                          <span>
-                            <span className="block text-sm font-medium leading-tight">{m.label}</span>
-                            <span className="block text-xs text-muted-foreground leading-tight">Art. 482 da CLT, alínea “{m.alinea}”</span>
-                          </span>
-                        </label>
-                      );
-                    })}
-                    {(() => {
-                      const marcados = motivoSel.split(" + ").filter((s) => s.trim());
-                      const padrao = marcados.filter((x) => MOTIVOS.some((m) => m.label === x));
-                      const outro = marcados.filter((x) => !MOTIVOS.some((m) => m.label === x)).join(" ");
-                      return (
-                        <Input
-                          className="mt-1"
-                          value={outro}
-                          onChange={(e) => {
-                            const t = e.target.value.replace(/\+/g, "");
-                            setMotivoSel([...padrao, t].filter((x) => x.trim()).join(" + "));
-                          }}
-                          placeholder="Outro motivo (opcional)"
-                        />
-                      );
-                    })()}
-                  </div>
-                  {motivoSel.split(" + ").filter((x) => MOTIVOS.some((m) => m.label === x.trim())).length > 1 && (
-                    <p className="text-xs text-muted-foreground">Uma única medida para o mesmo fato, com todas as alíneas citadas na carta.</p>
-                  )}
-                </div>
-              )}
+              {!tipo && <p className="text-sm text-muted-foreground">Motivos da medida: selecione o tipo de registro.</p>}
+              {PUNITIVOS.includes(tipo) && <div id="motivo-disc" className={campoPendente === "motivo" ? "rounded-md ring-1 ring-destructive" : undefined}>
+                <DisciplinarMotivos value={motivoSel} onChange={v => { setMotivoSel(v); setCampoPendente(null); }} />
+              </div>}
 
               {tipo === "suspensao" && (
                 <div className="space-y-2">
@@ -824,6 +799,7 @@ export default function DpDisciplinar() {
                   <p className="text-xs text-destructive">Descreva os fatos com pelo menos 10 caracteres para gerar a carta.</p>
                 )}
               </div>
+              {isFormal(tipo) && caminho === "gerar" && <DisciplinarAntecedentes companyId={selectedCompanyId} colaboradorId={colaboradorId} data={dataDoc} value={antecedentesIds} onChange={setAntecedentesIds} />}
             </div>
 
             <Button
@@ -848,6 +824,7 @@ export default function DpDisciplinar() {
 
         <TabsContent value="historico" className="mt-4 space-y-4">
           <DpFilterCard>
+            <div className="mb-3 space-y-1.5"><Label htmlFor="busca-disciplinar">Buscar no histórico</Label><Input id="busca-disciplinar" placeholder="Colaborador, motivo ou descrição" value={busca} onChange={e => setBusca(e.target.value)} /></div>
             <div className="grid gap-3 md:grid-cols-5">
               <div className="space-y-1.5">
                 <Label htmlFor="unidade-7" className="text-xs font-medium text-muted-foreground">Unidade</Label>
@@ -1117,7 +1094,7 @@ export default function DpDisciplinar() {
       />
 
       <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="max-h-[90dvh] overflow-y-auto overflow-x-hidden sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Editar registro disciplinar</DialogTitle>
           </DialogHeader>
@@ -1159,6 +1136,8 @@ export default function DpDisciplinar() {
                 </SelectContent>
               </Select>
             </div>
+            <DisciplinarMotivos value={editMotivo} onChange={setEditMotivo} />
+            {editing?.via_assinada_path ? <p className="text-xs text-muted-foreground">A via assinada permanece inalterada. Se corrigir o conteúdo, gere uma nova via, colha as assinaturas e substitua o arquivo. Referências assinadas são preservadas.</p> : isFormal(editTipo) && <DisciplinarAntecedentes companyId={selectedCompanyId} colaboradorId={editColaboradorId} data={editData} excluirId={editing?.id} value={editAntecedentes} onChange={setEditAntecedentes} />}
             <div className="space-y-2">
               <Label htmlFor="observacoes-17">Observações</Label>
               <Textarea id="observacoes-17" rows={3} value={editObs} onChange={(e) => setEditObs(e.target.value)} />
