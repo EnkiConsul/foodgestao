@@ -11,6 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DpDialogShell } from "@/components/dp/DpDialogShell";
+import { DisciplinarAntecedentes } from "./DisciplinarAntecedentes";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { abrirNoApp } from "@/lib/visualizadorGlobal";
 
 /** Mesma tabela da tela Disciplinar (Art. 482 da CLT). */
 const MOTIVOS = [
@@ -37,6 +40,8 @@ interface Props {
 /** Suspensão aberta sobre o calendário: grava pelo fluxo oficial e gera o modelo para assinatura. */
 export function SuspensaoNovoModal({ open, onOpenChange, colaboradorId, colaboradorNome, regime, data }: Props) {
   const qc = useQueryClient();
+  const { selectedCompanyId } = useCompanyContext();
+  const [antecedentesIds, setAntecedentesIds] = useState<string[]>([]);
   const [dataDoc, setDataDoc] = useState(data);
   const [dias, setDias] = useState("1");
   const [motivos, setMotivos] = useState<string[]>([]);
@@ -45,8 +50,8 @@ export function SuspensaoNovoModal({ open, onOpenChange, colaboradorId, colabora
 
   useEffect(() => {
     if (!open) return;
-    setDataDoc(data); setDias("1"); setMotivos([]); setOutro(""); setObs("");
-  }, [open, data]);
+    setDataDoc(data); setDias("1"); setMotivos([]); setOutro(""); setObs(""); setAntecedentesIds([]);
+  }, [open, data, colaboradorId]);
 
   const semVinculo = !!regime && !REGIMES_EMPREGO.includes(regime.toLowerCase());
 
@@ -57,19 +62,24 @@ export function SuspensaoNovoModal({ open, onOpenChange, colaboradorId, colabora
       const motivo = [...motivos, outro.trim()].filter(Boolean).join(" + ");
       if (!motivo) throw new Error("Selecione ou digite o motivo da suspensão.");
       if (!dataDoc) throw new Error("Informe a data do documento.");
+      if (obs.trim().length < 10) throw new Error("Descreva os novos fatos com pelo menos 10 caracteres.");
       const id = await registrarDisciplinar({
-        colaboradorId, tipo: "suspensao", data: dataDoc, motivo, descricao: obs.trim() || null, suspensaoDias: n,
+        colaboradorId, tipo: "suspensao", data: dataDoc, motivo, descricao: obs.trim() || null, suspensaoDias: n, antecedentesIds,
       });
       const { data: pdf, error } = await supabase.functions.invoke("dp-generate-disciplinary-pdf", { body: { registro_id: id } });
-      if (error || (pdf as any)?.error) return null;
+      if (error || (pdf as any)?.error) {
+        toast.warning("Suspensão salva, mas o modelo não foi gerado. Gere o PDF no Histórico, sem registrar novamente.");
+        return null;
+      }
       return (pdf as { signed_url?: string })?.signed_url ?? null;
     },
     onSuccess: (url) => {
       toast.success("Suspensão registrada", {
         description: "Imprima o modelo, colha a assinatura e depois importe a via assinada em Disciplinar.",
       });
-      if (url) window.open(url, "_blank");
+      if (url) abrirNoApp({ url, titulo: "Suspensão disciplinar" });
       qc.invalidateQueries({ queryKey: ["dp_disciplinar"] });
+      qc.invalidateQueries({ queryKey: ["dp_disciplinar_antecedentes"] });
       qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
       qc.invalidateQueries({ predicate: (q) => String(q.queryKey[0] ?? "").includes("suspens") });
       onOpenChange(false);
@@ -102,19 +112,19 @@ export function SuspensaoNovoModal({ open, onOpenChange, colaboradorId, colabora
         <div className="grid gap-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
-              <Label>Data do documento *</Label>
-              <Input type="date" value={dataDoc} onChange={(e) => setDataDoc(e.target.value)} />
+              <Label htmlFor="suspensao-data">Data do documento *</Label>
+              <Input id="suspensao-data" type="date" value={dataDoc} onChange={(e) => setDataDoc(e.target.value)} />
             </div>
             <div className="grid gap-1.5">
-              <Label>Dias *</Label>
-              <Input type="number" min={1} max={30} value={dias} onChange={(e) => setDias(e.target.value)} />
+              <Label htmlFor="suspensao-dias">Dias *</Label>
+              <Input id="suspensao-dias" type="number" min={1} max={30} value={dias} onChange={(e) => setDias(e.target.value)} />
             </div>
           </div>
           <p className="text-xs text-muted-foreground">Máximo de 30 dias (Art. 474 da CLT). A suspensão começa no dia seguinte à data do documento.</p>
           <div className="grid gap-1.5">
             <Label>Motivo *</Label>
             {MOTIVOS.map((m) => (
-              <label key={m} className="flex items-center gap-2 text-sm">
+              <label key={m} className="flex min-h-11 items-start gap-3 py-2 text-sm">
                 <Checkbox
                   checked={motivos.includes(m)}
                   onCheckedChange={(v) => setMotivos((cur) => (v ? [...cur, m] : cur.filter((x) => x !== m)))}
@@ -125,9 +135,10 @@ export function SuspensaoNovoModal({ open, onOpenChange, colaboradorId, colabora
             <Input placeholder="Outro motivo (opcional)" maxLength={200} value={outro} onChange={(e) => setOutro(e.target.value)} />
           </div>
           <div className="grid gap-1.5">
-            <Label>Observações</Label>
-            <Textarea rows={3} maxLength={500} value={obs} onChange={(e) => setObs(e.target.value)} />
+            <Label htmlFor="suspensao-fatos">Descrição dos novos fatos *</Label>
+            <Textarea id="suspensao-fatos" rows={3} maxLength={500} value={obs} onChange={(e) => setObs(e.target.value)} />
           </div>
+          <DisciplinarAntecedentes companyId={selectedCompanyId} colaboradorId={colaboradorId} data={dataDoc} value={antecedentesIds} onChange={setAntecedentesIds} />
           <p className="text-xs text-muted-foreground">
             Aplique pessoalmente: imprima o modelo, converse com o colaborador e colha a assinatura (ou de 2 testemunhas se ele recusar).
           </p>

@@ -13074,6 +13074,8 @@ export type Database = {
       }
       dp_registros_disciplinares: {
         Row: {
+          antecedentes_ids: string[]
+          antecedentes_snapshot: Json
           aplicado_por: string | null
           colaborador_id: string
           company_id: string
@@ -13085,6 +13087,7 @@ export type Database = {
           id: string
           motivo: string
           pdf_storage_path: string | null
+          reincidencia_texto: string | null
           removido_em: string | null
           removido_motivo: string | null
           removido_por: string | null
@@ -13097,6 +13100,8 @@ export type Database = {
           via_assinada_por: string | null
         }
         Insert: {
+          antecedentes_ids?: string[]
+          antecedentes_snapshot?: Json
           aplicado_por?: string | null
           colaborador_id: string
           company_id: string
@@ -13108,6 +13113,7 @@ export type Database = {
           id?: string
           motivo: string
           pdf_storage_path?: string | null
+          reincidencia_texto?: string | null
           removido_em?: string | null
           removido_motivo?: string | null
           removido_por?: string | null
@@ -13120,6 +13126,8 @@ export type Database = {
           via_assinada_por?: string | null
         }
         Update: {
+          antecedentes_ids?: string[]
+          antecedentes_snapshot?: Json
           aplicado_por?: string | null
           colaborador_id?: string
           company_id?: string
@@ -13131,6 +13139,7 @@ export type Database = {
           id?: string
           motivo?: string
           pdf_storage_path?: string | null
+          reincidencia_texto?: string | null
           removido_em?: string | null
           removido_motivo?: string | null
           removido_por?: string | null
@@ -19982,6 +19991,10 @@ export type Database = {
         Args: { _colaborador: string; _data?: string }
         Returns: number[]
       }
+      dp_disciplinar_antecedentes_gravar: {
+        Args: { p_ids: string[]; p_registro_id: string }
+        Returns: undefined
+      }
       dp_disponibilidade_dia: {
         Args: { _company_id: string; _data: string; _unidade_id: string }
         Returns: Json
@@ -21522,12 +21535,37 @@ export type Database = {
         }
         Returns: undefined
       }
+      dp_registro_disciplinar_corrigir_documentado: {
+        Args: {
+          p_antecedentes_ids?: string[]
+          p_colaborador_id?: string
+          p_data?: string
+          p_descricao?: string
+          p_motivo?: string
+          p_registro_id: string
+          p_suspensao_dias?: number
+          p_tipo?: string
+        }
+        Returns: undefined
+      }
       dp_registro_disciplinar_excluir: {
         Args: { p_motivo: string; p_registro_id: string }
         Returns: undefined
       }
       dp_registro_disciplinar_registrar: {
         Args: {
+          p_colaborador_id: string
+          p_data: string
+          p_descricao?: string
+          p_motivo: string
+          p_suspensao_dias?: number
+          p_tipo: string
+        }
+        Returns: string
+      }
+      dp_registro_disciplinar_registrar_documentado: {
+        Args: {
+          p_antecedentes_ids?: string[]
           p_colaborador_id: string
           p_data: string
           p_descricao?: string
