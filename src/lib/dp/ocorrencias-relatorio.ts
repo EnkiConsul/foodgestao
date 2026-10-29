@@ -21,7 +21,7 @@ export function linhasOcorrencia(o: Ocorrencia): string[] {
 export function csvRelatorio(grupos: GrupoRelatorio[]): string {
   const seguro = (v: string) => `"${(/^[\s]*[=+@-]/.test(v) ? "'" : '') + v.replace(/"/g, '""')}"`;
   const linhas = [['Colaborador','Cargo','Matrícula','Data','Dia da semana','Ocorrência','Jornada prevista','Horário real','Minutos de desvio','Justificativa','Decisão','Tratativa','Perde assiduidade','Desconta férias','Lançamento externo']];
-  const imp = (v: string) => IMPACTO_LABEL[v] ?? v;
+  const imp = (v: string | null | undefined) => (v ? IMPACTO_LABEL[v] ?? v : '');
   for (const g of grupos) {
     if (!g.ocorrencias.length) linhas.push([g.pessoa.nome,g.pessoa.cargo ?? '',g.pessoa.matricula ?? '', '', '', 'Sem ocorrências no período','','','','','','','','','']);
     for (const o of g.ocorrencias) { const l = linhasOcorrencia(o); linhas.push([g.pessoa.nome,g.pessoa.cargo ?? '',g.pessoa.matricula ?? '',l[0],diaSemana(o.data_operacional),l[1],l[2],l[3],o.minutos != null && !ehDescansoAutorizado(o) ? String(o.minutos) : '',l[4],l[5],l[6],imp(o.impacta_assiduidade),imp(o.impacta_ferias),l[7]]); }
