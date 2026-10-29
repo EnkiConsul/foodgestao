@@ -12,7 +12,7 @@ describe("suspensão no calendário",()=>{
   it("envia os antecedentes selecionados sem perder motivo e novos fatos",async()=>{
     render(<QueryClientProvider client={new QueryClient()}><SuspensaoNovoModal open onOpenChange={()=>{}} colaboradorId="pessoa" colaboradorNome="Fictício" regime="clt" data="2026-10-29" /></QueryClientProvider>);
     fireEvent.click(screen.getByRole("checkbox",{name:"Indisciplina / Descumprimento de Normas Internas"}));
-    fireEvent.change(screen.getByRole("textbox"),{target:{value:"Novos fatos fictícios descritos."}});
+    fireEvent.change(screen.getByLabelText("Descrição dos novos fatos *"),{target:{value:"Novos fatos fictícios descritos."}});
     fireEvent.click(screen.getByRole("button",{name:"Selecionar referência"}));
     fireEvent.click(screen.getByRole("button",{name:"Registrar e Gerar Modelo"}));
     await waitFor(()=>expect(mocks.registrar).toHaveBeenCalledWith(expect.objectContaining({antecedentesIds:["verbal"],motivo:"Indisciplina / Descumprimento de Normas Internas",descricao:"Novos fatos fictícios descritos."})));

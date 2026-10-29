@@ -112,12 +112,12 @@ export function SuspensaoNovoModal({ open, onOpenChange, colaboradorId, colabora
         <div className="grid gap-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
-              <Label>Data do documento *</Label>
-              <Input type="date" value={dataDoc} onChange={(e) => setDataDoc(e.target.value)} />
+              <Label htmlFor="suspensao-data">Data do documento *</Label>
+              <Input id="suspensao-data" type="date" value={dataDoc} onChange={(e) => setDataDoc(e.target.value)} />
             </div>
             <div className="grid gap-1.5">
-              <Label>Dias *</Label>
-              <Input type="number" min={1} max={30} value={dias} onChange={(e) => setDias(e.target.value)} />
+              <Label htmlFor="suspensao-dias">Dias *</Label>
+              <Input id="suspensao-dias" type="number" min={1} max={30} value={dias} onChange={(e) => setDias(e.target.value)} />
             </div>
           </div>
           <p className="text-xs text-muted-foreground">Máximo de 30 dias (Art. 474 da CLT). A suspensão começa no dia seguinte à data do documento.</p>
@@ -135,8 +135,8 @@ export function SuspensaoNovoModal({ open, onOpenChange, colaboradorId, colabora
             <Input placeholder="Outro motivo (opcional)" maxLength={200} value={outro} onChange={(e) => setOutro(e.target.value)} />
           </div>
           <div className="grid gap-1.5">
-            <Label>Descrição dos novos fatos *</Label>
-            <Textarea rows={3} maxLength={500} value={obs} onChange={(e) => setObs(e.target.value)} />
+            <Label htmlFor="suspensao-fatos">Descrição dos novos fatos *</Label>
+            <Textarea id="suspensao-fatos" rows={3} maxLength={500} value={obs} onChange={(e) => setObs(e.target.value)} />
           </div>
           <DisciplinarAntecedentes companyId={selectedCompanyId} colaboradorId={colaboradorId} data={dataDoc} value={antecedentesIds} onChange={setAntecedentesIds} />
           <p className="text-xs text-muted-foreground">
