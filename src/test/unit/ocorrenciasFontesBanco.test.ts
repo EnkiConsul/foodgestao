@@ -19,6 +19,8 @@ beforeAll(async()=>{
  INSERT INTO dp_colaboradores VALUES('${p}','${c}',NULL,NULL);`);
  await db.exec(readFileSync('drizzle/migrations/0167_ocorrencias_ferias_remarcacoes_rastreaveis.sql','utf8'));
  await db.exec(readFileSync('drizzle/migrations/0169_ocorrencias_fontes_cancelamento_auditoria.sql','utf8'));
+ await db.exec(`CREATE TABLE dp_solicitacoes(id uuid PRIMARY KEY,company_id uuid,colaborador_id uuid,tipo text,status text,removido_em timestamptz); ALTER TABLE dp_ocorrencias ADD COLUMN solicitacao_id uuid;`);
+ await db.exec(readFileSync('drizzle/migrations/0170_ocorrencias_decisao_preautorizada.sql','utf8'));
  await db.exec(`CREATE UNIQUE INDEX dp_ocorrencias_folga_ativa ON dp_ocorrencias(folga_id) WHERE folga_id IS NOT NULL AND estado<>'cancelada';`);
  await db.exec(readFileSync('drizzle/migrations/0171_remarcacao_folga_evidencia_completa_guardas.sql','utf8'));
 },30000);
@@ -39,5 +41,13 @@ describe.sequential('fontes operacionais em PostgreSQL isolado',()=>{
  expect((await db.query("SELECT subtipo FROM dp_ocorrencias WHERE estado<>'cancelada' AND data_operacional IN ('2026-10-20','2026-10-22') ORDER BY data_operacional")).rows).toEqual([{subtipo:'troca_trabalho'},{subtipo:'troca_folga'}]);
  await db.exec(`UPDATE dp_folgas SET data='2026-10-23' WHERE id='00000000-0000-4000-8000-000000000020'`);
  expect((await db.query("SELECT data_habitual_original::text FROM dp_folgas WHERE id='00000000-0000-4000-8000-000000000020'")).rows).toEqual([{data_habitual_original:'2026-10-20'}]);
+ });
+ it('análise sozinha não conclui ausência antiga',async()=>{
+ await db.exec(`INSERT INTO dp_ocorrencias(company_id,colaborador_id,data_operacional,tipo,estado,origem,analise_status,tratativa_status) VALUES('${c}','${p}','2026-10-24','ausencia_justificada','confirmada','gestor','analisada','pendente')`);
+ expect((await db.query("SELECT tratativa_status FROM dp_ocorrencias WHERE data_operacional='2026-10-24'")).rows).toEqual([{tratativa_status:'pendente'}]);
+ });
+ it('atestado aprovado e vinculado conclui somente decisão, sem alterar impactos',async()=>{
+ await db.exec(`INSERT INTO dp_solicitacoes VALUES('00000000-0000-4000-8000-000000000030','${c}','${p}','atestado','aprovada',NULL); INSERT INTO dp_ocorrencias(company_id,colaborador_id,data_operacional,tipo,estado,origem,analise_status,tratativa_status,solicitacao_id,impacta_assiduidade) VALUES('${c}','${p}','2026-10-25','ausencia_justificada','confirmada','sistema','analisada','pendente','00000000-0000-4000-8000-000000000030','sim')`);
+ expect((await db.query("SELECT tratativa_status,tratativa_decisao,impacta_assiduidade FROM dp_ocorrencias WHERE data_operacional='2026-10-25'")).rows).toEqual([{tratativa_status:'concluida',tratativa_decisao:'abono',impacta_assiduidade:'sim'}]);
  });
 });
