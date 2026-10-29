@@ -23,7 +23,7 @@ import { mensagemErro } from "@/lib/dp/mensagemErro";
 import { MotivoDialog } from "@/components/dp/MotivoDialog";
 import { OcorrenciaCard } from "@/components/dp/ocorrencias/OcorrenciaCard";
 import { OcorrenciasRelatorioDialog } from "@/components/dp/ocorrencias/OcorrenciasRelatorioDialog";
-import { feedOrdenadoComFerias, periodoCurto, type ItemFeed } from "@/lib/dp/ocorrencias-relatorio";
+import { feedOrdenadoComFerias, periodoCurto as periodoBloco, type ItemFeed } from "@/lib/dp/ocorrencias-relatorio";
 import { Badge } from "@/components/ui/badge";
 import { nomeExibicao } from "@/lib/dp/nomeExibicao";
 import { OcorrenciaConfirmarDialog } from "@/components/dp/ocorrencias/OcorrenciaConfirmarDialog";
@@ -415,7 +415,7 @@ export default function DpOcorrencias() {
         <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 p-4 [&::-webkit-details-marker]:hidden">
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">{nomeExibicao(g[0]?.colaborador) || "Colaborador"}</p>
-            <p className="text-xs text-muted-foreground">{it.tipo === 'ferias' ? 'Férias' : rotuloTipoOcorrencia(g[0])} · {periodoCurto(g)}</p>
+            <p className="text-xs text-muted-foreground">{it.tipo === 'ferias' ? 'Férias' : rotuloTipoOcorrencia(g[0])} · {periodoBloco(g)}</p>
           </div>
           <Badge variant={aTratar > 0 ? "default" : "secondary"} className="shrink-0">{aTratar > 0 ? `${aTratar} a tratar` : "Sem pendência"}</Badge>
           <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
