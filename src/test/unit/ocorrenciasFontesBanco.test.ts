@@ -18,6 +18,7 @@ beforeAll(async()=>{
  CREATE FUNCTION public.dp_ocorrencia_previsto(uuid,date) RETURNS TABLE(entrada time,saida time,unidade_id uuid,setor_id uuid) LANGUAGE sql AS 'SELECT ''08:00''::time,''16:00''::time,NULL::uuid,NULL::uuid';
  INSERT INTO dp_colaboradores VALUES('${p}','${c}',NULL,NULL);`);
  await db.exec(readFileSync('drizzle/migrations/0167_ocorrencias_ferias_remarcacoes_rastreaveis.sql','utf8'));
+ await db.exec(readFileSync('drizzle/migrations/0169_ocorrencias_fontes_cancelamento_auditoria.sql','utf8'));
 },30000);
 afterAll(()=>db.close());
 describe.sequential('fontes operacionais em PostgreSQL isolado',()=>{
