@@ -117,6 +117,9 @@ export default function DpOcorrencias() {
 
   const [confirmar, setConfirmar] = useState<Ocorrencia | null>(null);
   const [tratativa, setTratativa] = useState<Ocorrencia | null>(null);
+  /** Dias seguidos pendentes tratados com uma única decisão (ex.: atestado de 3 dias). */
+  const [lote, setLote] = useState<Ocorrencia[] | null>(null);
+  const [salvandoLote, setSalvandoLote] = useState(false);
   const [cancelarId, setCancelarId] = useState<string | null>(null);
   const [cobrir, setCobrir] = useState<Ocorrencia | null>(null);
   const [historico, setHistorico] = useState<Ocorrencia | null>(null);
@@ -420,7 +423,14 @@ export default function DpOcorrencias() {
           <Badge variant={aTratar > 0 ? "default" : "secondary"} className="shrink-0">{aTratar > 0 ? `${aTratar} a tratar` : "Sem pendência"}</Badge>
           <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
         </summary>
-        <div className="space-y-3 border-t border-border p-3">{g.map((o) => renderCard(o))}</div>
+        <div className="space-y-3 border-t border-border p-3">
+          {it.tipo !== 'ferias' && aTratar > 1 && (
+            <Button className="min-h-12 w-full" onClick={() => { const p = g.filter((o) => tratativaPendente(o)); setLote(p); setTratativa(p[0]); }}>
+              Tratar os {aTratar} dias de uma vez
+            </Button>
+          )}
+          {g.map((o) => renderCard(o))}
+        </div>
       </details>
     );
   };
