@@ -938,7 +938,7 @@ export default function DpOcorrencias() {
               <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="ml-auto" aria-label="Opções da lista" title="Opções da lista"><ClipboardList className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => void copiarResumo()}>Copiar resumo do ponto</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
             </div>
             {visao === "dia" ? (
-              <div className="space-y-4">{listaAgrupada.normais.map((o) => renderCard(o))}{listaAgrupada.ferias.map(g => <details key={g[0]?.id} className="rounded-lg border border-border p-4"><summary className="cursor-pointer text-sm font-medium">{g[0]?.colaborador?.nome} · Férias · {g[0]?.data_operacional.split('-').reverse().join('/')} a {g.at(-1)?.data_operacional.split('-').reverse().join('/')} · {g.length} dias</summary><div className="mt-3 space-y-3">{g.map(o => renderCard(o))}</div></details>)}</div>
+              <div className="space-y-4">{listaAgrupada.normais.map((o) => renderCard(o))}{listaAgrupada.ferias.map(g => <details key={g[0]?.id} className="rounded-lg border border-border p-4"><summary className="cursor-pointer text-sm font-medium">{g[0]?.colaborador?.nome} · Férias · {g[0]?.data_operacional.split('-').reverse().join('/')} a {g[g.length - 1]?.data_operacional.split('-').reverse().join('/')} · {g.length} dias</summary><div className="mt-3 space-y-3">{g.map(o => renderCard(o))}</div></details>)}</div>
             ) : (
               porColaborador.map(([id, g]) => {
                 const aTratar = g.linhas.filter((o) => tratativaPendente(o)).length;

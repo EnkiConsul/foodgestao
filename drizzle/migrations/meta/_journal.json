@@ -1177,6 +1177,13 @@
       "when": 1793285963145,
       "tag": "0167_ocorrencias_ferias_remarcacoes_rastreaveis",
       "breakpoints": true
+    },
+    {
+      "idx": 168,
+      "version": "7",
+      "when": 1793286149836,
+      "tag": "0168_folga_classificacao_compensatoria_aditiva",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+ALTER TABLE public.dp_folgas DROP CONSTRAINT dp_folgas_direito_origem_chk; ALTER TABLE public.dp_folgas ADD CONSTRAINT dp_folgas_direito_origem_chk CHECK(direito_origem IS NULL OR direito_origem IN ('fds','fixa','dominical_deslocada','folga_fixa_deslocada','excecao_gestor','compensacao_feriado','banco_horas','banco_horas_desligamento'));

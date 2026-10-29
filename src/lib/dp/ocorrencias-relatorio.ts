@@ -17,7 +17,7 @@ export function linhasOcorrencia(o: Ocorrencia): string[] {
   return [o.data_operacional.split('-').reverse().join('/'), rotuloTipoOcorrencia(o), `${hora(o.previsto_entrada)} — ${hora(o.previsto_saida)}`, hora(o.horario_real), [o.justificativa_inicial, o.justificativa_final].filter(Boolean).join(' | '), o.tratativa_decisao ? DECISAO_TRATATIVA_LABEL[o.tratativa_decisao] ?? o.tratativa_decisao : 'Sem decisão registrada', TRATATIVA_LABEL[o.tratativa_status], o.lancado_ponto_em ? 'Lançado' : 'Não registrado'];
 }
 export function csvRelatorio(grupos: GrupoRelatorio[]): string {
-  const seguro = (v: string) => `"${(/^[\s]*[=+@-]/.test(v) ? "'" : '') + v.replaceAll('"', '""')}"`;
+  const seguro = (v: string) => `"${(/^[\s]*[=+@-]/.test(v) ? "'" : '') + v.replace(/"/g, '""')}"`;
   const linhas = [['Colaborador','Cargo','Matrícula','Data','Ocorrência','Jornada prevista','Horário real','Justificativa','Decisão','Tratativa','Lançamento externo']];
   for (const g of grupos) {
     if (!g.ocorrencias.length) linhas.push([g.pessoa.nome,g.pessoa.cargo ?? '',g.pessoa.matricula ?? '', '', 'Sem ocorrências no período','','','','','','']);
