@@ -48,6 +48,8 @@ const MENSAGENS: Record<string, string> = {
   DISC_MOTIVO_EXCLUSAO: "Informe o motivo da exclusão.",
   DISC_SUSPENSAO_DIAS: "Informe os dias de afastamento da suspensão.",
   DISC_REGISTRO_EXCLUIDO: "Este registro já foi excluído.",
+  DISC_ANTECEDENTE_INVALIDO: "Uma referência não pertence ao contrato atual, não é anterior ou não tem via assinada. Revise a seleção.",
+  DISC_ANTECEDENTES_LIMITE: "Selecione no máximo 20 registros anteriores.",
   DISC_ARQUIVO_INVALIDO: "Não foi possível anexar o arquivo deste registro.",
   documento_indisponivel: "Este documento não está disponível para aceite.",
   documento_sem_arquivo: "O documento ainda não tem arquivo anexado.",
@@ -188,14 +190,16 @@ export async function registrarDisciplinar(input: {
   motivo: string;
   descricao?: string | null;
   suspensaoDias?: number | null;
+  antecedentesIds?: string[];
 }): Promise<string> {
-  const { data, error } = await (supabase.rpc as any)("dp_registro_disciplinar_registrar", {
+  const { data, error } = await (supabase.rpc as any)(input.antecedentesIds === undefined ? "dp_registro_disciplinar_registrar" : "dp_registro_disciplinar_registrar_documentado", {
     p_colaborador_id: input.colaboradorId,
     p_tipo: input.tipo,
     p_data: input.data,
     p_motivo: input.motivo,
     p_descricao: input.descricao ?? null,
     p_suspensao_dias: input.suspensaoDias ?? null,
+    ...(input.antecedentesIds === undefined ? {} : { p_antecedentes_ids: input.antecedentesIds }),
   });
   if (error) lancar(error, "Não foi possível registrar a medida disciplinar.");
   return data as string;
@@ -217,8 +221,9 @@ export async function corrigirDisciplinar(input: {
   motivo?: string | null;
   descricao?: string | null;
   suspensaoDias?: number | null;
+  antecedentesIds?: string[];
 }): Promise<void> {
-  const { error } = await (supabase.rpc as any)("dp_registro_disciplinar_corrigir", {
+  const { error } = await (supabase.rpc as any)(input.antecedentesIds === undefined ? "dp_registro_disciplinar_corrigir" : "dp_registro_disciplinar_corrigir_documentado", {
     p_registro_id: input.id,
     p_colaborador_id: input.colaboradorId ?? null,
     p_tipo: input.tipo ?? null,
@@ -226,6 +231,7 @@ export async function corrigirDisciplinar(input: {
     p_motivo: input.motivo ?? null,
     p_descricao: input.descricao ?? null,
     p_suspensao_dias: input.suspensaoDias ?? null,
+    ...(input.antecedentesIds === undefined ? {} : { p_antecedentes_ids: input.antecedentesIds }),
   });
   if (error) lancar(error, "Não foi possível atualizar o registro.");
 }
