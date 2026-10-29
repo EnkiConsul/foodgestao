@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
 import logo from '@/assets/aveto360-horizontal.png.asset.json';
+import logoClaro from '@/assets/aveto360-horizontal-light.png.asset.json';
 import './ocorrencias-relatorio.css';
 
 interface Props { open: boolean; onOpenChange: (v: boolean) => void; mes: string; corte: number; unidadeId: string; setorId: string }
@@ -73,7 +74,7 @@ export function OcorrenciasRelatorioDialog({ open, onOpenChange, mes, corte, uni
     </div>
     {consulta.isPending ? <p role="status">Carregando relatório…</p> : consulta.isError ? <div role="alert"><p>Não foi possível carregar o relatório completo.</p><Button variant="outline" onClick={() => void consulta.refetch()}>Tentar novamente</Button></div> :
       <article id="relatorio-ocorrencias" className="space-y-5 text-foreground">
-        <header className="space-y-1 border-b border-border pb-3"><img src={logo.url} alt="AVETO 360" className="h-8 w-auto"/><h2 className="text-lg font-semibold">{empresa}</h2><p className="text-sm">Ocorrências · {intervalo.inicio.split('-').reverse().join('/')} a {intervalo.fim.split('-').reverse().join('/')}</p><p className="text-xs text-muted-foreground">{consulta.data?.ocorrencias.length ?? 0} ocorrências · {grupos.length} colaboradores · Emitido em {new Date().toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})}</p></header>
+        <header className="space-y-1 border-b border-border pb-3"><img src={logoClaro.url} alt="AVETO 360" className="h-8 w-auto dark:hidden"/><img src={logo.url} alt="" aria-hidden className="hidden h-8 w-auto dark:block"/><h2 className="text-lg font-semibold">{empresa}</h2><p className="text-sm">Ocorrências · {intervalo.inicio.split('-').reverse().join('/')} a {intervalo.fim.split('-').reverse().join('/')}</p><p className="text-xs text-muted-foreground">{consulta.data?.ocorrencias.length ?? 0} ocorrências · {grupos.length} colaboradores · Emitido em {new Date().toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})}</p></header>
         {!grupos.length && <p>Nenhuma ocorrência no período.</p>}
         {grupos.map(g => <section key={g.pessoa.id} className="ocorrencias-print-grupo space-y-2"><h3 className="font-semibold">{g.pessoa.nome}</h3><p className="text-xs text-muted-foreground">{g.pessoa.cargo ?? 'Cargo não informado'}{g.pessoa.matricula ? ` · Matrícula ${g.pessoa.matricula}` : ''}</p>{!g.ocorrencias.length ? <p className="text-sm">Sem ocorrências no período.</p> : <div className="overflow-x-auto"><table className="ocorrencias-print-table w-full min-w-[850px] text-left text-xs"><thead><tr>{colunas.map(c => <th className="border-b border-border p-2" key={c}>{c}</th>)}</tr></thead><tbody>{g.ocorrencias.map(o => <tr key={o.id}>{linhasOcorrencia(o).map((v,i) => <td key={i} className="border-b border-border p-2 align-top break-words">{v}{i===0 && <span className="block text-muted-foreground">{new Date(`${o.data_operacional}T12:00:00`).toLocaleDateString('pt-BR',{weekday:'short'})}</span>}</td>)}</tr>)}</tbody></table></div>}</section>)}
       </article>}

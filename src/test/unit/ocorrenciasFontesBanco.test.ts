@@ -19,6 +19,8 @@ beforeAll(async()=>{
  INSERT INTO dp_colaboradores VALUES('${p}','${c}',NULL,NULL);`);
  await db.exec(readFileSync('drizzle/migrations/0167_ocorrencias_ferias_remarcacoes_rastreaveis.sql','utf8'));
  await db.exec(readFileSync('drizzle/migrations/0169_ocorrencias_fontes_cancelamento_auditoria.sql','utf8'));
+ await db.exec(`CREATE UNIQUE INDEX dp_ocorrencias_folga_ativa ON dp_ocorrencias(folga_id) WHERE folga_id IS NOT NULL AND estado<>'cancelada';`);
+ await db.exec(readFileSync('drizzle/migrations/0171_remarcacao_folga_evidencia_completa_guardas.sql','utf8'));
 },30000);
 afterAll(()=>db.close());
 describe.sequential('fontes operacionais em PostgreSQL isolado',()=>{
@@ -32,4 +34,10 @@ describe.sequential('fontes operacionais em PostgreSQL isolado',()=>{
  it('remover trabalho excepcional cancela sua evidência',async()=>{await db.exec(`DELETE FROM dp_dia_trabalho_excepcional WHERE data='2026-10-10'`);expect((await db.query("SELECT estado FROM dp_ocorrencias WHERE data_operacional='2026-10-10'")).rows).toEqual([{estado:'cancelada'}]);});
  it('identidade da evidência não pode ser reescrita',async()=>{await expect(db.exec("UPDATE dp_ocorrencias SET subtipo='outro' WHERE ferias_gozo_id IS NOT NULL")).rejects.toThrow('OCORRENCIA_ORIGEM_IMUTAVEL');});
  it('synchronizadores privados não são executáveis por clientes',async()=>expect((await db.query("SELECT has_function_privilege('authenticated','private.dp_ferias_ocorrencias_sync(uuid)','EXECUTE') permitido")).rows).toEqual([{permitido:false}]));
+ it('remarcar cria os dois lados e mantém origem nas remarcações seguintes',async()=>{
+ await db.exec(`INSERT INTO dp_folgas(id,company_id,colaborador_id,data,origem,status) VALUES('00000000-0000-4000-8000-000000000020','${c}','${p}','2026-10-20','admin','agendada'); UPDATE dp_folgas SET data='2026-10-22' WHERE id='00000000-0000-4000-8000-000000000020';`);
+ expect((await db.query("SELECT subtipo FROM dp_ocorrencias WHERE estado<>'cancelada' AND data_operacional IN ('2026-10-20','2026-10-22') ORDER BY data_operacional")).rows).toEqual([{subtipo:'troca_trabalho'},{subtipo:'troca_folga'}]);
+ await db.exec(`UPDATE dp_folgas SET data='2026-10-23' WHERE id='00000000-0000-4000-8000-000000000020'`);
+ expect((await db.query("SELECT data_habitual_original::text FROM dp_folgas WHERE id='00000000-0000-4000-8000-000000000020'")).rows).toEqual([{data_habitual_original:'2026-10-20'}]);
+ });
 });
