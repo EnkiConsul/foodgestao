@@ -22,6 +22,8 @@ import { DpErrorState } from "@/components/dp/DpErrorState";
 import { mensagemErro } from "@/lib/dp/mensagemErro";
 import { MotivoDialog } from "@/components/dp/MotivoDialog";
 import { OcorrenciaCard } from "@/components/dp/ocorrencias/OcorrenciaCard";
+import { OcorrenciasRelatorioDialog } from "@/components/dp/ocorrencias/OcorrenciasRelatorioDialog";
+import { agruparFeriasLista } from "@/lib/dp/ocorrencias-relatorio";
 import { OcorrenciaConfirmarDialog } from "@/components/dp/ocorrencias/OcorrenciaConfirmarDialog";
 import { OcorrenciaFormDialog } from "@/components/dp/ocorrencias/OcorrenciaFormDialog";
 import { OcorrenciaTratativaDialog } from "@/components/dp/ocorrencias/OcorrenciaTratativaDialog";
@@ -105,6 +107,7 @@ export default function DpOcorrencias() {
       : filtrosIniciais(corte),
   );
   const [novaOpen, setNovaOpen] = useState(false);
+  const [relatorioOpen, setRelatorioOpen] = useState(false);
   const [visao, setVisao] = useState<"dia" | "colaborador">("dia");
   const [diretriz, setDiretriz] = useState<DiretrizPonto | null>(null);
   const [maisFiltros, setMaisFiltros] = useState(false);
@@ -386,6 +389,7 @@ export default function DpOcorrencias() {
     return c;
   })();
   const lista = diretriz ? acoes.ocorrencias.filter((o) => diretrizPonto(o) === diretriz) : acoes.ocorrencias;
+  const listaAgrupada = agruparFeriasLista(lista);
   const copiarResumo = async () => {
     const linhas: string[] = [`Resumo do ponto — ${textoPeriodo}`];
     for (const d of ["compensar", "abonar", "descontar", "ajustar", "decidir"] as DiretrizPonto[]) {
@@ -427,9 +431,12 @@ export default function DpOcorrencias() {
         title="Ocorrências"
         
         actions={
+          <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setRelatorioOpen(true)}><ClipboardList className="mr-1 h-4 w-4" />Relatório do Mês</Button>
           <Button onClick={() => setNovaOpen(true)}>
             <Plus className="mr-1 h-4 w-4" /> Registrar ocorrência
           </Button>
+          </div>
         }
       />
 
@@ -714,6 +721,7 @@ export default function DpOcorrencias() {
           </Button>
         </DpFilterField>
 
+        <DpFilterField label=" "><Button variant={filtros.tipo === "ferias" ? "default" : "outline"} className="min-h-11 w-full" onClick={() => { set("tipo", filtros.tipo === "ferias" ? "all" : "ferias"); setDiretriz(null); }}>Férias</Button></DpFilterField>
         {maisFiltros && (
         <>
         <DpFilterField label="Colaborador">
@@ -762,6 +770,7 @@ export default function DpOcorrencias() {
                 </SelectItem>
               ))}
               <SelectItem value="folgas_trocas">Folgas e trocas</SelectItem>
+              <SelectItem value="ferias">Férias</SelectItem>
             </SelectContent>
           </Select>
         </DpFilterField>
@@ -929,7 +938,7 @@ export default function DpOcorrencias() {
               <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="ml-auto" aria-label="Opções da lista" title="Opções da lista"><ClipboardList className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => void copiarResumo()}>Copiar resumo do ponto</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
             </div>
             {visao === "dia" ? (
-              <div className="space-y-4">{lista.map((o) => renderCard(o))}</div>
+              <div className="space-y-4">{listaAgrupada.normais.map((o) => renderCard(o))}{listaAgrupada.ferias.map(g => <details key={g[0]?.id} className="rounded-lg border border-border p-4"><summary className="cursor-pointer text-sm font-medium">{g[0]?.colaborador?.nome} · Férias · {g[0]?.data_operacional.split('-').reverse().join('/')} a {g[g.length - 1]?.data_operacional.split('-').reverse().join('/')} · {g.length} dias</summary><div className="mt-3 space-y-3">{g.map(o => renderCard(o))}</div></details>)}</div>
             ) : (
               porColaborador.map(([id, g]) => {
                 const aTratar = g.linhas.filter((o) => tratativaPendente(o)).length;
@@ -953,6 +962,7 @@ export default function DpOcorrencias() {
       </section>
       </div>
 
+      {relatorioOpen && <OcorrenciasRelatorioDialog open={relatorioOpen} onOpenChange={setRelatorioOpen} mes={mesReferencia} corte={corte} unidadeId={filtros.unidadeId} setorId={filtros.setorId} />}
       <OcorrenciaFormDialog
         open={novaOpen}
         onOpenChange={setNovaOpen}

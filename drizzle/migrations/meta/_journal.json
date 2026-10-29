@@ -1170,6 +1170,41 @@
       "when": 1793255308614,
       "tag": "0166_troca_gestor_termos_individuais",
       "breakpoints": true
+    },
+    {
+      "idx": 167,
+      "version": "7",
+      "when": 1793285963145,
+      "tag": "0167_ocorrencias_ferias_remarcacoes_rastreaveis",
+      "breakpoints": true
+    },
+    {
+      "idx": 168,
+      "version": "7",
+      "when": 1793286149836,
+      "tag": "0168_folga_classificacao_compensatoria_aditiva",
+      "breakpoints": true
+    },
+    {
+      "idx": 169,
+      "version": "7",
+      "when": 1793286319820,
+      "tag": "0169_ocorrencias_fontes_cancelamento_auditoria",
+      "breakpoints": true
+    },
+    {
+      "idx": 170,
+      "version": "7",
+      "when": 1793286378675,
+      "tag": "0170_ocorrencias_decisao_preautorizada",
+      "breakpoints": true
+    },
+    {
+      "idx": 171,
+      "version": "7",
+      "when": 1793286482785,
+      "tag": "0171_remarcacao_folga_evidencia_completa_guardas",
+      "breakpoints": true
     }
   ]
 }

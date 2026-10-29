@@ -8549,6 +8549,7 @@ export type Database = {
           created_at: string
           criado_por: string | null
           data: string
+          folga_origem_id: string | null
           id: string
           motivo: string | null
           origem: string
@@ -8561,6 +8562,7 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           data: string
+          folga_origem_id?: string | null
           id?: string
           motivo?: string | null
           origem?: string
@@ -8573,6 +8575,7 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           data?: string
+          folga_origem_id?: string | null
           id?: string
           motivo?: string | null
           origem?: string
@@ -8592,6 +8595,13 @@ export type Database = {
             columns: ["colaborador_id"]
             isOneToOne: false
             referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_dia_trabalho_excepcional_folga_origem_id_fkey"
+            columns: ["folga_origem_id"]
+            isOneToOne: false
+            referencedRelation: "dp_folgas"
             referencedColumns: ["id"]
           },
           {
@@ -10423,6 +10433,7 @@ export type Database = {
           created_at: string
           criado_por: string | null
           data: string
+          data_habitual_original: string | null
           desligamento_processo_id: string | null
           direito_origem: string | null
           extra: boolean
@@ -10440,6 +10451,7 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           data: string
+          data_habitual_original?: string | null
           desligamento_processo_id?: string | null
           direito_origem?: string | null
           extra?: boolean
@@ -10457,6 +10469,7 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           data?: string
+          data_habitual_original?: string | null
           desligamento_processo_id?: string | null
           direito_origem?: string | null
           extra?: boolean
@@ -11492,6 +11505,7 @@ export type Database = {
           desligamento_processo_id: string | null
           documento_id: string | null
           estado: Database["public"]["Enums"]["dp_ocorrencia_estado"]
+          ferias_gozo_id: string | null
           folga_id: string | null
           horario_estimado: string | null
           horario_previsto: string | null
@@ -11510,6 +11524,7 @@ export type Database = {
           minutos: number | null
           motivo_cancelamento: string | null
           origem: Database["public"]["Enums"]["dp_ocorrencia_origem"]
+          origem_evidencia: Json | null
           previsto_entrada: string | null
           previsto_saida: string | null
           relevancia_operacional: boolean
@@ -11517,6 +11532,7 @@ export type Database = {
           solicitacao_id: string | null
           subtipo: string | null
           tipo: Database["public"]["Enums"]["dp_ocorrencia_tipo"]
+          trabalho_excepcional_id: string | null
           tratativa_decisao: string | null
           tratativa_observacao: string | null
           tratativa_ponto: boolean
@@ -11545,6 +11561,7 @@ export type Database = {
           desligamento_processo_id?: string | null
           documento_id?: string | null
           estado?: Database["public"]["Enums"]["dp_ocorrencia_estado"]
+          ferias_gozo_id?: string | null
           folga_id?: string | null
           horario_estimado?: string | null
           horario_previsto?: string | null
@@ -11563,6 +11580,7 @@ export type Database = {
           minutos?: number | null
           motivo_cancelamento?: string | null
           origem?: Database["public"]["Enums"]["dp_ocorrencia_origem"]
+          origem_evidencia?: Json | null
           previsto_entrada?: string | null
           previsto_saida?: string | null
           relevancia_operacional?: boolean
@@ -11570,6 +11588,7 @@ export type Database = {
           solicitacao_id?: string | null
           subtipo?: string | null
           tipo: Database["public"]["Enums"]["dp_ocorrencia_tipo"]
+          trabalho_excepcional_id?: string | null
           tratativa_decisao?: string | null
           tratativa_observacao?: string | null
           tratativa_ponto?: boolean
@@ -11598,6 +11617,7 @@ export type Database = {
           desligamento_processo_id?: string | null
           documento_id?: string | null
           estado?: Database["public"]["Enums"]["dp_ocorrencia_estado"]
+          ferias_gozo_id?: string | null
           folga_id?: string | null
           horario_estimado?: string | null
           horario_previsto?: string | null
@@ -11616,6 +11636,7 @@ export type Database = {
           minutos?: number | null
           motivo_cancelamento?: string | null
           origem?: Database["public"]["Enums"]["dp_ocorrencia_origem"]
+          origem_evidencia?: Json | null
           previsto_entrada?: string | null
           previsto_saida?: string | null
           relevancia_operacional?: boolean
@@ -11623,6 +11644,7 @@ export type Database = {
           solicitacao_id?: string | null
           subtipo?: string | null
           tipo?: Database["public"]["Enums"]["dp_ocorrencia_tipo"]
+          trabalho_excepcional_id?: string | null
           tratativa_decisao?: string | null
           tratativa_observacao?: string | null
           tratativa_ponto?: boolean
@@ -11668,6 +11690,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "dp_ocorrencias_ferias_gozo_id_fkey"
+            columns: ["ferias_gozo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_ferias_gozos"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "dp_ocorrencias_folga_id_fkey"
             columns: ["folga_id"]
             isOneToOne: false
@@ -11686,6 +11715,13 @@ export type Database = {
             columns: ["solicitacao_id"]
             isOneToOne: false
             referencedRelation: "dp_solicitacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_ocorrencias_trabalho_excepcional_id_fkey"
+            columns: ["trabalho_excepcional_id"]
+            isOneToOne: false
+            referencedRelation: "dp_dia_trabalho_excepcional"
             referencedColumns: ["id"]
           },
           {

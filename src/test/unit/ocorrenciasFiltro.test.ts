@@ -12,7 +12,7 @@ describe("filtro de origem das ocorrências", () => {
   it("seleciona folgas compensatórias, extras e os dois lados das trocas pelos vínculos", () => {
     const q = consulta();
     expect(aplicarTipoOcorrencia(q, "folgas_trocas")).toBe(q);
-    expect(q.or).toHaveBeenCalledExactlyOnceWith("folga_id.not.is.null,troca_id.not.is.null");
+    expect(q.or).toHaveBeenCalledExactlyOnceWith("folga_id.not.is.null,troca_id.not.is.null,trabalho_excepcional_id.not.is.null");
     expect(q.eq).not.toHaveBeenCalled();
   });
 

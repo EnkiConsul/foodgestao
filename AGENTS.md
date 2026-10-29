@@ -44,7 +44,7 @@
 
 - Leave previews retain the request row to open its exact details.
 - Portal operation uses server-scoped RPCs; approved leave and confirmed absences override work in every source, with shared cache invalidation after decisions and periodic portal refresh to reflect other devices.
-- Exceptional leave occurrence evidence is generated transactionally from linked leave/request/swap records; source cancellation retires evidence and server triggers protect its impact fields, while point treatment remains independently pending for external accounting.
+- Leave/vacation evidence is source-linked, transactional and impact-protected; cancellation retires it. Administrative completion never implies external posting.
 - Occurrence quick filters use the shared type-query helper before the result limit; leave/swap filtering uses source links instead of labels so both absence and worked-day evidence remain visible.
 - Occurrence notification focus is consumed with URL replacement and preserved during asynchronous period loading; portal time labels remain neutral unless persisted audit evidence identifies the author, avoiding attribution from confirmation alone.
 - Occurrence edits use a manager-only RPC with expected-value locks and before/after audit. Pending punches allow unchanged confirmation without a reason; edits require one. Completed records offer menu-only rectification, never repeat decisions. Preserve original justification; separate forgotten punches from lost-time decisions. History, cancellation and launch stay in the menu; launch is a badge. Details retain impacts; portal shows scheduled times only.
