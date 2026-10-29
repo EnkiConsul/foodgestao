@@ -9018,6 +9018,7 @@ export type Database = {
           superseded_by: string | null
           tipo: Database["public"]["Enums"]["dp_documento_tipo"]
           titulo: string
+          troca_gestor_id: string | null
           unidade_id: string | null
           updated_at: string
           uploaded_by: string | null
@@ -9078,6 +9079,7 @@ export type Database = {
           superseded_by?: string | null
           tipo?: Database["public"]["Enums"]["dp_documento_tipo"]
           titulo: string
+          troca_gestor_id?: string | null
           unidade_id?: string | null
           updated_at?: string
           uploaded_by?: string | null
@@ -9138,6 +9140,7 @@ export type Database = {
           superseded_by?: string | null
           tipo?: Database["public"]["Enums"]["dp_documento_tipo"]
           titulo?: string
+          troca_gestor_id?: string | null
           unidade_id?: string | null
           updated_at?: string
           uploaded_by?: string | null
@@ -9204,6 +9207,13 @@ export type Database = {
             columns: ["replaces_documento_id"]
             isOneToOne: false
             referencedRelation: "dp_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_documentos_troca_gestor_id_fkey"
+            columns: ["troca_gestor_id"]
+            isOneToOne: false
+            referencedRelation: "dp_trocas"
             referencedColumns: ["id"]
           },
           {
@@ -13700,6 +13710,7 @@ export type Database = {
           destino_assinatura: string | null
           destino_id: string
           gestor_id: string | null
+          gestor_requisicao: string | null
           gestor_respondido_em: string | null
           gestor_resposta: string | null
           id: string
@@ -13727,6 +13738,7 @@ export type Database = {
           destino_assinatura?: string | null
           destino_id: string
           gestor_id?: string | null
+          gestor_requisicao?: string | null
           gestor_respondido_em?: string | null
           gestor_resposta?: string | null
           id?: string
@@ -13754,6 +13766,7 @@ export type Database = {
           destino_assinatura?: string | null
           destino_id?: string
           gestor_id?: string | null
+          gestor_requisicao?: string | null
           gestor_respondido_em?: string | null
           gestor_resposta?: string | null
           id?: string
@@ -21685,6 +21698,20 @@ export type Database = {
           _notificar?: boolean
           _original: string
           _proposta: string
+          _sol: string
+        }
+        Returns: Json
+      }
+      dp_troca_gestor_registrar_documentada: {
+        Args: {
+          _arquivos: Json
+          _ciente_dsr: boolean
+          _company: string
+          _dest: string
+          _motivo: string
+          _original: string
+          _proposta: string
+          _requisicao: string
           _sol: string
         }
         Returns: Json
