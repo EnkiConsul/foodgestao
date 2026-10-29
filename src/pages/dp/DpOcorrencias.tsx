@@ -910,7 +910,7 @@ export default function DpOcorrencias() {
           </p>
         ) : (
           <div className="space-y-3">
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            <div className={cn("flex gap-2 overflow-x-auto pb-1", !filtrosAbertos && "hidden")}>
               {(["decidir", "compensar", "abonar", "descontar", "ajustar"] as DiretrizPonto[]).filter((d) => contagemDiretriz[d] > 0).map((d) => (
                 <Button key={d} variant={diretriz === d ? "default" : "outline"} className="min-h-11 shrink-0 gap-2" onClick={() => setDiretriz((v) => v === d ? null : d)} aria-pressed={diretriz === d}>{DIRETRIZ_LABEL[d]} <span className="font-semibold tabular-nums">{contagemDiretriz[d]}</span></Button>
               ))}

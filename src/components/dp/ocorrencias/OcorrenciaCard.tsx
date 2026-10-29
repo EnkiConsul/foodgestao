@@ -4,16 +4,11 @@ import { useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
-  ChevronDown,
-  ChevronUp,
   ClipboardCheck,
   Clock,
-  Pencil,
   MoreHorizontal,
-  History as HistoryIcon,
   ShieldAlert,
   UserPlus,
-  XCircle,
 } from "lucide-react";
 import { resumoTratativa } from "@/lib/dp/ocorrencia-resumo";
 
@@ -31,7 +26,6 @@ import {
   COR_CLASSE,
   ESTADO_LABEL,
   IMPACTO_LABEL,
-  MARCACAO_LABEL,
   ORIGEM_LABEL,
   TIPOS_COBRIVEIS,
   TIPOS_PREVISAO,
@@ -150,8 +144,8 @@ export function OcorrenciaCard({
             </p>
           )}
           {o.assiduidade_risco && (
-            <p className="mt-1 flex flex-wrap items-center gap-1 rounded-md border border-amber-500/40 bg-amber-500/5 px-2 py-1 text-xs">
-              <ShieldAlert className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+            <p className="mt-1 flex flex-wrap items-center gap-1 rounded-md border border-warning/40 bg-warning/5 px-2 py-1 text-xs">
+              <ShieldAlert className="h-3.5 w-3.5 text-warning" />
               <span className="font-medium">{ESTADO_ASSIDUIDADE_LABEL[estadoPremio]}</span>
               {o.assiduidade_risco_motivo ? ` · ${o.assiduidade_risco_motivo}` : ""}
             </p>

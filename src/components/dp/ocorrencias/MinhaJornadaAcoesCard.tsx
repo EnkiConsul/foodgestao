@@ -6,21 +6,12 @@ import { AlertTriangle, Clock, HeartPulse, HelpCircle, LogOut, Timer, UserX, Wre
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { sanitizeStorageFilename } from "@/lib/storage";
 import { registrarDocumento } from "@/lib/dp/documentos-oficial";
 import { TIPO_LABEL, resumoOperacional } from "@/lib/dp/ocorrencias";
@@ -60,7 +51,6 @@ const ICONE: Record<PortalOpcaoId, typeof Clock> = {
 
 /** Ações rápidas do colaborador sobre a jornada de hoje. */
 export function MinhaJornadaAcoesCard() {
-  const { user } = useAuth();
   const { previsto, minhas, hoje, registrar, colaboradorId, regraAssiduidade, ocorrenciasMes } =
     useMinhasOcorrencias();
   const { data: vinculo } = useMeuVinculoPortal();
@@ -204,10 +194,10 @@ export function MinhaJornadaAcoesCard() {
             <p
               key={o.id}
               className={cn(
-                "flex items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/5 px-2 py-1 text-xs",
+                "flex items-center gap-1.5 rounded-md border border-warning/40 bg-warning/5 px-2 py-1 text-xs",
               )}
             >
-              <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+              <AlertTriangle className="h-3.5 w-3.5 text-warning" />
               <span>
                 {resumoOperacional({
                   tipo: o.tipo,
@@ -338,7 +328,7 @@ export function MinhaJornadaAcoesCard() {
             )}
 
             {riscoPrevio && (
-              <p className="rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-xs">
+              <p className="rounded-md border border-warning/40 bg-warning/5 p-2 text-xs">
                 {riscoPrevio} O gestor decide se isso desconta o prêmio e você é avisado.
               </p>
             )}
