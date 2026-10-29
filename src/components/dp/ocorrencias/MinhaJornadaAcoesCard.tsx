@@ -6,20 +6,12 @@ import { AlertTriangle, Clock, HeartPulse, HelpCircle, LogOut, Timer, UserX, Wre
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { sanitizeStorageFilename } from "@/lib/storage";
 import { registrarDocumento } from "@/lib/dp/documentos-oficial";
 import { TIPO_LABEL, resumoOperacional } from "@/lib/dp/ocorrencias";
@@ -59,7 +51,6 @@ const ICONE: Record<PortalOpcaoId, typeof Clock> = {
 
 /** Ações rápidas do colaborador sobre a jornada de hoje. */
 export function MinhaJornadaAcoesCard() {
-  const { user } = useAuth();
   const { previsto, minhas, hoje, registrar, colaboradorId, regraAssiduidade, ocorrenciasMes } =
     useMinhasOcorrencias();
   const { data: vinculo } = useMeuVinculoPortal();
@@ -203,10 +194,10 @@ export function MinhaJornadaAcoesCard() {
             <p
               key={o.id}
               className={cn(
-                "flex items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/5 px-2 py-1 text-xs",
+                "flex items-center gap-1.5 rounded-md border border-warning/40 bg-warning/5 px-2 py-1 text-xs",
               )}
             >
-              <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+              <AlertTriangle className="h-3.5 w-3.5 text-warning" />
               <span>
                 {resumoOperacional({
                   tipo: o.tipo,
@@ -245,23 +236,12 @@ export function MinhaJornadaAcoesCard() {
         Informar aqui avisa a rotina na hora. A análise do gestor acontece depois.
       </p>
 
-      <Dialog open={!!aberta} onOpenChange={(open) => !open && fechar()}>
-        <DialogContent className="max-w-md max-h-[85svh] overflow-y-auto overflow-x-hidden">
-          <DialogHeader>
-            <DialogTitle>
-              {opcao?.pedeQuando && frases
-                ? quando === "ocorrido"
-                  ? frases.ocorrido
-                  : frases.previsto
-                : (opcao?.label ?? "")}
-            </DialogTitle>
-            <DialogDescription>
-              {aberta === "falta"
-                ? "Avisar não é o mesmo que ter a ausência aprovada — o gestor analisa depois."
-                : (opcao?.descricao ?? "")}
-            </DialogDescription>
-          </DialogHeader>
-
+      <ResponsiveDialog open={!!aberta} onOpenChange={(open) => !open && fechar()}
+        title={opcao?.pedeQuando && frases ? quando === "ocorrido" ? frases.ocorrido : frases.previsto : opcao?.label ?? ""}
+        description={aberta === "falta" ? "O gestor analisa a ausência depois do envio." : opcao?.descricao ?? ""}
+        className="sm:max-w-md"
+        footer={<Button className="min-h-12 w-full" onClick={enviar} disabled={registrar.isPending || enviandoAtestado || !motivo.trim() || faltaHorario || faltaAtraso}>Enviar</Button>}
+      >
           <div className="space-y-4">
             {opcao?.pedeQuando && frases && (
               <div className="space-y-2">
@@ -296,10 +276,11 @@ export function MinhaJornadaAcoesCard() {
                       key={m.id}
                       size="sm"
                       variant={momento === m.id ? "default" : "outline"}
-                      className="h-auto min-h-9 justify-start whitespace-normal py-2 text-left leading-snug"
+                      className="h-auto min-h-12 justify-between gap-2 whitespace-normal py-2 text-left leading-snug"
                       onClick={() => setMomento(m.id)}
                     >
-                      {m.label}
+                      <span>{m.label}</span>
+                      {(m.id === "entrada" ? entrada : m.id === "saida" ? saida : null) && <span className="shrink-0 text-xs tabular-nums">Previsto {m.id === "entrada" ? entrada : saida}</span>}
                     </Button>
                   ))}
                 </div>
@@ -320,7 +301,7 @@ export function MinhaJornadaAcoesCard() {
                       : "Horário em que o fato aconteceu"}
                   {aberta === "outro" ? " (opcional)" : ""}
                 </Label>
-                <Input type="time" value={horario} onChange={(e) => setHorario(e.target.value)} />
+                <Input className="min-h-11 text-base" type="time" value={horario} onChange={(e) => setHorario(e.target.value)} />
                 {aberta === "atraso" && entrada && (
                   <p className="text-xs text-muted-foreground">Entrada prevista {entrada}</p>
                 )}
@@ -347,7 +328,7 @@ export function MinhaJornadaAcoesCard() {
             )}
 
             {riscoPrevio && (
-              <p className="rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-xs">
+              <p className="rounded-md border border-warning/40 bg-warning/5 p-2 text-xs">
                 {riscoPrevio} O gestor decide se isso desconta o prêmio e você é avisado.
               </p>
             )}
@@ -366,25 +347,7 @@ export function MinhaJornadaAcoesCard() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={fechar}>
-              Voltar
-            </Button>
-            <Button
-              onClick={enviar}
-              disabled={
-                registrar.isPending ||
-                enviandoAtestado ||
-                !motivo.trim() ||
-                faltaHorario ||
-                faltaAtraso
-              }
-            >
-              Enviar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </ResponsiveDialog>
     </section>
   );
 }

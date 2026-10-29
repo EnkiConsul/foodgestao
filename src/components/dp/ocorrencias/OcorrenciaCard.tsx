@@ -4,20 +4,16 @@ import { useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
-  ChevronDown,
-  ChevronUp,
   ClipboardCheck,
   Clock,
-  Pencil,
   MoreHorizontal,
-  History as HistoryIcon,
   ShieldAlert,
   UserPlus,
-  XCircle,
 } from "lucide-react";
 import { resumoTratativa } from "@/lib/dp/ocorrencia-resumo";
 
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -30,7 +26,6 @@ import {
   COR_CLASSE,
   ESTADO_LABEL,
   IMPACTO_LABEL,
-  MARCACAO_LABEL,
   ORIGEM_LABEL,
   TIPOS_COBRIVEIS,
   TIPOS_PREVISAO,
@@ -95,6 +90,7 @@ export function OcorrenciaCard({
   const tratarPendente = tratativaPendente(o);
   const comPonto = temControlePonto(o);
   const abonoAtestado = !cancelada && tratativaJaDecididaPorAtestado(o) && o.tratativa_status === "pendente";
+  const ajustavel = !cancelada && !!onEditar && ["esquecimento_marcacao", "divergencia_jornada"].includes(o.tipo);
   const conferirPendente = !tratarPendente && !folgaAutorizada && o.subtipo !== "dispensa_aviso_art488" && o.analise_status === "pendente" && !cancelada;
 
   return (
@@ -148,8 +144,8 @@ export function OcorrenciaCard({
             </p>
           )}
           {o.assiduidade_risco && (
-            <p className="mt-1 flex flex-wrap items-center gap-1 rounded-md border border-amber-500/40 bg-amber-500/5 px-2 py-1 text-xs">
-              <ShieldAlert className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+            <p className="mt-1 flex flex-wrap items-center gap-1 rounded-md border border-warning/40 bg-warning/5 px-2 py-1 text-xs">
+              <ShieldAlert className="h-3.5 w-3.5 text-warning" />
               <span className="font-medium">{ESTADO_ASSIDUIDADE_LABEL[estadoPremio]}</span>
               {o.assiduidade_risco_motivo ? ` · ${o.assiduidade_risco_motivo}` : ""}
             </p>
@@ -174,29 +170,15 @@ export function OcorrenciaCard({
         </div>
 
         <div className="mt-4 flex w-full flex-wrap items-center gap-2 border-t border-border pt-4 sm:mt-0 sm:w-full [&_button]:min-h-11">
-          {o.estado === "aguardando_confirmacao" && (
-            <Button size="sm" variant="outline" onClick={onConfirmar}>
-              <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Confirmar
+          {!cancelada && (tratarPendente || conferirPendente || o.estado === "aguardando_confirmacao") && (
+            <Button className="min-h-12 min-w-0 flex-1 whitespace-normal" onClick={o.estado === "aguardando_confirmacao" ? onConfirmar : tratarPendente || ajustavel ? onTratativa : onAnalisar}>
+              <ClipboardCheck className="mr-2 h-4 w-4 shrink-0" />
+              {o.estado === "aguardando_confirmacao" ? "Conferir ocorrência" : ajustavel && comPonto ? "Confirmar batida" : "Tratar ocorrência"}
             </Button>
           )}
-          {tratarPendente && (
-            <Button size="sm" className="flex-1 sm:flex-none" onClick={onTratativa}>
-              <ClipboardCheck className="mr-1 h-3.5 w-3.5" /> {comPonto ? "Tratar ponto" : "Conferir ocorrência"}
-            </Button>
-          )}
-          {!cancelada && onEditar && ["esquecimento_marcacao", "divergencia_jornada"].includes(o.tipo) && (
-            <Button size="sm" variant="outline" onClick={onEditar}>
-              <Pencil className="mr-2 h-4 w-4" /> Editar
-            </Button>
-          )}
-          {conferirPendente && (
-            <Button size="sm" variant="outline" onClick={onAnalisar}>
-              <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Conferido
-            </Button>
-          )}
-          {estadoPremio === "aguardando" && !cancelada && onDecidirAssiduidade && (
-            <Button size="sm" variant="outline" onClick={onDecidirAssiduidade}>
-              <ShieldAlert className="mr-1 h-3.5 w-3.5" /> Decidir prêmio
+          {!cancelada && !tratarPendente && o.tratativa_status !== "pendente" && onLancado && comPonto && (
+            <Button size="sm" variant="outline" className="min-h-11 min-w-0 flex-1 whitespace-normal" onClick={() => onLancado(!o.lancado_ponto_em)} aria-pressed={!!o.lancado_ponto_em}>
+              <CheckCircle2 className="mr-2 h-4 w-4 shrink-0" />{o.lancado_ponto_em ? "Lançamento registrado" : "Registrar lançamento"}
             </Button>
           )}
           <DropdownMenu>
@@ -205,20 +187,18 @@ export function OcorrenciaCard({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {cobrivel && onCobrir && <DropdownMenuItem onSelect={onCobrir}>{validas.length ? "Ver cobertura" : "Cobrir ausência"}</DropdownMenuItem>}
-              {onLancado && !cancelada && comPonto && <DropdownMenuItem onSelect={() => onLancado(!o.lancado_ponto_em)}>{o.lancado_ponto_em ? "Desmarcar lançamento no ponto" : "Marcar como lançado"}</DropdownMenuItem>}
+              <DropdownMenuItem onSelect={() => setDetalhes(true)}>Ver detalhes e impactos</DropdownMenuItem>
+              {ajustavel && !tratarPendente && <DropdownMenuItem onSelect={onEditar}>Ajustar batida</DropdownMenuItem>}
+              {estadoPremio === "aguardando" && !cancelada && onDecidirAssiduidade && <DropdownMenuItem onSelect={onDecidirAssiduidade}>Decidir prêmio</DropdownMenuItem>}
               {onHistorico && <DropdownMenuItem onSelect={onHistorico}>Histórico</DropdownMenuItem>}
               {!cancelada && !folgaAutorizada && <DropdownMenuItem onSelect={onCancelar}>Cancelar ocorrência</DropdownMenuItem>}
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button size="sm" variant="ghost" onClick={() => setDetalhes((v) => !v)}>
-            {detalhes ? <ChevronUp className="mr-1 h-3.5 w-3.5" /> : <ChevronDown className="mr-1 h-3.5 w-3.5" />}
-            Detalhes
-          </Button>
         </div>
       </div>
 
-      {detalhes && (
-        <div className="mt-4 space-y-3 border-t border-border pt-4 text-xs">
+      <ResponsiveDialog open={detalhes} onOpenChange={setDetalhes} title="Detalhes da ocorrência" description={nomeExibicao(o.colaborador) || "Colaborador"}>
+        <div className="space-y-4 text-sm">
           <p className="text-muted-foreground">
             {rotuloTipoOcorrencia(o)} · {ESTADO_LABEL[o.estado]} · {ORIGEM_LABEL[o.origem]}
             {o.unidade?.nome ? ` · ${o.unidade.nome}` : ""}
@@ -237,7 +217,7 @@ export function OcorrenciaCard({
               Execução da cobertura: {COBERTURA_EXECUCAO_LABEL[validas[0].execucao_status]}
             </p>
           )}
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-col gap-4">
             {(["assiduidade", "ferias"] as const).map((campo) => (
               <div key={campo} className="flex items-center gap-2">
                 <span className="text-muted-foreground">{campo === "assiduidade" ? "Perde assiduidade" : "Desconta férias"}</span>
@@ -246,7 +226,7 @@ export function OcorrenciaCard({
                   onValueChange={(v) => onImpacto(campo, v as OcorrenciaImpacto)}
                   disabled={cancelada || folgaAutorizada}
                 >
-                  <SelectTrigger className="h-7 w-[130px] text-xs">
+                  <SelectTrigger className="min-h-11 w-[150px] text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -263,20 +243,8 @@ export function OcorrenciaCard({
               {ANALISE_LABEL[o.analise_status]}
             </Badge>
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {onHistorico && (
-              <Button size="sm" variant="ghost" onClick={onHistorico}>
-                <HistoryIcon className="mr-1 h-3.5 w-3.5" /> Histórico
-              </Button>
-            )}
-            {!cancelada && !folgaAutorizada && (
-              <Button size="sm" variant="ghost" onClick={onCancelar}>
-                <XCircle className="mr-1 h-3.5 w-3.5" /> Cancelar ocorrência
-              </Button>
-            )}
-          </div>
         </div>
-      )}
+      </ResponsiveDialog>
     </div>
   );
 }

@@ -18,18 +18,22 @@ interface Props {
   modo?: "editar" | "tratar";
   onSubmit: (input: { decisao: string; observacao: string }) => void;
   /** Gestor grava o horário real apurado (esquecimento/divergência). */
-  onAjustarHorario?: (input: { horario: string; observacao: string; marcacaoAlvo?: OcorrenciaMarcacao }) => void;
+  onAjustarHorario?: (input: { horario: string; observacao: string; marcacaoAlvo?: OcorrenciaMarcacao; concluir?: boolean }) => void;
 }
 
 const TIPOS_AJUSTE_HORARIO = ["esquecimento_marcacao", "divergencia_jornada"];
 
 /** Decisão do gestor sobre o que precisa ser considerado depois no ponto. */
 export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, modo = "tratar", onSubmit, onAjustarHorario }: Props) {
+  const [decisao, setDecisao] = useState<string | null>(null);
+  const [concluir, setConcluir] = useState(true);
   const [observacao, setObservacao] = useState("");
   const [horario, setHorario] = useState("");
   const [marcacao, setMarcacao] = useState<OcorrenciaMarcacao | null>(null);
 
   useEffect(() => {
+    setDecisao(null);
+    setConcluir(true);
     setObservacao(modo === "editar" ? "" : ocorrencia?.tratativa_observacao ?? "");
     setMarcacao(ocorrencia?.marcacao_alvo ?? null);
     setHorario((ocorrencia?.horario_real ?? "").slice(0, 5));
@@ -47,67 +51,31 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, mo
   const ajusteMudou = ajustavel && (horarioMudou || marcacao !== (ocorrencia.marcacao_alvo ?? null) || observacaoMudou);
   const jaTratada = ocorrencia.tratativa_status !== "pendente";
 
+  const confirmar = () => {
+    if (ajustavel && ajusteMudou) {
+      onAjustarHorario?.({ horario, observacao: observacao.trim(), ...(marcacao ? { marcacaoAlvo: marcacao } : {}), ...(modo === "tratar" ? { concluir: jaTratada ? false : concluir } : {}) });
+    } else {
+      onSubmit({ decisao: jornada ? decisao ?? "" : decisao ?? "confirmada", observacao });
+    }
+  };
+  const invalido = ajustavel
+    ? !horarioValido || (ocorrencia.tipo === "esquecimento_marcacao" && !marcacao) || (ajusteMudou && observacao.trim().length < 3) || ((modo === "editar" || jaTratada) && !ajusteMudou)
+    : jornada && !decisao;
   const footer = (
-        <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap [&_button]:min-h-11">
-          <Button variant="outline" disabled={saving} onClick={() => onOpenChange(false)}>
-            Fechar
-          </Button>
-          {jornada ? (
-            <>
-              <Button variant="outline" disabled={saving} onClick={() => onSubmit({ decisao: "desconto", observacao })}>
-                Desconto em Folha
-              </Button>
-              <Button variant="outline" disabled={saving} onClick={() => onSubmit({ decisao: "abono", observacao })}>
-                Abono
-              </Button>
-              <Button disabled={saving} onClick={() => onSubmit({ decisao: "compensacao", observacao })}>
-                Compensação
-              </Button>
-            </>
-          ) : ajustavel ? (
-            <>
-            <Button
-              disabled={saving || !horarioValido || !ajusteMudou || observacao.trim().length < 3 || (ocorrencia.tipo === "esquecimento_marcacao" && !marcacao)}
-              onClick={() => onAjustarHorario?.({ horario, observacao: observacao.trim(), ...(marcacao ? { marcacaoAlvo: marcacao } : {}) })}
-            >
-              {saving ? "Salvando…" : "Salvar ajuste"}
-            </Button>
-            {modo !== "editar" && !jaTratada && !ajusteMudou && (
-              <Button disabled={saving} onClick={() => onSubmit({ decisao: "confirmada", observacao })}>
-                {r.horario ? `Aceitar ${r.horario}` : "Aceitar"}
-              </Button>
-            )}
-            </>
-          ) : (
-            <>
-              {comPonto && (
-                <Button variant="outline" disabled={saving} onClick={() => onSubmit({ decisao: "ajuste_solicitado", observacao })}>
-                  Anotar ajuste p/ quem lança o ponto
-                </Button>
-              )}
-              <Button disabled={saving} onClick={() => onSubmit({ decisao: "confirmada", observacao })}>
-                {ocorrenciaDeFolga(ocorrencia)
-                  ? "Confirmar justificativa"
-                  : !comPonto
-                    ? "Registrar ciência"
-                    : r.horario
-                      ? `Aceitar ${r.horario}`
-                      : "Aceitar"}
-              </Button>
-            </>
-          )}
-        </div>
+    <Button className="min-h-12 w-full whitespace-normal" disabled={saving || !!invalido} onClick={confirmar}>
+      {saving ? "Salvando…" : ajustavel ? modo === "editar" || jaTratada ? "Salvar ajuste" : ajusteMudou ? concluir ? "Salvar ajuste e confirmar" : "Salvar ajuste e manter pendente" : comPonto ? "Confirmar batida" : "Confirmar ocorrência" : "Confirmar decisão"}
+    </Button>
   );
 
   return (
     <ResponsiveDialog open onOpenChange={(open) => !saving && onOpenChange(open)}
-      title={modo === "editar" ? "Editar ocorrência" : comPonto ? "Tratar ponto" : "Conferir ocorrência"}
+      title={ajustavel && comPonto ? modo === "editar" || jaTratada ? "Ajustar batida" : "Confirmar batida" : "Tratar ocorrência"}
       description={`${ocorrencia.colaborador?.nome ?? "Colaborador"} · ${ocorrencia.data_operacional?.split("-").reverse().join("/") ?? ""}`}
       className="sm:max-w-md"
       footer={footer}
     >
         <div className="space-y-4">
-          <div className="rounded-md border border-border p-3">
+          <div className="space-y-2 border-b border-border pb-4">
             <p className="text-sm font-medium">{r.titulo}</p>
             <p className="mt-1 text-lg font-semibold tabular-nums">
               {r.batida ?? rotuloTipoOcorrencia(ocorrencia)}
@@ -144,6 +112,25 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, mo
               </p>
             </div>
           )}
+          {jornada && (
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium">Decisão</legend>
+              <div className="grid gap-2">
+                {[["compensacao", "Compensação"], ["abono", "Abono"], ["desconto", "Desconto em Folha"]].map(([valor, label]) => (
+                  <Button key={valor} variant={decisao === valor ? "default" : "outline"} className="min-h-12" aria-pressed={decisao === valor} disabled={saving} onClick={() => setDecisao(valor)}>{label}</Button>
+                ))}
+              </div>
+            </fieldset>
+          )}
+          {!jornada && !ajustavel && comPonto && (
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium">Decisão</legend>
+              <div className="grid gap-2">
+                <Button variant={decisao !== "ajuste_solicitado" ? "default" : "outline"} className="min-h-12" aria-pressed={decisao !== "ajuste_solicitado"} disabled={saving} onClick={() => setDecisao("confirmada")}>Confirmar ocorrência</Button>
+                <Button variant={decisao === "ajuste_solicitado" ? "default" : "outline"} className="min-h-12" aria-pressed={decisao === "ajuste_solicitado"} disabled={saving} onClick={() => setDecisao("ajuste_solicitado")}>Registrar orientação de ajuste</Button>
+              </div>
+            </fieldset>
+          )}
           <div className="space-y-1.5">
             <Label htmlFor="observacao-tratativa">{ajustavel ? "Motivo do ajuste" : "Observação (opcional)"}</Label>
             <Textarea
@@ -161,15 +148,13 @@ export function OcorrenciaTratativaDialog({ ocorrencia, onOpenChange, saving, mo
               </p>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">
-            {modo === "editar"
-              ? "A correção preserva a justificativa original e não conclui a conferência. O lançamento no ponto externo continua separado."
-              : jornada
-              ? "Escolha a decisão: Compensação (o tempo será compensado), Abono ou Desconto em Folha. Nada é descontado sem a sua escolha."
-              : comPonto
-                ? "Ao decidir, a ocorrência já sai das pendências. O ponto em si é ajustado por quem faz o tratamento."
-                : "Ao confirmar, você registra ciência da justificativa e a ocorrência sai das pendências."}
-          </p>
+          {ajustavel && ajusteMudou && modo === "tratar" && !jaTratada && (
+            <label className="flex min-h-11 items-center gap-3 text-sm">
+              <input type="checkbox" className="h-5 w-5 accent-primary" checked={concluir} disabled={saving} onChange={(e) => setConcluir(e.target.checked)} />
+              Concluir conferência ao salvar
+            </label>
+          )}
+
         </div>
 
 

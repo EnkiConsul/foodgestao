@@ -622,8 +622,8 @@ export default function DpOcorrencias() {
         </div>
       )}
 
-      <div className="hidden md:flex justify-end py-2"><Button variant="outline" onClick={() => setFiltrosAbertos((v) => !v)}><SlidersHorizontal className="mr-2 h-4 w-4" />Filtros{activeCount ? ` (${activeCount})` : ""}</Button></div>
-      <div className={cn(!filtrosAbertos && "md:hidden")}><DpFilters
+      <div className="flex justify-end py-2"><Button variant="outline" onClick={() => setFiltrosAbertos((v) => !v)}><SlidersHorizontal className="mr-2 h-4 w-4" />Filtros{activeCount ? ` (${activeCount})` : ""}</Button></div>
+      <div className={cn(!filtrosAbertos && "hidden")}><DpFilters
         search={{
           value: filtros.busca,
           onChange: (v) => set("busca", v),
@@ -910,7 +910,7 @@ export default function DpOcorrencias() {
           </p>
         ) : (
           <div className="space-y-3">
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            <div className={cn("flex gap-2 overflow-x-auto pb-1", !filtrosAbertos && "hidden")}>
               {(["decidir", "compensar", "abonar", "descontar", "ajustar"] as DiretrizPonto[]).filter((d) => contagemDiretriz[d] > 0).map((d) => (
                 <Button key={d} variant={diretriz === d ? "default" : "outline"} className="min-h-11 shrink-0 gap-2" onClick={() => setDiretriz((v) => v === d ? null : d)} aria-pressed={diretriz === d}>{DIRETRIZ_LABEL[d]} <span className="font-semibold tabular-nums">{contagemDiretriz[d]}</span></Button>
               ))}
@@ -990,10 +990,10 @@ export default function DpOcorrencias() {
         modo={modoTratativa}
         onOpenChange={(open) => !open && setTratativa(null)}
         saving={acoes.tratar.isPending || acoes.ajustarHorario.isPending}
-        onAjustarHorario={({ horario, observacao, marcacaoAlvo }) =>
+        onAjustarHorario={({ horario, observacao, marcacaoAlvo, concluir }) =>
           tratativa &&
           acoes.ajustarHorario.mutate(
-            { id: tratativa.id, horario, observacao, marcacaoAlvo, horarioAnterior: tratativa.horario_real, marcacaoAnterior: tratativa.marcacao_alvo, concluir: modoTratativa === "tratar" },
+            { id: tratativa.id, horario, observacao, marcacaoAlvo, horarioAnterior: tratativa.horario_real, marcacaoAnterior: tratativa.marcacao_alvo, concluir: concluir ?? modoTratativa === "tratar" },
             { onSuccess: () => setTratativa(null) },
           )
         }
