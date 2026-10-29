@@ -1024,8 +1024,8 @@ export default function DpOcorrencias() {
 
       <OcorrenciaTratativaDialog
         ocorrencia={tratativa}
-        onOpenChange={(open) => !open && setTratativa(null)}
-        saving={acoes.tratar.isPending || acoes.ajustarHorario.isPending}
+        onOpenChange={(open) => { if (!open) { setTratativa(null); setLote(null); } }}
+        saving={salvandoLote || acoes.tratar.isPending || acoes.ajustarHorario.isPending}
         onAjustarHorario={({ horario, observacao, marcacaoAlvo, concluir }) =>
           tratativa &&
           acoes.ajustarHorario.mutate(
@@ -1033,18 +1033,27 @@ export default function DpOcorrencias() {
             { onSuccess: () => setTratativa(null) },
           )
         }
-        onSubmit={({ decisao, observacao }) =>
-          tratativa &&
+        onSubmit={async ({ decisao, observacao }) => {
+          if (!tratativa) return;
+          if (lote && lote.length > 1) {
+            setSalvandoLote(true);
+            let ok = 0;
+            try {
+              for (const o of lote) {
+                await acoes.tratar.mutateAsync({ id: o.id, decisao, observacao, marcarAnalisada: o.analise_status === "pendente" });
+                ok++;
+              }
+              setTratativa(null); setLote(null);
+            } catch {
+              toast.error(`${ok} de ${lote.length} dias foram tratados. Abra o card para concluir os restantes.`);
+            } finally { setSalvandoLote(false); }
+            return;
+          }
           acoes.tratar.mutate(
-            {
-              id: tratativa.id,
-              decisao,
-              observacao,
-              marcarAnalisada: tratativa.analise_status === "pendente",
-            },
+            { id: tratativa.id, decisao, observacao, marcarAnalisada: tratativa.analise_status === "pendente" },
             { onSuccess: () => setTratativa(null) },
-          )
-        }
+          );
+        }}
       />
 
       <MotivoDialog
