@@ -45,7 +45,7 @@ export function feedOrdenadoComFerias(lista: Ocorrencia[]): ItemFeed[] {
   for (const o of lista) {
     const ferias = o.subtipo === 'ferias';
     if (!ferias && o.tipo === 'falta' && !o.justificativa_inicial) { itens.push({ tipo: 'ocorrencia', o }); continue; }
-    const key = ferias ? `f:${o.colaborador_id}:${o.ferias_gozo_id ?? o.id}:${o.estado}` : `b:${o.colaborador_id}:${o.tipo}:${o.subtipo ?? ''}:${o.estado}:${o.tratativa_status}:${(o.justificativa_inicial ?? '').trim().toLowerCase()}`;
+    const key = ferias ? `f:${o.colaborador_id}:${o.ferias_gozo_id ?? o.id}:${o.estado}` : `b:${o.colaborador_id}:${o.tipo}:${o.subtipo ?? ''}:${o.estado}:${o.tratativa_status}:${o.solicitacao_id ? `s:${o.solicitacao_id}` : (o.justificativa_inicial ?? '').trim().toLowerCase()}`;
     const n = diaNum(o.data_operacional); const g = abertos.get(key);
     if (g && (ferias || n === g.min - 1 || n === g.max + 1)) { g.item.grupo.push(o); g.min = Math.min(g.min, n); g.max = Math.max(g.max, n); continue; }
     const item = { tipo: ferias ? 'ferias' as const : 'bloco' as const, grupo: [o] }; abertos.set(key, { item, min: n, max: n }); itens.push(item);
@@ -74,13 +74,14 @@ export function variacaoOcorrencia(o: Ocorrencia): string | null {
   const h = Math.floor(Math.abs(o.minutos) / 60), m = Math.abs(o.minutos) % 60;
   return `${o.minutos < 0 ? '-' : '+'}${h ? `${h}h ` : ''}${m}min`.trim();
 }
-export interface FechamentoContabil { minutosDesconto: number; faltasDesconto: number; minutosAbonados: number; perdeAssiduidade: number; descontaFerias: number; diasFerias: number; diasDescanso: number; pendencias: number }
+export interface FechamentoContabil { minutosDesconto: number; faltasDesconto: number; minutosAbonados: number; perdeAssiduidade: number; descontaFerias: number; diasFerias: number; diasAtestado: number; diasDescanso: number; pendencias: number }
 /** Totais do fechamento. Só decisões persistidas contam como desconto/abono; nada é presumido. */
 export function calcularFechamentoContabil(ocorrencias: Ocorrencia[]): FechamentoContabil {
-  const r: FechamentoContabil = { minutosDesconto: 0, faltasDesconto: 0, minutosAbonados: 0, perdeAssiduidade: 0, descontaFerias: 0, diasFerias: 0, diasDescanso: 0, pendencias: 0 };
+  const r: FechamentoContabil = { minutosDesconto: 0, faltasDesconto: 0, minutosAbonados: 0, perdeAssiduidade: 0, descontaFerias: 0, diasFerias: 0, diasAtestado: 0, diasDescanso: 0, pendencias: 0 };
   for (const o of ocorrencias) {
     if (o.estado === 'cancelada') continue;
     if (o.subtipo === 'ferias') { r.diasFerias++; continue; }
+    if (o.tipo === 'atestado') r.diasAtestado++;
     if (ehDescansoAutorizado(o)) { r.diasDescanso++; continue; }
     if (o.tratativa_status === 'pendente' && tratativaPendente(o)) r.pendencias++;
     const min = Math.abs(o.minutos ?? 0);
@@ -90,4 +91,11 @@ export function calcularFechamentoContabil(ocorrencias: Ocorrencia[]): Fechament
     if (o.impacta_ferias === 'sim') r.descontaFerias++;
   }
   return r;
+}
+
+/** Período curto para cabeçalhos no celular: "20/10 a 22/10 (3 dias)". */
+export function periodoCurto(grupo: Pick<Ocorrencia,'data_operacional'>[]): string {
+  const f = (d?: string) => { const [, m, dd] = (d ?? '').split('-'); return `${dd}/${m}`; };
+  const ini = grupo[0]?.data_operacional, fim = grupo[grupo.length - 1]?.data_operacional;
+  return ini === fim ? f(ini) : `${f(ini)} a ${f(fim)} (${grupo.length} dias)`;
 }

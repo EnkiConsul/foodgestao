@@ -23,7 +23,9 @@ import { mensagemErro } from "@/lib/dp/mensagemErro";
 import { MotivoDialog } from "@/components/dp/MotivoDialog";
 import { OcorrenciaCard } from "@/components/dp/ocorrencias/OcorrenciaCard";
 import { OcorrenciasRelatorioDialog } from "@/components/dp/ocorrencias/OcorrenciasRelatorioDialog";
-import { feedOrdenadoComFerias } from "@/lib/dp/ocorrencias-relatorio";
+import { feedOrdenadoComFerias, periodoCurto as periodoBloco, type ItemFeed } from "@/lib/dp/ocorrencias-relatorio";
+import { Badge } from "@/components/ui/badge";
+import { nomeExibicao } from "@/lib/dp/nomeExibicao";
 import { OcorrenciaConfirmarDialog } from "@/components/dp/ocorrencias/OcorrenciaConfirmarDialog";
 import { OcorrenciaFormDialog } from "@/components/dp/ocorrencias/OcorrenciaFormDialog";
 import { OcorrenciaTratativaDialog } from "@/components/dp/ocorrencias/OcorrenciaTratativaDialog";
@@ -405,10 +407,27 @@ export default function DpOcorrencias() {
     try { await navigator.clipboard.writeText(linhas.join("\n")); toast.success("Resumo copiado. Cole no WhatsApp ou e-mail."); }
     catch { toast.error("Não foi possível copiar. Tente de novo."); }
   };
+  const renderItem = (it: ItemFeed) => {
+    if (it.tipo === 'ocorrencia') return renderCard(it.o);
+    const g = it.grupo; const aTratar = g.filter((o) => tratativaPendente(o)).length;
+    return (
+      <details key={`${it.tipo}-${g[0]?.id}`} className="group rounded-xl border border-border bg-card">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 p-4 [&::-webkit-details-marker]:hidden">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold">{nomeExibicao(g[0]?.colaborador) || "Colaborador"}</p>
+            <p className="text-xs text-muted-foreground">{it.tipo === 'ferias' ? 'Férias' : rotuloTipoOcorrencia(g[0])} · {periodoBloco(g)}</p>
+          </div>
+          <Badge variant={aTratar > 0 ? "default" : "secondary"} className="shrink-0">{aTratar > 0 ? `${aTratar} a tratar` : "Sem pendência"}</Badge>
+          <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
+        </summary>
+        <div className="space-y-3 border-t border-border p-3">{g.map((o) => renderCard(o))}</div>
+      </details>
+    );
+  };
   const porColaborador = (() => {
     const m = new Map<string, { nome: string; linhas: typeof acoes.ocorrencias }>();
     for (const o of lista) {
-      const g = m.get(o.colaborador_id) ?? { nome: o.colaborador?.nome ?? "Colaborador", linhas: [] };
+      const g = m.get(o.colaborador_id) ?? { nome: nomeExibicao(o.colaborador) || "Colaborador", linhas: [] };
       g.linhas.push(o);
       m.set(o.colaborador_id, g);
     }
@@ -938,7 +957,7 @@ export default function DpOcorrencias() {
               <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="ml-auto" aria-label="Opções da lista" title="Opções da lista"><ClipboardList className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => void copiarResumo()}>Copiar resumo do ponto</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
             </div>
             {visao === "dia" ? (
-              <div className="space-y-4">{feedDia.map((it) => it.tipo === 'ocorrencia' ? renderCard(it.o) : <details key={it.grupo[0]?.id} className="rounded-lg border border-border p-4"><summary className="min-h-11 cursor-pointer text-sm font-medium">{it.grupo[0]?.colaborador?.nome} · {it.tipo === 'ferias' ? 'Férias' : rotuloTipoOcorrencia(it.grupo[0])} · {it.grupo[0]?.data_operacional.split('-').reverse().join('/')} a {it.grupo[it.grupo.length - 1]?.data_operacional.split('-').reverse().join('/')} · {it.grupo.length} dias</summary><div className="mt-3 space-y-3">{it.grupo.map(o => renderCard(o))}</div></details>)}</div>
+              <div className="space-y-4">{feedDia.map(renderItem)}</div>
             ) : (
               porColaborador.map(([id, g]) => {
                 const aTratar = g.linhas.filter((o) => tratativaPendente(o)).length;
@@ -951,7 +970,7 @@ export default function DpOcorrencias() {
                       </span>
                     </summary>
                     <div className="space-y-2 border-t border-border p-2">
-                      {[...g.linhas].sort((a, b) => a.data_operacional.localeCompare(b.data_operacional)).map((o) => renderCard(o))}
+                      {feedOrdenadoComFerias([...g.linhas].sort((a, b) => a.data_operacional.localeCompare(b.data_operacional))).map(renderItem)}
                     </div>
                   </details>
                 );
