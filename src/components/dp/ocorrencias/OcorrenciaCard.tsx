@@ -166,6 +166,12 @@ export function OcorrenciaCard({
               {o.tratativa_observacao ? ` · ${o.tratativa_observacao}` : ""}
             </p>
           )}
+          {controleLancamento && (
+            <Badge variant="outline" className="mt-2 gap-1 text-xs">
+              {o.lancado_ponto_em ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
+              {o.lancado_ponto_em ? "Lançado" : "Lançamento pendente"}
+            </Badge>
+          )}
         </div>
 
         <div className="mt-4 flex w-full flex-wrap items-center gap-2 border-t border-border pt-4 sm:mt-0 sm:w-full [&_button]:min-h-11">
@@ -174,12 +180,6 @@ export function OcorrenciaCard({
               <ClipboardCheck className="mr-2 h-4 w-4 shrink-0" />
               {o.estado === "aguardando_confirmacao" || !comPonto ? "Conferir ocorrência" : "Tratar ponto"}
             </Button>
-          )}
-          {controleLancamento && (
-            <Badge variant="outline" className="gap-1 text-xs">
-              {o.lancado_ponto_em ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
-              {o.lancado_ponto_em ? "Lançado" : "Lançamento pendente"}
-            </Badge>
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
