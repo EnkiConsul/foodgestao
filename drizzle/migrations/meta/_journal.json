@@ -1212,6 +1212,13 @@
       "when": 1793295863667,
       "tag": "0172_disciplinar_antecedentes_contrato",
       "breakpoints": true
+    },
+    {
+      "idx": 173,
+      "version": "7",
+      "when": 1793370789871,
+      "tag": "0173_assinatura_limites_ignora_conexoes_revogadas",
+      "breakpoints": true
     }
   ]
 }
