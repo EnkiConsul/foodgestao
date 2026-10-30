@@ -1226,6 +1226,13 @@
       "when": 1793372706877,
       "tag": "0174_conciliacao_baixa_lancamento_existente",
       "breakpoints": true
+    },
+    {
+      "idx": 175,
+      "version": "7",
+      "when": 1793375392739,
+      "tag": "0175_conciliacao_baixa_com_diferenca",
+      "breakpoints": true
     }
   ]
 }

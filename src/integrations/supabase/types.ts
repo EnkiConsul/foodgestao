@@ -22352,6 +22352,17 @@ export type Database = {
         }
         Returns: string
       }
+      pluggy_conciliacao_baixar_ajuste: {
+        Args: {
+          p_account_id: string
+          p_contact_id?: string
+          p_diferenca_category_id?: string
+          p_payment_method_id?: string
+          p_staging_id: string
+          p_transaction_id: string
+        }
+        Returns: string
+      }
       pluggy_conciliacao_candidatos: {
         Args: { p_company_id: string; p_staging_ids: string[] }
         Returns: {
