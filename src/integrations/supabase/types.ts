@@ -22357,6 +22357,7 @@ export type Database = {
           p_account_id: string
           p_contact_id?: string
           p_diferenca_category_id?: string
+          p_modo_menor?: string
           p_payment_method_id?: string
           p_staging_id: string
           p_transaction_id: string

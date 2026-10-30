@@ -16,7 +16,7 @@ interface Props {
   candidatos: CandidatoPontuado[];
   busy: boolean;
   formatValor: (v: number) => string;
-  onBaixar: (transactionId: string, diferencaCategoryId?: string) => void;
+  onBaixar: (transactionId: string, diferencaCategoryId?: string, modoMenor?: "parcial" | "desconto") => void;
   categoriasDiferenca?: CatOpt[];
 }
 
@@ -33,6 +33,7 @@ function detalhe(c: CandidatoPontuado) {
 export function SugestaoBaixa({ candidatos, busy, formatValor, onBaixar, categoriasDiferenca = [] }: Props) {
   const [aberto, setAberto] = useState(false);
   const [catPorTx, setCatPorTx] = useState<Record<string, string>>({});
+  const [modoPorTx, setModoPorTx] = useState<Record<string, "parcial" | "desconto">>({});
   const selecionaveis = useMemo(() => {
     const pais = new Set(categoriasDiferenca.map((o) => o.cat.parent_id).filter(Boolean) as string[]);
     return categoriasDiferenca.filter((o) => o.cat.is_active !== false && o.cat.allow_transactions !== false && !pais.has(o.cat.id));
@@ -52,6 +53,7 @@ export function SugestaoBaixa({ candidatos, busy, formatValor, onBaixar, categor
         const acrescimo = c.diferenca >= 0.005;
         const desconto = c.diferenca <= -0.005;
         const cat = catPorTx[c.transaction_id];
+        const modo = modoPorTx[c.transaction_id];
         return (
           <div key={c.transaction_id} className="space-y-1.5">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -66,7 +68,7 @@ export function SugestaoBaixa({ candidatos, busy, formatValor, onBaixar, categor
                   <div className="text-foreground">Pago {formatValor(c.diferenca)} a mais (juros/acréscimo). A diferença vira um lançamento separado.</div>
                 )}
                 {desconto && (
-                  <div className="text-foreground">Pago {formatValor(-c.diferenca)} a menos. A conta será quitada com desconto, registrado na observação.</div>
+                  <div className="text-foreground">Pago {formatValor(-c.diferenca)} a menos. Escolha abaixo se é pagamento parcial ou desconto.</div>
                 )}
               </div>
               <div className="flex items-center gap-2">
@@ -76,8 +78,8 @@ export function SugestaoBaixa({ candidatos, busy, formatValor, onBaixar, categor
                 <Button
                   size="sm"
                   className="h-7 px-2 text-xs"
-                  disabled={busy || (acrescimo && !cat)}
-                  onClick={() => onBaixar(c.transaction_id, acrescimo ? cat : undefined)}
+                  disabled={busy || (acrescimo && !cat) || (desconto && !modo)}
+                  onClick={() => onBaixar(c.transaction_id, acrescimo ? cat : undefined, desconto ? modo : undefined)}
                 >
                   {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Dar baixa neste"}
                 </Button>
@@ -94,6 +96,26 @@ export function SugestaoBaixa({ candidatos, busy, formatValor, onBaixar, categor
                   ))}
                 </SelectContent>
               </Select>
+            )}
+            {desconto && (
+              <div role="radiogroup" aria-label="Como tratar o valor pago a menos" className="grid gap-1.5 sm:grid-cols-2">
+                {([
+                  ["parcial", "Pagamento parcial", `Fica ${formatValor(-c.diferenca)} pendente para pagar depois`],
+                  ["desconto", "Quitar com desconto", `Conta encerrada; ${formatValor(-c.diferenca)} de desconto`],
+                ] as const).map(([v, titulo, texto]) => (
+                  <button
+                    key={v}
+                    type="button"
+                    role="radio"
+                    aria-checked={modo === v}
+                    onClick={() => setModoPorTx((p) => ({ ...p, [c.transaction_id]: v }))}
+                    className={cn("rounded-md border bg-background p-2 text-left", modo === v ? "border-primary ring-1 ring-primary" : "border-border")}
+                  >
+                    <div className="font-medium text-foreground">{titulo}</div>
+                    <div className="text-muted-foreground">{texto}</div>
+                  </button>
+                ))}
+              </div>
             )}
           </div>
         );
