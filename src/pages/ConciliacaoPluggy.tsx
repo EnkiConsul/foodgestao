@@ -1471,7 +1471,7 @@ export default function ConciliacaoPluggy() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCompanyId, pendingBankIdsKey]);
 
-  const baixarExistente = async (stagingId: string, transactionId: string, diferencaCategoryId?: string) => {
+  const baixarExistente = async (stagingId: string, transactionId: string, diferencaCategoryId?: string, modoMenor?: "parcial" | "desconto") => {
     const r = rows.find((x) => x.id === stagingId);
     const acctId = rowAccount[stagingId] ?? (r ? linkedByPluggyAccount[r.pluggy_account_id] : undefined);
     if (!acctId) { toast.error("Selecione a conta de destino antes de dar baixa"); return; }
@@ -1484,17 +1484,20 @@ export default function ConciliacaoPluggy() {
         p_payment_method_id: rowPayment[stagingId] || undefined,
         p_contact_id: rowContact[stagingId] || undefined,
         p_diferenca_category_id: diferencaCategoryId || undefined,
+        p_modo_menor: modoMenor,
       });
       if (error) {
         const msg = error.message.includes("amount_mismatch") || error.message.includes("transaction_not_pending")
           ? "Esse lançamento mudou e não pode mais receber esta baixa. Atualize a tela."
+          : error.message.includes("lesser_mode_required")
+          ? "Escolha se é pagamento parcial ou desconto."
           : error.message.includes("difference_category_required")
           ? "Escolha a categoria da diferença."
           : error.message;
         toast.error("Não foi possível dar baixa", { description: msg });
         return;
       }
-      toast.success("Baixa registrada", { description: "O lançamento já cadastrado foi marcado como pago, sem criar outro." });
+      toast.success("Baixa registrada", { description: modoMenor === "parcial" ? "O valor pago foi baixado e o restante continua pendente em Lançamentos." : "O lançamento já cadastrado foi marcado como pago, sem criar outro." });
       setSelected((prev) => { const n = new Set(prev); n.delete(stagingId); return n; });
       load();
     } finally { setBaixaBusy(null); }
@@ -2551,7 +2554,7 @@ export default function ConciliacaoPluggy() {
                     candidatos={candidatosBaixa[r.id]}
                     busy={baixaBusy === r.id}
                     formatValor={maskBRL}
-                    onBaixar={(tid, cat) => { void baixarExistente(r.id, tid, cat); }}
+                    onBaixar={(tid, cat, modo) => { void baixarExistente(r.id, tid, cat, modo); }}
                     categoriasDiferenca={Number(r.amount) >= 0 ? categoryOptionsReceita : categoryOptionsDespesa}
                   />
                 </div>
@@ -2932,7 +2935,7 @@ export default function ConciliacaoPluggy() {
                           candidatos={candidatosBaixa[r.id]}
                           busy={baixaBusy === r.id}
                           formatValor={maskBRL}
-                          onBaixar={(tid, cat) => { void baixarExistente(r.id, tid, cat); }}
+                          onBaixar={(tid, cat, modo) => { void baixarExistente(r.id, tid, cat, modo); }}
                           categoriasDiferenca={Number(r.amount) >= 0 ? categoryOptionsReceita : categoryOptionsDespesa}
                         />
                       </td>
