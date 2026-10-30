@@ -65,4 +65,4 @@
 - Termination preparation lives in `dp_desligamento_preparacoes` (admin-only, never read by the portal); the official process, agenda changes and employee notifications are created only after the manager confirms the conversation happened, so employees are never surprised in the app.
 - Contract anniversaries use a shared eligibility/current-contract-date helper; portal celebrations use a session-scoped minimal RPC with no birth year or age, keeping administrative birth information out of colleague reads.
 - Admission/start calendar events are read-only projections, separate from anniversaries, distinguishing provisional routine starts from formal admission without changing employment records.
-- Reconciliation offers settling an existing pending entry (same type and exact open amount, no date limit) via `pluggy_conciliacao_candidatos`/`pluggy_conciliacao_baixar`; client only ranks, the server revalidates before marking paid, avoiding duplicate cash entries.
+- Reconciliation may settle an existing pending entry (same type, exact open amount, no date limit) via `pluggy_conciliacao_baixar`, which revalidates server-side to avoid duplicates.
