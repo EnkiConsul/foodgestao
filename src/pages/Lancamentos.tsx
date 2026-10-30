@@ -252,6 +252,12 @@ export default function Lancamentos() {
   const [attachmentCounts, setAttachmentCounts] = useState<Map<string, number>>(new Map());
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<string>("date");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const toggleSort = (key: string) => {
+    if (sortBy !== key) { setSortBy(key); setSortDir("asc"); }
+    else if (sortDir === "asc") setSortDir("desc");
+    else { setSortBy("date"); setSortDir("asc"); }
+  };
   const [previousBalance, setPreviousBalance] = useState(0);
 
   // Filters
@@ -811,10 +817,35 @@ export default function Lancamentos() {
       });
     });
 
-    // Sort
-    if (sortBy === "date") rows.sort((a, b) => a.date.localeCompare(b.date));
-    else if (sortBy === "value") rows.sort((a, b) => b.amount - a.amount);
-    else if (sortBy === "description") rows.sort((a, b) => a.description.localeCompare(b.description));
+    // Sort (vazios sempre ao final, independente da direção)
+    const txt = (v: string | null | undefined) => (v ?? "").trim();
+    const cmpTxt = (a: string | null | undefined, b: string | null | undefined) => {
+      const x = txt(a), y = txt(b);
+      if (!x && !y) return 0;
+      if (!x) return Infinity;
+      if (!y) return -Infinity;
+      return x.localeCompare(y, "pt-BR", { sensitivity: "base", numeric: true });
+    };
+    const statusOrdem: Record<string, number> = { atrasado: 0, a_vencer: 1, pago: 2 };
+    const getters: Record<string, (a: DisplayRow, b: DisplayRow) => number> = {
+      date: (a, b) => a.date.localeCompare(b.date),
+      description: (a, b) => cmpTxt(a.description, b.description),
+      dc: (a, b) => cmpTxt(a.transactionType, b.transactionType),
+      categoria: (a, b) => cmpTxt(a.categoryName, b.categoryName),
+      conta: (a, b) => cmpTxt(a.accountName, b.accountName),
+      formaPagamento: (a, b) => cmpTxt(a.paymentMethodName, b.paymentMethodName),
+      value: (a, b) => a.amount - b.amount,
+      status: (a, b) => (statusOrdem[a.billStatus] ?? 9) - (statusOrdem[b.billStatus] ?? 9),
+      vencimento: (a, b) => cmpTxt(a.dueDate, b.dueDate),
+      pagamento: (a, b) => cmpTxt(a.paymentDate, b.paymentDate),
+    };
+    const cmp = getters[sortBy] ?? getters.date;
+    const dir = sortDir === "desc" ? -1 : 1;
+    rows.sort((a, b) => {
+      const r = cmp(a, b);
+      if (r === Infinity || r === -Infinity) return r > 0 ? 1 : -1;
+      return r * dir || a.date.localeCompare(b.date);
+    });
 
     // Running balance: count confirmed transactions OR paid bills (amount_paid >= amount)
     // Acumulado em centavos inteiros para não acumular desvio de ponto flutuante.
