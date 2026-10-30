@@ -2541,6 +2541,16 @@ export default function ConciliacaoPluggy() {
                 onAction={(action) => handleRowAction(r.id, action)}
 
               />
+              {r.status === "pending" && candidatosBaixa[r.id] && (
+                <div className="mt-1">
+                  <SugestaoBaixa
+                    candidatos={candidatosBaixa[r.id]}
+                    busy={baixaBusy === r.id}
+                    formatValor={maskBRL}
+                    onBaixar={(tid) => baixarExistente(r.id, tid)}
+                  />
+                </div>
+              )}
               </div>
             );
           })}
@@ -2578,7 +2588,8 @@ export default function ConciliacaoPluggy() {
                 const isEntrada = rowIsEntrada(r);
                 const disabled = r.status !== "pending";
                 return (
-                  <tr key={r.id} data-staging-id={r.id} className="group border-t hover:bg-muted/30">
+                  <Fragment key={r.id}>
+                  <tr data-staging-id={r.id} className="group border-t hover:bg-muted/30">
                     <td className="sticky left-0 z-10 border-r bg-card p-2 transition-colors group-hover:bg-muted">
                       <Checkbox
                         checked={selected.has(r.id)}
@@ -2908,6 +2919,20 @@ export default function ConciliacaoPluggy() {
                       )}
                     </td>
                   </tr>
+                  {r.status === "pending" && candidatosBaixa[r.id] && (
+                    <tr>
+                      <td className="sticky left-0 bg-card" />
+                      <td colSpan={20} className="px-2 pb-2">
+                        <SugestaoBaixa
+                          candidatos={candidatosBaixa[r.id]}
+                          busy={baixaBusy === r.id}
+                          formatValor={maskBRL}
+                          onBaixar={(tid) => baixarExistente(r.id, tid)}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 );
               })}
             </tbody>
