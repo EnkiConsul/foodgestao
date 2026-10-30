@@ -64,7 +64,7 @@ import {
 
 
 function SortHead({ k, label, className, sortBy, sortDir, onSort }: { k: string; label: string; className?: string; sortBy: string; sortDir: "asc" | "desc"; onSort: (k: string) => void }) {
-  const ativo = sortBy === k && !(k === "date" && sortDir === "asc" && false);
+  const ativo = sortBy === k;
   const Icon = sortBy === k ? (sortDir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
   const right = className?.includes("text-right");
   const center = className?.includes("text-center");
