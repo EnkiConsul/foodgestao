@@ -1233,6 +1233,13 @@
       "when": 1793375392739,
       "tag": "0175_conciliacao_baixa_com_diferenca",
       "breakpoints": true
+    },
+    {
+      "idx": 176,
+      "version": "7",
+      "when": 1793379277734,
+      "tag": "0176_conciliacao_pagamento_parcial",
+      "breakpoints": true
     }
   ]
 }
