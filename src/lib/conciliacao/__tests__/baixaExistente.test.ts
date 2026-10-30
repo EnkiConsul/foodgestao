@@ -26,3 +26,20 @@ describe("baixa de lançamento existente", () => {
     expect(r.s1[0].transaction_id).toBe("t1");
   });
 });
+
+import { pontuarCandidato as p2, ranquearCandidatos as r2 } from "../baixaExistente";
+describe("valor diferente sem limite", () => {
+  const base = { staging_id: "s", transaction_id: "t", description: "Aluguel loja", amount: 3000, amount_paid: 0, due_date: "2026-01-10", transaction_date: null, account_id: null, contact_id: "c1", contact_name: "Imobiliária", category_id: null, installment_number: null, installment_total: null, is_recurring: true, parent_transaction_id: null };
+  it("juros grandes e 200 dias de atraso continuam sugeridos pelo mesmo fornecedor", () => {
+    const r = p2(base, { date: "2026-07-29", description: "PIX aluguel", contactId: "c1", valor: 4500 });
+    expect(r.diferenca).toBe(1500);
+    expect(r.semEvidencia).toBe(false);
+  });
+  it("desconto fica negativo", () => {
+    expect(p2(base, { date: "2026-01-10", description: "aluguel", valor: 2900 }).diferenca).toBe(-100);
+  });
+  it("valor diferente sem nada em comum não é sugerido", () => {
+    const out = r2([base], () => ({ date: "2026-01-10", description: "Mercado XYZ", valor: 50 }));
+    expect(out["s"]).toBeUndefined();
+  });
+});
