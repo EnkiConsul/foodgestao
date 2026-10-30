@@ -2551,7 +2551,7 @@ export default function ConciliacaoPluggy() {
                     candidatos={candidatosBaixa[r.id]}
                     busy={baixaBusy === r.id}
                     formatValor={maskBRL}
-                    onBaixar={(tid, cat) => baixarExistente(r.id, tid, cat)}
+                    onBaixar={(tid, cat) => { void baixarExistente(r.id, tid, cat); }}
                     categoriasDiferenca={Number(r.amount) >= 0 ? categoryOptionsReceita : categoryOptionsDespesa}
                   />
                 </div>
@@ -2932,7 +2932,7 @@ export default function ConciliacaoPluggy() {
                           candidatos={candidatosBaixa[r.id]}
                           busy={baixaBusy === r.id}
                           formatValor={maskBRL}
-                          onBaixar={(tid, cat) => baixarExistente(r.id, tid, cat)}
+                          onBaixar={(tid, cat) => { void baixarExistente(r.id, tid, cat); }}
                           categoriasDiferenca={Number(r.amount) >= 0 ? categoryOptionsReceita : categoryOptionsDespesa}
                         />
                       </td>
