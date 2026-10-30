@@ -15,7 +15,7 @@
 - O portal não lê `dp_colaboradores` de colegas: `dp_portal_equipe_unidade()` expõe só nome, função e folga fixa.
 - Pré-admissão: o checklist compartilhado governa leitura e envio; desativar requisito preserva anexos.
 - Imagem da assinatura (PNG em data URL) é gravada só pelo servidor em `assinatura_imagem` (dp_recibos/dp_documento_aceites), imutável, e estampada no PDF com rubrica em todas as páginas — reimpressão fiel.
-- Generated leave-change terms update only the certificate copy's known acceptance text and signature field after matching the accepted content hash and version; preserve the original PDF and audit evidence to avoid signing changed content.
+- Leave-change terms update only the certificate copy's acceptance text/signature after matching content hash and version; keep original PDF and audit evidence.
 - Piso do cargo: com sindicato patronal na unidade grava no patronal (convenção); sem patronal grava direto na unidade (Cargo + Unidade) — o patronal acelera, nunca bloqueia.
 - Desligamento: Aviso, Documentos e Acerto Rescisório com pendências próprias; sem assinatura digital; Acerto só baixa assinado ou com comprovante — emitir não quita.
 - Restrição de um dia: colaborador → `dp_bloqueios` (início=fim); cargo/setor → `dp_folga_limite_regras` com vigência de um dia (máximo 0 = ninguém).
@@ -65,3 +65,4 @@
 - Termination preparation lives in `dp_desligamento_preparacoes` (admin-only, never read by the portal); the official process, agenda changes and employee notifications are created only after the manager confirms the conversation happened, so employees are never surprised in the app.
 - Contract anniversaries use a shared eligibility/current-contract-date helper; portal celebrations use a session-scoped minimal RPC with no birth year or age, keeping administrative birth information out of colleague reads.
 - Admission/start calendar events are read-only projections, separate from anniversaries, distinguishing provisional routine starts from formal admission without changing employment records.
+- Reconciliation may settle an existing pending entry (same type, exact open amount, no date limit) via `pluggy_conciliacao_baixar`, which revalidates server-side to avoid duplicates.

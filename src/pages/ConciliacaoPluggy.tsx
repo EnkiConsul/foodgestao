@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { Fragment, useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { HelpHint } from "@/components/ui/help-hint";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +25,8 @@ import { CATEGORY_INDENT_STEP, categoryGuideLevels } from "@/lib/categories/disp
 import { CategoryTypeBadge } from "@/components/categorias/CategoryTypeBadge";
 import { buildCategoryTree, type Category } from "@/lib/categories/tree";
 import { StagingCard } from "@/components/conciliacao/StagingCard";
+import { SugestaoBaixa } from "@/components/conciliacao/SugestaoBaixa";
+import { ranquearCandidatos, type CandidatoBaixa, type CandidatoPontuado } from "@/lib/conciliacao/baixaExistente";
 import { DescriptionEditor } from "@/components/conciliacao/DescriptionEditor";
 
 
@@ -1429,6 +1431,71 @@ export default function ConciliacaoPluggy() {
     load();
   };
 
+  /** Lançamentos pendentes já cadastrados que podem ser esta linha do extrato. */
+  const [candidatosBaixa, setCandidatosBaixa] = useState<Record<string, CandidatoPontuado[]>>({});
+  const [baixaBusy, setBaixaBusy] = useState<string | null>(null);
+  const pendingBankIdsKey = useMemo(
+    () => rows.filter((r) => r.status === "pending" && !isCardRow(r)).map((r) => r.id).sort().join(","),
+    [rows, isCardRow],
+  );
+  useEffect(() => {
+    if (!selectedCompanyId || !pendingBankIdsKey) { setCandidatosBaixa({}); return; }
+    let cancel = false;
+    const ids = pendingBankIdsKey.split(",");
+    (async () => {
+      const todos: CandidatoBaixa[] = [];
+      for (let i = 0; i < ids.length; i += 200) {
+        const { data, error } = await supabase.rpc("pluggy_conciliacao_candidatos", {
+          p_company_id: selectedCompanyId,
+          p_staging_ids: ids.slice(i, i + 200),
+        });
+        if (error) return;
+        todos.push(...((data ?? []) as CandidatoBaixa[]));
+      }
+      if (cancel) return;
+      const byId = new Map(rows.map((r) => [r.id, r]));
+      setCandidatosBaixa(ranquearCandidatos(todos, (sid) => {
+        const r = byId.get(sid);
+        if (!r) return null;
+        return {
+          date: r.date,
+          description: displayDescription(r),
+          counterpartyName: r.counterparty_name ?? null,
+          accountId: rowAccount[sid] ?? linkedByPluggyAccount[r.pluggy_account_id] ?? null,
+          contactId: rowContact[sid] ?? null,
+        };
+      }));
+    })();
+    return () => { cancel = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCompanyId, pendingBankIdsKey]);
+
+  const baixarExistente = async (stagingId: string, transactionId: string) => {
+    const r = rows.find((x) => x.id === stagingId);
+    const acctId = rowAccount[stagingId] ?? (r ? linkedByPluggyAccount[r.pluggy_account_id] : undefined);
+    if (!acctId) { toast.error("Selecione a conta de destino antes de dar baixa"); return; }
+    setBaixaBusy(stagingId);
+    try {
+      const { error } = await supabase.rpc("pluggy_conciliacao_baixar", {
+        p_staging_id: stagingId,
+        p_transaction_id: transactionId,
+        p_account_id: acctId,
+        p_payment_method_id: rowPayment[stagingId] || undefined,
+        p_contact_id: rowContact[stagingId] || undefined,
+      });
+      if (error) {
+        const msg = error.message.includes("amount_mismatch") || error.message.includes("transaction_not_pending")
+          ? "Esse lançamento mudou e não pode mais receber esta baixa. Atualize a tela."
+          : error.message;
+        toast.error("Não foi possível dar baixa", { description: msg });
+        return;
+      }
+      toast.success("Baixa registrada", { description: "O lançamento já cadastrado foi marcado como pago, sem criar outro." });
+      setSelected((prev) => { const n = new Set(prev); n.delete(stagingId); return n; });
+      load();
+    } finally { setBaixaBusy(null); }
+  };
+
   const confirmSelected = async () => {
     setBulkBusy("confirm");
     try {
@@ -2474,6 +2541,16 @@ export default function ConciliacaoPluggy() {
                 onAction={(action) => handleRowAction(r.id, action)}
 
               />
+              {r.status === "pending" && candidatosBaixa[r.id] && (
+                <div className="mt-1">
+                  <SugestaoBaixa
+                    candidatos={candidatosBaixa[r.id]}
+                    busy={baixaBusy === r.id}
+                    formatValor={maskBRL}
+                    onBaixar={(tid) => baixarExistente(r.id, tid)}
+                  />
+                </div>
+              )}
               </div>
             );
           })}
@@ -2511,7 +2588,8 @@ export default function ConciliacaoPluggy() {
                 const isEntrada = rowIsEntrada(r);
                 const disabled = r.status !== "pending";
                 return (
-                  <tr key={r.id} data-staging-id={r.id} className="group border-t hover:bg-muted/30">
+                  <Fragment key={r.id}>
+                  <tr data-staging-id={r.id} className="group border-t hover:bg-muted/30">
                     <td className="sticky left-0 z-10 border-r bg-card p-2 transition-colors group-hover:bg-muted">
                       <Checkbox
                         checked={selected.has(r.id)}
@@ -2841,6 +2919,20 @@ export default function ConciliacaoPluggy() {
                       )}
                     </td>
                   </tr>
+                  {r.status === "pending" && candidatosBaixa[r.id] && (
+                    <tr>
+                      <td className="sticky left-0 bg-card" />
+                      <td colSpan={20} className="px-2 pb-2">
+                        <SugestaoBaixa
+                          candidatos={candidatosBaixa[r.id]}
+                          busy={baixaBusy === r.id}
+                          formatValor={maskBRL}
+                          onBaixar={(tid) => baixarExistente(r.id, tid)}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 );
               })}
             </tbody>
