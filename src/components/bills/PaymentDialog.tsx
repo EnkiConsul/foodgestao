@@ -39,6 +39,9 @@ export function PaymentDialog({ open, onOpenChange, bill, onPaid }: Props) {
   const [paymentMethodId, setPaymentMethodId] = useState("");
   const [paymentMethods, setPaymentMethods] = useState<Tables<"payment_methods">[]>([]);
   const [saving, setSaving] = useState(false);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [diffCategoryId, setDiffCategoryId] = useState("");
+  const [diffDescription, setDiffDescription] = useState("");
 
   useEffect(() => {
     if (!user || !open) return;
@@ -49,17 +52,78 @@ export function PaymentDialog({ open, onOpenChange, bill, onPaid }: Props) {
     }).then(({ data }) => setPaymentMethods((data ?? []) as any));
   }, [user, open, contextType, selectedCompanyId]);
 
+  useEffect(() => {
+    if (!user || !open || !bill) return;
+    if (contextType === "pj" && !selectedCompanyId) { setCategories([]); return; }
+    supabase.rpc("get_accessible_categories", {
+      _context: contextType,
+      _company_id: contextType === "pj" ? selectedCompanyId! : undefined,
+      _transaction_type: bill.transaction_type,
+    }).then(({ data }) => setCategories(((data ?? []) as any[]).map((c) => ({ id: c.id, name: c.name }))));
+    setDiffCategoryId("");
+    setDiffDescription("");
+  }, [user, open, contextType, selectedCompanyId, bill?.id]);
+
   if (!bill) return null;
 
   const remaining = bill.amount - bill.amount_paid;
 
   const formatBRL = (v: number) => formatBRLShared(v);
+  const typedAmount = parseCurrencyToNumber(paymentAmount);
+  const excess = Math.round((typedAmount - remaining) * 100) / 100;
+  const hasExcess = excess > 0.009;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const numAmount = parseCurrencyToNumber(paymentAmount);
     if (numAmount <= 0) return toast.error("Informe o valor do pagamento");
-    if (numAmount > remaining + 0.01) return toast.error("Valor excede o saldo restante");
+    if (hasExcess) {
+      if (!diffCategoryId) return toast.error("Escolha a categoria da diferença");
+      setSaving(true);
+      const { error: upErr } = await supabase
+        .from("transactions")
+        .update({
+          amount_paid: bill.amount,
+          payment_date: paymentDate,
+          bill_status: "pago",
+          status: "confirmado",
+          payment_method_id: paymentMethodId || undefined,
+        })
+        .eq("id", bill.id);
+      if (upErr) {
+        setSaving(false);
+        return toast.error("Erro ao registrar pagamento", { description: upErr.message });
+      }
+      const { error: insErr } = await supabase.from("transactions").insert({
+        user_id: user!.id,
+        transaction_type: bill.transaction_type,
+        description: diffDescription.trim() || `Diferença - ${bill.description}`,
+        amount: excess,
+        amount_paid: excess,
+        transaction_date: paymentDate,
+        payment_date: paymentDate,
+        status: "confirmado",
+        bill_status: "pago",
+        category_id: diffCategoryId,
+        account_id: bill.account_id,
+        contact_id: bill.contact_id,
+        payment_method_id: paymentMethodId || null,
+        notes: `Diferença do pagamento de "${bill.description}" (${formatBRL(remaining)} previsto, ${formatBRL(numAmount)} pago).`,
+        context: contextType,
+        company_id: contextType === "pj" ? selectedCompanyId : null,
+      } as any);
+      setSaving(false);
+      if (insErr) {
+        toast.error("Conta paga, mas a diferença não foi lançada", { description: insErr.message });
+      } else {
+        toast.success(`Pago! Diferença de ${formatBRL(excess)} lançada em lançamento separado.`);
+      }
+      setPaymentAmount("");
+      setPaymentMethodId("");
+      onOpenChange(false);
+      onPaid();
+      return;
+    }
 
     setSaving(true);
     const newPaid = bill.amount_paid + numAmount;
@@ -114,6 +178,33 @@ export function PaymentDialog({ open, onOpenChange, bill, onPaid }: Props) {
             <Label>Valor do pagamento</Label>
             <CurrencyInput value={paymentAmount} onValueChange={setPaymentAmount} placeholder="0,00" />
           </div>
+
+          {hasExcess && (
+            <div className="space-y-3 rounded-md border border-warning/40 bg-warning/10 p-3">
+              <p className="text-sm">
+                O valor informado é <strong>{formatBRL(excess)}</strong> maior que o previsto. A conta será quitada pelo valor original e a diferença vira um segundo lançamento.
+              </p>
+              <div className="space-y-2">
+                <Label>Categoria da diferença</Label>
+                <Select value={diffCategoryId} onValueChange={setDiffCategoryId}>
+                  <SelectTrigger><SelectValue placeholder="Ex.: Juros, Multa, Acréscimo" /></SelectTrigger>
+                  <SelectContent>
+                    {categories.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Descrição da diferença</Label>
+                <Input
+                  value={diffDescription}
+                  onChange={(e) => setDiffDescription(e.target.value)}
+                  placeholder={`Diferença - ${bill.description}`}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Data do pagamento</Label>
