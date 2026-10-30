@@ -29,6 +29,8 @@ export interface ContextoLinha {
   counterpartyName?: string | null;
   accountId?: string | null;
   contactId?: string | null;
+  /** Valor absoluto pago no extrato. */
+  valor?: number;
 }
 
 export interface CandidatoPontuado extends CandidatoBaixa {
@@ -36,6 +38,10 @@ export interface CandidatoPontuado extends CandidatoBaixa {
   confianca: "alta" | "media" | "baixa";
   /** Dias entre o pagamento (extrato) e o vencimento. Positivo = atraso. */
   diasDiferenca: number;
+  /** Pago no extrato menos o saldo aberto. Positivo = juros/acréscimo; negativo = desconto. */
+  diferenca: number;
+  /** Valor diferente sem fornecedor/descrição em comum: não é sugerido. */
+  semEvidencia?: boolean;
 }
 
 const STOP = new Set(["de", "da", "do", "das", "dos", "e", "ltda", "me", "sa", "pix", "ted", "doc", "pagamento", "pgto", "pag", "boleto", "transferencia", "enviado", "recebido", "compra"]);
@@ -63,16 +69,23 @@ export function pontuarCandidato(c: CandidatoBaixa, linha: ContextoLinha): Candi
   const ref = c.due_date ?? c.transaction_date ?? linha.date;
   const diasDiferenca = dias(linha.date, ref);
   const abs = Math.abs(diasDiferenca);
-  let score = 40; // valor idêntico
-  if (linha.contactId && c.contact_id && linha.contactId === c.contact_id) score += 25;
+  const aberto = c.amount - c.amount_paid;
+  const diferenca = linha.valor == null ? 0 : Math.round((linha.valor - aberto) * 100) / 100;
+  const exato = Math.abs(diferenca) < 0.005;
+  // Sem limite de diferença: valor diferente só perde pontos, nunca é eliminado.
+  const rel = aberto > 0 ? Math.abs(diferenca) / aberto : 1;
+  let score = exato ? 40 : rel <= 0.05 ? 25 : rel <= 0.2 ? 15 : rel <= 0.5 ? 8 : 3;
+  const mesmoContato = !!(linha.contactId && c.contact_id && linha.contactId === c.contact_id);
+  if (mesmoContato) score += 25;
   const textoLinha = `${linha.description ?? ""} ${linha.counterpartyName ?? ""}`;
   const textoCand = `${c.description ?? ""} ${c.contact_name ?? ""}`;
-  score += Math.round(similaridade(textoLinha, textoCand) * 20);
+  const sim = similaridade(textoLinha, textoCand);
+  score += Math.round(sim * 20);
   if (linha.accountId && c.account_id && linha.accountId === c.account_id) score += 5;
   score += abs <= 3 ? 10 : abs <= 10 ? 7 : abs <= 35 ? 4 : abs <= 120 ? 2 : 0;
   score = Math.min(100, score);
   const confianca = score >= 75 ? "alta" : score >= 55 ? "media" : "baixa";
-  return { ...c, score, confianca, diasDiferenca };
+  return { ...c, score, confianca, diasDiferenca, diferenca, semEvidencia: !exato && !mesmoContato && sim === 0 };
 }
 
 /** Agrupa e ordena por linha do extrato, do mais provável para o menos. */
@@ -84,7 +97,9 @@ export function ranquearCandidatos(
   for (const c of candidatos) {
     const ctx = contexto(c.staging_id);
     if (!ctx) continue;
-    (out[c.staging_id] ??= []).push(pontuarCandidato(c, ctx));
+    const p = pontuarCandidato(c, ctx);
+    if (p.semEvidencia) continue;
+    (out[c.staging_id] ??= []).push(p);
   }
   for (const k of Object.keys(out)) out[k].sort((a, b) => b.score - a.score || Math.abs(a.diasDiferenca) - Math.abs(b.diasDiferenca));
   return out;

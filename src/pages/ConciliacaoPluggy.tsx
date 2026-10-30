@@ -1463,6 +1463,7 @@ export default function ConciliacaoPluggy() {
           counterpartyName: r.counterparty_name ?? null,
           accountId: rowAccount[sid] ?? linkedByPluggyAccount[r.pluggy_account_id] ?? null,
           contactId: rowContact[sid] ?? null,
+          valor: Math.abs(Number(r.amount)),
         };
       }));
     })();
@@ -1470,22 +1471,25 @@ export default function ConciliacaoPluggy() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCompanyId, pendingBankIdsKey]);
 
-  const baixarExistente = async (stagingId: string, transactionId: string) => {
+  const baixarExistente = async (stagingId: string, transactionId: string, diferencaCategoryId?: string) => {
     const r = rows.find((x) => x.id === stagingId);
     const acctId = rowAccount[stagingId] ?? (r ? linkedByPluggyAccount[r.pluggy_account_id] : undefined);
     if (!acctId) { toast.error("Selecione a conta de destino antes de dar baixa"); return; }
     setBaixaBusy(stagingId);
     try {
-      const { error } = await supabase.rpc("pluggy_conciliacao_baixar", {
+      const { error } = await supabase.rpc("pluggy_conciliacao_baixar_ajuste", {
         p_staging_id: stagingId,
         p_transaction_id: transactionId,
         p_account_id: acctId,
         p_payment_method_id: rowPayment[stagingId] || undefined,
         p_contact_id: rowContact[stagingId] || undefined,
+        p_diferenca_category_id: diferencaCategoryId || undefined,
       });
       if (error) {
         const msg = error.message.includes("amount_mismatch") || error.message.includes("transaction_not_pending")
           ? "Esse lançamento mudou e não pode mais receber esta baixa. Atualize a tela."
+          : error.message.includes("difference_category_required")
+          ? "Escolha a categoria da diferença."
           : error.message;
         toast.error("Não foi possível dar baixa", { description: msg });
         return;
@@ -2547,7 +2551,8 @@ export default function ConciliacaoPluggy() {
                     candidatos={candidatosBaixa[r.id]}
                     busy={baixaBusy === r.id}
                     formatValor={maskBRL}
-                    onBaixar={(tid) => baixarExistente(r.id, tid)}
+                    onBaixar={(tid, cat) => baixarExistente(r.id, tid, cat)}
+                    categoriasDiferenca={Number(r.amount) >= 0 ? categoryOptionsReceita : categoryOptionsDespesa}
                   />
                 </div>
               )}
@@ -2927,7 +2932,8 @@ export default function ConciliacaoPluggy() {
                           candidatos={candidatosBaixa[r.id]}
                           busy={baixaBusy === r.id}
                           formatValor={maskBRL}
-                          onBaixar={(tid) => baixarExistente(r.id, tid)}
+                          onBaixar={(tid, cat) => baixarExistente(r.id, tid, cat)}
+                          categoriasDiferenca={Number(r.amount) >= 0 ? categoryOptionsReceita : categoryOptionsDespesa}
                         />
                       </td>
                     </tr>
