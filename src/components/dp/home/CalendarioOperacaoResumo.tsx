@@ -4,6 +4,9 @@ import { Link } from "react-router-dom";
 import { AlertTriangle, BedSingle, Cake, CalendarDays, ChevronLeft, ChevronRight, ExternalLink, FileHeart, Flame, Moon, Palmtree, Sun, Users, UserX, UserPlus } from "lucide-react";
 import { useDpAniversariantes30d } from "@/hooks/useDpAniversariantes30d";
 import { useDpIniciosCalendario } from "@/hooks/useDpIniciosCalendario";
+import { useDpDesligamentosAgenda } from "@/hooks/useDpDesligamentosAgenda";
+import { marcosRescisao, rescisoesPeriodo } from "@/lib/dp/rescisao-calendario";
+import { MarcosPessoasChips } from "@/components/dp/calendario/MarcosPessoasChips";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,6 +45,8 @@ export function CalendarioOperacaoResumo() {
   const [detalhe, setDetalhe] = useState<{ data: string; unidadeId: string; periodo: PeriodoTurno } | null>(null);
   const { data: aniversariantes = [] } = useDpAniversariantes30d(competencia);
   const { data: inicios = [] } = useDpIniciosCalendario(competencia);
+  const agenda = useDpDesligamentosAgenda();
+  const marcosDoDia = (data: string) => rescisoesPeriodo(agenda.data ?? [], data, unidade).flatMap((p) => marcosRescisao(p).filter((m) => m.data === data).map((m) => `${m.label}: ${p.colaborador?.nome ?? "Colaborador"}`));
   const iniciosDoDia = (data: string) => inicios.filter((e) => e.unidadeId === unidade && e.data === data);
   const aniversariosDoDia = (data: string) => aniversariantes.filter((a) => a.unidadeId === unidade && a.diaMes === `${data.slice(8)}/${data.slice(5, 7)}`);
   const { prefs, save } = useDpUserPrefs();
@@ -107,6 +112,7 @@ export function CalendarioOperacaoResumo() {
           </div>
         </div>
         <div className="mt-2 grid grid-cols-2 items-stretch gap-1.5 sm:gap-2" aria-label="Indicadores do gestor">
+          <div className="col-span-2 grid grid-cols-2 gap-1.5 md:flex md:flex-wrap"><MarcosPessoasChips competencia={competencia} unidadeId={unidade || null} /></div>
           {([
             { label: "Ausências hoje", Icon: UserX, cor: "bg-calendar-falta/10 text-calendar-falta", valor: diaHoje ? diaHoje.contagens.ferias + diaHoje.contagens.atestado + diaHoje.contagens.ausente : null },
             { label: "Folgas hoje", Icon: BedSingle, cor: "bg-calendar-folga/10 text-calendar-folga", valor: diaHoje ? diaHoje.contagens.folga_padrao + diaHoje.contagens.folga_extra : null },
@@ -150,7 +156,7 @@ export function CalendarioOperacaoResumo() {
                     aria-label={`Selecionar ${d.data}, ${textoFeriadosDia(d)}, ${d.trabalhando} trabalhando, ${AUSENCIAS_MES.map((a) => `${a.valor(d)} ${a.label.toLowerCase()}`).join(", ")}${diaEhPico(d.data, d.feriado_nome) ? ", dia de pico" : ""}${d.alerta ? ", alerta de equipe" : ""}${aniversariosDoDia(d.data).length ? `, ${aniversariosDoDia(d.data).length} aniversariantes` : ""}`}
                     aria-pressed={d.data === selecionado} aria-current={d.data === hoje ? "date" : undefined}
                     onClick={() => { navegar({ type: "selecionar", data: d.data }); if (window.matchMedia("(max-width: 1023px)").matches) abrirDia(d.data); }}
-                    className={cn("relative flex h-[88px] min-w-0 flex-col justify-start gap-0.5 rounded-lg border px-0.5 py-1 text-xs transition-opacity [&_svg]:size-2.5", "border-border bg-card", diaEhPico(d.data, d.feriado_nome) && "bg-calendar-pico", d.data < hoje && d.data !== selecionado && "opacity-45 grayscale-[0.3] hover:opacity-100", d.data === selecionado && "border-primary ring-1 ring-inset ring-primary", d.alerta && "border-destructive ring-1 ring-inset ring-destructive/60")}>
+                    className={cn("relative flex h-[112px] min-w-0 flex-col justify-start gap-0.5 rounded-lg border px-0.5 py-1 text-xs transition-opacity [&_svg]:size-2.5", "border-border bg-card", diaEhPico(d.data, d.feriado_nome) && "bg-calendar-pico", d.data < hoje && d.data !== selecionado && "opacity-45 grayscale-[0.3] hover:opacity-100", d.data === selecionado && "border-primary ring-1 ring-inset ring-primary", d.alerta && "border-destructive ring-1 ring-inset ring-destructive/60")}>
                     <span className="flex h-6 w-full items-center justify-between gap-0.5 px-0.5">
                       <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold", d.data === hoje && "bg-primary text-primary-foreground")}>{Number(d.data.slice(8))}</span>
                       <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold tabular-nums text-primary" title={`${d.trabalhando} trabalhando`}><Users className="h-2.5 w-2.5" />{d.trabalhando}</span>
@@ -161,6 +167,7 @@ export function CalendarioOperacaoResumo() {
                     </span>
                     {aniversariosDoDia(d.data).length > 0 && <span className="mt-auto inline-flex items-center gap-0.5 text-[10px] text-foreground" title="Aniversários de nascimento e contratação"><Cake className="h-3 w-3 shrink-0 text-primary" />{aniversariosDoDia(d.data).length}</span>}
                     {iniciosDoDia(d.data).length > 0 && <span className="inline-flex items-center gap-0.5 text-[10px] text-primary" title={iniciosDoDia(d.data).map((e) => e.nome).join(", ")} aria-label={`${iniciosDoDia(d.data).length} inícios de trabalho`}><UserPlus className="h-3 w-3" />{iniciosDoDia(d.data).length}</span>}
+                    {marcosDoDia(d.data).length > 0 && <span className="w-full whitespace-normal text-center text-[9px] leading-tight text-primary" title={marcosDoDia(d.data).join(" · ")} aria-label={marcosDoDia(d.data).join(" · ")}>Rescisão · {marcosDoDia(d.data).length}</span>}
                   </Button>)}
                 </div>
               </div>

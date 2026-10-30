@@ -1,7 +1,8 @@
 import { FeriadosDia } from "@/components/dp/FeriadoCategoriaBadge";
 import { useDpDesligamentosAgenda } from "@/hooks/useDpDesligamentosAgenda";
 import { useDpIniciosCalendario } from "@/hooks/useDpIniciosCalendario";
-import { PrazosRescisao } from "./PrazosRescisao";
+import { MarcosPessoasChips } from "./MarcosPessoasChips";
+import { marcosRescisao, rescisoesPeriodo } from "@/lib/dp/rescisao-calendario";
 import { textoFeriadosDia } from "@/lib/dp/feriados-apresentacao";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -95,7 +96,7 @@ interface Props {
 export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros, onFiltros, onAbrirDia, unidadeId = null, nomeUnidade, competenciaLabel, onMarcarOk, indisponiveis = [] }: Props) {
   const { selectedCompanyId } = useCompanyContext();
   const agenda = useDpDesligamentosAgenda();
-  const prazosDoDia = (iso: string) => (agenda.data ?? []).filter((p) => p.prazo_10_dias === iso && (!unidadeId || p.colaborador?.unidade_id === unidadeId));
+  const marcosDoDia = (iso: string) => rescisoesPeriodo(agenda.data ?? [], iso, unidadeId).flatMap((p) => marcosRescisao(p).filter((m) => m.data === iso).map((m) => ({ ...m, key: `${p.id}-${m.tipo}`, nome: p.colaborador?.nome ?? "Colaborador" })));
   const { config } = useDpConfigDp(unidadeId);
   // Dias de descanso dominical habilitados na regra da unidade.
   const diasDominicais = useMemo(() => (config ? diasElegiveisDaConfig(config) : [0]), [config]);
@@ -436,6 +437,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
 
         {/* Métricas em linha — só o que tem valor */}
         <div className="order-last grid w-full min-w-0 grid-cols-3 items-stretch gap-1.5 md:order-none md:ml-2 md:flex md:w-auto md:flex-wrap">
+          <MarcosPessoasChips competencia={ini?.slice(0, 7) ?? selecionado.slice(0, 7)} unidadeId={unidadeId} />
           {cards.map((c) => {
             const Icone = c.icon;
             const conteudo = (
@@ -485,7 +487,6 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
       )}
 
       {/* Mobile: 1 dia = 1 linha, como no calendário de folgas */}
-      <PrazosRescisao competencia={ini?.slice(0, 7)} unidadeId={unidadeId} />
       <div className="md:hidden">
         <DiasEmLista
           dias={dias.map((d) => {
@@ -526,7 +527,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
               chips: (
                 <>
                   {iniciosDoDia(d.data).map((e) => <span key={e.id} className="inline-flex shrink-0 items-center gap-1 rounded-md border border-primary/30 px-2 py-0.5 text-[10px] font-semibold text-primary"><UserPlus className="h-3 w-3" />{e.tipo === "prevista" ? "Admissão prevista" : e.tipo === "formal" ? "Admissão" : "Início"}: {primeiroNome(e.nome)}</span>)}
-                  {prazosDoDia(d.data).map((p) => <span key={p.id} className="inline-flex shrink-0 rounded-md border border-primary/40 px-2 py-0.5 text-[10px] font-semibold text-primary">Rescisão: {primeiroNome(p.colaborador?.nome ?? "Colaborador")}</span>)}
+                  {marcosDoDia(d.data).map((m) => <span key={m.key} className="inline-flex shrink-0 rounded-md border border-primary/40 px-2 py-0.5 text-[10px] font-semibold text-primary">{m.label}: {primeiroNome(m.nome)}</span>)}
                   {aus.slice(0, 3).map((a) => (
                     <span key={`${a.colaborador_id}-${a.tipo}`} title={rotulo(a, d.data)} className={cn("inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase", tomDe(a, d.data), d.data < hoje && "opacity-60")}>
                       {iconeAus(a) && <span aria-hidden="true" className="text-[9px] leading-none">{iconeAus(a)}</span>}{a.troca && <Repeat className="h-2.5 w-2.5" />}{primeiroNome(a.nome)}
@@ -595,7 +596,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                       <span className={cn("inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold tabular-nums", d.alerta && d.avaliacao.situacao === "abaixo" ? "bg-destructive text-destructive-foreground" : "bg-primary/15 text-primary")} title="Trabalhando"><Users className="h-3 w-3" />{d.trabalhando}</span>
                     </div>
                     {aniversariosDoDia(d.data).length > 0 && <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-foreground" title={aniversariosDoDia(d.data).map((a) => `${a.nome} · ${a.tipo === "nascimento" ? "Nascimento" : "Contratação"}`).join("; ")}><Cake className="h-3.5 w-3.5 shrink-0 text-primary" />{aniversariosDoDia(d.data).length} aniversariante(s)</span>}
-                    {prazosDoDia(d.data).map((p) => <span key={p.id} className="break-words text-[10px] font-semibold text-primary">Rescisão: {primeiroNome(p.colaborador?.nome ?? "Colaborador")}</span>)}
+                    {marcosDoDia(d.data).map((m) => <span key={m.key} className="break-words text-[10px] font-semibold text-primary">{m.label}: {primeiroNome(m.nome)}</span>)}
                     {iniciosDoDia(d.data).map((e) => <span key={e.id} className="inline-flex items-center gap-1 break-words text-[10px] font-semibold text-primary"><UserPlus className="h-3 w-3 shrink-0" />{e.tipo === "prevista" ? "Admissão prevista" : e.tipo === "formal" ? "Admissão" : "Início"}: {primeiroNome(e.nome)}</span>)}
                     <div className={cn("mt-0.5", compacto ? "grid grid-cols-2 gap-1" : "flex flex-col gap-1")}>
                       {visiveis.map((a) => (
