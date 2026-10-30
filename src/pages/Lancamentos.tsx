@@ -47,6 +47,7 @@ import { Label } from "@/components/ui/label";
 import {
   Plus, Search, ArrowLeftRight,
   Trash2, Pencil, Copy, ChevronLeft, ChevronRight, ChevronDown, Filter, SlidersHorizontal,
+  ArrowUp, ArrowDown, ArrowUpDown,
   Download, DollarSign, CalendarIcon, CreditCard, HandCoins, X, Settings2, Repeat, Paperclip, Check, Upload, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -61,6 +62,26 @@ import {
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+
+function SortHead({ k, label, className, sortBy, sortDir, onSort }: { k: string; label: string; className?: string; sortBy: string; sortDir: "asc" | "desc"; onSort: (k: string) => void }) {
+  const ativo = sortBy === k && !(k === "date" && sortDir === "asc" && false);
+  const Icon = sortBy === k ? (sortDir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+  const right = className?.includes("text-right");
+  const center = className?.includes("text-center");
+  return (
+    <TableHead className={cn("text-xs", className)} aria-sort={sortBy === k ? (sortDir === "asc" ? "ascending" : "descending") : "none"}>
+      <button
+        type="button"
+        onClick={() => onSort(k)}
+        className={cn("inline-flex items-center gap-1 select-none hover:text-foreground transition-colors", ativo && "text-foreground font-semibold", right && "flex-row-reverse", center && "justify-center")}
+        title={`Ordenar por ${label}`}
+      >
+        {label}
+        <Icon className={cn("h-3 w-3 shrink-0", !ativo && "text-muted-foreground/60")} />
+      </button>
+    </TableHead>
+  );
+}
 
 type TransactionDisplayStatus = "pago" | "a_vencer" | "atrasado";
 
@@ -860,7 +881,7 @@ export default function Lancamentos() {
     });
 
     return rows;
-  }, [transactions, search, filterCredito, filterDebito, filterTransferencia, filterPago, filterAVencer, filterAtrasado, filterAccount, filterPaymentMethod, filterCategory, filterOrigemConta, filterOrigemCartao, cards, dateFrom, dateTo, sortBy, previousBalance, monthStart, monthEnd]);
+  }, [transactions, search, filterCredito, filterDebito, filterTransferencia, filterPago, filterAVencer, filterAtrasado, filterAccount, filterPaymentMethod, filterCategory, filterOrigemConta, filterOrigemCartao, cards, dateFrom, dateTo, sortBy, sortDir, previousBalance, monthStart, monthEnd]);
 
   // Totals
   const totals = useMemo(() => {
@@ -890,7 +911,7 @@ export default function Lancamentos() {
 
   useEffect(() => {
     setPagina(1);
-  }, [displayRows.length, porPagina, search, sortBy]);
+  }, [displayRows.length, porPagina, search, sortBy, sortDir]);
 
   useEffect(() => {
     if (pagina > totalPaginas) setPagina(totalPaginas);
@@ -1056,7 +1077,7 @@ export default function Lancamentos() {
           </Popover>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Select value={sortBy} onValueChange={setSortBy}>
+          <Select value={["date","value","description"].includes(sortBy) ? sortBy : undefined} onValueChange={(v) => { setSortBy(v); setSortDir("asc"); }}>
             <SelectTrigger className="w-[140px] h-9 text-xs">
               <SlidersHorizontal className="h-3.5 w-3.5 mr-1" />
               <SelectValue placeholder="Ordenar por" />
@@ -1216,16 +1237,16 @@ export default function Lancamentos() {
                         aria-label="Selecionar todos"
                       />
                     </TableHead>
-                    {visibleColumns.data !== false && <TableHead className="text-xs w-[75px]">Data</TableHead>}
-                    <TableHead className="text-xs">Descrição</TableHead>
-                    {visibleColumns.dc && <TableHead className="text-xs w-[40px] text-center">D/C</TableHead>}
-                    {visibleColumns.categoria && <TableHead className="text-xs w-[110px]">Categoria</TableHead>}
-                    {visibleColumns.conta && <TableHead className="text-xs w-[110px]">Conta</TableHead>}
-                    {visibleColumns.formaPagamento && <TableHead className="text-xs w-[100px]">Forma Pgto</TableHead>}
-                    <TableHead className="text-xs w-[110px] text-right">Valor</TableHead>
-                    {visibleColumns.status && <TableHead className="text-xs w-[85px]">Status</TableHead>}
-                    {visibleColumns.vencimento && <TableHead className="text-xs w-[75px]">Vencimento</TableHead>}
-                    {visibleColumns.pagamento && <TableHead className="text-xs w-[80px]">Pagamento</TableHead>}
+                    {visibleColumns.data !== false && <SortHead k="date" label="Data" className="w-[75px]" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />}
+                    <SortHead k="description" label="Descrição" className="" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+                    {visibleColumns.dc && <SortHead k="dc" label="D/C" className="w-[40px] text-center" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />}
+                    {visibleColumns.categoria && <SortHead k="categoria" label="Categoria" className="w-[110px]" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />}
+                    {visibleColumns.conta && <SortHead k="conta" label="Conta" className="w-[110px]" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />}
+                    {visibleColumns.formaPagamento && <SortHead k="formaPagamento" label="Forma Pgto" className="w-[100px]" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />}
+                    <SortHead k="value" label="Valor" className="w-[110px] text-right" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+                    {visibleColumns.status && <SortHead k="status" label="Status" className="w-[85px]" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />}
+                    {visibleColumns.vencimento && <SortHead k="vencimento" label="Vencimento" className="w-[75px]" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />}
+                    {visibleColumns.pagamento && <SortHead k="pagamento" label="Pagamento" className="w-[80px]" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />}
                     {visibleColumns.saldo && <TableHead className="text-xs w-[115px] text-right">Saldo</TableHead>}
                     <TableHead className="text-xs w-[90px]" />
                   </TableRow>
