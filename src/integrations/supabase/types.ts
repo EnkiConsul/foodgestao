@@ -22342,6 +22342,36 @@ export type Database = {
         Args: { _company_id: string; _ids: string[] }
         Returns: number
       }
+      pluggy_conciliacao_baixar: {
+        Args: {
+          p_account_id: string
+          p_contact_id?: string
+          p_payment_method_id?: string
+          p_staging_id: string
+          p_transaction_id: string
+        }
+        Returns: string
+      }
+      pluggy_conciliacao_candidatos: {
+        Args: { p_company_id: string; p_staging_ids: string[] }
+        Returns: {
+          account_id: string
+          amount: number
+          amount_paid: number
+          category_id: string
+          contact_id: string
+          contact_name: string
+          description: string
+          due_date: string
+          installment_number: number
+          installment_total: number
+          is_recurring: boolean
+          parent_transaction_id: string
+          staging_id: string
+          transaction_date: string
+          transaction_id: string
+        }[]
+      }
       pluggy_confirm_staging: {
         Args: {
           p_account_id: string
