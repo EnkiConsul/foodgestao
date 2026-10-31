@@ -5,6 +5,7 @@ set -euo pipefail
 run() { # $1 sql-claim  $2 delay
   psql -At -v ON_ERROR_STOP=1 <<SQL
 begin;
+set local role service_role;
 select pg_sleep($2);
 select id from ($1) t;
 select pg_sleep(3);
@@ -13,7 +14,6 @@ SQL
 }
 check() {
   local q="$1"
-  a=$(run "$q" 0 & ) ; true
   run "$q" 0 > /tmp/claimA.txt & PA=$!
   run "$q" 0.5 > /tmp/claimB.txt & PB=$!
   wait $PA $PB
