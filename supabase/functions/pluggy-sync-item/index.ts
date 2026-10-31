@@ -1,3 +1,4 @@
+import { checkItemOwnership } from '../_shared/pluggy-ownership.ts';
 import { createdByOnInsert } from '../_shared/pluggy-cron-limits.ts';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
@@ -432,6 +433,32 @@ Deno.serve(async (req) => {
           .eq('id', connectRequestId);
       }
       throw error;
+    }
+
+    // 1b) Prova de posse (item 6): primeiro vínculo feito por USUÁRIO exige que o
+    // item da Pluggy tenha nascido de uma solicitação dele nesta empresa.
+    // Roda depois do getItem e antes de qualquer escrita. Service role segue igual.
+    if (!existing && userId && !isServiceCall && body?.company_id) {
+      const desde = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data: reqs } = await admin
+        .from('pluggy_connect_requests')
+        .select('id, user_id, company_id, created_at')
+        .eq('user_id', userId).eq('company_id', effectiveCompanyId)
+        .gte('created_at', desde).order('created_at', { ascending: false }).limit(50);
+      const posse = checkItemOwnership(item?.clientUserId ?? null, userId, effectiveCompanyId, reqs ?? []);
+      if (!posse.ok) {
+        try {
+          await admin.rpc('insert_audit_log', {
+            _action: 'pluggy_item_not_owned',
+            _entity_type: 'pluggy_connection',
+            _entity_id: null,
+            _details: { company_id: effectiveCompanyId, pluggy_item_id: itemId, actor: userId, reason: posse.reason },
+          });
+        } catch (e) { console.warn('audit log falhou (continuando):', e); }
+        return new Response(JSON.stringify({ error: 'item_not_owned' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     // Só conclui a solicitação depois que a Pluggy confirmou que o item existe
