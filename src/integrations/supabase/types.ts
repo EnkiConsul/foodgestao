@@ -15721,6 +15721,7 @@ export type Database = {
           raw: Json | null
           statement_gap_amount: number | null
           statement_gap_checked_at: string | null
+          statement_gap_checks: number
           statement_gap_from: string | null
           statement_gap_to: string | null
           subtype: string | null
@@ -15747,6 +15748,7 @@ export type Database = {
           raw?: Json | null
           statement_gap_amount?: number | null
           statement_gap_checked_at?: string | null
+          statement_gap_checks?: number
           statement_gap_from?: string | null
           statement_gap_to?: string | null
           subtype?: string | null
@@ -15773,6 +15775,7 @@ export type Database = {
           raw?: Json | null
           statement_gap_amount?: number | null
           statement_gap_checked_at?: string | null
+          statement_gap_checks?: number
           statement_gap_from?: string | null
           statement_gap_to?: string | null
           subtype?: string | null
