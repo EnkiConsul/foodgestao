@@ -482,6 +482,7 @@ export default function ConciliacaoPluggy() {
     de: string | null;
     ate: string | null;
     contaLocalId: string | null;
+    checks: number;
   }>>([]);
   const [importarExtratoConta, setImportarExtratoConta] = useState<string | null>(null);
   const [importarExtratoAberto, setImportarExtratoAberto] = useState(false);
@@ -579,7 +580,7 @@ export default function ConciliacaoPluggy() {
     {
       let gapQuery = supabase
         .from("pluggy_accounts")
-        .select("pluggy_account_id, name, linked_account_id, statement_gap_amount, statement_gap_from, statement_gap_to")
+        .select("pluggy_account_id, name, linked_account_id, statement_gap_amount, statement_gap_from, statement_gap_to, statement_gap_checks")
         .eq("company_id", selectedCompanyId)
         .not("statement_gap_amount", "is", null);
       if (resolvedScope) gapQuery = gapQuery.eq("pluggy_account_id", resolvedScope.pluggyAccountId);
@@ -598,6 +599,7 @@ export default function ConciliacaoPluggy() {
           statement_gap_amount: number | null;
           statement_gap_from: string | null;
           statement_gap_to: string | null;
+          statement_gap_checks: number | null;
         }>).filter((g) => !g.statement_gap_to || g.statement_gap_to < corteIso).map((g) => ({
           pluggyAccountId: g.pluggy_account_id,
           nome: cleanProviderName(g.name) ?? "Conta conectada",
@@ -605,6 +607,7 @@ export default function ConciliacaoPluggy() {
           de: g.statement_gap_from,
           ate: g.statement_gap_to,
           contaLocalId: g.linked_account_id,
+          checks: Number(g.statement_gap_checks ?? 0),
         })),
       );
     }
@@ -2211,11 +2214,13 @@ export default function ConciliacaoPluggy() {
                 {e.de && e.ate
                   ? ` entre ${e.de.split("-").reverse().join("/")} e ${e.ate.split("-").reverse().join("/")}`
                   : ""}
-                . O sistema continua buscando esses lançamentos automaticamente. Se não chegarem, importe o extrato do banco; reconectar é só o último recurso.
+                {e.checks >= 3
+                  ? `. A diferença persiste após ${e.checks} verificações: importe o extrato do banco ou, em último caso, reconecte.`
+                  : ". Use “Sincronizar novamente” em Conexões; o sistema também segue buscando automaticamente."}
               </span>
             </span>
             <span className="flex shrink-0 flex-wrap gap-2">
-              <Button
+              {e.checks >= 3 && <Button
                 size="sm"
                 variant="outline"
                 onClick={() => {
@@ -2224,7 +2229,7 @@ export default function ConciliacaoPluggy() {
                 }}
               >
                 Reconectar (último recurso)
-              </Button>
+              </Button>}
               <Button size="sm" onClick={() => navigate("/contas-bancarias/conexoes")}>
                 Ir para Conexões
               </Button>
