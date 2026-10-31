@@ -18,6 +18,7 @@ import { ptBR } from "date-fns/locale";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { connectionState } from "@/lib/pluggy/connectionState";
 import { describeSyncOutcome, type SyncResponse } from "@/lib/pluggy/syncOutcome";
+import { revogacaoPendente, respostaRevogacaoPendente } from "@/lib/pluggy/revogacao";
 
 interface Connection {
   id: string;
@@ -34,6 +35,7 @@ interface Connection {
   last_sync_error: string | null;
   last_error: any;
   revoked_at?: string | null;
+  provider_delete_status?: string | null;
 }
 
 /**
@@ -162,7 +164,7 @@ export default function ConexoesPluggy() {
     if (!opts?.silent) setLoading(true);
 
     const { data: conns } = await supabase.from("pluggy_connections")
-      .select("id, pluggy_item_id, connector_id, connector_name, connector_image_url, status, execution_status, last_synced_at, last_sync_attempt_at, next_sync_at, last_sync_status, last_sync_error, last_error, revoked_at")
+      .select("id, pluggy_item_id, connector_id, connector_name, connector_image_url, status, execution_status, last_synced_at, last_sync_attempt_at, next_sync_at, last_sync_status, last_sync_error, last_error, revoked_at, provider_delete_status")
       .eq("company_id", selectedCompanyId).order("created_at", { ascending: false });
 
     // `deleted` é o estado legado de conexões apagadas: continua fora da lista.
@@ -299,11 +301,15 @@ export default function ConexoesPluggy() {
   // Revogar o consentimento: cancela o acesso no banco e mantém o histórico.
   const disconnect = async () => {
     if (!confirmDelete) return;
-    const { error } = await supabase.functions.invoke("pluggy-disconnect-item", {
+    const { data, error } = await supabase.functions.invoke("pluggy-disconnect-item", {
       body: { connection_id: confirmDelete.id, mode: "revoke" },
     });
     if (error) { toast.error("Falha ao desconectar"); return; }
-    toast.success("Acesso ao banco desconectado. Seus lançamentos foram mantidos.");
+    if (respostaRevogacaoPendente(data)) {
+      toast.warning("Sincronização interrompida; o banco ainda não confirmou o cancelamento da autorização, vamos tentar novamente automaticamente.");
+    } else {
+      toast.success("Acesso ao banco desconectado. Seus lançamentos foram mantidos.");
+    }
     setConfirmDelete(null);
     load();
   };
@@ -523,6 +529,9 @@ export default function ConexoesPluggy() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-medium truncate">{c.connector_name ?? "Banco"}</p>
                       <Badge variant="outline" className="text-muted-foreground">Desconectado</Badge>
+                      {revogacaoPendente(c.provider_delete_status) && (
+                        <Badge variant="outline" className="border-warning/40 text-warning">Revogação pendente</Badge>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Acesso revogado{c.revoked_at ? ` em ${fmtDateTime(c.revoked_at)}` : ""} · lançamentos mantidos
