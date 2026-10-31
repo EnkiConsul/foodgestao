@@ -25,3 +25,6 @@
 - `pluggy-reconcile-items` authorizes via `pluggy_user_can_manage_accounts`, accepts only `ofreq:<id>` and loads connections only for candidate item ids.
 - Cross-company duplicate check compares only BANK accounts by number + connector_id (+ agency when both have it); CREDIT is ignored.
 - Bank transactions with status PENDING are neither staged nor counted in the statement check; gaps below R$ 1,00 are ignored and reconnect is suggested only after 3 consecutive detections (`_shared/pluggy-statement-gap.ts`, `statement_gap_checks`).
+- Pluggy client: only `_shared/pluggy.ts` talks to the Pluggy API (the old `pluggy-client.ts` was removed); `clientUserId` is always `ofreq:<id>`; no service role or Pluggy secret in the frontend; secrets only in backend secrets.
+- `oauthRedirectUri` hosts come from `PLUGGY_OAUTH_REDIRECT_HOSTS` (comma-separated, wildcards ignored), defaulting to production + project preview (`_shared/pluggy-oauth-redirect.ts`).
+- `pluggy_*` grants: anon none; authenticated SELECT only (no DML/TRUNCATE/REFERENCES/TRIGGER); `pluggy_webhook_events` service_role only.
