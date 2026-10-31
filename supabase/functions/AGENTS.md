@@ -19,3 +19,9 @@
 - Desistir de upgrade imediato: `desfazer_upgrade` (`billing-v2-contratar`) só com a diferença ainda em aberto e sem mudança de ciclo — cancela a cobrança no Asaas, volta ao plano anterior (`billing_v2_apply_change` origem `desfeita`) e registra `upgrade_desfeito`; diferença paga vai para o suporte.
 - Checkout legado: com `checkout_v2` = v2, `/checkout/:planSlug` redireciona para `/planos?plano=` e `asaas-create-checkout` recusa com 409 antes de gravar ou chamar o Asaas — contratação só pelo fluxo novo.
 - Pluggy: o cron de sincronização pega conexões só por `pluggy_connections_claim_due` (SKIP LOCKED) e o lote/timeout documentado no topo de `pluggy-cron-sync` fica abaixo de 120s; remoção de itens na Pluggy (revogação falha ou item substituído) vai para a fila `needs_remote_delete` processada por `pluggy-remote-delete-worker` — revogação nunca é anunciada como concluída antes do banco confirmar.
+
+## Pluggy (Open Finance)
+- First link of an item requires proof of ownership (`ofreq:<id>` from a same-company/same-user connect request within 24h, or legacy clientUserId with a recent request); otherwise 403 `item_not_owned` (`_shared/pluggy-ownership.ts`).
+- `pluggy-reconcile-items` authorizes via `pluggy_user_can_manage_accounts`, accepts only `ofreq:<id>` and loads connections only for candidate item ids.
+- Cross-company duplicate check compares only BANK accounts by number + connector_id (+ agency when both have it); CREDIT is ignored.
+- Bank transactions with status PENDING are neither staged nor counted in the statement check; gaps below R$ 1,00 are ignored and reconnect is suggested only after 3 consecutive detections (`_shared/pluggy-statement-gap.ts`, `statement_gap_checks`).
