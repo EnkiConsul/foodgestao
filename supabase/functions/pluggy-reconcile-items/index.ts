@@ -11,6 +11,7 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { getItem, listItemsV2 } from '../_shared/pluggy.ts';
+import { allowedReconcileClientUserIds, isReconcileCandidateAllowed } from '../_shared/pluggy-reconcile.ts';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const LOOKBACK_HOURS = 72;
@@ -43,13 +44,13 @@ Deno.serve(async (req) => {
     const companyId = typeof body?.company_id === 'string' ? body.company_id : null;
     if (!companyId || !UUID_RE.test(companyId)) return json({ error: 'company_id_required' }, 400);
 
-    // Autorização: membro, dono ou super admin.
-    const [{ data: isSuper }, { data: mem }, { data: owned }] = await Promise.all([
-      admin.from('user_roles').select('role').eq('user_id', userId).eq('role', 'super_admin').maybeSingle(),
-      admin.from('company_members').select('id').eq('company_id', companyId).eq('user_id', userId).maybeSingle(),
-      admin.from('companies').select('id').eq('id', companyId).eq('user_id', userId).maybeSingle(),
-    ]);
-    if (!isSuper && !mem && !owned) return json({ error: 'forbidden' }, 403);
+    // Autorização: importar conexões altera a origem dos lançamentos — mesma
+    // regra de pausar/revogar (dono ou permissão de edição).
+    const { data: canEdit } = await admin.rpc('pluggy_user_can_manage_accounts', {
+      _user_id: userId,
+      _company_id: companyId,
+    });
+    if (canEdit !== true) return json({ error: 'forbidden' }, 403);
 
     // Solicitações recentes desta empresa: são as chaves de correlação válidas.
     const since = new Date(Date.now() - LOOKBACK_HOURS * 3600 * 1000).toISOString();
@@ -62,18 +63,7 @@ Deno.serve(async (req) => {
       .limit(50);
 
     const requestIds = (requests ?? []).map((r) => r.id as string);
-    const allowedClientUserIds = new Set<string>([
-      ...requestIds.map((id) => `ofreq:${id}`),
-      ...new Set((requests ?? []).map((r) => r.user_id as string)),
-    ]);
-
-    // Itens já conhecidos localmente (qualquer empresa) — não reimportar.
-    const { data: knownConns } = await admin
-      .from('pluggy_connections')
-      .select('pluggy_item_id, company_id, status');
-    const known = new Map(
-      (knownConns ?? []).map((c) => [c.pluggy_item_id as string, c as Record<string, unknown>]),
-    );
+    const allowedClientUserIds = allowedReconcileClientUserIds(requestIds);
 
     // 1. Candidatos: listagem por cursor filtrada por clientUserId de cada
     //    solicitação (endpoint opt-in na Pluggy) + item já resolvido na linha.
@@ -125,6 +115,17 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Itens já conhecidos localmente: consulta só os candidatos (nunca todos os tenants).
+    const known = new Map<string, Record<string, unknown>>();
+    const candidateIds = [...candidates.keys()];
+    for (let i = 0; i < candidateIds.length; i += 100) {
+      const { data: knownConns } = await admin
+        .from('pluggy_connections')
+        .select('pluggy_item_id, company_id, status')
+        .in('pluggy_item_id', candidateIds.slice(i, i + 100));
+      for (const c of knownConns ?? []) known.set(c.pluggy_item_id as string, c as Record<string, unknown>);
+    }
+
     // 3. Importa os itens correlacionados a esta empresa e ainda não conhecidos.
     const imported: Array<Record<string, unknown>> = [];
     const skipped: Array<Record<string, unknown>> = [];
@@ -138,7 +139,7 @@ Deno.serve(async (req) => {
         skipped.push({ item_id: itemId, connector_name: connectorName, reason: 'already_linked' });
         continue;
       }
-      if (!clientUserId || !allowedClientUserIds.has(clientUserId)) {
+      if (!isReconcileCandidateAllowed(clientUserId, allowedClientUserIds)) {
         skipped.push({ item_id: itemId, connector_name: connectorName, reason: 'other_company' });
         continue;
       }
