@@ -453,6 +453,7 @@ Deno.serve(async (req) => {
             _entity_type: 'pluggy_connection',
             _entity_id: null,
             _details: { company_id: effectiveCompanyId, pluggy_item_id: itemId, actor: userId, reason: posse.reason },
+            _company_id: effectiveCompanyId,
           });
         } catch (e) { console.warn('audit log falhou (continuando):', e); }
         return new Response(JSON.stringify({ error: 'item_not_owned' }), {
