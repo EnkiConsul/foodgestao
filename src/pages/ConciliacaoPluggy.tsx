@@ -585,6 +585,11 @@ export default function ConciliacaoPluggy() {
       if (resolvedScope) gapQuery = gapQuery.eq("pluggy_account_id", resolvedScope.pluggyAccountId);
       const { data: gapRows } = await gapQuery;
       if (stale()) return;
+      // Lacunas de hoje/ontem são atraso normal do extrato (Pix em análise,
+      // compensação); só exibimos as que já passaram de 2 dias.
+      const corte = new Date(Date.now() - 3 * 3600_000);
+      corte.setUTCDate(corte.getUTCDate() - 2);
+      const corteIso = corte.toISOString().slice(0, 10);
       setExtratosIncompletos(
         ((gapRows ?? []) as Array<{
           pluggy_account_id: string;
@@ -593,7 +598,7 @@ export default function ConciliacaoPluggy() {
           statement_gap_amount: number | null;
           statement_gap_from: string | null;
           statement_gap_to: string | null;
-        }>).map((g) => ({
+        }>).filter((g) => !g.statement_gap_to || g.statement_gap_to < corteIso).map((g) => ({
           pluggyAccountId: g.pluggy_account_id,
           nome: cleanProviderName(g.name) ?? "Conta conectada",
           diferenca: Number(g.statement_gap_amount ?? 0),
@@ -2206,7 +2211,7 @@ export default function ConciliacaoPluggy() {
                 {e.de && e.ate
                   ? ` entre ${e.de.split("-").reverse().join("/")} e ${e.ate.split("-").reverse().join("/")}`
                   : ""}
-                . Desconecte e conecte o banco de novo para liberar o envio do extrato.
+                . O sistema continua buscando esses lançamentos automaticamente. Se não chegarem, importe o extrato do banco; reconectar é só o último recurso.
               </span>
             </span>
             <span className="flex shrink-0 flex-wrap gap-2">
@@ -2218,7 +2223,7 @@ export default function ConciliacaoPluggy() {
                   setReconectarAberto(true);
                 }}
               >
-                Como fazer
+                Reconectar (último recurso)
               </Button>
               <Button size="sm" onClick={() => navigate("/contas-bancarias/conexoes")}>
                 Ir para Conexões
