@@ -1,5 +1,9 @@
 import { checkItemOwnership } from '../_shared/pluggy-ownership.ts';
-import { isPendingTx, gapAfterTolerance, nextGapChecks, gapMessage } from '../_shared/pluggy-statement-gap.ts';
+import { gapAfterTolerance, nextGapChecks, gapMessage } from '../_shared/pluggy-statement-gap.ts';
+import {
+  pendingLookbackDays, pendingMaxDays, pendingCutoff, shouldImportTx, isStagingUpdatable,
+  incrementalStartFrom, findSupersededPending, isPendingStatus, SUPERSEDED_PREFIX,
+} from '../_shared/pluggy-pending.ts';
 import { createdByOnInsert } from '../_shared/pluggy-cron-limits.ts';
 import { bankAccountNumbers, findDuplicateBankAccounts } from '../_shared/pluggy-duplicate-accounts.ts';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
@@ -995,6 +999,11 @@ Deno.serve(async (req) => {
     // Janela ampla é reservada ao primeiro vínculo, backfill manual e eventos de
     // atualização retroativa (que chegam com `days` explícito).
     const janelaAmplaObrigatoria = isFirstConnect || !!backfillFrom || (Number(body?.days ?? 0) > 0);
+    const pendingLookback = pendingLookbackDays(Deno.env.get('PLUGGY_PENDING_LOOKBACK_DAYS'));
+    const pendingMax = pendingMaxDays(Deno.env.get('PLUGGY_PENDING_MAX_DAYS'));
+    const hoje = fmt(new Date());
+    // PENDING com data <= corte já tem N dias: conta na conferência de extrato.
+    const pendingCut = pendingCutoff(hoje, pendingMax);
 
     /**
      * Ponto de partida real da conta: a transação mais recente já importada,
@@ -1023,9 +1032,9 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (ultima?.date) {
-        const d = new Date(`${String(ultima.date).slice(0, 10)}T12:00:00Z`);
+        // B3: recua o lookback de PENDING (BANK e CREDIT) para a virada chegar.
+        const d = new Date(`${incrementalStartFrom(String(ultima.date), pendingLookback)}T12:00:00Z`);
         if (!Number.isNaN(d.getTime())) {
-          d.setDate(d.getDate() - 3);
           candidatos.push(d);
         }
       }
@@ -1070,9 +1079,35 @@ Deno.serve(async (req) => {
      * entraram. Isolada em função para permitir uma segunda passada com janela
      * ampliada quando a conferência de saldo indica extrato faltando.
      */
+    async function atualizarPendente(id: string, r: any, trocaId = false) {
+      const patch: Record<string, unknown> = {
+        description: r.description,
+        counterparty_name: r.counterparty_name,
+        counterparty_document: r.counterparty_document,
+        counterparty_document_type: r.counterparty_document_type,
+        amount: r.amount,
+        date: r.date,
+        category_pluggy: r.category_pluggy,
+        type: r.type,
+        raw: r.raw,
+      };
+      if (trocaId) patch.pluggy_transaction_id = r.pluggy_transaction_id;
+      // Status de staging continua 'pending' (revisão do usuário), mesmo virando POSTED.
+      const { error } = await admin
+        .from('pluggy_staging_transactions')
+        .update(patch)
+        .eq('id', id)
+        .eq('status', 'pending')
+        .is('matched_transaction_id', null);
+      if (error) console.error('staging update error', error);
+    }
+
     async function importarJanela(acc: any, fromStr: string, toStr: string): Promise<number> {
-      // PENDING (Pix em análise, compensação) só entra quando virar POSTED.
-      const txs = (await listTransactions(acc.id, fromStr, toStr)).filter((t: any) => !isPendingTx(t));
+      // Regra C: PENDING com menos de N dias aguarda virar POSTED; com N+ dias
+      // entra para revisão (selo "Pendente no banco").
+      const txs = (await listTransactions(acc.id, fromStr, toStr)).filter((t: any) =>
+        shouldImportTx({ status: t?.status, date: (t?.date ?? t?.transactionDate ?? '').slice(0, 10) || null }, hoje, pendingMax)
+      );
       if (txs.length === 0) return 0;
 
       const rows = txs.map((t: any): any => {
@@ -1141,39 +1176,14 @@ Deno.serve(async (req) => {
           continue;
         }
         if (prev.pluggy_transaction_id === r.pluggy_transaction_id) {
-          // Mesma versão: só reenriquece a descrição se ainda estiver pendente.
-          if (prev.status === 'pending') {
-            await admin
-              .from('pluggy_staging_transactions')
-              .update({
-                description: r.description,
-                counterparty_name: r.counterparty_name,
-                counterparty_document: r.counterparty_document,
-                counterparty_document_type: r.counterparty_document_type,
-                raw: r.raw,
-              })
-              .eq('id', prev.id);
-          }
+          // Mesma versão: atualiza com dados atuais só se pendente e sem conciliação.
+          if (isStagingUpdatable(prev)) await atualizarPendente(prev.id, r);
           continue;
         }
-        if (prev.status === 'pending') {
+        if (isStagingUpdatable(prev)) {
           // Versão nova do mesmo lançamento do banco: atualiza no lugar.
-          await admin
-            .from('pluggy_staging_transactions')
-            .update({
-              pluggy_transaction_id: r.pluggy_transaction_id,
-              description: r.description,
-              counterparty_name: r.counterparty_name,
-              counterparty_document: r.counterparty_document,
-              counterparty_document_type: r.counterparty_document_type,
-              amount: r.amount,
-              date: r.date,
-              category_pluggy: r.category_pluggy,
-              type: r.type,
-              raw: r.raw,
-            })
-            .eq('id', prev.id);
-        } else {
+          await atualizarPendente(prev.id, r, true);
+        } else if (prev.status !== 'pending') {
           // Já conciliado: preserva o lançamento confirmado como versão final
           // e guarda a nova versão somente como duplicada, fora da conciliação.
           await admin
@@ -1185,11 +1195,31 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Chunked upsert to avoid oversized payloads
+      // B1 — upsert controlado pelo id da Pluggy (cobre linhas sem providerId):
+      // existente 'pending' sem conciliação recebe os dados atuais; as demais
+      // (confirmed/ignored/conciliadas/duplicate) nunca são alteradas.
+      const existentes = new Map<string, PrevStaging>();
+      const ids = toInsert.map((r) => r.pluggy_transaction_id);
+      for (let i = 0; i < ids.length; i += 200) {
+        const { data: prev } = await admin
+          .from('pluggy_staging_transactions')
+          .select('id, status, provider_id, pluggy_transaction_id, amount, date, description, matched_transaction_id')
+          .in('pluggy_transaction_id', ids.slice(i, i + 200));
+        for (const p of (prev ?? []) as PrevStaging[]) existentes.set(p.pluggy_transaction_id, p);
+      }
+      const novos: typeof rows = [];
+      for (const r of toInsert) {
+        const prev = existentes.get(r.pluggy_transaction_id);
+        if (!prev) { novos.push(r); continue; }
+        if (!isStagingUpdatable(prev)) continue;
+        await atualizarPendente(prev.id, r);
+      }
+
+      // Chunked insert; ignoreDuplicates só protege de corrida entre execuções.
       const chunkSize = 200;
       let naoGravados = 0;
-      for (let i = 0; i < toInsert.length; i += chunkSize) {
-        const chunk = toInsert.slice(i, i + chunkSize);
+      for (let i = 0; i < novos.length; i += chunkSize) {
+        const chunk = novos.slice(i, i + chunkSize);
         const { error } = await admin
           .from('pluggy_staging_transactions')
           .upsert(chunk, { onConflict: 'pluggy_transaction_id', ignoreDuplicates: true });
@@ -1200,23 +1230,45 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Reprocessa a descrição de itens sem providerId que foram importados
-      // antes com rótulo genérico (o upsert acima ignora duplicados).
-      for (const r of toInsert) {
-        if (r.provider_id) continue;
-        const { error } = await admin
+      // B2 — POSTED com ID novo substitui PENDING antigo (troca de ID pelo banco):
+      // o PENDING vira 'ignored' com motivo, nunca é apagado.
+      const postedNovos = novos.filter((r) => !isPendingStatus(r.raw?.status) && r.date);
+      if (postedNovos.length > 0) {
+        const datas = postedNovos.map((r) => r.date).sort();
+        const shift = (d: string, n: number) => {
+          const x = new Date(`${d}T12:00:00Z`);
+          x.setUTCDate(x.getUTCDate() + n);
+          return fmt(x);
+        };
+        const { data: pendAntigos } = await admin
           .from('pluggy_staging_transactions')
-          .update({
-            description: r.description,
-            counterparty_name: r.counterparty_name,
-            counterparty_document: r.counterparty_document,
-            counterparty_document_type: r.counterparty_document_type,
-          })
-          .eq('pluggy_transaction_id', r.pluggy_transaction_id)
+          .select('id, pluggy_transaction_id, pluggy_account_id, status, matched_transaction_id, amount, date, raw')
+          .eq('company_id', effectiveCompanyId)
+          .eq('pluggy_account_id', acc.id)
           .eq('status', 'pending')
-          .neq('description', r.description);
-        if (error) console.error('staging re-enrich error', error);
+          .is('matched_transaction_id', null)
+          .eq('raw->>status', 'PENDING')
+          .gte('date', shift(datas[0], -3))
+          .lte('date', shift(datas[datas.length - 1], 3));
+        const cands = ((pendAntigos ?? []) as any[]).map((c) => ({ ...c, raw_status: c.raw?.status ?? null }));
+        const usados = new Set<string>();
+        for (const p of postedNovos) {
+          const alvo = findSupersededPending(
+            { pluggy_transaction_id: p.pluggy_transaction_id, pluggy_account_id: acc.id, amount: p.amount, date: p.date, raw_status: p.raw?.status },
+            cands.filter((c) => !usados.has(c.id)),
+          )[0];
+          if (!alvo) continue;
+          usados.add(alvo.id);
+          const { error } = await admin
+            .from('pluggy_staging_transactions')
+            .update({ status: 'ignored' as never, raw: { ...(alvo as any).raw, _aveto_motivo: `${SUPERSEDED_PREFIX}${p.pluggy_transaction_id}` } })
+            .eq('id', alvo.id)
+            .eq('status', 'pending')
+            .is('matched_transaction_id', null);
+          if (error) console.error('staging supersede error', error);
+        }
       }
+
       // Contador real: descontamos os lotes que o banco recusou.
       return Math.max(rows.length - naoGravados, 0);
     }
@@ -1242,7 +1294,7 @@ Deno.serve(async (req) => {
           .eq('company_id', effectiveCompanyId)
           .eq('pluggy_account_id', accId)
           .neq('status', 'duplicate')
-          .or('raw->>status.is.null,raw->>status.neq.PENDING')
+          .or(`raw->>status.is.null,raw->>status.neq.PENDING,date.lte.${pendingCut}`)
           // Compara pelo momento da importação, não pela data da transação:
           // o saldo anterior foi lido no horário da sincronização anterior,
           // então só entra o que chegou depois dele (evita falso alerta no mesmo dia).
@@ -1287,7 +1339,7 @@ Deno.serve(async (req) => {
             .eq('company_id', effectiveCompanyId)
             .eq('pluggy_account_id', acc.id)
             .neq('status', 'duplicate')
-            .or('raw->>status.is.null,raw->>status.neq.PENDING')
+            .or(`raw->>status.is.null,raw->>status.neq.PENDING,date.lte.${pendingCut}`)
             .gte('date', de)
             .lte('date', ate)
             .range(inicio, inicio + 999);
