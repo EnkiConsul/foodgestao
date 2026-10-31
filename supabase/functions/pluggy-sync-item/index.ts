@@ -1,5 +1,6 @@
 import { checkItemOwnership } from '../_shared/pluggy-ownership.ts';
 import { createdByOnInsert } from '../_shared/pluggy-cron-limits.ts';
+import { bankAccountNumbers, findDuplicateBankAccounts } from '../_shared/pluggy-duplicate-accounts.ts';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { getItem, listAccounts, listItems, listTransactions, refreshItem, waitForItem } from '../_shared/pluggy.ts';
@@ -519,21 +520,32 @@ Deno.serve(async (req) => {
     if (!existing && body?.allow_duplicate !== true) {
       try {
         preFetchedAccounts = await listAccounts(itemId);
-        const numbers = ((preFetchedAccounts ?? []) as Array<{ number?: string | null }>)
-          .map((a) => a.number ?? null)
-          .filter((n): n is string => !!n);
+        // Só contas BANK; igualdade por número + connector_id + agência.
+        const novas = ((preFetchedAccounts ?? []) as Array<any>).map((a) => ({
+          type: a?.type ?? null,
+          number: a?.number ?? null,
+          transferNumber: a?.bankData?.transferNumber ?? null,
+        }));
+        const numbers = bankAccountNumbers(novas);
         if (numbers.length) {
           const { data: clashes } = await admin
             .from('pluggy_accounts')
-            .select('number_masked, name, company_id, companies:company_id(name, trade_name)')
+            .select('type, number_masked, name, company_id, transfer_number:raw->bankData->>transferNumber, conn:connection_id(connector_id), companies:company_id(name, trade_name)')
+            .eq('type', 'BANK')
             .in('number_masked', numbers)
             .neq('company_id', effectiveCompanyId);
-          const conflitos = ((clashes ?? []) as unknown) as Array<{
+          type Clash = {
+            type: string | null;
             number_masked: string | null;
             name: string | null;
             company_id: string;
+            transfer_number: string | null;
+            connector_id: number | null;
             companies: { name: string | null; trade_name: string | null } | null;
-          }>;
+          };
+          const rows = ((clashes ?? []) as unknown as Array<Omit<Clash, 'connector_id'> & { conn: { connector_id: number | null } | null }>)
+            .map((r) => ({ ...r, connector_id: r.conn?.connector_id ?? null })) as Clash[];
+          const conflitos = findDuplicateBankAccounts(novas, item?.connector?.id ?? null, rows);
           if (conflitos.length) {
             // Nome da empresa e nome da conta só aparecem quando o usuário tem
             // acesso àquela empresa. Caso contrário, aviso genérico — nunca
