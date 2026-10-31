@@ -72,6 +72,9 @@ Deno.serve(async (req) => {
 
 
     const body = await req.json().catch(() => ({}));
+    // Tempo máximo esperando a coleta no banco; o cron envia um valor menor
+    // para caber no próprio timeout por item.
+    const waitMs = Math.min(Math.max(Number(body?.wait_ms) || 45000, 5000), 45000);
     let itemId: string | undefined = body?.item_id;
     companyId = body?.company_id ?? null;
     const isFirstConnect = body?.first_connect === true;
@@ -469,14 +472,14 @@ Deno.serve(async (req) => {
           }
         }
         if (!pulouPorJanela || isRunning) {
-          item = await waitForItem(itemId, 45000);
+          item = await waitForItem(itemId, waitMs);
         }
       } catch (e) {
         console.error('pluggy refresh failed', e);
         item = await getItem(itemId);
       }
     } else if (isRunning) {
-      item = await waitForItem(itemId, 45000);
+      item = await waitForItem(itemId, waitMs);
     }
 
     // 0b) Uma mesma conta bancária ligada em duas empresas gera extrato e saldo
@@ -544,7 +547,9 @@ Deno.serve(async (req) => {
       execution_status: item?.executionStatus ?? null,
       // last_synced_at só no fim, depois de gravar contas e lançamentos.
       last_error: item?.error ?? null,
-      created_by: userId,
+      // created_by só na criação: cron/webhook chegam sem usuário e não podem
+      // apagar o autor original da conexão.
+      ...(!existing && userId ? { created_by: userId } : {}),
     };
 
     // 1a) Deduplicação ANTES do upsert: uma nova autorização do MESMO banco
@@ -552,6 +557,7 @@ Deno.serve(async (req) => {
     // parcial (company_id, connector_id) rejeita o insert se a antiga ainda
     // estiver ativa, então marcamos como substituída primeiro.
     const connectorIdNum = item?.connector?.id ?? null;
+    let supersededIds: string[] = [];
     if (connectorIdNum !== null) {
       const { data: siblings } = await admin
         .from('pluggy_connections')
@@ -561,6 +567,7 @@ Deno.serve(async (req) => {
         .neq('pluggy_item_id', itemId)
         .neq('status', 'deleted');
       const siblingIds = (siblings ?? []).map((s: any) => s.id);
+      supersededIds = siblingIds;
       if (siblingIds.length) {
         await admin
           .from('pluggy_connections')
@@ -578,6 +585,18 @@ Deno.serve(async (req) => {
       .select('id')
       .single();
     if (connErr) throw connErr;
+
+    // Itens substituídos continuam existindo na Pluggy: enfileira a remoção
+    // remota (worker pluggy-remote-delete-worker) só depois do upsert dar certo.
+    if (supersededIds.length) {
+      const { error: qErr } = await admin.from('pluggy_connections').update({
+        needs_remote_delete: true,
+        remote_delete_next_attempt_at: new Date().toISOString(),
+        remote_delete_dead_letter: false,
+        provider_delete_status: 'pending',
+      }).in('id', supersededIds).is('remote_deleted_at', null);
+      if (qErr) console.error('pluggy: falha ao enfileirar remoção remota', qErr.message);
+    }
 
 
 

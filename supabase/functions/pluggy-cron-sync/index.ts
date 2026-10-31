@@ -14,9 +14,16 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 //      e dead-letter após MAX_ATTEMPTS falhas consecutivas.
 // Assim o tempo de execução é constante e previsível, independente do nº de tenants.
 
-const BATCH_SIZE = Number(Deno.env.get('PLUGGY_CRON_BATCH_SIZE') ?? '25');
-const PARALLELISM = Number(Deno.env.get('PLUGGY_CRON_PARALLELISM') ?? '6');
-const ITEM_TIMEOUT_MS = Number(Deno.env.get('PLUGGY_CRON_ITEM_TIMEOUT_MS') ?? '45000');
+// Dimensionamento (pior caso, todas as conexões estourando o timeout):
+//   ondas = ceil(BATCH_SIZE / PARALLELISM) = ceil(12 / 6) = 2
+//   tempo = ondas × ITEM_TIMEOUT_MS = 2 × 50s = 100s  (< 120s do limite)
+// O sync-item espera no máximo SYNC_WAIT_MS (20s) pela coleta e ainda tem
+// ~30s para gravar contas/lançamentos antes do abort de 50s.
+// Rodando a cada 10 min, cada execução atende até 12 conexões (≈1.700/dia).
+const BATCH_SIZE = 12;
+const PARALLELISM = 6;
+const ITEM_TIMEOUT_MS = 50_000;
+const SYNC_WAIT_MS = 20_000;
 const SUCCESS_INTERVAL_MIN = Number(Deno.env.get('PLUGGY_CRON_INTERVAL_MIN') ?? '60');
 const MAX_ATTEMPTS = 6;
 
@@ -53,15 +60,11 @@ Deno.serve(async (req) => {
 
 
 
-  // 1) Lote de conexões vencidas, mais antigas primeiro (fair queueing)
-  const { data: conns, error: connErr } = await admin
-    .from('pluggy_connections')
-    .select('id, pluggy_item_id, sync_attempts')
-    .not('status', 'in', '("deleted","revoked","login_error")')
-    .lt('sync_attempts', MAX_ATTEMPTS)
-    .lte('next_sync_at', new Date().toISOString())
-    .order('next_sync_at', { ascending: true })
-    .limit(BATCH_SIZE);
+  // 1) Claim atômico (FOR UPDATE SKIP LOCKED): duas execuções simultâneas
+  //    nunca recebem a mesma conexão. O lease empurra next_sync_at.
+  const { data: conns, error: connErr } = await admin.rpc('pluggy_connections_claim_due', {
+    _batch: BATCH_SIZE, _lease_minutes: 10,
+  });
 
   if (connErr) {
     console.error('pluggy-cron-sync: falha ao listar conexões', { requestId, error: connErr.message });
@@ -89,16 +92,6 @@ Deno.serve(async (req) => {
   );
   const knownConnections = new Set((pAccounts ?? []).map((a: any) => a.connection_id));
 
-  // 3) Claim: empurra o next_sync_at do lote para frente antes de trabalhar,
-  //    evitando que uma execução concorrente do cron pegue as mesmas conexões.
-  await admin
-    .from('pluggy_connections')
-    .update({
-      next_sync_at: minutesFromNow(10),
-      last_sync_attempt_at: new Date().toISOString(),
-    })
-    .in('id', ids);
-
   async function syncOne(c: any) {
     if (knownConnections.has(c.id) && !hasActiveAccount.has(c.id)) {
       await admin.from('pluggy_connections').update({
@@ -120,7 +113,7 @@ Deno.serve(async (req) => {
           'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
           'x-request-id': requestId,
         },
-        body: JSON.stringify({ item_id: c.pluggy_item_id }),
+        body: JSON.stringify({ item_id: c.pluggy_item_id, wait_ms: SYNC_WAIT_MS }),
       });
 
       // HTTP 200 não é sucesso: o corpo diz se a coleta concluiu, ficou

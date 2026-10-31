@@ -47,6 +47,9 @@ export async function createConnectToken(
   const tokenOptions: Record<string, unknown> = {};
   if (options?.oauthRedirectUri) tokenOptions.oauthRedirectUri = options.oauthRedirectUri;
   if (options?.clientUserId) tokenOptions.clientUserId = options.clientUserId;
+  // Conexão nova: a Pluggy reaproveita o item existente do mesmo banco/usuário
+  // em vez de criar outro (evita itens órfãos). Reconexão já informa itemId.
+  if (!itemId) tokenOptions.avoidDuplicates = true;
   if (Object.keys(tokenOptions).length > 0) body.options = tokenOptions;
   const res = await pluggyFetch("/connect_token", { method: "POST", body: JSON.stringify(body) });
   if (!res.ok) throw new Error(`connect_token_failed: ${res.status} ${await res.text()}`);

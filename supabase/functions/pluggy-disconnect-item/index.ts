@@ -137,6 +137,10 @@ Deno.serve(async (req) => {
         revoked_by: userId,
         revoke_reason: typeof body?.reason === 'string' ? body.reason.slice(0, 300) : 'user_revoked',
         provider_delete_status: providerDeleteStatus,
+        // Falhou no banco: fica na fila do pluggy-remote-delete-worker.
+        ...(providerDeleteStatus === 'ok'
+          ? { needs_remote_delete: false, remote_deleted_at: nowIso }
+          : { needs_remote_delete: true, remote_delete_next_attempt_at: nowIso, remote_delete_attempts: 0, remote_delete_dead_letter: false }),
         last_sync_status: 'revoked',
         last_sync_error: null,
       })
@@ -160,7 +164,7 @@ Deno.serve(async (req) => {
       provider_delete_status: providerDeleteStatus,
       revocation_pending: revogacaoPendente,
       message: revogacaoPendente
-        ? 'A sincronização foi interrompida, mas o banco ainda não confirmou o cancelamento da autorização. Tente novamente ou cancele também no aplicativo do banco.'
+        ? 'Sincronização interrompida; o banco ainda não confirmou o cancelamento da autorização, vamos tentar novamente automaticamente.'
         : 'Autorização cancelada.',
     }, revogacaoPendente ? 202 : 200);
   } catch (e) {
