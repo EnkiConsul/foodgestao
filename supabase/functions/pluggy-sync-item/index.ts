@@ -1,3 +1,4 @@
+import { createdByOnInsert } from '../_shared/pluggy-cron-limits.ts';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { getItem, listAccounts, listItems, listTransactions, refreshItem, waitForItem } from '../_shared/pluggy.ts';
@@ -549,8 +550,16 @@ Deno.serve(async (req) => {
       last_error: item?.error ?? null,
       // created_by só na criação: cron/webhook chegam sem usuário e não podem
       // apagar o autor original da conexão.
-      ...(!existing && userId ? { created_by: userId } : {}),
     };
+    if (!existing) {
+      let ownerId: string | null = null;
+      if (!userId && effectiveCompanyId) {
+        ownerId = (await admin.from('companies').select('user_id')
+          .eq('id', effectiveCompanyId).maybeSingle()).data?.user_id ?? null;
+      }
+      const autor = createdByOnInsert(false, userId, ownerId);
+      if (autor) (connectionPayload as Record<string, unknown>).created_by = autor;
+    }
 
     // 1a) Deduplicação ANTES do upsert: uma nova autorização do MESMO banco
     // (connector) na mesma empresa substitui a conexão anterior. O índice único
