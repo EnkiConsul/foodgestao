@@ -1,0 +1,4 @@
+ALTER TABLE public.pluggy_accounts ADD COLUMN IF NOT EXISTS statement_gap_first_seen_at timestamptz NULL;
+ALTER TABLE public.pluggy_accounts ADD COLUMN IF NOT EXISTS statement_gap_reconnect_suggested boolean NOT NULL DEFAULT false;
+COMMENT ON COLUMN public.pluggy_accounts.statement_gap_first_seen_at IS 'First observed unresolved statement gap; cleared when resolved. Legacy gaps start tracking at their next sync, never inferred from check count.';
+COMMENT ON COLUMN public.pluggy_accounts.statement_gap_reconnect_suggested IS 'Server-authoritative reconnect eligibility: configured time persistence AND at least three checks; false for current-day-only gaps.';

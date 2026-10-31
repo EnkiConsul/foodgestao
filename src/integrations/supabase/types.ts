@@ -15722,7 +15722,9 @@ export type Database = {
           statement_gap_amount: number | null
           statement_gap_checked_at: string | null
           statement_gap_checks: number
+          statement_gap_first_seen_at: string | null
           statement_gap_from: string | null
+          statement_gap_reconnect_suggested: boolean
           statement_gap_to: string | null
           subtype: string | null
           sync_paused_at: string | null
@@ -15749,7 +15751,9 @@ export type Database = {
           statement_gap_amount?: number | null
           statement_gap_checked_at?: string | null
           statement_gap_checks?: number
+          statement_gap_first_seen_at?: string | null
           statement_gap_from?: string | null
+          statement_gap_reconnect_suggested?: boolean
           statement_gap_to?: string | null
           subtype?: string | null
           sync_paused_at?: string | null
@@ -15776,7 +15780,9 @@ export type Database = {
           statement_gap_amount?: number | null
           statement_gap_checked_at?: string | null
           statement_gap_checks?: number
+          statement_gap_first_seen_at?: string | null
           statement_gap_from?: string | null
+          statement_gap_reconnect_suggested?: boolean
           statement_gap_to?: string | null
           subtype?: string | null
           sync_paused_at?: string | null
