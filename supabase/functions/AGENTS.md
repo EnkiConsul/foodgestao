@@ -28,3 +28,24 @@
 - Pluggy client: only `_shared/pluggy.ts` talks to the Pluggy API (the old `pluggy-client.ts` was removed); `clientUserId` is always `ofreq:<id>`; no service role or Pluggy secret in the frontend; secrets only in backend secrets.
 - `oauthRedirectUri` hosts come from `PLUGGY_OAUTH_REDIRECT_HOSTS` (comma-separated, wildcards ignored), defaulting to production + project preview (`_shared/pluggy-oauth-redirect.ts`).
 - `pluggy_*` grants: anon none; authenticated SELECT only (no DML/TRUNCATE/REFERENCES/TRIGGER); `pluggy_webhook_events` service_role only.
+
+## Pluggy — Regras invioláveis
+
+Arquitetura: `pluggy-connect-token` → Pluggy Connect Widget (v2.11.0 fixada) → `pluggy-sync-item` → staging (`pluggy_staging_transactions`) → conciliação. Webhook: `pluggy-webhook` (inbox, valida `x-webhook-secret`) → `pluggy-webhook-worker` (a cada 1 min, claim SKIP LOCKED, backoff, dead letter) → `pluggy-sync-item`. Cron: `pluggy-cron-sync` (a cada 10 min, claim em lote via RPC `pluggy_connections_claim_due`).
+
+1. Segredos: `PLUGGY_CLIENT_ID`/`PLUGGY_CLIENT_SECRET`/`PLUGGY_WEBHOOK_SECRET` só em secrets do backend; nunca em código, log, resposta de função ou frontend.
+2. Cliente único: só `_shared/pluggy.ts` fala com a API da Pluggy (v2, `/v2/transactions`); `clientUserId` é sempre `ofreq:<id>`.
+3. Posse do item: primeiro vínculo exige prova de posse (`ofreq:<id>` mesma empresa/usuário em 24h); caso contrário 403 `item_not_owned`.
+4. Conciliação: baixa em lançamento existente só via RPC `pluggy_conciliacao_baixar`/`pluggy_conciliacao_baixar_ajuste` (FOR UPDATE, idempotente, validação no servidor); pagamento menor oferece parcial (mantém saldo) ou desconto (quita).
+5. Extrato incompleto: transações PENDING não entram no staging nem na conferência; lacuna < R$ 1,00 ignorada; reconexão sugerida só após 3 detecções consecutivas (`statement_gap_checks`); nunca orientar desconectar como primeira ação.
+6. Duplicidade entre empresas: compara só contas BANK por número + connector_id (+ agência quando ambas têm); CREDIT ignorado.
+7. Concorrência: todo processamento em lote usa claim atômico (FOR UPDATE SKIP LOCKED) — `pluggy_connections_claim_due`, `pluggy_remote_delete_claim`, claim do webhook worker.
+8. Desconexão: remoção remota vai para fila `needs_remote_delete` processada por `pluggy-remote-delete-worker`; revogação nunca é anunciada como concluída antes do banco confirmar.
+9. Limites do cron: `BATCH_SIZE`/`PARALLELISM`/`ITEM_TIMEOUT_MS`/`SYNC_WAIT_MS` por env com padrões seguros; `resolveCronLimits` garante ceil(lote/paralelismo) × timeout ≤ 120s.
+10. `created_by`: em inserção usa o usuário da solicitação; sem usuário, `companies.user_id`; conexão existente nunca é regravada.
+11. Ambientes: produção e homologação nunca se cruzam; testes só em homologação com funções/secrets/crons espelhados.
+12. Cron secret: `pluggy-cron-sync` e `pluggy-remote-delete-worker` exigem `x-cron-secret` (`pluggy_cron_secret`).
+13. Grants: anon sem acesso a `pluggy_*`; authenticated somente SELECT; `pluggy_webhook_events` só service_role. Toda tabela nova `pluggy_*` segue o mesmo padrão e tem RLS.
+14. Lógica pura: mudanças em regras puras ficam em `_shared/*.ts` com teste unitário.
+
+Checklist antes de alterar qualquer coisa Pluggy: a mudança respeita as regras 1–14? Há teste cobrindo a regra alterada? Cron, webhook ou worker mudaram? Conferir frequência e uso de claim atômico.
