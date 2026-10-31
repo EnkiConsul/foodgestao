@@ -1275,7 +1275,12 @@ Deno.serve(async (req) => {
         }).eq('id', rowId);
       }
 
-      if (falta) {
+      // Lançamentos de hoje/ontem (Pix em análise, compensação) costumam chegar
+      // no extrato depois do saldo: só alertamos lacunas com mais de 2 dias.
+      const limiteRecente = new Date(Date.now() - 3 * 3600_000);
+      limiteRecente.setUTCDate(limiteRecente.getUTCDate() - 2);
+      const lacunaAntiga = !!falta && falta.ate < limiteRecente.toISOString().slice(0, 10);
+      if (falta && lacunaAntiga) {
         extratosIncompletos.push({
           nome: acc.name ?? acc.marketingName ?? 'Conta',
           diferenca: falta.diferenca,
@@ -1304,7 +1309,7 @@ Deno.serve(async (req) => {
         minimumFractionDigits: 2, maximumFractionDigits: 2,
       });
       motivos.push(
-        `O banco atualizou o saldo de ${e.nome} mas não entregou todos os lançamentos: faltam R$ ${valor} entre ${e.de.split('-').reverse().join('/')} e ${e.ate.split('-').reverse().join('/')}. Desconecte e conecte o banco de novo para liberar o envio do extrato.`,
+        `O banco atualizou o saldo de ${e.nome} mas não entregou todos os lançamentos: faltam R$ ${valor} entre ${e.de.split('-').reverse().join('/')} e ${e.ate.split('-').reverse().join('/')}. O sistema segue buscando automaticamente; se persistir, use Sincronizar ou importe o extrato.`,
       );
     }
     const intervaloMin = Number(Deno.env.get('PLUGGY_CRON_INTERVAL_MIN') ?? '60');
