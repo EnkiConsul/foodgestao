@@ -1,3 +1,4 @@
+import { resolveCronLimits } from '../_shared/pluggy-cron-limits.ts';
 import { secretMatches } from '../_shared/secret.ts';
 import { classifySyncResult, type SyncBody } from '../_shared/syncOutcome.ts';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
@@ -20,10 +21,14 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 // O sync-item espera no máximo SYNC_WAIT_MS (20s) pela coleta e ainda tem
 // ~30s para gravar contas/lançamentos antes do abort de 50s.
 // Rodando a cada 10 min, cada execução atende até 12 conexões (≈1.700/dia).
-const BATCH_SIZE = 12;
-const PARALLELISM = 6;
-const ITEM_TIMEOUT_MS = 50_000;
-const SYNC_WAIT_MS = 20_000;
+// Valores lidos de env (padrões acima); resolveCronLimits valida o pior caso
+// e reduz o lote com warning se ultrapassar 120s.
+const LIMITS = resolveCronLimits((k) => Deno.env.get(k));
+if (LIMITS.reduced) console.warn('pluggy-cron-sync: lote reduzido para caber em 120s', { batch: LIMITS.batchSize });
+const BATCH_SIZE = LIMITS.batchSize;
+const PARALLELISM = LIMITS.parallelism;
+const ITEM_TIMEOUT_MS = LIMITS.itemTimeoutMs;
+const SYNC_WAIT_MS = LIMITS.syncWaitMs;
 const SUCCESS_INTERVAL_MIN = Number(Deno.env.get('PLUGGY_CRON_INTERVAL_MIN') ?? '60');
 const MAX_ATTEMPTS = 6;
 
