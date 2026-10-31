@@ -5,7 +5,7 @@ import {
   listWebhooks,
   updateWebhook,
   type PluggyWebhook,
-} from '../_shared/pluggy-client.ts';
+} from '../_shared/pluggy.ts';
 
 /**
  * Configuração do webhook da Pluggy — somente super_admin.

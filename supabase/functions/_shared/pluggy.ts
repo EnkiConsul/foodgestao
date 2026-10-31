@@ -212,3 +212,36 @@ export async function waitForItem(itemId: string, timeoutMs = 45000) {
   }
   return item;
 }
+
+// ---------------------------------------------------------------------------
+// Webhooks (usado por pluggy-webhook-config). Segredo vai em cabeçalho
+// `x-webhook-secret` (https://docs.pluggy.ai/docs/webhooks#webhook-headers).
+export interface PluggyWebhook {
+  id: string;
+  url: string;
+  event: string;
+  headers?: Record<string, string> | null;
+  disabledAt?: string | null;
+}
+
+type WebhookResult<T> = { ok: true; data: T } | { ok: false; error: string };
+
+async function webhookRequest<T>(method: string, path: string, body?: unknown): Promise<WebhookResult<T>> {
+  try {
+    const res = await pluggyFetch(path, { method, body: body ? JSON.stringify(body) : undefined });
+    if (!res.ok) {
+      await res.text().catch(() => '');
+      return { ok: false, error: `http_${res.status}` }; // nunca devolve corpo (pode ecoar segredo)
+    }
+    return { ok: true, data: (await res.json()) as T };
+  } catch {
+    return { ok: false, error: 'network_error' };
+  }
+}
+
+export const listWebhooks = () =>
+  webhookRequest<{ results: PluggyWebhook[]; total?: number }>('GET', '/webhooks');
+export const createWebhook = (input: { url: string; event: string; headers?: Record<string, string> }) =>
+  webhookRequest<PluggyWebhook>('POST', '/webhooks', input);
+export const updateWebhook = (id: string, input: { url?: string; event?: string; headers?: Record<string, string> }) =>
+  webhookRequest<PluggyWebhook>('PATCH', `/webhooks/${id}`, input);
