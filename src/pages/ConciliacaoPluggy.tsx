@@ -28,6 +28,7 @@ import { StagingCard } from "@/components/conciliacao/StagingCard";
 import { SugestaoBaixa } from "@/components/conciliacao/SugestaoBaixa";
 import { ranquearCandidatos, type CandidatoBaixa, type CandidatoPontuado } from "@/lib/conciliacao/baixaExistente";
 import { DescriptionEditor } from "@/components/conciliacao/DescriptionEditor";
+import { shouldShowGap } from "../../supabase/functions/_shared/pluggy-statement-gap";
 
 
 
@@ -483,6 +484,7 @@ export default function ConciliacaoPluggy() {
     ate: string | null;
     contaLocalId: string | null;
     checks: number;
+    reconnectSuggested: boolean;
   }>>([]);
   const [importarExtratoConta, setImportarExtratoConta] = useState<string | null>(null);
   const [importarExtratoAberto, setImportarExtratoAberto] = useState(false);
@@ -580,17 +582,13 @@ export default function ConciliacaoPluggy() {
     {
       let gapQuery = supabase
         .from("pluggy_accounts")
-        .select("pluggy_account_id, name, linked_account_id, statement_gap_amount, statement_gap_from, statement_gap_to, statement_gap_checks")
+        .select("pluggy_account_id, name, linked_account_id, statement_gap_amount, statement_gap_from, statement_gap_to, statement_gap_checks, statement_gap_reconnect_suggested")
         .eq("company_id", selectedCompanyId)
         .not("statement_gap_amount", "is", null);
       if (resolvedScope) gapQuery = gapQuery.eq("pluggy_account_id", resolvedScope.pluggyAccountId);
       const { data: gapRows } = await gapQuery;
       if (stale()) return;
-      // Lacunas de hoje/ontem são atraso normal do extrato (Pix em análise,
-      // compensação); só exibimos as que já passaram de 2 dias.
-      const corte = new Date(Date.now() - 3 * 3600_000);
-      corte.setUTCDate(corte.getUTCDate() - 2);
-      const corteIso = corte.toISOString().slice(0, 10);
+      const gapNow = new Date();
       setExtratosIncompletos(
         ((gapRows ?? []) as Array<{
           pluggy_account_id: string;
@@ -600,7 +598,8 @@ export default function ConciliacaoPluggy() {
           statement_gap_from: string | null;
           statement_gap_to: string | null;
           statement_gap_checks: number | null;
-        }>).filter((g) => !g.statement_gap_to || g.statement_gap_to < corteIso).map((g) => ({
+          statement_gap_reconnect_suggested: boolean;
+        }>).filter((g) => shouldShowGap(g.statement_gap_from, g.statement_gap_to, gapNow)).map((g) => ({
           pluggyAccountId: g.pluggy_account_id,
           nome: cleanProviderName(g.name) ?? "Conta conectada",
           diferenca: Number(g.statement_gap_amount ?? 0),
@@ -608,6 +607,7 @@ export default function ConciliacaoPluggy() {
           ate: g.statement_gap_to,
           contaLocalId: g.linked_account_id,
           checks: Number(g.statement_gap_checks ?? 0),
+          reconnectSuggested: g.statement_gap_reconnect_suggested === true,
         })),
       );
     }
@@ -2214,13 +2214,13 @@ export default function ConciliacaoPluggy() {
                 {e.de && e.ate
                   ? ` entre ${e.de.split("-").reverse().join("/")} e ${e.ate.split("-").reverse().join("/")}`
                   : ""}
-                {e.checks >= 3
-                  ? `. A diferença persiste após ${e.checks} verificações: importe o extrato do banco ou, em último caso, reconecte.`
+                {e.reconnectSuggested
+                  ? ". A diferença persiste há mais tempo: importe o extrato do banco ou, em último caso, reconecte."
                   : ". Use “Sincronizar novamente” em Conexões; o sistema também segue buscando automaticamente."}
               </span>
             </span>
             <span className="flex shrink-0 flex-wrap gap-2">
-              {e.checks >= 3 && <Button
+              {e.reconnectSuggested && <Button
                 size="sm"
                 variant="outline"
                 onClick={() => {

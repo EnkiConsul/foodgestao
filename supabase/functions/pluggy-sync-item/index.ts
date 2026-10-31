@@ -1,5 +1,5 @@
 import { checkItemOwnership } from '../_shared/pluggy-ownership.ts';
-import { gapAfterTolerance, nextGapChecks, gapMessage } from '../_shared/pluggy-statement-gap.ts';
+import { gapAfterTolerance, nextGapChecks, gapMessage, gapPersistHours, nextGapFirstSeenAt, shouldShowGap, shouldSuggestReconnect, STATEMENT_NOT_SUPERSEDED_FILTER } from '../_shared/pluggy-statement-gap.ts';
 import {
   pendingLookbackDays, pendingMaxDays, pendingCutoff, shouldImportTx, isStagingUpdatable,
   incrementalStartFrom, findSupersededPending, isPendingStatus, SUPERSEDED_PREFIX,
@@ -1294,6 +1294,7 @@ Deno.serve(async (req) => {
           .eq('company_id', effectiveCompanyId)
           .eq('pluggy_account_id', accId)
           .neq('status', 'duplicate')
+          .or(STATEMENT_NOT_SUPERSEDED_FILTER)
           .or(`raw->>status.is.null,raw->>status.neq.PENDING,date.lte.${pendingCut}`)
           // Compara pelo momento da importação, não pela data da transação:
           // o saldo anterior foi lido no horário da sincronização anterior,
@@ -1312,7 +1313,8 @@ Deno.serve(async (req) => {
     }
 
     // Contas em que o banco atualizou o saldo mas não entregou todo o extrato.
-    const extratosIncompletos: Array<{ nome: string; diferenca: number; de: string; ate: string; checks: number }> = [];
+    const extratosIncompletos: Array<{ nome: string; diferenca: number; de: string; ate: string; checks: number; firstSeenAt: string | null }> = [];
+    const persistHours = gapPersistHours(Deno.env.get('PLUGGY_GAP_PERSIST_HOURS'));
 
     for (const acc of accounts) {
       if (pausedIds.has(acc.id)) continue;
@@ -1323,7 +1325,7 @@ Deno.serve(async (req) => {
       // pedir esse período ao banco até os lançamentos chegarem.
       const { data: gapAnterior } = await admin
         .from('pluggy_accounts')
-        .select('id, statement_gap_amount, statement_gap_from, statement_gap_to, statement_gap_checks')
+        .select('id, statement_gap_amount, statement_gap_from, statement_gap_to, statement_gap_checks, statement_gap_first_seen_at')
         .eq('pluggy_account_id', acc.id)
         .eq('company_id', effectiveCompanyId)
         .not('statement_gap_amount', 'is', null)
@@ -1339,6 +1341,7 @@ Deno.serve(async (req) => {
             .eq('company_id', effectiveCompanyId)
             .eq('pluggy_account_id', acc.id)
             .neq('status', 'duplicate')
+            .or(STATEMENT_NOT_SUPERSEDED_FILTER)
             .or(`raw->>status.is.null,raw->>status.neq.PENDING,date.lte.${pendingCut}`)
             .gte('date', de)
             .lte('date', ate)
@@ -1391,28 +1394,31 @@ Deno.serve(async (req) => {
 
       const rowId = base?.rowId ?? gapAnterior?.id ?? null;
       const gapChecks = nextGapChecks(gapAnterior?.statement_gap_checks, !!falta);
+      const checkedAt = new Date();
+      const firstSeenAt = nextGapFirstSeenAt(gapAnterior?.statement_gap_first_seen_at, !!falta, checkedAt);
+      const showGap = !!falta && shouldShowGap(falta.de, falta.ate, checkedAt);
+      const reconnectSuggested = showGap && shouldSuggestReconnect(gapChecks, firstSeenAt, checkedAt, persistHours);
       if (rowId) {
         await admin.from('pluggy_accounts').update({
           statement_gap_amount: falta ? falta.diferenca : null,
           statement_gap_from: falta ? falta.de : null,
           statement_gap_to: falta ? falta.ate : null,
-          statement_gap_checked_at: new Date().toISOString(),
+          statement_gap_checked_at: checkedAt.toISOString(),
           statement_gap_checks: gapChecks,
+          statement_gap_first_seen_at: firstSeenAt,
+          statement_gap_reconnect_suggested: reconnectSuggested,
         }).eq('id', rowId);
       }
 
-      // Lançamentos de hoje/ontem (Pix em análise, compensação) costumam chegar
-      // no extrato depois do saldo: só alertamos lacunas com mais de 2 dias.
-      const limiteRecente = new Date(Date.now() - 3 * 3600_000);
-      limiteRecente.setUTCDate(limiteRecente.getUTCDate() - 2);
-      const lacunaAntiga = !!falta && falta.ate < limiteRecente.toISOString().slice(0, 10);
-      if (falta && lacunaAntiga) {
+      // Lacuna só de hoje continua registrada, mas não gera aviso ao usuário.
+      if (falta && showGap) {
         extratosIncompletos.push({
           nome: acc.name ?? acc.marketingName ?? 'Conta',
           diferenca: falta.diferenca,
           de: falta.de,
           ate: falta.ate,
           checks: gapChecks,
+          firstSeenAt,
         });
         console.warn('extrato incompleto do banco', {
           pluggyAccountId: acc.id, ...falta,
@@ -1432,7 +1438,7 @@ Deno.serve(async (req) => {
       motivos.push(`${falhasGravacao} lote(s) de lançamentos não foram gravados.`);
     }
     for (const e of extratosIncompletos) {
-      motivos.push(gapMessage(e.nome, e.diferenca, e.de, e.ate, e.checks));
+      motivos.push(gapMessage(e.nome, e.diferenca, e.de, e.ate, e.checks, e.firstSeenAt, new Date(), persistHours));
     }
     const intervaloMin = Number(Deno.env.get('PLUGGY_CRON_INTERVAL_MIN') ?? '60');
     // Timestamp de conclusão só agora, depois de tudo persistido.
