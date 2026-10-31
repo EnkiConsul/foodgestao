@@ -1,25 +1,9 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { createConnectToken, pluggyFetch } from '../_shared/pluggy.ts';
+import { isAllowedOauthRedirectUri, parseAllowedHosts } from '../_shared/pluggy-oauth-redirect.ts';
 
-function isAllowedOauthRedirectUri(value: unknown): value is string {
-  if (typeof value !== 'string') return false;
-  try {
-    const url = new URL(value);
-    if (url.protocol !== 'https:') return false;
-    if (url.username || url.password || url.hash) return false;
-    const allowedHosts = new Set([
-      'foodgestao.lovable.app',
-      'aveto360.com',
-      'www.aveto360.com',
-    ]);
-    return allowedHosts.has(url.hostname)
-      || url.hostname.endsWith('.lovable.app')
-      || url.hostname.endsWith('.lovableproject.com');
-  } catch {
-    return false;
-  }
-}
+const OAUTH_HOSTS = parseAllowedHosts(Deno.env.get('PLUGGY_OAUTH_REDIRECT_HOSTS'));
 
 /**
  * Lista os connectorIds elegíveis: apenas conectores Open Finance **regulados**
@@ -102,7 +86,7 @@ Deno.serve(async (req) => {
     // `probe: true` é usado apenas pelo painel admin para validar credenciais
     // (não abre o widget, portanto não precisa de empresa).
     const isProbe = body?.probe === true;
-    const oauthRedirectUri = isAllowedOauthRedirectUri(body?.oauth_redirect_uri)
+    const oauthRedirectUri = isAllowedOauthRedirectUri(body?.oauth_redirect_uri, OAUTH_HOSTS)
       ? body.oauth_redirect_uri
       : undefined;
 
