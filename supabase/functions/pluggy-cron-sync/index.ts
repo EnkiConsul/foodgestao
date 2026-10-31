@@ -150,6 +150,18 @@ Deno.serve(async (req) => {
         return { item: c.pluggy_item_id, ok: false, status: 'skipped', skipped: outcome.detail };
       }
 
+      // Coleta parcial (ex.: Pix "em análise", extrato incompleto do banco)
+      // não é falha: segue no ritmo normal e nunca vira dead-letter.
+      if (outcome.status === 'partial_success') {
+        await admin.from('pluggy_connections').update({
+          sync_attempts: 0,
+          next_sync_at: minutesFromNow(SUCCESS_INTERVAL_MIN),
+          last_sync_status: 'partial_success',
+          last_sync_error: outcome.detail ?? null,
+        }).eq('id', c.id);
+        return { item: c.pluggy_item_id, ok: false, status: 'partial_success', detail: outcome.detail };
+      }
+
       const attempts = (c.sync_attempts ?? 0) + 1;
       const esgotou = attempts >= MAX_ATTEMPTS && outcome.status === 'error';
       await admin.from('pluggy_connections').update({
