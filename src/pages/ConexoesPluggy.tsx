@@ -47,7 +47,7 @@ function motivoAmigavel(c: Connection): string | null {
   const st = c.last_sync_status;
   if (!st || st === "success") return null;
   if (st === "bank_unavailable") return "Banco indisponível no momento — tentaremos de novo automaticamente";
-  if (st === "partial_success") return "Parte dos dados não foi atualizada — use “Sincronizar” para tentar o restante";
+  if (st === "partial_success") return "O banco ainda não entregou parte do extrato — use “Sincronizar novamente”";
   if (st === "item_error" || c.status === "login_error") return "Reconectar: o banco pediu nova autorização";
   if (st === "waiting_user_input") return "O banco está aguardando a confirmação no app dele";
   if (st === "dead_letter") return "Não conseguimos sincronizar após várias tentativas";

@@ -1,0 +1,1 @@
+ALTER TABLE public.pluggy_accounts ADD COLUMN IF NOT EXISTS statement_gap_checks integer NOT NULL DEFAULT 0;
