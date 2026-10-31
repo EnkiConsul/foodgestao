@@ -50,7 +50,7 @@ describe("conferência de extrato Pluggy", () => {
       { amount: 254.91, raw: { _aveto_motivo: "outro" } },
       { amount: 10, raw: null },
     ];
-    expect(rows.filter(row => countsInStatement(row.raw)).reduce((sum, row) => sum + row.amount, 0)).toBe(264.91);
+    expect(rows.filter(row => countsInStatement(row.raw)).reduce((sum, row) => sum + row.amount, 0)).toBeCloseTo(264.91, 2);
     expect(countsInStatement({ _aveto_motivo: "SUPERSEDED_BY:id" })).toBe(false);
   });
   it("zera first_seen_at quando some e preserva a primeira detecção", () => {
