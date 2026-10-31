@@ -2629,6 +2629,15 @@ export default function ConciliacaoPluggy() {
                         disabled={disabled}
                         onSave={(v) => saveDescription(r.id, v)}
                       />
+                      {String((r.raw as { status?: string } | null)?.status ?? "").toUpperCase() === "PENDING" && (
+                        <span
+                          className="mt-1 inline-flex items-center rounded-full border border-warning/40 bg-warning/10 px-2 py-0.5 text-[10px] font-medium text-warning"
+                          title="O banco ainda não compensou este lançamento. Quando compensar, ele é atualizado aqui sem duplicar."
+                        >
+                          Pendente no banco
+                        </span>
+                      )}
+
                       {cardHintLabel(r.description, r.raw) && (
                         <p className="mt-0.5 truncate text-[10px] text-muted-foreground" title={cardHintLabel(r.description, r.raw) ?? ""}>
                           {cardHintLabel(r.description, r.raw)}
