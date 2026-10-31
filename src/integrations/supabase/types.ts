@@ -15877,9 +15877,16 @@ export type Database = {
           last_sync_error: string | null
           last_sync_status: string | null
           last_synced_at: string | null
+          needs_remote_delete: boolean
           next_sync_at: string
           pluggy_item_id: string
           provider_delete_status: string | null
+          remote_delete_attempts: number
+          remote_delete_claimed_until: string | null
+          remote_delete_dead_letter: boolean
+          remote_delete_last_error: string | null
+          remote_delete_next_attempt_at: string | null
+          remote_deleted_at: string | null
           revoke_reason: string | null
           revoked_at: string | null
           revoked_by: string | null
@@ -15901,9 +15908,16 @@ export type Database = {
           last_sync_error?: string | null
           last_sync_status?: string | null
           last_synced_at?: string | null
+          needs_remote_delete?: boolean
           next_sync_at?: string
           pluggy_item_id: string
           provider_delete_status?: string | null
+          remote_delete_attempts?: number
+          remote_delete_claimed_until?: string | null
+          remote_delete_dead_letter?: boolean
+          remote_delete_last_error?: string | null
+          remote_delete_next_attempt_at?: string | null
+          remote_deleted_at?: string | null
           revoke_reason?: string | null
           revoked_at?: string | null
           revoked_by?: string | null
@@ -15925,9 +15939,16 @@ export type Database = {
           last_sync_error?: string | null
           last_sync_status?: string | null
           last_synced_at?: string | null
+          needs_remote_delete?: boolean
           next_sync_at?: string
           pluggy_item_id?: string
           provider_delete_status?: string | null
+          remote_delete_attempts?: number
+          remote_delete_claimed_until?: string | null
+          remote_delete_dead_letter?: boolean
+          remote_delete_last_error?: string | null
+          remote_delete_next_attempt_at?: string | null
+          remote_deleted_at?: string | null
           revoke_reason?: string | null
           revoked_at?: string | null
           revoked_by?: string | null
@@ -22448,6 +22469,14 @@ export type Database = {
         Args: { _cooldown_minutes?: number; _item_id: string }
         Returns: boolean
       }
+      pluggy_connections_claim_due: {
+        Args: { _batch?: number; _lease_minutes?: number }
+        Returns: {
+          id: string
+          pluggy_item_id: string
+          sync_attempts: number
+        }[]
+      }
       pluggy_ignore_staging: {
         Args: { p_staging_ids: string[] }
         Returns: number
@@ -22488,6 +22517,10 @@ export type Database = {
       }
       pluggy_remote_delete_finalize_failure: {
         Args: { _error: string; _id: string; _max_attempts?: number }
+        Returns: undefined
+      }
+      pluggy_remote_delete_finalize_success: {
+        Args: { _id: string }
         Returns: undefined
       }
       pluggy_review_credit_account: {
