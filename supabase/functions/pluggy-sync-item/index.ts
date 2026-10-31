@@ -1294,7 +1294,7 @@ Deno.serve(async (req) => {
           .eq('company_id', effectiveCompanyId)
           .eq('pluggy_account_id', accId)
           .neq('status', 'duplicate')
-          .or('raw->>status.is.null,raw->>status.neq.PENDING')
+          .or(`raw->>status.is.null,raw->>status.neq.PENDING,date.lte.${pendingCut}`)
           // Compara pelo momento da importação, não pela data da transação:
           // o saldo anterior foi lido no horário da sincronização anterior,
           // então só entra o que chegou depois dele (evita falso alerta no mesmo dia).
@@ -1339,7 +1339,7 @@ Deno.serve(async (req) => {
             .eq('company_id', effectiveCompanyId)
             .eq('pluggy_account_id', acc.id)
             .neq('status', 'duplicate')
-            .or('raw->>status.is.null,raw->>status.neq.PENDING')
+            .or(`raw->>status.is.null,raw->>status.neq.PENDING,date.lte.${pendingCut}`)
             .gte('date', de)
             .lte('date', ate)
             .range(inicio, inicio + 999);
