@@ -549,20 +549,20 @@ export async function desfazerUpgrade(admin: SupabaseClient, sub: any, criados: 
   if (eRes) ({ data: reserva, error: eRes } = await reservar());
   if (eRes || !reserva) throw new BillingError(500, "Não foi possível registrar a desistência agora. Nada foi alterado; tente novamente.", eRes?.message);
   const reservaId = (reserva as any).id as string;
-  // Corrida: se outra reserva válida do ciclo existir, esta é anulada.
-  const { data: disp2 } = await admin.rpc("billing_v2_desfazer_disponivel", { _subscription_id: sub.id });
-  const { count: reservasCiclo } = await admin.from("subscription_events").select("id", { count: "exact", head: true })
-    .eq("subscription_id", sub.id).eq("tipo_evento", "upgrade_desfeito").gte("created_at", sub.current_period_start ?? "1970-01-01");
   const reverterReserva = async (motivo: string, extra: Record<string, unknown> = {}) => {
     const ins = () => admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "upgrade_desfeito_revertido", actor_id: actorId ?? null, payload: { reserva_id: reservaId, motivo, ...extra } });
     let { error } = await ins(); if (error) ({ error } = await ins());
     if (error) console.error("[billing] ALERTA reversão da reserva não gravada", sub.id, reservaId, error.message);
   };
-  if (disp2 === true || (reservasCiclo ?? 0) > 1) {
-    const { data: outras } = await admin.from("subscription_events").select("id,created_at").eq("subscription_id", sub.id)
-      .eq("tipo_evento", "upgrade_desfeito").order("created_at", { ascending: true }).limit(1);
-    if ((outras?.[0] as any)?.id !== reservaId) { await reverterReserva("corrida_outra_reserva"); throw new BillingError(409, MSG_DESFAZER_ESGOTADO); }
-  }
+  // Corrida: entre as reservas válidas do ciclo, só a mais antiga segue.
+  const ini = sub.current_period_start ?? "1970-01-01";
+  const [{ data: reservas }, { data: revs }] = await Promise.all([
+    admin.from("subscription_events").select("id,created_at").eq("subscription_id", sub.id).eq("tipo_evento", "upgrade_desfeito").gte("created_at", ini).order("created_at", { ascending: true }),
+    admin.from("subscription_events").select("payload").eq("subscription_id", sub.id).eq("tipo_evento", "upgrade_desfeito_revertido"),
+  ]);
+  const anuladas = new Set((revs ?? []).map((r: any) => r.payload?.reserva_id));
+  const primeira = (reservas ?? []).find((r: any) => !anuladas.has(r.id)) as any;
+  if (primeira && primeira.id !== reservaId) { await reverterReserva("corrida_outra_reserva"); throw new BillingError(409, MSG_DESFAZER_ESGOTADO); }
 
   // 2) Cancela a cobrança da diferença e confere por GET.
   let cobrancaCancelada = false;
