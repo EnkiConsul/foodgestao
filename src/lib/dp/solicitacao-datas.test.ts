@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { datasSolicitacao, solicitacaoAusentaNoDia } from "./solicitacao-datas";
+import { datasSolicitacao, solicitacaoAusentaNoDia, solicitacaoNoPeriodo } from "./solicitacao-datas";
 
 const troca = { tipo: "folga", status: "pendente", data_alvo: "2026-10-30", data_fim: "2026-11-05" };
 describe("troca é pontual e depende de aprovação", () => {
@@ -19,4 +19,9 @@ describe("troca é pontual e depende de aprovação", () => {
     for (const tipo of ["adiantamento", "outros", "documento"]) expect(solicitacaoAusentaNoDia({ ...troca, tipo, status: "aprovada" }, "2026-11-02")).toBe(false);
   });
   it("preserva o sentido das duas datas legadas", () => expect(datasSolicitacao(troca).map(d => d.data)).toEqual(["2026-11-05", "2026-10-30"]));
+  it("lista troca tanto no mês atual quanto desejado, não em mês intermediário", () => {
+    expect(solicitacaoNoPeriodo(troca, "2026-11-01", "2026-11-30")).toBe(true);
+    expect(solicitacaoNoPeriodo(troca, "2026-10-01", "2026-10-31")).toBe(true);
+    expect(solicitacaoNoPeriodo({ ...troca, data_fim: "2026-12-05" }, "2026-11-01", "2026-11-30")).toBe(false);
+  });
 });

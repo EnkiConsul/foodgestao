@@ -169,7 +169,7 @@ export function OcorrenciaFormDialog({
 
   return (
     <Root open={open} onOpenChange={onOpenChange}>
-      <Content {...(mobile ? { side: "bottom" as const } : {})} className="max-h-[92dvh] overflow-y-auto sm:max-w-lg [&_button]:min-h-12 [&_input]:min-h-12">
+      <Content {...(mobile ? { side: "bottom" as const } : {})} className="max-h-[92dvh] overflow-y-auto sm:max-w-lg [&_input]:min-h-12">
         <Header>
           <Title>{somenteFalta ? "Registrar falta" : "Registrar ocorrência"}</Title>
           <Description>
@@ -181,7 +181,7 @@ export function OcorrenciaFormDialog({
           <div className="space-y-1.5">
             <Label>Colaborador *</Label>
             <Select value={colaboradorId} onValueChange={setColaboradorId}>
-              <SelectTrigger>
+              <SelectTrigger className="min-h-12">
                 <SelectValue placeholder="Escolher" />
               </SelectTrigger>
               <SelectContent>
@@ -202,7 +202,7 @@ export function OcorrenciaFormDialog({
             {!somenteFalta && <div className="space-y-1.5">
               <Label>O que aconteceu *</Label>
               <Select value={tipo} onValueChange={(v) => setTipo(v as OcorrenciaTipo)}>
-                <SelectTrigger>
+                <SelectTrigger className="min-h-12">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -220,7 +220,7 @@ export function OcorrenciaFormDialog({
             {contexto && <p className="text-sm font-medium">{contexto}</p>}
             <Label>Classificação da falta *</Label>
             <Select value={classificacao} onValueChange={(v) => setClassificacao(v as ClassificacaoFalta)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger className="min-h-12"><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="justificada">Falta justificada</SelectItem><SelectItem value="injustificada">Falta injustificada</SelectItem></SelectContent>
             </Select>
             <label className="flex min-h-12 items-center gap-3 text-sm"><Checkbox checked={comunicou} onCheckedChange={(v) => setComunicou(v === true)} />Houve comunicação prévia do colaborador</label>
@@ -302,10 +302,10 @@ export function OcorrenciaFormDialog({
         </div>
 
         <Footer className="sticky bottom-0 mt-3 gap-2 border-t bg-background pt-3">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button className="min-h-12 w-full sm:w-auto" variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={submit} disabled={saving}>
+          <Button className="min-h-12 w-full sm:w-auto" onClick={submit} disabled={saving}>
             Registrar
           </Button>
         </Footer>

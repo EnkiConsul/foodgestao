@@ -27,3 +27,10 @@ export function datasSolicitacao(s: SolicitacaoDatas): { label: string; data: st
   if (ehTrocaFolga(s)) return [{ label: "Folga atual", data: s.data_fim ?? null }, { label: "Folga desejada", data: s.data_alvo }];
   return [{ label: s.data_fim ? "Data inicial" : "Data", data: s.data_alvo }, ...(s.data_fim ? [{ label: "Data final", data: s.data_fim }] : [])];
 }
+
+/** Monthly request lists retain both swap endpoints without inventing intermediate days. */
+export function solicitacaoNoPeriodo(s: SolicitacaoDatas, inicio: string, fim: string): boolean {
+  if (!s.data_alvo) return false;
+  if (s.tipo === "folga") return [s.data_alvo, s.data_fim].some(d => !!d && d >= inicio && d <= fim);
+  return s.data_alvo <= fim && (s.data_fim || s.data_alvo) >= inicio;
+}

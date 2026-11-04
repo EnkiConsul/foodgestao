@@ -101,18 +101,23 @@ export function AtribuirFolgaTriagemDialog({
     queryKey: ["dp_triagem_fixos", colaboradorId],
     enabled: open && !!colaboradorId,
     queryFn: async (): Promise<number[]> => {
-      const { data: cfg } = await supabase
+      const { data: cfg, error: cfgError } = await supabase
         .from("dp_colaborador_config_trabalho")
         .select("id")
         .eq("colaborador_id", colaboradorId)
+        .eq("company_id", companyId)
+        .lte("vigencia_inicio", dataIso)
+        .or(`vigencia_fim.is.null,vigencia_fim.gte.${dataIso}`)
         .order("vigencia_inicio", { ascending: false })
         .limit(1)
         .maybeSingle();
+      if (cfgError) throw cfgError;
       if (!cfg?.id) return [];
-      const { data: dias } = await supabase
+      const { data: dias, error: diasError } = await supabase
         .from("dp_colaborador_config_dias")
         .select("dow, trabalha")
         .eq("config_id", cfg.id);
+      if (diasError) throw diasError;
       return (dias ?? [])
         .filter((d: any) => d.trabalha === false)
         .map((d: any) => Number(d.dow));
@@ -142,6 +147,7 @@ export function AtribuirFolgaTriagemDialog({
       const { data, error } = await supabase
         .from("dp_colaboradores")
         .select("regime, unidade_id, forma_pagamento, vinculo_label")
+        .eq("company_id", companyId)
         .eq("id", colaboradorId)
         .maybeSingle();
       if (error) throw error;
@@ -241,6 +247,9 @@ export function AtribuirFolgaTriagemDialog({
       qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
       qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
       qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
+      qc.invalidateQueries({ queryKey: ["dp_ausencias_do_dia"] });
+      qc.invalidateQueries({ queryKey: ["dp_ocorrencias"] });
+      qc.invalidateQueries({ queryKey: ["minhas_ocorrencias_mes"] });
       onOpenChange(false);
       onDone?.();
     },
@@ -266,7 +275,7 @@ export function AtribuirFolgaTriagemDialog({
 
   return (
     <Root open={open} onOpenChange={handleOpenChange}>
-      <Content {...(mobile ? { side: "bottom" as const } : {})} className="max-h-[92dvh] overflow-y-auto sm:max-w-md [&_button]:min-h-12 [&_input]:min-h-12 [&_button]:whitespace-normal">
+      <Content {...(mobile ? { side: "bottom" as const } : {})} className="max-h-[92dvh] overflow-y-auto sm:max-w-md [&_input]:min-h-12 [&_button]:whitespace-normal">
         <Header>
           <Title className="text-2xl font-black">Atribuir folga</Title>
           <Description>
@@ -280,20 +289,20 @@ export function AtribuirFolgaTriagemDialog({
           <div>
             <Label>Tipo de folga</Label>
             <Select value={modo} onValueChange={(v) => setModo(v as Modo)}>
-              <SelectTrigger className="min-h-12">
+              <SelectTrigger className="min-h-12" disabled={!elegivel || regimeQuery.isError}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {!intermitente && (
                   <SelectItem
                     value="substituir_fds"
-                    disabled={(folgasQuery.data ?? []).length === 0}
+                    disabled={folgasQuery.isError || (folgasQuery.data ?? []).length === 0}
                   >
                     Troca de uma folga já marcada
                   </SelectItem>
                 )}
                 {!intermitente && (
-                  <SelectItem value="troca_semanal" disabled={diasSemanaFixos.length === 0}>
+                  <SelectItem value="troca_semanal" disabled={fixosQuery.isError || diasSemanaFixos.length === 0}>
                     Troca da folga semanal da semana
                   </SelectItem>
                 )}
@@ -404,14 +413,14 @@ export function AtribuirFolgaTriagemDialog({
           <Button
             variant="ghost"
             onClick={() => onOpenChange(false)}
-            className="min-h-10 w-full sm:w-auto"
+            className="min-h-12 w-full sm:w-auto"
           >
             Cancelar
           </Button>
           <Button
             onClick={() => atribuir.mutate(false)}
             disabled={atribuir.isPending || regimeQuery.isLoading || regimeQuery.isError || !elegivel || (modo === "compensatoria" && (!podeCompensatoria || !motivo.trim()))}
-            className="min-h-10 w-full sm:w-auto"
+            className="min-h-12 w-full sm:w-auto"
           >
             {atribuir.isPending ? "Atribuindo..." : "Confirmar folga"}
           </Button>
