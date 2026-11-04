@@ -28,7 +28,15 @@ export function diaSemana(iso: string): number {
 }
 
 /** Motivos que só se aplicam a quem trabalharia no dia (nunca sócio, nunca quem folga). */
-export const MOTIVOS_SO_ESCALADOS = ["falta", "suspensao"] as const;
+export const MOTIVOS_SO_ESCALADOS = ["falta", "suspensao", "dispensa_feriado", "falta_feriado"] as const;
+
+/** Motivos que só existem quando a data é feriado da loja. */
+export const MOTIVOS_FERIADO = ["dispensa_feriado", "falta_feriado"] as const;
+
+/** Mostra o motivo só quando faz sentido: os de feriado exigem dia de feriado. */
+export function motivoDisponivelNoDia(motivo: string, ehFeriado: boolean): boolean {
+  return (MOTIVOS_FERIADO as readonly string[]).includes(motivo) ? ehFeriado : true;
+}
 
 export type GrupoAusencia = "escalados" | "folga" | "socios";
 
