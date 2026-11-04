@@ -33,3 +33,15 @@ export function montarMotivoPedidoDispensa(p: {
   if (txt.length > 500) throw new Error("Motivo muito longo. Resuma um pouco.");
   return txt;
 }
+
+/** Pedido de dispensa de feriado feito pelo colaborador (portal). */
+export function ehPedidoDispensaFeriado(motivo: string | null | undefined): boolean {
+  return /^Dispensa em Feriado .*a pedido do colaborador/.test(motivo ?? "");
+}
+
+/** Recusa exige motivo escrito pelo gestor (o colaborador continua convocado). */
+export function validarRecusaDispensa(resposta: string): string {
+  const t = resposta.trim();
+  if (t.length < 3) throw new Error("Escreva o motivo da recusa.");
+  return t;
+}
