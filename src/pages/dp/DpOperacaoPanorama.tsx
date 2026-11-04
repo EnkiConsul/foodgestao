@@ -2,6 +2,7 @@ import { FeriadosDia } from "@/components/dp/FeriadoCategoriaBadge";
 import { PrazosRescisao } from "@/components/dp/calendario/PrazosRescisao";
 import { IniciosTrabalho } from "@/components/dp/calendario/IniciosTrabalho";
 import { RegistrarTrocaGestorDialog } from "@/components/dp/trocas/RegistrarTrocaGestorDialog";
+import { FeriadoLojaFechadaToggle } from "@/components/dp/FeriadoLojaFechadaToggle";
 import { textoFeriadosDia } from "@/lib/dp/feriados-apresentacao";
 import { Fragment, type ReactNode } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -577,6 +578,9 @@ function DetalheDiaOperacao({
 
   return (
     <div className="space-y-3">
+      {dia.feriado_nome && unidadeId && podeRegistrar && (
+        <FeriadoLojaFechadaToggle unidadeId={unidadeId} data={data} feriadoNome={dia.feriado_nome} />
+      )}
       <div className="flex flex-wrap items-center gap-2">
       {diaEhPico(data, dia.feriado_nome) && (
         <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400">
