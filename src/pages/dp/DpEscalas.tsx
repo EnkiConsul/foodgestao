@@ -25,6 +25,7 @@ import {
 
 import { DpPage, DpPageHeader, DpFilterCard, DpContentCard } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
+import { FeriadosProximosAlerta } from "@/components/dp/FeriadosProximosAlerta";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -318,6 +319,8 @@ export default function DpEscalas() {
           </div>
         }
       />
+
+      <FeriadosProximosAlerta companyId={selectedCompanyId} unidadeId={unidade === "todas" ? null : unidade} />
 
       <DpFilterCard>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
