@@ -518,70 +518,114 @@ async function planoAntesDaTroca(admin: SupabaseClient, sub: any): Promise<{ pla
 export const MSG_DESFAZER_ESGOTADO = "O upgrade deste ciclo não pode mais ser desfeito.";
 
 /** Desiste de um upgrade imediato ainda não pago: cancela a cobrança da diferença e volta ao plano anterior.
- * Só 1 desfazimento por ciclo de cobrança (billing_v2_desfazer_disponivel); depois, 409. */
+ * Só 1 desfazimento por ciclo (billing_v2_desfazer_disponivel); depois, 409.
+ * Ordem segura: grava a reserva `upgrade_desfeito` ANTES de qualquer ação no Asaas; se algo falhar depois,
+ * registra `upgrade_desfeito_revertido` e desfaz o que já foi feito. O cliente nunca fica no plano maior
+ * sem a cobrança da diferença: se não der para recriá-la, grava `compensacao_pendente` com alerta. */
 export async function desfazerUpgrade(admin: SupabaseClient, sub: any, criados: Criados, actorId?: string) {
   const { data: disp, error: eDisp } = await admin.rpc("billing_v2_desfazer_disponivel", { _subscription_id: sub.id });
   if (eDisp) throw new BillingError(500, "Falha ao conferir se o upgrade pode ser desfeito.", eDisp.message);
   if (disp !== true) throw new BillingError(409, MSG_DESFAZER_ESGOTADO);
   const { data: planoAtualRow } = await admin.from("plans").select("slug").eq("id", sub.plan_id).maybeSingle();
   const planoAtual = (planoAtualRow as any)?.slug as string | undefined;
-  const { data: fat } = await admin.from("invoices").select("id,external_invoice_id,status,notes,amount_cents")
+  const { data: fat } = await admin.from("invoices").select("id,external_invoice_id,status,notes,amount_cents,payment_method,due_date")
     .eq("subscription_id", sub.id).in("status", ["open", "overdue"]).like("notes", "Diferença%")
     .order("created_at", { ascending: false }).limit(1).maybeSingle();
   if (!fat) throw new BillingError(422, "Não há cobrança de diferença em aberto para desfazer. Se já foi paga, fale com o suporte.");
   const ant = await planoAntesDaTroca(admin, sub);
   if (!ant) throw new BillingError(422, "Não foi possível identificar o plano anterior. Fale com o suporte.");
   if (ant.ciclo !== (sub.billing_cycle ?? "mensal")) throw new BillingError(422, "A troca mudou o ciclo de cobrança; fale com o suporte para desfazer.");
+  if (!planoAtual) throw new BillingError(422, "Não foi possível identificar o plano atual. Fale com o suporte.");
   const env = parseAsaasEnv(sub.asaas_env);
   if (fat.external_invoice_id) {
     const pg = await asaasFetch(`/payments/${fat.external_invoice_id}`, {}, env);
     if (["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH"].includes(pg?.status)) throw new BillingError(409, "Essa diferença já foi paga e não pode ser desfeita por aqui. Fale com o suporte.");
+  }
+
+  // 1) Reserva do desfazimento do ciclo, antes de tocar no Asaas ou no plano.
+  const payloadBase = { invoice_id: fat.id, valor_cents: fat.amount_cents, plano_upgrade: planoAtual, plano_restaurado: ant.plano, etapa: "reservado" };
+  const reservar = () => admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "upgrade_desfeito", actor_id: actorId ?? null, payload: payloadBase }).select("id").single();
+  let { data: reserva, error: eRes } = await reservar();
+  if (eRes) ({ data: reserva, error: eRes } = await reservar());
+  if (eRes || !reserva) throw new BillingError(500, "Não foi possível registrar a desistência agora. Nada foi alterado; tente novamente.", eRes?.message);
+  const reservaId = (reserva as any).id as string;
+  // Corrida: se outra reserva válida do ciclo existir, esta é anulada.
+  const { data: disp2 } = await admin.rpc("billing_v2_desfazer_disponivel", { _subscription_id: sub.id });
+  const { count: reservasCiclo } = await admin.from("subscription_events").select("id", { count: "exact", head: true })
+    .eq("subscription_id", sub.id).eq("tipo_evento", "upgrade_desfeito").gte("created_at", sub.current_period_start ?? "1970-01-01");
+  const reverterReserva = async (motivo: string, extra: Record<string, unknown> = {}) => {
+    const ins = () => admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "upgrade_desfeito_revertido", actor_id: actorId ?? null, payload: { reserva_id: reservaId, motivo, ...extra } });
+    let { error } = await ins(); if (error) ({ error } = await ins());
+    if (error) console.error("[billing] ALERTA reversão da reserva não gravada", sub.id, reservaId, error.message);
+  };
+  if (disp2 === true || (reservasCiclo ?? 0) > 1) {
+    const { data: outras } = await admin.from("subscription_events").select("id,created_at").eq("subscription_id", sub.id)
+      .eq("tipo_evento", "upgrade_desfeito").order("created_at", { ascending: true }).limit(1);
+    if ((outras?.[0] as any)?.id !== reservaId) { await reverterReserva("corrida_outra_reserva"); throw new BillingError(409, MSG_DESFAZER_ESGOTADO); }
+  }
+
+  // 2) Cancela a cobrança da diferença e confere por GET.
+  let cobrancaCancelada = false;
+  if (fat.external_invoice_id) {
     let erroDel = "";
-    if (!pg?.deleted) {
-      try { await asaasFetch(`/payments/${fat.external_invoice_id}`, { method: "DELETE" }, env); }
-      catch (e) { erroDel = String((e as Error).message ?? e); }
-    }
-    // Confere por GET que a cobrança está apagada/cancelada antes de seguir.
+    try { await asaasFetch(`/payments/${fat.external_invoice_id}`, { method: "DELETE" }, env); }
+    catch (e) { erroDel = String((e as Error).message ?? e); }
     const ativo = await conferirInativo({ tipo: "cobranca", id: fat.external_invoice_id }, env);
     if (ativo) {
-      await eventoConta(admin, sub, "compensacao_pendente", actorId, { origem: "desfazer_upgrade", invoice_id: fat.id,
-        cobranca_asaas: fat.external_invoice_id, motivo: erroDel ? `${erroDel} | ${ativo}` : ativo });
-      throw new BillingError(502, "Não conseguimos confirmar o cancelamento da cobrança no provedor. Nada foi alterado no seu plano; nossa equipe foi avisada.");
+      await reverterReserva("cancelamento_cobranca_nao_confirmado", { erro: erroDel || ativo });
+      throw new BillingError(502, "Não conseguimos confirmar o cancelamento da cobrança no provedor. Nada foi alterado no seu plano; tente novamente.");
     }
+    cobrancaCancelada = true;
     criados.push({ tipo: "cobrança cancelada", id: fat.external_invoice_id, descricao: "diferença do upgrade" });
   }
+
+  // Desfaz tudo e garante que, no plano maior, a cobrança da diferença volta a existir.
+  const desfazerTudo = async (motivo: string, planoMudou: boolean) => {
+    let planoOk = !planoMudou;
+    if (planoMudou) {
+      const { error: eR } = await admin.rpc("billing_v2_apply_change", { _subscription_id: sub.id, _plan_slug: planoAtual, _ciclo: ant.ciclo, _origem: "imediata", _actor: actorId ?? null });
+      if (!eR) { try { await atualizarValorAsaas(admin, sub, criados); planoOk = true; } catch { /* segue para compensação */ } }
+    }
+    let novaCobranca: string | null = null;
+    if (cobrancaCancelada && planoOk) {
+      try {
+        const forma = (fat.payment_method === "card" ? "cartao" : fat.payment_method) as Forma;
+        const pg = await asaasFetch("/payments", { method: "POST", body: JSON.stringify({ customer: sub.external_customer_id, billingType: billingType(forma),
+          value: reais(fat.amount_cents), dueDate: hoje(1), description: `${fat.notes} (recriada)`, externalReference: sub.id }) }, env);
+        novaCobranca = requireAsaasId(pg, "a cobrança recriada");
+        await registrarFatura(admin, sub, pg, forma, fat.notes);
+        await admin.from("invoices").update({ status: "canceled", notes: `${fat.notes} — substituída por ${novaCobranca}` }).eq("id", fat.id);
+      } catch (e) { console.error("[billing] recriar cobrança falhou", (e as Error).message); }
+    }
+    const ok = planoOk && (!cobrancaCancelada || !!novaCobranca);
+    await reverterReserva(motivo, { plano_revertido: planoOk, cobranca_recriada: novaCobranca });
+    if (!ok) {
+      await eventoConta(admin, sub, "compensacao_pendente", actorId, { origem: "desfazer_upgrade", alerta: true, motivo,
+        plano_upgrade: planoAtual, plano_anterior: ant.plano, plano_revertido: planoOk, invoice_id: fat.id,
+        cobranca_cancelada: fat.external_invoice_id ?? null, cobranca_recriada: novaCobranca, asaas_env: sub.asaas_env });
+      console.error("[billing] ALERTA desfazer_upgrade com compensação pendente", sub.id);
+    }
+    throw new BillingError(500, ok
+      ? "Não conseguimos concluir a desistência; seu plano e a cobrança da diferença foram mantidos. Tente novamente."
+      : "Não conseguimos concluir a desistência. Nossa equipe foi avisada e vai regularizar sua cobrança.");
+  };
+
+  // 3) Fatura local, 4) plano anterior, 5) valor no Asaas.
   const { error: eF } = await admin.from("invoices").update({ status: "canceled", notes: `${fat.notes} — desfeita pelo cliente` }).eq("id", fat.id);
-  if (eF) throw new BillingError(500, "Cobrança cancelada no provedor, mas falhou ao registrar. Fale com o suporte.", eF.message);
+  if (eF) return await desfazerTudo("registro_fatura", false);
   const { error: eA } = await admin.rpc("billing_v2_apply_change", { _subscription_id: sub.id, _plan_slug: ant.plano, _ciclo: ant.ciclo, _origem: "desfeita", _actor: actorId ?? null });
-  if (eA) throw new BillingError(500, "Falha ao voltar ao plano anterior.", eA.message);
-  const v = await atualizarValorAsaas(admin, sub, criados);
-  // Se o atraso vinha só dessa diferença, a assinatura volta a ficar ativa.
+  if (eA) return await desfazerTudo("volta_plano", false);
+  let v: { cents: number };
+  try { v = await atualizarValorAsaas(admin, sub, criados); }
+  catch { return await desfazerTudo("valor_asaas", true); }
   if (sub.status === "past_due") {
-    const { count } = await admin.from("invoices").select("id", { count: "exact", head: true })
-      .eq("subscription_id", sub.id).eq("status", "overdue");
+    const { count } = await admin.from("invoices").select("id", { count: "exact", head: true }).eq("subscription_id", sub.id).eq("status", "overdue");
     if (!count) await admin.from("subscriptions").update({ status: "active" }).eq("id", sub.id);
   }
-  const payload = { invoice_id: fat.id, valor_cents: fat.amount_cents, plano_restaurado: ant.plano, novo_valor_cents: v.cents };
-  const gravar = () => admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "upgrade_desfeito", actor_id: actorId ?? null, payload });
-  let { error: eEv } = await gravar();
-  if (eEv) ({ error: eEv } = await gravar());
-  if (eEv) {
-    // Sem o registro, a regra de 1 desfazimento por ciclo ficaria sem prova: volta o plano e o valor no Asaas.
-    let revertido = false;
-    if (planoAtual) {
-      const { error: eR } = await admin.rpc("billing_v2_apply_change", { _subscription_id: sub.id, _plan_slug: planoAtual, _ciclo: ant.ciclo, _origem: "imediata", _actor: actorId ?? null });
-      if (!eR) {
-        try { await atualizarValorAsaas(admin, sub, criados); revertido = true; } catch { /* vira compensação */ }
-      }
-    }
-    await eventoConta(admin, sub, "compensacao_pendente", actorId, { origem: "desfazer_upgrade_registro", alerta: true,
-      plano_upgrade: planoAtual ?? null, plano_anterior: ant.plano, revertido, invoice_id: fat.id, cobranca_asaas: fat.external_invoice_id ?? null, erro: eEv.message });
-    console.error("[billing] ALERTA desfazer_upgrade sem registro", sub.id, { revertido });
-    throw new BillingError(500, revertido
-      ? "Não conseguimos registrar a desistência; o plano foi mantido. A cobrança da diferença foi cancelada e nossa equipe foi avisada."
-      : "O plano voltou, mas o registro da desistência falhou. Nossa equipe foi avisada.", eEv.message);
-  }
-  await eventoConta(admin, sub, "upgrade_desfeito", actorId, payload, true);
+  // 6) Conclusão (a reserva já garante a regra de 1 por ciclo; aqui é só histórico).
+  const payload = { ...payloadBase, etapa: "concluido", reserva_id: reservaId, novo_valor_cents: v.cents };
+  await admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "upgrade_desfeito_concluido", actor_id: actorId ?? null, payload });
+  await eventoConta(admin, sub, "upgrade_desfeito", actorId, payload);
   return { ok: true, plano: ant.plano, novo_valor_cents: v.cents };
 }
 
