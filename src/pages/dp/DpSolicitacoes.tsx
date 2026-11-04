@@ -34,6 +34,9 @@ import { RaioXOperacaoDia } from "@/components/dp/RaioXOperacaoDia";
 import { LiberacaoDesfazerDialog, ehLiberacaoGestor } from "@/components/dp/LiberacaoDesfazerDialog";
 import { AtestadoAnexoDialog, type AtestadoAnexoAlvo } from "@/components/dp/AtestadoAnexoDialog";
 import { RecusaDialog } from "@/components/dp/RecusaDialog";
+import { ehPedidoDispensaFeriado, validarRecusaDispensa } from "@/lib/dp/dispensa-feriado";
+import { useNavigate } from "react-router-dom";
+import { UserPlus } from "lucide-react";
 import { Paperclip, Undo2 } from "lucide-react";
 
 const ehAtestadoLike = (r: { tipo: string }) => r.tipo === "atestado" || String(r.tipo).startsWith("licenca");
@@ -233,8 +236,10 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
   const [desfazer, setDesfazer] = useState<{ id: string; nome?: string | null } | null>(null);
   const [aprovarAtestado, setAprovarAtestado] = useState<{ id: string; colaborador_id: string; nome?: string | null; resposta: string; evento: "atestado" | "licenca" } | null>(null);
 
+  const navigate = useNavigate();
+  const [extraAlvo, setExtraAlvo] = useState<{ colaboradorId: string; nome?: string; data: string } | null>(null);
   const respond = useMutation({
-    mutationFn: async ({ id, status, resposta }: { id: string; status: Status; resposta?: string }) => {
+    mutationFn: async ({ id, status, resposta }: { id: string; status: Status; resposta?: string; extra?: { colaboradorId: string; nome?: string; data: string } }) => {
       const { error } = await supabase.rpc("dp_solicitacao_responder", {
         p_id: id,
         p_status: status as "aprovada" | "recusada",
@@ -254,6 +259,7 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
         return n;
       });
       setConfirmAdiantamento(null);
+      if (vars.status === "aprovada" && vars.extra) setExtraAlvo(vars.extra);
     },
     onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
   });
@@ -303,6 +309,17 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
     }
     if (approve && r.tipo === "adiantamento") {
       setConfirmAdiantamento(r);
+      return;
+    }
+    if (ehPedidoDispensaFeriado(r.motivo)) {
+      if (!approve) {
+        try { validarRecusaDispensa(respostas[r.id] ?? ""); }
+        catch (e) { toast.error("Motivo obrigatório", { description: "Escreva no campo de resposta por que a dispensa foi recusada. O colaborador continua convocado." }); return; }
+      }
+      respond.mutate({
+        id: r.id, status: approve ? "aprovada" : "recusada", resposta,
+        extra: approve && r.data_alvo ? { colaboradorId: r.colaborador_id, nome: r.dp_colaboradores?.nome, data: r.data_alvo } : undefined,
+      });
       return;
     }
     respond.mutate({ id: r.id, status: approve ? "aprovada" : "recusada", resposta });
@@ -362,7 +379,7 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
                       ) : (
                         <>
                           <span className="capitalize mr-2">
-                            {s.tipo === "folga" && ehCompensacaoFeriado(s.motivo) ? "Compensação de Feriado" : s.tipo === "folga" && s.fora_da_janela ? "Folga extra (exceção)" : s.tipo}
+                            {ehPedidoDispensaFeriado(s.motivo) ? "Dispensa de Feriado (a pedido)" : s.tipo === "folga" && ehCompensacaoFeriado(s.motivo) ? "Compensação de Feriado" : s.tipo === "folga" && s.fora_da_janela ? "Folga extra (exceção)" : s.tipo}
                           </span>
                           <b>{formatBR(s.data_alvo)}{s.data_fim ? ` → ${formatBR(s.data_fim)}` : ""}</b>
                         </>
@@ -393,7 +410,12 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
                   </div>
                 )}
 
-                {(s.tipo === "folga" || ehAtestadoLike(s)) && s.data_alvo && s.status === "pendente" && (
+                {ehPedidoDispensaFeriado(s.motivo) && (
+                  <div className="rounded-lg border border-border bg-muted/40 p-2 text-xs text-muted-foreground">
+                    Termo assinado: o colaborador segue convocado até sua aprovação. Se aprovar, o dia vira descanso sem desconto, sem dobra e sem folga compensatória. Para recusar, escreva o motivo.
+                  </div>
+                )}
+                {(s.tipo === "folga" || ehAtestadoLike(s) || ehPedidoDispensaFeriado(s.motivo)) && s.data_alvo && s.status === "pendente" && (
                   <RaioXOperacaoDia companyId={s.company_id} colaboradorId={s.colaborador_id} data={s.data_alvo} />
                 )}
 
@@ -780,6 +802,27 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
         loading={devolverMut.isPending}
         onConfirm={(motivo) => devolver && devolverMut.mutate({ id: devolver.id, motivo })}
       />
+      <Dialog open={!!extraAlvo} onOpenChange={(o) => { if (!o) setExtraAlvo(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Dispensa aprovada</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            {extraAlvo?.nome ?? "O colaborador"} está dispensado do feriado. Se precisar de alguém no lugar, inclua pela Mão de Obra Extra.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" className="h-11" onClick={() => setExtraAlvo(null)}>Agora não</Button>
+            <Button
+              className="h-11"
+              onClick={() => {
+                const a = extraAlvo!;
+                setExtraAlvo(null);
+                navigate(`/dp/escalas/mes?cobrir=${a.colaboradorId}&motivo=outro&data=${a.data}`);
+              }}
+            >
+              <UserPlus className="size-4 mr-2" /> Mão de Obra Extra
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DpPage>
   );
 }

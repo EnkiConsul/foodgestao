@@ -17,3 +17,15 @@ describe("pedido de dispensa de feriado", () => {
     expect(() => montarMotivoPedidoDispensa({ nomeFeriado: "Natal", justificativa: "viagem familiar", assinatura: "", aceitoEm: "x" })).toThrow();
   });
 });
+
+import { ehPedidoDispensaFeriado, validarRecusaDispensa } from "./dispensa-feriado";
+describe("aprovação da dispensa", () => {
+  it("reconhece o pedido do portal", () => {
+    expect(ehPedidoDispensaFeriado("Dispensa em Feriado (Natal) — a pedido do colaborador · x")).toBe(true);
+    expect(ehPedidoDispensaFeriado("Dispensa em Feriado (Natal) — liberalidade da empresa")).toBe(false);
+  });
+  it("recusa sem motivo é barrada", () => {
+    expect(() => validarRecusaDispensa("  ")).toThrow();
+    expect(validarRecusaDispensa(" Loja cheia ")).toBe("Loja cheia");
+  });
+});
