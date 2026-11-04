@@ -8,6 +8,7 @@ import { MOTIVO_COMPENSACAO_FERIADO, diasDeAntecedencia, motivoLegivel } from "@
 import { AssinaturaConfirmarDialog } from "@/components/dp/portal/AssinaturaConfirmarDialog";
 import { assinarTroca } from "@/lib/dp/troca-assinatura";
 import { CienciaFaltaTrocaBox, TEXTO_CIENCIA_FALTA_TROCA } from "@/components/dp/CienciaFaltaTrocaBox";
+import { PedirDispensaFeriado } from "@/components/dp/portal/PedirDispensaFeriado";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -1995,6 +1996,14 @@ export default function DpMeuCalendario() {
               />
 
               <div className="flex flex-col gap-2">
+                {meRef.data?.id && (
+                  <PedirDispensaFeriado
+                    colaboradorId={meRef.data.id}
+                    unidadeId={meRef.data.unidade_id ?? null}
+                    iso={selectedDay.iso}
+                    diaDeTrabalho={!["past", "mine", "fixed"].includes(selectedDay.status)}
+                  />
+                )}
                 {selectedDay.status === "available" && dayInfo.isWeekend && (
                   <Button onClick={() => marcarFolga.mutate(selectedDay.iso)} disabled={marcarFolga.isPending}>
                     {marcarFolga.isPending ? "Marcando..." : "Marcar folga"}
