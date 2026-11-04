@@ -112,7 +112,7 @@ export function CalendarioOperacaoResumo() {
           </div>
         </div>
         <div className="mt-2 grid grid-cols-2 items-stretch gap-1.5 sm:gap-2" aria-label="Indicadores do gestor">
-          <div className="col-span-2 grid grid-cols-2 gap-1.5 md:flex md:flex-wrap"><MarcosPessoasChips competencia={competencia} unidadeId={unidade || null} /></div>
+          <div className="col-span-2 grid grid-cols-2 gap-1.5 md:flex md:flex-wrap"><MarcosPessoasChips competencia={competencia} data={aba === "hoje" ? selecionado : undefined} unidadeId={unidade || null} /></div>
           {([
             { label: "Ausências hoje", Icon: UserX, cor: "bg-calendar-falta/10 text-calendar-falta", valor: diaHoje ? diaHoje.contagens.ferias + diaHoje.contagens.atestado + diaHoje.contagens.ausente : null },
             { label: "Folgas hoje", Icon: BedSingle, cor: "bg-calendar-folga/10 text-calendar-folga", valor: diaHoje ? diaHoje.contagens.folga_padrao + diaHoje.contagens.folga_extra : null },
