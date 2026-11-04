@@ -6,7 +6,7 @@ import { aceitaIndisponibilidadeConvocacao } from "@/lib/dp/convocacoes-planejam
 import { emitirNotificacaoDescumprimento, PERCENTUAL_MULTA_CONVOCACAO } from "@/lib/dp/termo-descumprimento-convocacao";
 import { Switch } from "@/components/ui/switch";
 import { isSocio } from "@/lib/dp/contrato-policy";
-import { elegiveisParaAusencia } from "@/lib/dp/ausencia-elegibilidade";
+import { opcoesAusencia, type GrupoAusencia } from "@/lib/dp/ausencia-elegibilidade";
 import { AlertTriangle } from "lucide-react";
 import { AssiduidadePergunta, validarDecisaoAssiduidade, type DecisaoAssiduidade } from "@/components/dp/AssiduidadePergunta";
 import { decidirAssiduidadeNoCadastro } from "@/hooks/useDpOcorrencias";
@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { Database } from "@/integrations/supabase/types";
 import { sugestaoDataFim, duracaoPadrao, TIPOS_LICENCA_CURTA, TIPO_AFASTAMENTO_LABEL } from "@/lib/dp/licencas";
@@ -75,19 +75,31 @@ interface Props {
   dataInicial?: string | null;
   /** Motivo já escolhido (ex.: botão "Atribuir Folga"). */
   motivoInicial?: Motivo;
+  /** Unidade em foco no calendário; sem ela o gestor escolhe a loja. */
+  unidadeId?: string | null;
 }
+
+const GRUPO_LABEL: Record<GrupoAusencia, string> = {
+  escalados: "Equipe do dia",
+  folga: "Com folga prevista",
+  socios: "Sócios",
+};
 
 /**
  * Porta única de "Registrar Ausência" no calendário: o gestor escolhe
  * colaborador, data e motivo, e o sistema abre o formulário oficial já
  * preenchido. Só atestados/licenças e faltas são gravados aqui mesmo.
  */
-export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, motivoInicial }: Props) {
+export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, motivoInicial, unidadeId }: Props) {
   const { selectedCompanyId } = useCompanyContext();
   const qc = useQueryClient();
   const colabs = useDpColaboradores();
   const todos = (colabs.data ?? []).filter((c: any) => !c.deleted_at);
 
+  const [unidadeSel, setUnidadeSel] = useState<string>("");
+  const unidades = Array.from(new Map((todos as any[]).filter((c) => c.unidade_id)
+    .map((c) => [c.unidade_id as string, (c.dp_unidades?.nome as string) ?? "Unidade"])).entries())
+    .sort((a, b) => a[1].localeCompare(b[1], "pt-BR"));
   const [etapa, setEtapa] = useState<"escolha" | "afastamento">("escolha");
   const [motivo, setMotivo] = useState<Motivo>("afastamento");
   const [folgaOpen, setFolgaOpen] = useState(false);
@@ -115,6 +127,7 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
   useEffect(() => {
     if (!open) return;
     setEtapa("escolha");
+    setUnidadeSel(unidadeId ?? "");
     setMotivo(motivoInicial ?? "afastamento");
     setArquivo(null);
     const hoje = new Date().toISOString().slice(0, 10);
@@ -125,7 +138,7 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
       data_fim: dataInicial ?? hoje,
       motivo: "",
     });
-  }, [open, dataInicial, motivoInicial]);
+  }, [open, dataInicial, motivoInicial, unidadeId]);
 
   useEffect(() => {
     if (form.data_fim && form.data_alvo && form.data_fim < form.data_alvo)
@@ -154,12 +167,15 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
       return ids;
     },
   });
-  const ativos = elegiveisParaAusencia(todos as any[], form.data_alvo, ausDia.data ?? new Set<string>()) as typeof todos;
+  const opcoes = opcoesAusencia(todos as any[], {
+    data: form.data_alvo, unidadeId: unidadeSel || null, comAusencia: ausDia.data ?? new Set<string>(), motivo,
+    ehSocio: (c: any) => isSocio(c.vinculo_label) || c.regime === "socio",
+  });
   useEffect(() => {
-    if (form.colaborador_id && ausDia.data && !ativos.some((c) => c.id === form.colaborador_id))
+    if (form.colaborador_id && ausDia.data && !opcoes.some((o) => o.colab.id === form.colaborador_id && !o.bloqueio))
       setForm((f) => ({ ...f, colaborador_id: "" }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.data_alvo, ausDia.data]);
+  }, [form.data_alvo, ausDia.data, unidadeSel, motivo]);
   const nomeColab = todos.find((c) => c.id === form.colaborador_id)?.nome ?? "";
   const regimeColab = todos.find((c) => c.id === form.colaborador_id)?.regime ?? null;
   const colabSel = todos.find((c) => c.id === form.colaborador_id) as any;
@@ -394,19 +410,42 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
 
           {etapa === "escolha" ? (
             <div className="grid gap-3 py-2">
+              {!unidadeId && (
+                <div className="grid gap-1.5">
+                  <Label>Unidade *</Label>
+                  <Select value={unidadeSel} onValueChange={(v) => { setUnidadeSel(v); setForm((f) => ({ ...f, colaborador_id: "" })); }}>
+                    <SelectTrigger className="h-11"><SelectValue placeholder="Escolha a loja..." /></SelectTrigger>
+                    <SelectContent>
+                      {unidades.map(([id, nome]) => <SelectItem key={id} value={id} className="py-2.5">{nome}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="grid gap-1.5">
                 <Label>Colaborador *</Label>
-                <Select value={form.colaborador_id} onValueChange={(v) => setForm({ ...form, colaborador_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>
-                    {ativos.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.nome}{c.data_desligamento ? ` · Desligado em ${c.data_desligamento.split("-").reverse().join("/")}` : ""}
-                      </SelectItem>
-                    ))}
-                    {ativos.length === 0 && (
+                <Select value={form.colaborador_id} onValueChange={(v) => setForm({ ...form, colaborador_id: v })} disabled={!unidadeSel}>
+                  <SelectTrigger className="h-11"><SelectValue placeholder={unidadeSel ? "Selecione..." : "Escolha a unidade primeiro"} /></SelectTrigger>
+                  <SelectContent className="max-h-[50dvh]">
+                    {(["escalados", "folga", "socios"] as GrupoAusencia[]).map((g) => {
+                      const itens = opcoes.filter((o) => o.grupo === g);
+                      if (!itens.length) return null;
+                      return (
+                        <SelectGroup key={g}>
+                          <SelectLabel className="text-xs text-muted-foreground">{GRUPO_LABEL[g]}</SelectLabel>
+                          {itens.map(({ colab: c, bloqueio }) => (
+                            <SelectItem key={c.id} value={c.id} disabled={!!bloqueio} className="py-2.5">
+                              <span className="flex flex-col">
+                                <span>{c.nome}{c.data_desligamento ? ` · Desligado em ${c.data_desligamento.split("-").reverse().join("/")}` : ""}</span>
+                                {bloqueio && <span className="text-[11px] text-muted-foreground">{bloqueio}</span>}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      );
+                    })}
+                    {opcoes.length === 0 && (
                       <div className="px-3 py-2 text-xs text-muted-foreground">
-                        {todos.length ? "Todos os colaboradores disponíveis já possuem ausência registrada nesta data." : "Nenhum colaborador ativo. Cadastre em Colaboradores."}
+                        Ninguém disponível nesta unidade e data.
                       </div>
                     )}
                   </SelectContent>
@@ -414,13 +453,13 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
               </div>
               <div className="grid gap-1.5">
                 <Label>Data *</Label>
-                <Input type="date" value={form.data_alvo}
+                <Input type="date" className="h-11" value={form.data_alvo}
                   onChange={(e) => setForm({ ...form, data_alvo: e.target.value, data_fim: e.target.value })} />
               </div>
               <div className="grid gap-1.5">
                 <Label>Motivo *</Label>
                 <Select value={motivo} onValueChange={(v) => setMotivo(v as Motivo)} disabled={!!conv}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {motivosDisponiveis.map((m) => (
                       <SelectItem key={m} value={m}>{MOTIVO_LABEL[m]}</SelectItem>
@@ -522,7 +561,7 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
               <div className="grid grid-cols-2 gap-3">
                 <div className="grid gap-1.5">
                   <Label>Data inicial *</Label>
-                  <Input type="date" value={form.data_alvo} onChange={(e) => {
+                  <Input type="date" className="h-11" value={form.data_alvo} onChange={(e) => {
                     const inicio = e.target.value;
                     setForm({ ...form, data_alvo: inicio });
                     if (duracaoPadrao(form.tipo) && inicio) sugerirDuracao(form.tipo, inicio);

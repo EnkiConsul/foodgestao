@@ -1545,6 +1545,7 @@ export default function DpOperacaoPanorama({
         onOpenChange={setAusenciaOpen}
         dataInicial={ausenciaData}
         motivoInicial={ausenciaMotivo}
+        unidadeId={unidadeId}
       />
 
       <DpPessoaAvulsaDialog
