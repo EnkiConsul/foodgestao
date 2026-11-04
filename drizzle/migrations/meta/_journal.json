@@ -1317,6 +1317,13 @@
       "when": 1793822830952,
       "tag": "0187_unidade_convocacao_automatica_feriados",
       "breakpoints": true
+    },
+    {
+      "idx": 188,
+      "version": "7",
+      "when": 1793823010710,
+      "tag": "0188_feriado_bloqueia_folga_regular_e_troca_portal",
+      "breakpoints": true
     }
   ]
 }

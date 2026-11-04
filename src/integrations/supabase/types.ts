@@ -20200,6 +20200,10 @@ export type Database = {
         Returns: undefined
       }
       dp_expirar_trocas: { Args: never; Returns: number }
+      dp_feriado_da_unidade_colab: {
+        Args: { _colab: string; _data: string }
+        Returns: string
+      }
       dp_feriado_movel_data: {
         Args: { _ano: number; _codigo: string }
         Returns: string
