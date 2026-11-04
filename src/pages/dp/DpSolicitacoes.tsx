@@ -802,6 +802,27 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
         loading={devolverMut.isPending}
         onConfirm={(motivo) => devolver && devolverMut.mutate({ id: devolver.id, motivo })}
       />
+      <Dialog open={!!extraAlvo} onOpenChange={(o) => { if (!o) setExtraAlvo(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Dispensa aprovada</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            {extraAlvo?.nome ?? "O colaborador"} está dispensado do feriado. Se precisar de alguém no lugar, inclua pela Mão de Obra Extra.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" className="h-11" onClick={() => setExtraAlvo(null)}>Agora não</Button>
+            <Button
+              className="h-11"
+              onClick={() => {
+                const a = extraAlvo!;
+                setExtraAlvo(null);
+                navigate(`/dp/escalas/mes?cobrir=${a.colaboradorId}&motivo=outro&data=${a.data}`);
+              }}
+            >
+              <UserPlus className="size-4 mr-2" /> Mão de Obra Extra
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DpPage>
   );
 }
