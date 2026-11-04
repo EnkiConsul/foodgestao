@@ -62,6 +62,8 @@ export function PedirDispensaFeriado({ colaboradorId, unidadeId, iso, diaDeTraba
   const enviar = useMutation({
     mutationFn: async () => {
       if (!ciente) throw new Error("Confirme que leu o termo.");
+      if (just.trim().length < 5) throw new Error("Explique o motivo do pedido.");
+      if (nome.trim().split(/\s+/).length < 2) throw new Error("Assine com seu nome completo.");
       const motivo = montarMotivoPedidoDispensa({
         nomeFeriado: feriado.data!,
         justificativa: just,
