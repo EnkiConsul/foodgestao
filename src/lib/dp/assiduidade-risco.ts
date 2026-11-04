@@ -111,6 +111,7 @@ function inteiroOu(valor: number | null | undefined, padrao: number): number {
 /** Eventos que podem chegar ao gestor; cada um tem um padrão do sistema. */
 export type EventoAssiduidade =
   | "falta"
+  | "falta_justificada"
   | "atestado"
   | "licenca"
   | "liberacao"
@@ -132,6 +133,7 @@ export function padraoAssiduidade(evento: EventoAssiduidade): boolean | null {
     case "licenca":
     case "atraso":
       return true;
+    case "falta_justificada":
     case "liberacao":
       return false;
     default:
