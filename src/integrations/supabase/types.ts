@@ -13997,6 +13997,51 @@ export type Database = {
           },
         ]
       }
+      dp_unidade_feriado_operacao: {
+        Row: {
+          atualizado_por: string | null
+          company_id: string
+          data: string
+          fechada: boolean
+          id: string
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          atualizado_por?: string | null
+          company_id: string
+          data: string
+          fechada?: boolean
+          id?: string
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          atualizado_por?: string | null
+          company_id?: string
+          data?: string
+          fechada?: boolean
+          id?: string
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_unidade_feriado_operacao_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_unidade_feriado_operacao_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "dp_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_unidade_feriados: {
         Row: {
           ano_inicio: number | null

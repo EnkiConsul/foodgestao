@@ -1331,6 +1331,13 @@
       "when": 1793825625747,
       "tag": "0189_feriado_convocacao_automatica_notificar",
       "breakpoints": true
+    },
+    {
+      "idx": 190,
+      "version": "7",
+      "when": 1793825807475,
+      "tag": "0190_feriado_loja_fechada",
+      "breakpoints": true
     }
   ]
 }
