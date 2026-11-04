@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { PartyPopper } from "lucide-react";
 import { montarMotivoPedidoDispensa, textoTermoDispensaFeriado } from "@/lib/dp/dispensa-feriado";
@@ -23,6 +25,7 @@ const legivel = (iso: string) => iso.split("-").reverse().join("/");
 
 export function PedirDispensaFeriado({ colaboradorId, unidadeId, iso, diaDeTrabalho }: Props) {
   const qc = useQueryClient();
+  const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const [just, setJust] = useState("");
   const [nome, setNome] = useState("");
@@ -59,6 +62,8 @@ export function PedirDispensaFeriado({ colaboradorId, unidadeId, iso, diaDeTraba
   const enviar = useMutation({
     mutationFn: async () => {
       if (!ciente) throw new Error("Confirme que leu o termo.");
+      if (just.trim().length < 5) throw new Error("Explique o motivo do pedido.");
+      if (nome.trim().split(/\s+/).length < 2) throw new Error("Assine com seu nome completo.");
       const motivo = montarMotivoPedidoDispensa({
         nomeFeriado: feriado.data!,
         justificativa: just,
@@ -85,14 +90,29 @@ export function PedirDispensaFeriado({ colaboradorId, unidadeId, iso, diaDeTraba
     onError: (e) => toast.error("Não foi possível enviar", { description: e instanceof Error ? e.message : String(e) }),
   });
 
+  const cancelar = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("dp_solicitacao_cancelar", { p_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Pedido cancelado", { description: "Você segue convocado para o feriado." });
+      qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
+    },
+    onError: (e) => toast.error("Não foi possível cancelar", { description: e instanceof Error ? e.message : String(e) }),
+  });
+
   if (!diaDeTrabalho || !feriado.data) return null;
   const st = pedido.data?.status;
 
   if (st === "pendente")
     return (
-      <p className="rounded-xl border border-border bg-muted/50 px-3 py-2 text-xs">
-        Pedido de dispensa do feriado em análise. <strong>Você continua convocado</strong> até o gestor aprovar.
-      </p>
+      <div className="space-y-2 rounded-xl border border-border bg-muted/50 px-3 py-2 text-xs">
+        <p>Pedido de dispensa do feriado em análise. <strong>Você continua convocado</strong> até o gestor aprovar.</p>
+        <Button variant="ghost" size="sm" className="min-h-11 w-full" disabled={cancelar.isPending} onClick={() => cancelar.mutate(pedido.data!.id)}>
+          {cancelar.isPending ? "Cancelando..." : "Cancelar pedido"}
+        </Button>
+      </div>
     );
   if (st === "aprovada")
     return <p className="rounded-xl border border-primary/40 bg-primary/10 px-3 py-2 text-xs font-medium">Dispensa do feriado aprovada.</p>;
@@ -107,6 +127,42 @@ export function PedirDispensaFeriado({ colaboradorId, unidadeId, iso, diaDeTraba
       <Button variant="outline" className="min-h-11" onClick={() => setOpen(true)}>
         <PartyPopper className="mr-2 h-4 w-4" /> Pedir dispensa do feriado
       </Button>
+      {isMobile ? (
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetContent side="bottom" className="flex max-h-[88dvh] flex-col rounded-t-2xl p-0">
+            <SheetHeader className="px-4 pt-4 text-left">
+              <SheetTitle>Pedir dispensa do feriado</SheetTitle>
+              <SheetDescription>{feriado.data} · {legivel(iso)}</SheetDescription>
+            </SheetHeader>
+            <div className="flex-1 overflow-y-auto px-4 py-3">
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="disp-just">Motivo do pedido</Label>
+              <Textarea id="disp-just" value={just} onChange={(e) => setJust(e.target.value)} maxLength={250} rows={3} />
+            </div>
+            <div className="rounded-xl border border-border bg-muted/40 p-3 text-xs leading-relaxed">
+              <p className="mb-1 font-semibold">Termo de solicitação de dispensa</p>
+              {textoTermoDispensaFeriado(feriado.data, legivel(iso))}
+            </div>
+            <label className="flex items-start gap-2 text-sm min-h-11">
+              <Checkbox checked={ciente} onCheckedChange={(v) => setCiente(!!v)} className="mt-0.5" />
+              Li e entendi: sem aprovação do gestor, continuo convocado.
+            </label>
+            <div>
+              <Label htmlFor="disp-nome">Assinatura (seu nome completo)</Label>
+              <Input id="disp-nome" value={nome} onChange={(e) => setNome(e.target.value)} className="h-11" />
+            </div>
+          </div>
+            </div>
+            <div className="flex flex-col-reverse gap-2 border-t border-border bg-background px-4 pb-[max(env(safe-area-inset-bottom),1rem)] pt-3">
+            <Button variant="ghost" className="min-h-11 w-full" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button className="min-h-11 w-full" disabled={enviar.isPending || !ciente} onClick={() => enviar.mutate()}>
+              {enviar.isPending ? "Enviando..." : "Assinar e enviar"}
+            </Button>
+            </div>
+          </SheetContent>
+        </Sheet>
+      ) : (
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md max-h-[88dvh] overflow-y-auto">
           <DialogHeader>
@@ -139,6 +195,7 @@ export function PedirDispensaFeriado({ colaboradorId, unidadeId, iso, diaDeTraba
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      )}
     </>
   );
 }

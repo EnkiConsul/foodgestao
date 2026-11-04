@@ -2001,7 +2001,7 @@ export default function DpMeuCalendario() {
                     colaboradorId={meRef.data.id}
                     unidadeId={meRef.data.unidade_id ?? null}
                     iso={selectedDay.iso}
-                    diaDeTrabalho={!["past", "mine", "fixed"].includes(selectedDay.status)}
+                    diaDeTrabalho={!["past", "mine", "fixed", "pending", "swapped"].includes(selectedDay.status)}
                   />
                 )}
                 {selectedDay.status === "available" && dayInfo.isWeekend && (

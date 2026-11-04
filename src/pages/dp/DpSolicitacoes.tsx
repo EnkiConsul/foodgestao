@@ -237,9 +237,9 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
   const [aprovarAtestado, setAprovarAtestado] = useState<{ id: string; colaborador_id: string; nome?: string | null; resposta: string; evento: "atestado" | "licenca" } | null>(null);
 
   const navigate = useNavigate();
-  const [extraAlvo, setExtraAlvo] = useState<{ colaboradorId: string; nome?: string; data: string } | null>(null);
+  const [extraAlvo, setExtraAlvo] = useState<{ colaboradorId: string; nome?: string; data: string; unidadeId?: string | null } | null>(null);
   const respond = useMutation({
-    mutationFn: async ({ id, status, resposta }: { id: string; status: Status; resposta?: string; extra?: { colaboradorId: string; nome?: string; data: string } }) => {
+    mutationFn: async ({ id, status, resposta }: { id: string; status: Status; resposta?: string; extra?: { colaboradorId: string; nome?: string; data: string; unidadeId?: string | null } }) => {
       const { error } = await supabase.rpc("dp_solicitacao_responder", {
         p_id: id,
         p_status: status as "aprovada" | "recusada",
@@ -318,7 +318,7 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
       }
       respond.mutate({
         id: r.id, status: approve ? "aprovada" : "recusada", resposta,
-        extra: approve && r.data_alvo ? { colaboradorId: r.colaborador_id, nome: r.dp_colaboradores?.nome, data: r.data_alvo } : undefined,
+        extra: approve && r.data_alvo ? { colaboradorId: r.colaborador_id, nome: r.dp_colaboradores?.nome, data: r.data_alvo, unidadeId: colabs.data?.find((c) => c.id === r.colaborador_id)?.unidade_id ?? null } : undefined,
       });
       return;
     }
@@ -815,7 +815,7 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
               onClick={() => {
                 const a = extraAlvo!;
                 setExtraAlvo(null);
-                navigate(`/dp/escalas/mes?cobrir=${a.colaboradorId}&motivo=outro&data=${a.data}`);
+                navigate(`/dp/escalas/mes?cobrir=${a.colaboradorId}&motivo=outro&data=${a.data}${a.unidadeId ? `&unidade=${a.unidadeId}` : ""}`);
               }}
             >
               <UserPlus className="size-4 mr-2" /> Mão de Obra Extra

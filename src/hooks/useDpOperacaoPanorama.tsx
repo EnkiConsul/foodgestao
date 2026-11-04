@@ -1,3 +1,4 @@
+import { ehPedidoDispensaFeriado } from "@/lib/dp/dispensa-feriado";
 import { useMemo } from "react";
 import { agruparFeriadosDia, type FeriadoDia } from "@/lib/dp/feriados-apresentacao";
 import type { FeriadoCategoria } from "@/lib/dp/feriados";
@@ -561,7 +562,18 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
       fim: somarDias(s.data, Math.max(s.suspensao_dias ?? 1, 1) - 1),
       tipo: "suspensao" as const,
     }));
-    return [...deFerias, ...deAtestado, ...deSuspensao];
+    // Dispensa de feriado aprovada: a pessoa sai da operação do dia (faixa de
+    // afastamentos), para a loja não contar com ela no pico.
+    const deDispensa: AusenciaPanorama[] = (d.registradas ?? [])
+      .filter((r) => r.tipo === "outros" && !!r.data_alvo && ehPedidoDispensaFeriado(r.motivo))
+      .map((r) => ({
+        colaborador_id: r.colaborador_id,
+        inicio: r.data_alvo!,
+        fim: r.data_fim ?? r.data_alvo!,
+        tipo: "atestado" as const,
+        subtipo: "Dispensa em Feriado",
+      }));
+    return [...deFerias, ...deAtestado, ...deSuspensao, ...deDispensa];
   }, [base.data]);
 
   /**
