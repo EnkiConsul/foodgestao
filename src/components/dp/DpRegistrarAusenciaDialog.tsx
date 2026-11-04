@@ -5,6 +5,8 @@ import { podeConvocar } from "@/lib/dp/convocacoes";
 import { aceitaIndisponibilidadeConvocacao } from "@/lib/dp/convocacoes-planejamento";
 import { emitirNotificacaoDescumprimento, PERCENTUAL_MULTA_CONVOCACAO } from "@/lib/dp/termo-descumprimento-convocacao";
 import { Switch } from "@/components/ui/switch";
+import { podeReceberFolga } from "@/lib/dp/folga-elegibilidade";
+import { solicitacaoAusentaNoDia } from "@/lib/dp/solicitacao-datas";
 import { isSocio } from "@/lib/dp/contrato-policy";
 import { opcoesAusencia, motivoDisponivelNoDia, type GrupoAusencia } from "@/lib/dp/ausencia-elegibilidade";
 import { AlertTriangle } from "lucide-react";
@@ -61,7 +63,7 @@ const MOTIVO_LABEL: Record<Motivo, string> = {
 };
 
 /** Sócio não tem falta, suspensão nem férias celetistas. */
-const MOTIVOS_SOCIO: Motivo[] = ["socio", "folga", "afastamento"];
+const MOTIVOS_SOCIO: Motivo[] = ["socio", "afastamento"];
 
 /** Somente afastamentos reais (sem folga, adiantamento ou envio de documentos). */
 const TIPO_AFAST_LABEL: Partial<Record<Tipo, string>> = {
@@ -163,20 +165,25 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
     queryKey: ["dp_ausencias_do_dia", selectedCompanyId, form.data_alvo],
     enabled: open && !!selectedCompanyId && !!form.data_alvo,
     queryFn: async () => {
-      const d = form.data_alvo, c = selectedCompanyId!;
+      const d = form.data_alvo, c = selectedCompanyId;
+      if (!c) return new Set<string>();
       const sb = supabase as any;
       const ids = new Set<string>();
       const add = (r: { data: any[] | null }) => (r.data ?? []).forEach((x) => ids.add(x.colaborador_id));
       const [sol, oc, ind, fol, fer] = await Promise.all([
-        sb.from("dp_solicitacoes").select("colaborador_id").eq("company_id", c).in("status", ["aprovada", "pendente"])
-          .neq("tipo", "adiantamento").lte("data_alvo", d).or(`data_fim.gte.${d},and(data_fim.is.null,data_alvo.eq.${d})`),
+        sb.from("dp_solicitacoes").select("colaborador_id,tipo,status,data_alvo,data_fim,motivo,removido_em").eq("company_id", c).eq("status", "aprovada").is("removido_em", null)
+          .lte("data_alvo", d).or(`data_fim.gte.${d},data_alvo.eq.${d}`),
         sb.from("dp_ocorrencias").select("colaborador_id").eq("company_id", c).eq("data_operacional", d)
-          .in("tipo", ["falta", "atestado", "ausencia_justificada"]).is("cancelado_em", null),
+          .in("tipo", ["falta", "atestado", "ausencia_justificada"]).eq("estado", "confirmada").is("folga_id", null).is("troca_id", null).is("cancelado_em", null),
         sb.from("dp_indisponibilidades").select("colaborador_id").eq("company_id", c).eq("data", d).is("cancelada_em", null),
         sb.from("dp_folgas").select("colaborador_id").eq("company_id", c).eq("data", d).neq("status", "cancelada"),
         sb.from("dp_ferias_gozos").select("colaborador_id").eq("company_id", c).lte("data_inicio", d).gte("data_fim", d).neq("status", "cancelado"),
       ]);
-      [sol, oc, ind, fol, fer].forEach(add);
+      const falha = [sol, oc, ind, fol, fer].find((r) => r.error);
+      if (falha?.error) throw falha.error;
+      add({ data: (sol.data ?? []).filter((s: any) => solicitacaoAusentaNoDia(s, d)) });
+      // Indisponibilidade é informativa, não uma ausência confirmada.
+      [oc, fol, fer].forEach(add);
       return ids;
     },
   });
@@ -217,7 +224,7 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
   }, [motivo, nomeFeriado]);
   const motivosDisponiveis = (Object.keys(MOTIVO_LABEL) as Motivo[]).filter((m) =>
     motivoDisponivelNoDia(m, !!nomeFeriado) &&
-    (socio ? MOTIVOS_SOCIO.includes(m) : m !== "socio" && (m !== "indisponibilidade" || indispElegivel)));
+    (socio ? MOTIVOS_SOCIO.includes(m) : m !== "socio" && (m !== "folga" || !colabSel || podeReceberFolga(colabSel)) && (m !== "indisponibilidade" || indispElegivel)));
 
   // Intermitente com convocação aceita no dia: a ausência é falta.
   const convAceita = useQuery({
@@ -487,6 +494,7 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
                   </SelectContent>
                 </Select>
               </div>
+              {ausDia.isError && <p role="alert" className="text-sm text-destructive">Não foi possível conferir as ausências. <Button variant="ghost" onClick={() => void ausDia.refetch()}>Tentar novamente</Button></p>}
               <div className="grid gap-1.5">
                 <Label>Data *</Label>
                 <Input type="date" className="h-11" value={form.data_alvo}
@@ -678,7 +686,7 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
             ) : (
               <>
                 <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                <Button onClick={continuar} disabled={indisp.isPending || dispensa.isPending}>
+                <Button onClick={continuar} disabled={!unidadeSel || !form.colaborador_id || ausDia.isLoading || ausDia.isError || indisp.isPending || dispensa.isPending}>
                   {["indisponibilidade", "liberacao", "socio", "dispensa_feriado"].includes(motivo) ? (indisp.isPending || dispensa.isPending ? "Salvando..." : "Registrar") : "Continuar"}
                 </Button>
               </>
@@ -716,7 +724,9 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
       <OcorrenciaFormDialog
         open={faltaOpen}
         onOpenChange={setFaltaOpen}
-        colaboradores={opcoes.map((o) => o.colab).map((c) => ({ id: c.id, nome: c.nome }))}
+        colaboradores={opcoes.filter((o) => !o.bloqueio).map((o) => o.colab).map((c) => ({ id: c.id, nome: c.nome }))}
+        somenteFalta
+        contexto={motivo === "falta_feriado" ? `Falta em feriado convocado (${nomeFeriado ?? "feriado"})` : undefined}
         dataInicial={form.data_alvo}
         colaboradorInicial={form.colaborador_id}
         saving={falta.isPending}
