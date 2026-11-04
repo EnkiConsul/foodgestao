@@ -18517,6 +18517,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      billing_v2_expirar_carencias: { Args: never; Returns: number }
       billing_v2_minha_assinatura: {
         Args: { _company_id: string }
         Returns: Json

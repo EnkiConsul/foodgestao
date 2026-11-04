@@ -1296,6 +1296,13 @@
       "when": 1793802505169,
       "tag": "0184_desfazer_upgrade_uma_vez_por_ciclo",
       "breakpoints": true
+    },
+    {
+      "idx": 185,
+      "version": "7",
+      "when": 1793802586478,
+      "tag": "0185_carencia_vencida_expira",
+      "breakpoints": true
     }
   ]
 }
