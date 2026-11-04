@@ -9,6 +9,7 @@ import { AssinaturaConfirmarDialog } from "@/components/dp/portal/AssinaturaConf
 import { assinarTroca } from "@/lib/dp/troca-assinatura";
 import { CienciaFaltaTrocaBox, TEXTO_CIENCIA_FALTA_TROCA } from "@/components/dp/CienciaFaltaTrocaBox";
 import { PedirDispensaFeriado } from "@/components/dp/portal/PedirDispensaFeriado";
+import { AvisoConvocacaoFeriado, SeloConvocado, useMinhasConvocacoesFeriado } from "@/components/dp/portal/ConvocacaoFeriadoPortal";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -1654,6 +1655,9 @@ export default function DpMeuCalendario() {
    * Exceção também vale em dia de meio de semana: é justamente nele que o
    * colaborador precisa pedir uma folga fora da regra.
    */
+  const convocacoesFeriado = useMinhasConvocacoesFeriado(meRef.data?.id);
+  const convocadoNoDia = !!selectedDay && (convocacoesFeriado.data ?? []).some((c) => c.data === selectedDay.iso);
+
   const showExceptionBtn =
     selectedDay && !["past", "mine", "fixed", "pending", "swapped"].includes(selectedDay.status);
 
@@ -1940,6 +1944,8 @@ export default function DpMeuCalendario() {
 
 
 
+      <AvisoConvocacaoFeriado colaboradorId={meRef.data?.id} onSolicitarDispensa={(iso) => setSelectedDay({ iso, status: "weekday" })} />
+
       {/* Dialog do dia */}
       <Dialog open={!!selectedDay} onOpenChange={(o) => !o && setSelectedDay(null)}>
         <DialogContent {...swipeDia} data-swipe-proprio="" className="max-w-md max-h-[90svh] overflow-y-auto overflow-x-hidden [&_button]:whitespace-normal [&_button]:h-auto [&_button]:min-h-9 [&_button]:py-2 [&_button]:break-words">
@@ -1948,6 +1954,7 @@ export default function DpMeuCalendario() {
             <DialogTitle className="text-2xl font-black flex items-center gap-3">
               <CalendarDays className="size-6 text-primary" />
               {selectedDay && formatBR(parseYMD(selectedDay.iso))}
+              {convocadoNoDia && <SeloConvocado />}
             </DialogTitle>
             <DialogDescription className="sr-only">Detalhes do dia selecionado</DialogDescription>
           </DialogHeader>
