@@ -268,8 +268,10 @@ function AssinaturaCard({ s, onAcao }: { s: Json; onAcao: (a: Acao) => void }) {
       const { data } = await supabase.from("invoices").select("id,amount_cents")
         .eq("subscription_id", s.id).in("status", ["open", "overdue"]).like("notes", "Diferença%")
         .not("notes", "ilike", "%desfeita%").limit(1).maybeSingle();
-      // Enquanto houver diferença não paga, o cliente sempre pode desistir.
-      return (data ?? null) as Json;
+      if (!data) return null;
+      // Só 1 desistência por ciclo: o servidor decide.
+      const { data: disp } = await supabase.rpc("billing_v2_desfazer_disponivel", { _subscription_id: s.id as string });
+      return disp === true ? (data as Json) : null;
     },
   });
   return (

@@ -515,9 +515,16 @@ async function planoAntesDaTroca(admin: SupabaseClient, sub: any): Promise<{ pla
   return null;
 }
 
+export const MSG_DESFAZER_ESGOTADO = "O upgrade deste ciclo não pode mais ser desfeito.";
+
 /** Desiste de um upgrade imediato ainda não pago: cancela a cobrança da diferença e volta ao plano anterior.
- * Sem limite de tentativas: enquanto houver diferença em aberto (não paga), o cliente sempre pode desistir. */
+ * Só 1 desfazimento por ciclo de cobrança (billing_v2_desfazer_disponivel); depois, 409. */
 export async function desfazerUpgrade(admin: SupabaseClient, sub: any, criados: Criados, actorId?: string) {
+  const { data: disp, error: eDisp } = await admin.rpc("billing_v2_desfazer_disponivel", { _subscription_id: sub.id });
+  if (eDisp) throw new BillingError(500, "Falha ao conferir se o upgrade pode ser desfeito.", eDisp.message);
+  if (disp !== true) throw new BillingError(409, MSG_DESFAZER_ESGOTADO);
+  const { data: planoAtualRow } = await admin.from("plans").select("slug").eq("id", sub.plan_id).maybeSingle();
+  const planoAtual = (planoAtualRow as any)?.slug as string | undefined;
   const { data: fat } = await admin.from("invoices").select("id,external_invoice_id,status,notes,amount_cents")
     .eq("subscription_id", sub.id).in("status", ["open", "overdue"]).like("notes", "Diferença%")
     .order("created_at", { ascending: false }).limit(1).maybeSingle();
@@ -555,8 +562,25 @@ export async function desfazerUpgrade(admin: SupabaseClient, sub: any, criados: 
     if (!count) await admin.from("subscriptions").update({ status: "active" }).eq("id", sub.id);
   }
   const payload = { invoice_id: fat.id, valor_cents: fat.amount_cents, plano_restaurado: ant.plano, novo_valor_cents: v.cents };
-  const { error: eEv } = await admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "upgrade_desfeito", actor_id: actorId ?? null, payload });
-  if (eEv) throw new BillingError(500, "O plano voltou, mas o registro da desistência falhou. Fale com o suporte.", eEv.message);
+  const gravar = () => admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "upgrade_desfeito", actor_id: actorId ?? null, payload });
+  let { error: eEv } = await gravar();
+  if (eEv) ({ error: eEv } = await gravar());
+  if (eEv) {
+    // Sem o registro, a regra de 1 desfazimento por ciclo ficaria sem prova: volta o plano e o valor no Asaas.
+    let revertido = false;
+    if (planoAtual) {
+      const { error: eR } = await admin.rpc("billing_v2_apply_change", { _subscription_id: sub.id, _plan_slug: planoAtual, _ciclo: ant.ciclo, _origem: "imediata", _actor: actorId ?? null });
+      if (!eR) {
+        try { await atualizarValorAsaas(admin, sub, criados); revertido = true; } catch { /* vira compensação */ }
+      }
+    }
+    await eventoConta(admin, sub, "compensacao_pendente", actorId, { origem: "desfazer_upgrade_registro", alerta: true,
+      plano_upgrade: planoAtual ?? null, plano_anterior: ant.plano, revertido, invoice_id: fat.id, cobranca_asaas: fat.external_invoice_id ?? null, erro: eEv.message });
+    console.error("[billing] ALERTA desfazer_upgrade sem registro", sub.id, { revertido });
+    throw new BillingError(500, revertido
+      ? "Não conseguimos registrar a desistência; o plano foi mantido. A cobrança da diferença foi cancelada e nossa equipe foi avisada."
+      : "O plano voltou, mas o registro da desistência falhou. Nossa equipe foi avisada.", eEv.message);
+  }
   await eventoConta(admin, sub, "upgrade_desfeito", actorId, payload, true);
   return { ok: true, plano: ant.plano, novo_valor_cents: v.cents };
 }
