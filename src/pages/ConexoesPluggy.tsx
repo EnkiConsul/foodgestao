@@ -180,8 +180,18 @@ export default function ConexoesPluggy() {
     const comContas = ativas.filter((_, i) => (contagens[i].count ?? 0) > 0);
     const list = dedupeByConnector(comContas);
     setConnections(list);
+    // Desconectados: só conexões que de fato tiveram contas nesta empresa
+    // (tentativas vazias ou contas de outra empresa ficam fora).
+    const revogadas = todas.filter((c) => c.status === "revoked");
+    const contagensRev = await Promise.all(
+      revogadas.map((c) =>
+        supabase.from("pluggy_accounts").select("id", { head: true, count: "exact" })
+          .eq("connection_id", c.id).eq("company_id", selectedCompanyId),
+      ),
+    );
+    const revogadasDaEmpresa = revogadas.filter((_, i) => (contagensRev[i].count ?? 0) > 0);
     setRevoked(
-      dedupeByConnector(todas.filter((c) => c.status === "revoked"))
+      dedupeByConnector(revogadasDaEmpresa)
         .filter((c) => !list.some((a) => (a.connector_id ?? -1) === (c.connector_id ?? -2))),
     );
 
