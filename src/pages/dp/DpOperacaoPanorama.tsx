@@ -88,7 +88,7 @@ import { DpTabsBar } from "@/components/dp/DpTabsBar";
 import { DiasEmLista } from "@/components/dp/DiasEmLista";
 import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Lock, MoreHorizontal, UserX } from "lucide-react";
+import { Lock, MoreHorizontal } from "lucide-react";
 import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import { Label } from "@/components/ui/label";
 
