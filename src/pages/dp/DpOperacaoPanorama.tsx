@@ -88,7 +88,7 @@ import { DpTabsBar } from "@/components/dp/DpTabsBar";
 import { DiasEmLista } from "@/components/dp/DiasEmLista";
 import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Lock, MoreHorizontal } from "lucide-react";
+import { Lock, MoreHorizontal, UserX } from "lucide-react";
 import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import { Label } from "@/components/ui/label";
 
@@ -425,6 +425,7 @@ interface DetalheDiaProps {
   periodosHabituais?: Map<string, "dia" | "noite" | "madrugada">;
   onContagemTurno?: (c: { n: number; turno: string } | null) => void;
   acoesFolga?: (colaboradorId: string, folgaFixa: boolean) => React.ReactNode;
+  onRegistrarAusencia?: (colaboradorId: string) => void;
 }
 
 /** Sócio ausente sem obrigação CLT: exibido com tag própria. */
@@ -470,6 +471,7 @@ function DetalheDiaOperacao({
   periodosHabituais,
   onContagemTurno,
   acoesFolga,
+  onRegistrarAusencia,
 }: DetalheDiaProps) {
   const navigate = useNavigate();
 
@@ -744,7 +746,20 @@ function DetalheDiaOperacao({
                           >
                             {/* Linha 1: nome + vínculo */}
                             <div className="flex min-w-0 items-center justify-between gap-2">
-                              <p className="min-w-0 truncate text-sm font-bold" title={p.nome}>{p.nome}</p>
+                              <p className="min-w-0 flex-1 truncate text-sm font-bold" title={p.nome}>{p.nome}</p>
+                              {onRegistrarAusencia && !p.avulso_id && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-9 w-9 shrink-0 text-calendar-falta"
+                                  aria-label={`Registrar ausência de ${p.nome}`}
+                                  title="Registrar ausência"
+                                  onClick={() => onRegistrarAusencia(p.colaborador_id)}
+                                >
+                                  <UserX className="h-4 w-4" />
+                                </Button>
+                              )}
                               {p.aguardando_registro && (
                                 <span
                                   className="shrink-0 rounded-full border border-amber-500/50 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-500"
@@ -1068,6 +1083,10 @@ export default function DpOperacaoPanorama({
   const [ausenciaOpen, setAusenciaOpen] = useState(false);
   const [ausenciaData, setAusenciaData] = useState<string | null>(null);
   const [ausenciaMotivo, setAusenciaMotivo] = useState<"folga" | undefined>(undefined);
+  const [ausenciaColab, setAusenciaColab] = useState<string | null>(null);
+  const abrirAusenciaPessoa = (dia: string, colaboradorId: string) => {
+    setAusenciaData(dia); setAusenciaMotivo(undefined); setAusenciaColab(colaboradorId); setAusenciaOpen(true);
+  };
   const [avulsaOpen, setAvulsaOpen] = useState(false);
   const [avulsaData, setAvulsaData] = useState<string | null>(null);
   const [avulsaEditando, setAvulsaEditando] = useState<PessoaAvulsaPanorama | null>(null);
@@ -1463,7 +1482,9 @@ export default function DpOperacaoPanorama({
                 regimes={regimesColab}
                 periodosHabituais={periodosHab}
                 onContagemTurno={setContagemTurno}
-                acoesFolga={companyIdCal && podeRegistrar ? (id, fixa) => (
+                onRegistrarAusencia={podeRegistrar ? (id) => abrirAusenciaPessoa(dataDoDetalhe, id) : undefined}
+                onRegistrarAusencia={podeRegistrar ? (id) => abrirAusenciaPessoa(data, id) : undefined}
+              acoesFolga={companyIdCal && podeRegistrar ? (id, fixa) => (
                   <FolgasDoDiaPainel
                     companyId={companyIdCal}
                     data={dataDoDetalhe}
@@ -1542,10 +1563,11 @@ export default function DpOperacaoPanorama({
 
       <DpRegistrarAusenciaDialog
         open={ausenciaOpen}
-        onOpenChange={setAusenciaOpen}
+        onOpenChange={(o) => { setAusenciaOpen(o); if (!o) setAusenciaColab(null); }}
         dataInicial={ausenciaData}
         motivoInicial={ausenciaMotivo}
         unidadeId={unidadeId}
+        colaboradorInicialId={ausenciaColab}
       />
 
       <DpPessoaAvulsaDialog
