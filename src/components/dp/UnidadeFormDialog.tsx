@@ -559,17 +559,85 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
                 </p>
               </div>
             )}
-            <div className="space-y-2 rounded-lg border border-border p-2.5">
-              <div className="flex min-h-11 items-center gap-3">
-                <Switch id="convoca_feriados_automatico" checked={form.convoca_feriados_automatico} onCheckedChange={(v) => setForm({ ...form, convoca_feriados_automatico: v })} />
-                <Label htmlFor="convoca_feriados_automatico">Convocação automática para feriados (conforme ACT/CCT)</Label>
+            {form.banco_horas && (
+              <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-2.5">
+                <p className="text-[11px] leading-relaxed">
+                  Atenção: banco de horas e trabalho/compensação em feriados no comércio e na alimentação dependem de
+                  autorização na Convenção ou no Acordo Coletivo com o sindicato (CLT art. 59 e Lei 10.101/2000, art. 6º-A).
+                  Sem essa negociação, a empresa pode ser autuada e condenada ao pagamento das horas como extras.
+                </p>
+                <label className="flex items-start gap-2 text-xs font-medium">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={form.ciencia_sindical}
+                    onChange={(e) => setForm({ ...form, ciencia_sindical: e.target.checked })}
+                  />
+                  Confirmo que a convenção ou acordo coletivo vigente autoriza essas práticas nesta unidade.
+                </label>
               </div>
-              <p className="text-[11px] leading-relaxed text-muted-foreground">
-                {form.convoca_feriados_automatico
-                  ? "Ligado: na geração da escala, quem trabalha normalmente naquele dia da semana fica convocado para todos os feriados e é notificado. Quem tem folga fixa, férias, atestado ou outro afastamento no feriado não é convocado. Incluir depois quem tinha folga fixa no feriado gera pagamento em dobro."
-                  : "Desligado: ninguém é convocado automaticamente para feriados. A loja recebe alerta para montar a escala de cada feriado manualmente. Escalar quem tem folga fixa no feriado gera pagamento em dobro."}
-              </p>
+            )}
+          </div>
+          <div className="space-y-3 rounded-xl border border-border p-3">
+            <div className="flex min-h-11 items-center gap-3">
+            <Switch
+              id="tem_adiantamento"
+              checked={form.tem_adiantamento}
+              onCheckedChange={(v) =>
+                setForm({ ...form, tem_adiantamento: v, dia_adiantamento: v ? form.dia_adiantamento : "" })
+              }
+            />
+            <Label htmlFor="tem_adiantamento">Tem adiantamento salarial</Label>
             </div>
+            {campoData("adiantamento", form.tem_adiantamento)}
+            {form.tem_adiantamento && (
+              <div className="space-y-2">
+                <Label>Dia do Adiantamento</Label>
+                <Select
+                  value={form.dia_adiantamento || ""}
+                  onValueChange={(v) => setForm({ ...form, dia_adiantamento: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o dia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 28 }, (_, i) => i + 1).map((dia) => (
+                      <SelectItem key={dia} value={dia.toString()}>{dia}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="setores" className="mt-0 min-h-0 min-w-0 w-full flex-1 space-y-2 overflow-y-auto overflow-x-hidden overscroll-contain p-4 [&_input]:min-w-0 [&_input]:max-w-full [&_input]:min-h-11 [&_input]:text-base [&_textarea]:text-base [&_button[role=combobox]]:min-h-11 [&_button[role=combobox]]:min-w-0 [&_button[role=combobox]>span]:truncate">
+          <UnidadeSetoresPanel unidadeId={unidadeId} unidadeNome={form.nome} />
+        </TabsContent>
+
+        <TabsContent value="funcionamento" className="mt-0 min-h-0 min-w-0 w-full flex-1 space-y-2 overflow-y-auto overflow-x-hidden overscroll-contain p-4 [&_input]:min-w-0 [&_input]:max-w-full [&_input]:min-h-11 [&_input]:text-base [&_textarea]:text-base [&_button[role=combobox]]:min-h-11 [&_button[role=combobox]]:min-w-0 [&_button[role=combobox]>span]:truncate">
+          <Label className="flex items-center gap-1.5">
+            <Store className="h-4 w-4" aria-hidden="true" />
+            Horário de funcionamento da loja
+          </Label>
+          <HorarioFuncionamentoEditor unidadeId={unidadeId} semRodape onRegistrarSalvar={registrarSalvar} />
+        </TabsContent>
+
+        <TabsContent value="feriados" className="mt-0 min-h-0 min-w-0 w-full flex-1 space-y-2 overflow-y-auto overflow-x-hidden overscroll-contain p-4 [&_input]:min-w-0 [&_input]:max-w-full [&_input]:min-h-11 [&_input]:text-base [&_textarea]:text-base [&_button[role=combobox]]:min-h-11 [&_button[role=combobox]]:min-w-0 [&_button[role=combobox]>span]:truncate">
+          <section aria-labelledby="regras-feriado-titulo" className="space-y-3 rounded-xl border border-border p-3">
+            <h3 id="regras-feriado-titulo" className="text-sm font-semibold">Regras de feriado</h3>
+            <div className="space-y-2">
+            <div className="flex min-h-11 items-center gap-3">
+              <Switch id="convoca_feriados_automatico" checked={form.convoca_feriados_automatico} onCheckedChange={(v) => setForm({ ...form, convoca_feriados_automatico: v })} />
+              <Label htmlFor="convoca_feriados_automatico">Convocação automática para feriados (conforme ACT/CCT)</Label>
+            </div>
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              {form.convoca_feriados_automatico
+                ? "Ligado: na geração da escala, quem trabalha normalmente naquele dia da semana fica convocado para todos os feriados e é notificado. Quem tem folga fixa, férias, atestado ou outro afastamento no feriado não é convocado. Incluir depois quem tinha folga fixa no feriado gera pagamento em dobro."
+                : "Desligado: ninguém é convocado automaticamente para feriados. A loja recebe alerta para montar a escala de cada feriado manualmente. Escalar quem tem folga fixa no feriado gera pagamento em dobro."}
+            </p>
+            </div>
+            <div className="space-y-2 border-t border-border pt-3">
             <div className="flex min-h-11 items-center gap-3">
               <Switch id="compensa_feriados" checked={form.compensa_feriados} onCheckedChange={(v) => setForm({ ...form, compensa_feriados: v })} />
               <Label htmlFor="compensa_feriados">Compensação de feriados</Label>
@@ -589,8 +657,8 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
                 />
                 <p className="text-[11px] text-muted-foreground">Pedidos com prazo menor não são barrados, mas o colaborador é avisado de que podem ser recusados.</p>
               </div>
-            )}
-            {compensacaoAtiva && (
+            </div>
+            {form.compensa_feriados && !form.banco_horas && (
               <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-2.5">
                 <p className="text-[11px] leading-relaxed">
                   Atenção: banco de horas e trabalho/compensação em feriados no comércio e na alimentação dependem de
@@ -608,51 +676,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
                 </label>
               </div>
             )}
-          </div>
-          <div className="flex min-h-11 items-center gap-3 rounded-xl border border-border p-3">
-            <Switch
-              id="tem_adiantamento"
-              checked={form.tem_adiantamento}
-              onCheckedChange={(v) =>
-                setForm({ ...form, tem_adiantamento: v, dia_adiantamento: v ? form.dia_adiantamento : "" })
-              }
-            />
-            <Label htmlFor="tem_adiantamento">Tem adiantamento salarial</Label>
-          </div>
-          {campoData("adiantamento", form.tem_adiantamento)}
-          {form.tem_adiantamento && (
-            <div className="space-y-2">
-              <Label>Dia do Adiantamento</Label>
-              <Select
-                value={form.dia_adiantamento || ""}
-                onValueChange={(v) => setForm({ ...form, dia_adiantamento: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o dia" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 28 }, (_, i) => i + 1).map((dia) => (
-                    <SelectItem key={dia} value={dia.toString()}>{dia}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="setores" className="mt-0 min-h-0 min-w-0 w-full flex-1 space-y-2 overflow-y-auto overflow-x-hidden overscroll-contain p-4 [&_input]:min-w-0 [&_input]:max-w-full [&_input]:min-h-11 [&_input]:text-base [&_textarea]:text-base [&_button[role=combobox]]:min-h-11 [&_button[role=combobox]]:min-w-0 [&_button[role=combobox]>span]:truncate">
-          <UnidadeSetoresPanel unidadeId={unidadeId} unidadeNome={form.nome} />
-        </TabsContent>
-
-        <TabsContent value="funcionamento" className="mt-0 min-h-0 min-w-0 w-full flex-1 space-y-2 overflow-y-auto overflow-x-hidden overscroll-contain p-4 [&_input]:min-w-0 [&_input]:max-w-full [&_input]:min-h-11 [&_input]:text-base [&_textarea]:text-base [&_button[role=combobox]]:min-h-11 [&_button[role=combobox]]:min-w-0 [&_button[role=combobox]>span]:truncate">
-          <Label className="flex items-center gap-1.5">
-            <Store className="h-4 w-4" aria-hidden="true" />
-            Horário de funcionamento da loja
-          </Label>
-          <HorarioFuncionamentoEditor unidadeId={unidadeId} semRodape onRegistrarSalvar={registrarSalvar} />
-        </TabsContent>
-
-        <TabsContent value="feriados" className="mt-0 min-h-0 min-w-0 w-full flex-1 space-y-2 overflow-y-auto overflow-x-hidden overscroll-contain p-4 [&_input]:min-w-0 [&_input]:max-w-full [&_input]:min-h-11 [&_input]:text-base [&_textarea]:text-base [&_button[role=combobox]]:min-h-11 [&_button[role=combobox]]:min-w-0 [&_button[role=combobox]>span]:truncate">
+          </section>
           <UnidadeFeriadosPanel unidadeId={unidadeId} />
         </TabsContent>
 
