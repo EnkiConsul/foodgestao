@@ -657,6 +657,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
                 />
                 <p className="text-[11px] text-muted-foreground">Pedidos com prazo menor não são barrados, mas o colaborador é avisado de que podem ser recusados.</p>
               </div>
+            )}
             </div>
             {form.compensa_feriados && !form.banco_horas && (
               <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-2.5">
