@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { format, addDays } from "date-fns";
 import { CalendarClock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { etapaFeriado, mensagemFeriado, diasAte } from "@/lib/dp/feriado-regua";
+import { etapaFeriado, mensagemFeriado, diasAte, proximoFechamento, etapaFechamento, mensagemFechamento } from "@/lib/dp/feriado-regua";
 
 interface Props { companyId: string | null | undefined; unidadeId?: string | null }
 
@@ -28,11 +28,53 @@ export function FeriadosProximosAlerta({ companyId, unidadeId }: Props) {
     },
   });
 
+  const f = useQuery({
+    queryKey: ["dp-feriados-fechamento", companyId, unidadeId, hoje],
+    enabled: !!companyId,
+    queryFn: async () => {
+      let uq = supabase.from("dp_unidades").select("id, nome, convoca_feriados_automatico").eq("company_id", companyId!);
+      if (unidadeId) uq = uq.eq("id", unidadeId);
+      const { data: unidades, error } = await uq;
+      if (error) throw error;
+      const { data: cfgs } = await supabase.from("dp_config_dp").select("unidade_id, folga_janela_fecha_dia").eq("company_id", companyId!);
+      const out: { unidade: string; auto: boolean; fechamento: string; etapa: "d10" | "d5" | "d1"; feriados: { data: string; nome: string }[] }[] = [];
+      for (const u of unidades ?? []) {
+        const cfg = (cfgs ?? []).find((c) => c.unidade_id === u.id) ?? (cfgs ?? []).find((c) => !c.unidade_id);
+        const { fechamento, competencia } = proximoFechamento(hoje, Number(cfg?.folga_janela_fecha_dia ?? 20));
+        const etapa = etapaFechamento(hoje, fechamento);
+        if (!etapa) continue;
+        const [y, m] = competencia.split("-").map(Number);
+        const ult = new Date(Date.UTC(y, m, 0)).getUTCDate();
+        const { data } = await supabase.rpc("dp_feriados_resolver_v2", { _unidade_id: u.id, _inicio: `${competencia}-01`, _fim: `${competencia}-${ult}` });
+        const feriados = ((data ?? []) as { data: string; nome: string }[]).sort((a, b) => a.data.localeCompare(b.data));
+        if (feriados.length) out.push({ unidade: u.nome, auto: !!u.convoca_feriados_automatico, fechamento, etapa, feriados });
+      }
+      return out;
+    },
+  });
+  const fechamentos = f.data ?? [];
+
   const itens = (q.data ?? []).filter((i) => etapaFeriado(hoje, i.data));
-  if (!itens.length) return null;
+  if (!itens.length && !fechamentos.length) return null;
+  const br = (d: string) => d.split("-").reverse().join("/");
 
   return (
     <div className="space-y-2" role="status">
+      {fechamentos.map((x) => {
+        const d = diasAte(hoje, x.fechamento);
+        return (
+          <div key={`fech-${x.unidade}`} className={`flex gap-3 rounded-lg border p-3 text-sm ${x.etapa === "d1" ? "border-destructive/40 bg-destructive/10" : "border-warning/40 bg-warning/10"}`}>
+            <CalendarClock className={`mt-0.5 h-5 w-5 shrink-0 ${x.etapa === "d1" ? "text-destructive" : "text-warning"}`} />
+            <div className="min-w-0">
+              <p className="font-medium">
+                {x.unidade}: a escala do próximo mês fecha em {d} dia{d > 1 ? "s" : ""} ({br(x.fechamento)})
+              </p>
+              <p>Feriados: {x.feriados.map((h) => `${h.nome} (${br(h.data)})`).join(", ")}</p>
+              <p className="text-muted-foreground">{mensagemFechamento(x.etapa, x.auto)}</p>
+            </div>
+          </div>
+        );
+      })}
       {itens.map((i) => {
         const etapa = etapaFeriado(hoje, i.data)!;
         const d = diasAte(hoje, i.data);
