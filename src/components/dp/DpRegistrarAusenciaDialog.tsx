@@ -32,6 +32,8 @@ import type { Database } from "@/integrations/supabase/types";
 import { sugestaoDataFim, duracaoPadrao, TIPOS_LICENCA_CURTA, TIPO_AFASTAMENTO_LABEL } from "@/lib/dp/licencas";
 import { FundamentoLegalCard } from "@/components/dp/licencas/FundamentoLegalCard";
 import { DpFilePicker } from "@/components/dp/DpFilePicker";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AtribuirFolgaTriagemDialog } from "@/components/dp/AtribuirFolgaTriagemDialog";
 import { SuspensaoNovoModal } from "@/components/dp/disciplinar/SuspensaoNovoModal";
 import { FeriasNovoModal } from "@/components/dp/ferias/FeriasNovoModal";
@@ -77,6 +79,8 @@ interface Props {
   motivoInicial?: Motivo;
   /** Unidade em foco no calendário; sem ela o gestor escolhe a loja. */
   unidadeId?: string | null;
+  /** Colaborador já escolhido (atalho no cartão da pessoa). */
+  colaboradorInicialId?: string | null;
 }
 
 const GRUPO_LABEL: Record<GrupoAusencia, string> = {
@@ -90,7 +94,14 @@ const GRUPO_LABEL: Record<GrupoAusencia, string> = {
  * colaborador, data e motivo, e o sistema abre o formulário oficial já
  * preenchido. Só atestados/licenças e faltas são gravados aqui mesmo.
  */
-export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, motivoInicial, unidadeId }: Props) {
+export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, motivoInicial, unidadeId, colaboradorInicialId }: Props) {
+  const isMobile = useIsMobile();
+  const Raiz = isMobile ? Sheet : Dialog;
+  const Conteudo = isMobile ? SheetContent : DialogContent;
+  const Cabecalho = isMobile ? SheetHeader : DialogHeader;
+  const Titulo = isMobile ? SheetTitle : DialogTitle;
+  const Descricao = isMobile ? SheetDescription : DialogDescription;
+  const Rodape = isMobile ? SheetFooter : DialogFooter;
   const { selectedCompanyId } = useCompanyContext();
   const qc = useQueryClient();
   const colabs = useDpColaboradores();
@@ -132,13 +143,13 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
     setArquivo(null);
     const hoje = new Date().toISOString().slice(0, 10);
     setForm({
-      colaborador_id: "",
+      colaborador_id: colaboradorInicialId ?? "",
       tipo: "atestado",
       data_alvo: dataInicial ?? hoje,
       data_fim: dataInicial ?? hoje,
       motivo: "",
     });
-  }, [open, dataInicial, motivoInicial, unidadeId]);
+  }, [open, dataInicial, motivoInicial, unidadeId, colaboradorInicialId]);
 
   useEffect(() => {
     if (form.data_fim && form.data_alvo && form.data_fim < form.data_alvo)
@@ -397,16 +408,16 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Registrar Ausência</DialogTitle>
-            <DialogDescription>
+      <Raiz open={open} onOpenChange={onOpenChange}>
+        <Conteudo {...(isMobile ? { side: "bottom" as const } : {})} className={isMobile ? "max-h-[92dvh] overflow-y-auto rounded-t-2xl px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]" : "max-h-[92dvh] overflow-y-auto sm:max-w-md"}>
+          <Cabecalho className="text-left">
+            <Titulo>Registrar Ausência</Titulo>
+            <Descricao>
               {etapa === "escolha"
                 ? "Escolha o colaborador e o motivo. Abrimos o formulário certo já preenchido."
                 : `${nomeColab} — atestado ou licença com o comprovante.`}
-            </DialogDescription>
-          </DialogHeader>
+            </Descricao>
+          </Cabecalho>
 
           {etapa === "escolha" ? (
             <div className="grid gap-3 py-2">
@@ -598,7 +609,7 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
             </div>
           )}
 
-          <DialogFooter className="gap-2">
+          <Rodape className={isMobile ? "sticky bottom-0 -mx-4 mt-2 gap-2 border-t bg-background px-4 pt-3" : "gap-2"}>
             {etapa === "afastamento" ? (
               <>
                 <Button variant="ghost" onClick={() => setEtapa("escolha")} disabled={salvar.isPending}>Voltar</Button>
@@ -614,9 +625,9 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
                 </Button>
               </>
             )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </Rodape>
+        </Conteudo>
+      </Raiz>
 
       {selectedCompanyId && form.colaborador_id && (
         <AtribuirFolgaTriagemDialog
