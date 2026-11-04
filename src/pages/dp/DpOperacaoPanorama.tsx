@@ -1483,8 +1483,7 @@ export default function DpOperacaoPanorama({
                 periodosHabituais={periodosHab}
                 onContagemTurno={setContagemTurno}
                 onRegistrarAusencia={podeRegistrar ? (id) => abrirAusenciaPessoa(dataDoDetalhe, id) : undefined}
-                onRegistrarAusencia={podeRegistrar ? (id) => abrirAusenciaPessoa(data, id) : undefined}
-              acoesFolga={companyIdCal && podeRegistrar ? (id, fixa) => (
+                acoesFolga={companyIdCal && podeRegistrar ? (id, fixa) => (
                   <FolgasDoDiaPainel
                     companyId={companyIdCal}
                     data={dataDoDetalhe}
@@ -1728,6 +1727,7 @@ export default function DpOperacaoPanorama({
               onReativar={reativar}
               {...propsAvulsas}
               {...propsSetor}
+              onRegistrarAusencia={podeRegistrar ? (id) => abrirAusenciaPessoa(data, id) : undefined}
               acoesFolga={companyIdCal && podeRegistrar ? (id, fixa) => (
                 <FolgasDoDiaPainel
                   companyId={companyIdCal}
