@@ -1,6 +1,7 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
 - [x] Feriados Fase 2 (parcial): folga regular/dominical escolhida ou atribuída automaticamente bloqueada em feriado da loja; troca entre colegas pelo portal bloqueada em feriado (gestor segue podendo). Não testado com gravação real.
-- [ ] Feriados Fase 3: convocação automática na escala, avisos D-10/D-5 ao gestor, notificação ao colaborador e motivos de dispensa/falta em feriado.
+- [x] Feriados: avisos D-10/D-5 ao gestor no Gerador de Escala.
+- [ ] Feriados Fase 3: convocação automática na escala, notificação ao colaborador e motivos de dispensa/falta em feriado.
 - [x] Pluggy Fase 5 B1/B2/B4: migração 0180 com primeira detecção e elegibilidade calculada no servidor; 48h (mínimo 24h) E 3 detecções, aviso só de hoje suprimido e supersedidos excluídos nas duas somas. 97 testes Pluggy aprovados, função disponibilizada, build OK; hash dos 348 registros protegidos inalterado, nove conexões ativas com agenda conferida. B3 pulado: diagnóstico sem PENDING ativo. Cron/webhook/claims/remoção e lógica financeira intactos; frontend não publicado.
 - [ ] Validar avisos da Fase 5 com sessão autorizada em AVETO 360/Familia/Praianos: sessão do solicitante acessa só ClicSorte/Gestor Plin/Raptor, sem contas Pluggy; tela vazia autenticada não valida contas auditadas. Requer sessão com acesso, sem escolher outro usuário por conta própria.
 - [x] Priorizar pílulas Inícios/Rescisão e retirar bloco aberto de prazos; três marcos persistidos no mês/dia e consulta no Início, com virada de mês e último comparecimento ausente sem inferência. 17 testes aprovados; gestor autenticado conferiu pílula, detalhe de 25/10 e Início; celular sem rolagem lateral/erros, build OK. Sem publicar, migração ou alteração de dados reais.
