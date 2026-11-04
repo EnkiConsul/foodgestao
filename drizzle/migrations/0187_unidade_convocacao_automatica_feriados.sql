@@ -1,0 +1,2 @@
+ALTER TABLE public.dp_unidades ADD COLUMN IF NOT EXISTS convoca_feriados_automatico boolean NOT NULL DEFAULT false;
+COMMENT ON COLUMN public.dp_unidades.convoca_feriados_automatico IS 'Quando ligado, colaboradores sem folga fixa/afastamento no feriado são considerados convocados na geração da escala (ACT/CCT). Desligado: ninguém é convocado e a loja deve montar a escala do feriado manualmente.';

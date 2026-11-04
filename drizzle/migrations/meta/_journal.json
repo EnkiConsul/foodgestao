@@ -1310,6 +1310,13 @@
       "when": 1793805754132,
       "tag": "0186_desfazer_upgrade_reserva_e_pluggy_duplicata",
       "breakpoints": true
+    },
+    {
+      "idx": 187,
+      "version": "7",
+      "when": 1793822830952,
+      "tag": "0187_unidade_convocacao_automatica_feriados",
+      "breakpoints": true
     }
   ]
 }

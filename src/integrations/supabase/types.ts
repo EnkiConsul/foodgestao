@@ -14200,6 +14200,7 @@ export type Database = {
           compensacao_sindical_ciencia_em: string | null
           compensacao_sindical_ciencia_por: string | null
           complemento: string | null
+          convoca_feriados_automatico: boolean
           created_at: string
           dia_adiantamento: number | null
           endereco: string | null
@@ -14232,6 +14233,7 @@ export type Database = {
           compensacao_sindical_ciencia_em?: string | null
           compensacao_sindical_ciencia_por?: string | null
           complemento?: string | null
+          convoca_feriados_automatico?: boolean
           created_at?: string
           dia_adiantamento?: number | null
           endereco?: string | null
@@ -14264,6 +14266,7 @@ export type Database = {
           compensacao_sindical_ciencia_em?: string | null
           compensacao_sindical_ciencia_por?: string | null
           complemento?: string | null
+          convoca_feriados_automatico?: boolean
           created_at?: string
           dia_adiantamento?: number | null
           endereco?: string | null
