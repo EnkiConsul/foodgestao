@@ -641,13 +641,13 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
         onOpenChange={setSuspOpen}
         colaboradorId={form.colaborador_id}
         colaboradorNome={nomeColab}
-        regime={ativos.find((c) => c.id === form.colaborador_id)?.regime ?? null}
+        regime={opcoes.map((o) => o.colab).find((c) => c.id === form.colaborador_id)?.regime ?? null}
         data={form.data_alvo}
       />
       <OcorrenciaFormDialog
         open={faltaOpen}
         onOpenChange={setFaltaOpen}
-        colaboradores={ativos.map((c) => ({ id: c.id, nome: c.nome }))}
+        colaboradores={opcoes.map((o) => o.colab).map((c) => ({ id: c.id, nome: c.nome }))}
         dataInicial={form.data_alvo}
         colaboradorInicial={form.colaborador_id}
         saving={falta.isPending}
