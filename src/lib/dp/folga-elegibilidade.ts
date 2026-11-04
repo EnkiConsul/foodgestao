@@ -16,5 +16,5 @@ export function podeReceberFolga(p: PessoaFolga): boolean {
 
 /** O calendário verifica configuração, nunca apura feriados trabalhados ou saldo. */
 export function podeReceberCompensatoria(p: PessoaFolga, unidadeCompensa: boolean, individual?: boolean | null): boolean {
-  return podeEscolherFolgaFds(p.regime, p.forma_pagamento, p.vinculo_label) && (individual ?? unidadeCompensa);
+  return podeEscolherFolgaFds(p.regime, p.forma_pagamento, p.vinculo_label) && (unidadeCompensa && individual !== false);
 }

@@ -1,4 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { prepararFalta, type ClassificacaoFalta } from "@/lib/dp/falta-classificacao";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +44,8 @@ interface Props {
   dataInicial?: string;
   /** Colaborador já escolhido (atalho do calendário). */
   colaboradorInicial?: string;
+  somenteFalta?: boolean;
+  contexto?: string;
   onSubmit: (input: RegistrarOcorrenciaInput) => void;
 }
 
@@ -57,8 +63,7 @@ const PEDE_MOTIVO: OcorrenciaTipo[] = [
 ];
 
 const MOTIVOS_AUSENCIA = [
-  "Falta avisada",
-  "Falta não avisada",
+  "Falta injustificada",
   "Falta justificada",
   "Atestado médico",
   "Licença legal",
@@ -81,7 +86,18 @@ export function OcorrenciaFormDialog({
   dataInicial,
   colaboradorInicial,
   onSubmit,
+  somenteFalta,
+  contexto,
 }: Props) {
+  const mobile = useIsMobile();
+  const Root = mobile ? Sheet : Dialog;
+  const Content = mobile ? SheetContent : DialogContent;
+  const Header = mobile ? SheetHeader : DialogHeader;
+  const Title = mobile ? SheetTitle : DialogTitle;
+  const Description = mobile ? SheetDescription : DialogDescription;
+  const Footer = mobile ? SheetFooter : DialogFooter;
+  const [classificacao, setClassificacao] = useState<ClassificacaoFalta>("injustificada");
+  const [comunicou, setComunicou] = useState(false);
   const hoje = new Date().toISOString().slice(0, 10);
   const [colaboradorId, setColaboradorId] = useState("");
   const [data, setData] = useState(dataInicial ?? hoje);
@@ -98,6 +114,9 @@ export function OcorrenciaFormDialog({
     setColaboradorId(colaboradorInicial ?? "");
     setData(dataInicial ?? hoje);
     setTipo("falta");
+    setClassificacao("injustificada");
+    setComunicou(false);
+    setAssid(null);
     setMarcacao("entrada");
     setHorarioEstimado("");
     setHorarioReal("");
@@ -107,6 +126,9 @@ export function OcorrenciaFormDialog({
 
   const pedeEstimado = useMemo(() => PEDE_ESTIMADO.includes(tipo), [tipo]);
   const pedeReal = useMemo(() => PEDE_REAL.includes(tipo), [tipo]);
+  const ehFalta = somenteFalta || tipo === "falta" || tipo === "ausencia_justificada";
+  const faltaPreparada = prepararFalta(classificacao, comunicou ? "sim" : "nao", justificativa, contexto);
+  const evento = ehFalta ? faltaPreparada.evento : eventoDoTipo(tipo);
   const pedeMotivo = useMemo(() => PEDE_MOTIVO.includes(tipo), [tipo]);
 
   const submit = () => {
@@ -118,13 +140,13 @@ export function OcorrenciaFormDialog({
       toast.error("Informe a data da rotina.");
       return;
     }
-    if (pedeMotivo && motivo === "Outro" && !justificativa.trim()) {
+    if ((ehFalta && classificacao === "justificada" || pedeMotivo && motivo === "Outro") && !justificativa.trim()) {
       toast.error("Descreva o motivo da ausência.");
       return;
     }
     let decisao: DecisaoAssiduidade | null;
     try {
-      decisao = validarDecisaoAssiduidade(eventoDoTipo(tipo), assid);
+      decisao = validarDecisaoAssiduidade(evento, assid);
     } catch (e) {
       toast.error((e as Error).message);
       return;
@@ -136,8 +158,8 @@ export function OcorrenciaFormDialog({
     onSubmit({
       colaboradorId,
       data,
-      tipo,
-      justificativa: textoFinal || null,
+      tipo: ehFalta ? faltaPreparada.tipo : tipo,
+      justificativa: ehFalta ? faltaPreparada.justificativa : textoFinal || null,
       horarioEstimado: pedeEstimado ? horarioEstimado || null : null,
       horarioReal: pedeReal ? horarioReal || null : null,
       marcacaoAlvo: tipo === "esquecimento_marcacao" ? marcacao : null,
@@ -146,14 +168,14 @@ export function OcorrenciaFormDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Registrar ocorrência</DialogTitle>
-          <DialogDescription>
+    <Root open={open} onOpenChange={onOpenChange}>
+      <Content {...(mobile ? { side: "bottom" as const } : {})} className="max-h-[92dvh] overflow-y-auto sm:max-w-lg [&_button]:min-h-12 [&_input]:min-h-12">
+        <Header>
+          <Title>{somenteFalta ? "Registrar falta" : "Registrar ocorrência"}</Title>
+          <Description>
             Vincule sempre à data da rotina, e não à data em que o horário aconteceu.
-          </DialogDescription>
-        </DialogHeader>
+          </Description>
+        </Header>
 
         <div className="space-y-4">
           <div className="space-y-1.5">
@@ -177,7 +199,7 @@ export function OcorrenciaFormDialog({
               <Label>Data da rotina *</Label>
               <Input type="date" value={data} onChange={(e) => setData(e.target.value)} />
             </div>
-            <div className="space-y-1.5">
+            {!somenteFalta && <div className="space-y-1.5">
               <Label>O que aconteceu *</Label>
               <Select value={tipo} onValueChange={(v) => setTipo(v as OcorrenciaTipo)}>
                 <SelectTrigger>
@@ -191,10 +213,20 @@ export function OcorrenciaFormDialog({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </div>}
           </div>
 
-          {pedeMotivo && (
+          {ehFalta && <div className="space-y-3">
+            {contexto && <p className="text-sm font-medium">{contexto}</p>}
+            <Label>Classificação da falta *</Label>
+            <Select value={classificacao} onValueChange={(v) => setClassificacao(v as ClassificacaoFalta)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="justificada">Falta justificada</SelectItem><SelectItem value="injustificada">Falta injustificada</SelectItem></SelectContent>
+            </Select>
+            <label className="flex min-h-12 items-center gap-3 text-sm"><Checkbox checked={comunicou} onCheckedChange={(v) => setComunicou(v === true)} />Houve comunicação prévia do colaborador</label>
+            <p className="text-xs text-muted-foreground">Comunicação é informação interna. Descontos do dia e DSR dependem da análise e das regras aplicáveis, sem desconto automático.</p>
+          </div>}
+          {pedeMotivo && !ehFalta && (
             <div className="space-y-1.5">
               <Label>Motivo da ausência *</Label>
               <Select value={motivo} onValueChange={setMotivo}>
@@ -266,18 +298,18 @@ export function OcorrenciaFormDialog({
               placeholder="O que foi informado sobre o ocorrido"
             />
           </div>
-          <AssiduidadePergunta colaboradorId={colaboradorId} evento={eventoDoTipo(tipo)} value={assid} onChange={setAssid} />
+          <AssiduidadePergunta colaboradorId={colaboradorId} evento={evento} value={assid} onChange={setAssid} />
         </div>
 
-        <DialogFooter>
+        <Footer className="sticky bottom-0 mt-3 gap-2 border-t bg-background pt-3">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
           <Button onClick={submit} disabled={saving}>
             Registrar
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </Footer>
+      </Content>
+    </Root>
   );
 }
