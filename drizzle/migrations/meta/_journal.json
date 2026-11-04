@@ -1345,6 +1345,13 @@
       "when": 1793830268932,
       "tag": "0191_feriado_regua_gestor",
       "breakpoints": true
+    },
+    {
+      "idx": 192,
+      "version": "7",
+      "when": 1793836354374,
+      "tag": "0192_folgas_compensatorias_e_notificacoes_contextuais",
+      "breakpoints": true
     }
   ]
 }
