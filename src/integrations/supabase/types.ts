@@ -631,45 +631,6 @@ export type Database = {
         }
         Relationships: []
       }
-      audit_logs_2025_10: {
-        Row: {
-          action: string
-          actor_kind: string
-          company_id: string | null
-          created_at: string
-          details: Json | null
-          entity_id: string | null
-          entity_type: string
-          id: string
-          user_id: string | null
-          user_name: string | null
-        }
-        Insert: {
-          action: string
-          actor_kind?: string
-          company_id?: string | null
-          created_at?: string
-          details?: Json | null
-          entity_id?: string | null
-          entity_type: string
-          id?: string
-          user_id?: string | null
-          user_name?: string | null
-        }
-        Update: {
-          action?: string
-          actor_kind?: string
-          company_id?: string | null
-          created_at?: string
-          details?: Json | null
-          entity_id?: string | null
-          entity_type?: string
-          id?: string
-          user_id?: string | null
-          user_name?: string | null
-        }
-        Relationships: []
-      }
       audit_logs_2025_11: {
         Row: {
           action: string
@@ -1217,6 +1178,45 @@ export type Database = {
         Relationships: []
       }
       audit_logs_2027_01: {
+        Row: {
+          action: string
+          actor_kind: string
+          company_id: string | null
+          created_at: string
+          details: Json | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          action: string
+          actor_kind?: string
+          company_id?: string | null
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          action?: string
+          actor_kind?: string
+          company_id?: string | null
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: []
+      }
+      audit_logs_2027_02: {
         Row: {
           action: string
           actor_kind: string
