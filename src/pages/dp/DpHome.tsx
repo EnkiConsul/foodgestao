@@ -4,6 +4,8 @@ import { LayoutDashboard, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { CalendarioOperacaoResumo } from "@/components/dp/home/CalendarioOperacaoResumo";
 import { AtalhosFavoritos } from "@/components/dp/home/AtalhosFavoritos";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { FeriadosProximosAlerta } from "@/components/dp/FeriadosProximosAlerta";
 import { KpiCards } from "@/components/dp/home/KpiCards";
 import { MenusPrincipaisCards } from "@/components/dp/home/MenusPrincipaisCards";
 import { PontoConformidadeAlerta } from "@/components/dp/PontoConformidadeAlerta";
@@ -19,6 +21,7 @@ import { AniversariantesCard } from "@/components/dp/home/AniversariantesCard";
 
 export default function DpHome() {
   const isMobile = useIsMobile();
+  const { selectedCompanyId } = useCompanyContext();
   useMenuSwipeVertical();
 
   return (
@@ -57,6 +60,8 @@ export default function DpHome() {
           <AniversariantesCard compacto />
         </div>
       </div>
+
+      <FeriadosProximosAlerta companyId={selectedCompanyId} comAtalho />
 
       <CalendarioOperacaoResumo />
 

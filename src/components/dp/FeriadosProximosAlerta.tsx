@@ -1,27 +1,29 @@
 import { useQuery } from "@tanstack/react-query";
 import { format, addDays } from "date-fns";
 import { CalendarClock } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { etapaFeriado, mensagemFeriado, diasAte, proximoFechamento, etapaFechamento, mensagemFechamento } from "@/lib/dp/feriado-regua";
 
-interface Props { companyId: string | null | undefined; unidadeId?: string | null }
+interface Props { companyId: string | null | undefined; unidadeId?: string | null; comAtalho?: boolean }
 
-export function FeriadosProximosAlerta({ companyId, unidadeId }: Props) {
+export function FeriadosProximosAlerta({ companyId, unidadeId, comAtalho }: Props) {
   const hoje = format(new Date(), "yyyy-MM-dd");
   const fim = format(addDays(new Date(), 10), "yyyy-MM-dd");
   const q = useQuery({
     queryKey: ["dp-feriados-regua", companyId, unidadeId, hoje],
     enabled: !!companyId,
     queryFn: async () => {
-      let uq = supabase.from("dp_unidades").select("id, nome, convoca_feriados_automatico").eq("company_id", companyId!);
+      let uq = supabase.from("dp_unidades").select("id, nome, convoca_feriados_automatico").eq("ativo", true).eq("company_id", companyId!);
       if (unidadeId) uq = uq.eq("id", unidadeId);
       const { data: unidades, error } = await uq;
       if (error) throw error;
-      const itens: { unidade: string; auto: boolean; data: string; nome: string }[] = [];
+      const itens: { unidadeId: string; unidade: string; auto: boolean; data: string; nome: string }[] = [];
       for (const u of unidades ?? []) {
         const { data } = await supabase.rpc("dp_feriados_resolver_v2", { _unidade_id: u.id, _inicio: hoje, _fim: fim });
         for (const f of (data ?? []) as { data: string; nome: string }[]) {
-          itens.push({ unidade: u.nome, auto: !!u.convoca_feriados_automatico, data: f.data, nome: f.nome });
+          itens.push({ unidadeId: u.id, unidade: u.nome, auto: !!u.convoca_feriados_automatico, data: f.data, nome: f.nome });
         }
       }
       return itens.sort((a, b) => a.data.localeCompare(b.data));
@@ -86,6 +88,11 @@ export function FeriadosProximosAlerta({ companyId, unidadeId }: Props) {
                 {i.nome} — {i.data.split("-").reverse().join("/")} · {i.unidade} ({d === 0 ? "hoje" : `em ${d} dia${d > 1 ? "s" : ""}`})
               </p>
               <p className="text-muted-foreground">{mensagemFeriado(etapa, i.auto)}</p>
+              {comAtalho && (
+                <Button asChild size="sm" variant="outline" className="mt-2 min-h-11 w-full sm:w-auto">
+                  <Link to={`/dp/escalas/mes?unidade=${i.unidadeId}&data=${i.data}`}>Revisar Escala</Link>
+                </Button>
+              )}
             </div>
           </div>
         );
