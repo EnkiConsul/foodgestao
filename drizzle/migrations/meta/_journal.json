@@ -1289,6 +1289,13 @@
       "when": 1793802456693,
       "tag": "0183_funcoes_novas_somente_service_role",
       "breakpoints": true
+    },
+    {
+      "idx": 184,
+      "version": "7",
+      "when": 1793802505169,
+      "tag": "0184_desfazer_upgrade_uma_vez_por_ciclo",
+      "breakpoints": true
     }
   ]
 }
