@@ -248,6 +248,17 @@ function CancelarFolgaFixa({ companyId, colaboradorId, data, nome, passado, data
   const [aberto, setAberto] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [ciente, setCiente] = useState(false);
+  const feriado = useQuery({
+    queryKey: ["dp_feriado_colab_dia", colaboradorId, data],
+    enabled: aberto,
+    queryFn: async () => {
+      const { data: c } = await supabase.from("dp_colaboradores").select("unidade_id").eq("id", colaboradorId).maybeSingle();
+      const uid = (c as { unidade_id?: string | null } | null)?.unidade_id;
+      if (!uid) return null;
+      const { data: f } = await supabase.rpc("dp_feriados_resolver_v2", { _unidade_id: uid, _inicio: data, _fim: data });
+      return ((f ?? []) as { nome: string }[])[0]?.nome ?? null;
+    },
+  });
   const m = useMutation({
     mutationFn: async () => {
       const { data: u } = await supabase.auth.getUser();
@@ -279,6 +290,11 @@ function CancelarFolgaFixa({ companyId, colaboradorId, data, nome, passado, data
               Esta é a folga fixa da jornada. Ao cancelar, {nome} trabalha em {dataBr} e fica sem o descanso da semana. Isso pode gerar pagamento em dobro e risco trabalhista. O recomendado é remarcar para outro dia.
             </DialogDescription>
           </DialogHeader>
+          {feriado.data && (
+            <p role="alert" className="rounded-md border border-destructive/50 bg-destructive/10 p-2 text-xs text-destructive">
+              <b>Feriado ({feriado.data}) sobre a folga fixa.</b> Convocar {nome} neste dia exige pagamento em dobro ou folga compensatória em até 7 dias, conforme o acordo coletivo. A folga fixa da semana continua sendo um direito.
+            </p>
+          )}
           {passado && (
             <p className="rounded-md border border-destructive/50 bg-destructive/10 p-2 text-xs text-destructive">Esta data já passou ({dataBr}). O cancelamento altera o histórico do colaborador.</p>
           )}
@@ -289,11 +305,11 @@ function CancelarFolgaFixa({ companyId, colaboradorId, data, nome, passado, data
           </div>
           <label className="flex items-start gap-2 text-xs">
             <input type="checkbox" className="mt-0.5" checked={ciente} onChange={(e) => setCiente(e.target.checked)} />
-            Estou ciente de que {nome} ficará sem folga nesta semana.
+            Estou ciente de que {nome} ficará sem folga nesta semana{feriado.data ? " e de que o trabalho no feriado gera dobra ou folga compensatória" : ""}.
           </label>
           <DialogFooter className="flex-col gap-2 sm:flex-col">
             <Button className="w-full" onClick={() => setAberto(false)}><RefreshCw className="mr-2 h-4 w-4" />Prefiro Remarcar para Outro Dia (Recomendado)</Button>
-            <Button variant="destructive" className="w-full" disabled={motivo.trim().length < 5 || !ciente || m.isPending} onClick={() => m.mutate()}>Confirmar Cancelamento da Folga</Button>
+            <Button variant="destructive" className="min-h-11 w-full" disabled={motivo.trim().length < 5 || !ciente || m.isPending} onClick={() => m.mutate()}>Confirmar Cancelamento da Folga</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -469,7 +485,7 @@ export function FolgasDoDiaPainel({ companyId, data, nomes, colaboradorId, folga
             </div>
             <DialogFooter className="flex-col gap-2 sm:flex-col">
               <Button className="w-full" onClick={() => { setAcao({ item: i, tipo: "remarcar" }); setNovaData(""); setConsome(true); }}><RefreshCw className="mr-2 h-4 w-4" />Prefiro Remarcar para Outro Dia (Recomendado)</Button>
-              <Button variant="destructive" className="w-full" disabled={motivo.trim().length < 5 || executar.isPending} onClick={() => executar.mutate()}>Confirmar Cancelamento da Folga</Button>
+              <Button variant="destructive" className="min-h-11 w-full" disabled={motivo.trim().length < 5 || executar.isPending} onClick={() => executar.mutate()}>Confirmar Cancelamento da Folga</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
