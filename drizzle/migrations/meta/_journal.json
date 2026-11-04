@@ -1268,6 +1268,13 @@
       "when": 1793473454527,
       "tag": "0180_pluggy_gap_time_persistence",
       "breakpoints": true
+    },
+    {
+      "idx": 181,
+      "version": "7",
+      "when": 1793802145512,
+      "tag": "0181_seguranca_preadmissao_encerrar_rotina",
+      "breakpoints": true
     }
   ]
 }
