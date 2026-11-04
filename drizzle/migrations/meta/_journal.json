@@ -1338,6 +1338,13 @@
       "when": 1793825807475,
       "tag": "0190_feriado_loja_fechada",
       "breakpoints": true
+    },
+    {
+      "idx": 191,
+      "version": "7",
+      "when": 1793830268932,
+      "tag": "0191_feriado_regua_gestor",
+      "breakpoints": true
     }
   ]
 }
