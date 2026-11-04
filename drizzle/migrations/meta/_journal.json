@@ -1282,6 +1282,13 @@
       "when": 1793802336502,
       "tag": "0182_seguranca_expirar_trocas_rule_hit",
       "breakpoints": true
+    },
+    {
+      "idx": 183,
+      "version": "7",
+      "when": 1793802456693,
+      "tag": "0183_funcoes_novas_somente_service_role",
+      "breakpoints": true
     }
   ]
 }
