@@ -63,6 +63,7 @@ const blank = {
   dia_adiantamento: "" as string,
   banco_horas: false,
   compensa_feriados: false,
+  convoca_feriados_automatico: false,
   compensacao_feriado_antecedencia_dias: "2",
   ciencia_sindical: false,
 };
@@ -89,6 +90,7 @@ export interface UnidadeEdicao {
   dia_adiantamento?: number | null;
   banco_horas?: boolean | null;
   compensa_feriados?: boolean | null;
+  convoca_feriados_automatico?: boolean | null;
   compensacao_feriado_antecedencia_dias?: number | null;
   compensacao_sindical_ciencia_em?: string | null;
 }
@@ -223,6 +225,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
         dia_adiantamento: unidade.dia_adiantamento != null ? String(unidade.dia_adiantamento) : "",
         banco_horas: unidade.banco_horas ?? false,
         compensa_feriados: unidade.compensa_feriados ?? false,
+        convoca_feriados_automatico: unidade.convoca_feriados_automatico ?? false,
         compensacao_feriado_antecedencia_dias: String(unidade.compensacao_feriado_antecedencia_dias ?? 2),
         ciencia_sindical: !!unidade.compensacao_sindical_ciencia_em,
       });
@@ -354,6 +357,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
         dia_adiantamento: form.dia_adiantamento ? Number(form.dia_adiantamento) : null,
         banco_horas: form.banco_horas,
         compensa_feriados: form.compensa_feriados,
+        convoca_feriados_automatico: form.convoca_feriados_automatico,
         compensacao_feriado_antecedencia_dias: Math.min(60, Math.max(0, Number(form.compensacao_feriado_antecedencia_dias) || 0)),
         ...(compensacaoAtiva && cienciaNova
           ? { compensacao_sindical_ciencia_em: new Date().toISOString(), compensacao_sindical_ciencia_por: (await supabase.auth.getUser()).data.user?.id ?? null }
@@ -555,6 +559,17 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
                 </p>
               </div>
             )}
+            <div className="space-y-2 rounded-lg border border-border p-2.5">
+              <div className="flex min-h-11 items-center gap-3">
+                <Switch id="convoca_feriados_automatico" checked={form.convoca_feriados_automatico} onCheckedChange={(v) => setForm({ ...form, convoca_feriados_automatico: v })} />
+                <Label htmlFor="convoca_feriados_automatico">Convocação automática para feriados (conforme ACT/CCT)</Label>
+              </div>
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                {form.convoca_feriados_automatico
+                  ? "Ligado: na geração da escala, quem trabalha normalmente naquele dia da semana fica convocado para todos os feriados e é notificado. Quem tem folga fixa, férias, atestado ou outro afastamento no feriado não é convocado. Incluir depois quem tinha folga fixa no feriado gera pagamento em dobro."
+                  : "Desligado: ninguém é convocado automaticamente para feriados. A loja recebe alerta para montar a escala de cada feriado manualmente. Escalar quem tem folga fixa no feriado gera pagamento em dobro."}
+              </p>
+            </div>
             <div className="flex min-h-11 items-center gap-3">
               <Switch id="compensa_feriados" checked={form.compensa_feriados} onCheckedChange={(v) => setForm({ ...form, compensa_feriados: v })} />
               <Label htmlFor="compensa_feriados">Compensação de feriados</Label>
