@@ -41,7 +41,7 @@ export function AlertaAssinaturasOrfas() {
       const { data, error } = await supabase
         .from("billing_account_events")
         .select("id,created_at,billing_account_id,payload,tipo_evento")
-        .in("tipo_evento", ["contratacao_falhou_compensacao_pendente", "compensacao_resolvida", "desfazimento_incompleto", "desfazimento_resolvido"])
+        .in("tipo_evento", ["contratacao_falhou_compensacao_pendente", "compensacao_pendente", "compensacao_resolvida", "desfazimento_incompleto", "desfazimento_resolvido"])
         .order("created_at", { ascending: false })
         .limit(300);
       if (error) throw error;
@@ -50,6 +50,7 @@ export function AlertaAssinaturasOrfas() {
       const lista = (data ?? []) as Pendencia[];
       return {
         compensacoes: lista.filter((e) => e.tipo_evento === "contratacao_falhou_compensacao_pendente" && !compOk.has(e.payload?.subscription_id)),
+        desfazUpgrade: lista.filter((e) => e.tipo_evento === "compensacao_pendente" && !compOk.has(e.payload?.subscription_id)),
         incompletos: lista.filter((e) => e.tipo_evento === "desfazimento_incompleto" && !desfOk.has(e.payload?.subscription_id)),
       };
     },
@@ -68,7 +69,8 @@ export function AlertaAssinaturasOrfas() {
 
   const compensacoes = eventos?.compensacoes ?? [];
   const incompletos = eventos?.incompletos ?? [];
-  if (!orfas?.length && !compensacoes.length && !incompletos.length && !desfeitas?.length) return null;
+  const desfazUpgrade = eventos?.desfazUpgrade ?? [];
+  if (!orfas?.length && !desfazUpgrade.length && !compensacoes.length && !incompletos.length && !desfeitas?.length) return null;
   return (
     <div className="space-y-3">
       {!!compensacoes.length && (
@@ -86,6 +88,27 @@ export function AlertaAssinaturasOrfas() {
                   {new Date(c.created_at).toLocaleString("pt-BR")} · {c.payload?.asaas_env} · assinatura local{" "}
                   {String(c.payload?.subscription_id ?? "").slice(0, 8)} · pendentes no Asaas:{" "}
                   {(c.payload?.pendentes ?? []).map((p: any) => `${p.tipo} ${p.id}`).join(", ")}
+                </li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+      {!!desfazUpgrade.length && (
+        <Alert variant="destructive" className="border-2">
+          <ShieldAlert className="h-5 w-5" />
+          <AlertTitle className="font-bold">
+            {desfazUpgrade.length} desistência(s) de upgrade com cobrança a regularizar — conferir agora
+          </AlertTitle>
+          <AlertDescription>
+            A desistência não foi concluída e não foi possível deixar plano e cobrança da diferença coerentes. Conferir no Asaas:
+            <ul className="mt-2 list-disc pl-5 text-xs">
+              {desfazUpgrade.map((c) => (
+                <li key={c.id}>
+                  {new Date(c.created_at).toLocaleString("pt-BR")} · {c.payload?.asaas_env ?? "—"} · assinatura local{" "}
+                  {String(c.payload?.subscription_id ?? "").slice(0, 8)} · plano {c.payload?.plano_revertido ? "mantido no upgrade" : "a conferir"}
+                  {" "}({c.payload?.plano_upgrade} → {c.payload?.plano_anterior}) · cobrança cancelada {c.payload?.cobranca_cancelada ?? "—"}
+                  {c.payload?.cobranca_recriada ? ` · recriada ${c.payload.cobranca_recriada}` : " · diferença sem cobrança ativa"} · motivo {c.payload?.motivo ?? c.payload?.origem}
                 </li>
               ))}
             </ul>
