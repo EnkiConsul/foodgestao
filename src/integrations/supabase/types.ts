@@ -18496,6 +18496,10 @@ export type Database = {
           variaveis_fora: number
         }[]
       }
+      billing_v2_desfazer_disponivel: {
+        Args: { _subscription_id: string }
+        Returns: boolean
+      }
       billing_v2_digits: { Args: { _t: string }; Returns: string }
       billing_v2_empresas_gerenciaveis: { Args: never; Returns: Json }
       billing_v2_ensure_company_account: {
@@ -18513,6 +18517,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      billing_v2_expirar_carencias: { Args: never; Returns: number }
       billing_v2_minha_assinatura: {
         Args: { _company_id: string }
         Returns: Json

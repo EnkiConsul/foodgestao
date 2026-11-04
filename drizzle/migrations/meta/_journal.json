@@ -1275,6 +1275,34 @@
       "when": 1793802145512,
       "tag": "0181_seguranca_preadmissao_encerrar_rotina",
       "breakpoints": true
+    },
+    {
+      "idx": 182,
+      "version": "7",
+      "when": 1793802336502,
+      "tag": "0182_seguranca_expirar_trocas_rule_hit",
+      "breakpoints": true
+    },
+    {
+      "idx": 183,
+      "version": "7",
+      "when": 1793802456693,
+      "tag": "0183_funcoes_novas_somente_service_role",
+      "breakpoints": true
+    },
+    {
+      "idx": 184,
+      "version": "7",
+      "when": 1793802505169,
+      "tag": "0184_desfazer_upgrade_uma_vez_por_ciclo",
+      "breakpoints": true
+    },
+    {
+      "idx": 185,
+      "version": "7",
+      "when": 1793802586478,
+      "tag": "0185_carencia_vencida_expira",
+      "breakpoints": true
     }
   ]
 }
