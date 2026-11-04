@@ -23014,6 +23014,7 @@ export type Database = {
         | "folga_pendentes_gestor"
         | "ocorrencia_nova"
         | "desligamento_aviso"
+        | "feriado_convocacao"
       dp_ocorrencia_analise_status: "pendente" | "analisada" | "nao_se_aplica"
       dp_ocorrencia_cobertura_execucao:
         | "prevista"
@@ -23502,6 +23503,7 @@ export const Constants = {
         "folga_pendentes_gestor",
         "ocorrencia_nova",
         "desligamento_aviso",
+        "feriado_convocacao",
       ],
       dp_ocorrencia_analise_status: ["pendente", "analisada", "nao_se_aplica"],
       dp_ocorrencia_cobertura_execucao: [
