@@ -63,3 +63,4 @@
 - Contract anniversaries use a shared eligibility/current-contract-date helper; portal celebrations use a session-scoped minimal RPC with no birth year or age, keeping administrative birth information out of colleague reads.
 - Admission/start calendar events are read-only projections, separate from anniversaries, distinguishing provisional routine starts from formal admission without changing employment records.
 - Reconciliation may settle an existing pending entry (same type, exact open amount, no date limit) via `pluggy_conciliacao_baixar`, which revalidates server-side to avoid duplicates.
+- Signature pendencies of terminated employees close only after the portal access window (data_desligamento + 30 days) via the daily server job `private.dp_encerrar_pendencias_desligados` (marks `assinatura_dispensada_em`, never deletes/archives); rescission/physical-signature types are excluded to keep legal evidence.

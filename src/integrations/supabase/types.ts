@@ -8987,6 +8987,8 @@ export type Database = {
           arquivo_sha256: string | null
           arquivo_sha256_em: string | null
           assinatura_detectada: boolean | null
+          assinatura_dispensa_motivo: string | null
+          assinatura_dispensada_em: string | null
           assinatura_fisica: boolean
           ciclo_status: string
           colaborador_id: string | null
@@ -9048,6 +9050,8 @@ export type Database = {
           arquivo_sha256?: string | null
           arquivo_sha256_em?: string | null
           assinatura_detectada?: boolean | null
+          assinatura_dispensa_motivo?: string | null
+          assinatura_dispensada_em?: string | null
           assinatura_fisica?: boolean
           ciclo_status?: string
           colaborador_id?: string | null
@@ -9109,6 +9113,8 @@ export type Database = {
           arquivo_sha256?: string | null
           arquivo_sha256_em?: string | null
           assinatura_detectada?: boolean | null
+          assinatura_dispensa_motivo?: string | null
+          assinatura_dispensada_em?: string | null
           assinatura_fisica?: boolean
           ciclo_status?: string
           colaborador_id?: string | null
@@ -13741,6 +13747,8 @@ export type Database = {
       }
       dp_trocas: {
         Row: {
+          assinatura_dispensa_motivo: string | null
+          assinatura_dispensada_em: string | null
           cancelamento_motivo: string | null
           cancelamento_solicitado_em: string | null
           cancelamento_solicitado_por: string | null
@@ -13769,6 +13777,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assinatura_dispensa_motivo?: string | null
+          assinatura_dispensada_em?: string | null
           cancelamento_motivo?: string | null
           cancelamento_solicitado_em?: string | null
           cancelamento_solicitado_por?: string | null
@@ -13797,6 +13807,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assinatura_dispensa_motivo?: string | null
+          assinatura_dispensada_em?: string | null
           cancelamento_motivo?: string | null
           cancelamento_solicitado_em?: string | null
           cancelamento_solicitado_por?: string | null

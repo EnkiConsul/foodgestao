@@ -68,3 +68,11 @@ describe("documento excluído pelo DP", () => {
     expect(r.map((d) => d.id)).toEqual(["b"]);
   });
 });
+
+import { selecionarPendentesAssinatura as sel2 } from "../useDocumentosAguardandoAssinatura";
+import { it as it2, expect as expect2 } from "vitest";
+it2("documento com assinatura encerrada por desligamento não fica pendente", () => {
+  const base = { id: "d1", tipo: "contracheque", exige_aceite: true, created_at: "2026-01-01" };
+  expect2(sel2([{ ...base, assinatura_dispensada_em: "2026-11-05T00:00:00Z" }], [])).toHaveLength(0);
+  expect2(sel2([base], [])).toHaveLength(1);
+});
