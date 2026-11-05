@@ -1366,6 +1366,13 @@
       "when": 1793889998906,
       "tag": "0194_feriado_escala_confirmada",
       "breakpoints": true
+    },
+    {
+      "idx": 195,
+      "version": "7",
+      "when": 1793893187352,
+      "tag": "0195_migration",
+      "breakpoints": true
     }
   ]
 }
