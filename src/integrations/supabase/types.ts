@@ -19977,6 +19977,10 @@ export type Database = {
         }[]
       }
       dp_cpf_valido: { Args: { p: string }; Returns: boolean }
+      dp_criar_unidade_inicial: {
+        Args: { p_company_id: string }
+        Returns: string
+      }
       dp_data_bloqueada_excluir: { Args: { p_id: string }; Returns: undefined }
       dp_data_bloqueada_rebloquear: {
         Args: { p_id: string }
