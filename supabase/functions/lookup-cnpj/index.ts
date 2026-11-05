@@ -16,6 +16,8 @@ interface BrasilApiCnpj {
   uf: string | null;
   cep: string | null;
   descricao_situacao_cadastral: string | null;
+  cnae_fiscal?: number | null;
+  cnae_fiscal_descricao?: string | null;
 }
 
 // TTL do cache: 30 dias
@@ -165,6 +167,8 @@ Deno.serve(async (req) => {
       uf: data.uf ?? null,
       cep: formatCep(data.cep),
       situacao: data.descricao_situacao_cadastral ?? null,
+      cnae: data.cnae_fiscal != null ? String(data.cnae_fiscal) : null,
+      cnae_descricao: data.cnae_fiscal_descricao ?? null,
       endereco_formatado: parts.join(', '),
     };
 
