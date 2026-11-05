@@ -1,3 +1,4 @@
+import { EquipePessoaCard } from "@/components/dp/calendario/EquipePessoaCard";
 import { FeriadosDia } from "@/components/dp/FeriadoCategoriaBadge";
 import { PrazosRescisao } from "@/components/dp/calendario/PrazosRescisao";
 import { IniciosTrabalho } from "@/components/dp/calendario/IniciosTrabalho";
@@ -428,6 +429,7 @@ interface DetalheDiaProps {
   onContagemTurno?: (c: { n: number; turno: string } | null) => void;
   acoesFolga?: (colaboradorId: string, folgaFixa: boolean) => React.ReactNode;
   onRegistrarAusencia?: (colaboradorId: string) => void;
+  onRegistrarTroca?: (colaboradorId: string) => void;
 }
 
 /** Sócio ausente sem obrigação CLT: exibido com tag própria. */
@@ -474,6 +476,7 @@ function DetalheDiaOperacao({
   onContagemTurno,
   acoesFolga,
   onRegistrarAusencia,
+  onRegistrarTroca,
 }: DetalheDiaProps) {
   const navigate = useNavigate();
 
@@ -736,7 +739,7 @@ function DetalheDiaOperacao({
                   .sort((a, b) => Number(a.pessoas.length > 1) - Number(b.pessoas.length > 1) || a.pessoas.length - b.pessoas.length)
                   .map((g) => (
                   <div key={g.setor_id ?? g.cargo_id ?? "sem-grupo"} className="min-w-0">
-                <p className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                <p className="mb-2 flex items-center gap-2 text-[11px] font-semibold text-muted-foreground">
                       <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                       {g.cargo_nome}
                       <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] tabular-nums">{g.pessoas.length}</span>
@@ -745,106 +748,23 @@ function DetalheDiaOperacao({
                         {g.pessoas.map((p) => (
                           <li
                             key={`${p.colaborador_id}-${p.categoria}-${p.ocorrencia_id ?? p.avulso_id ?? ""}`}
-                            className="min-w-0 space-y-1 px-1 py-2 hover:bg-muted/30 md:py-1.5"
+                            className="min-w-0 px-1 py-1"
                           >
-                            {/* Nome e ação; metadados ficam na linha seguinte para não espremer o nome. */}
-                            <div className="flex min-w-0 items-start justify-between gap-2">
-                              <p className="min-w-0 flex-1 whitespace-normal break-words text-sm font-bold" title={p.nome}>{p.nome}</p>
-                              {onRegistrarAusencia && !p.avulso_id && (
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-12 w-12 shrink-0 text-calendar-falta"
-                                  aria-label={`Registrar ausência de ${p.nome}`}
-                                  title="Registrar ausência"
-                                  onClick={() => onRegistrarAusencia(p.colaborador_id)}
-                                >
-                                  <UserX className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
-                            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                              {p.aguardando_registro && (
-                                <span
-                                  className="rounded-full border border-warning/50 bg-warning/10 px-2 py-0.5 text-[10px] font-semibold text-warning"
-                                  title="Pré-admissão ativa na rotina como freelancer provisório, aguardando a admissão oficial."
-                                >
-                                  Aguardando admissão
-                                </span>
-                              )}
-                              <span className={cn(
-                                "rounded-full px-2 py-0.5 text-[10px] font-bold",
-                                vinculoPessoa(p, regimes) === "Fixo" ? "bg-primary/10 text-primary" : "bg-foreground text-background",
-                              )}>
-                                {vinculoPessoa(p, regimes)}
-                              </span>
-                            </div>
-                            {/* Linha 2: cargo + setor do dia */}
-                            <div className="flex min-w-0 items-center justify-between gap-2">
-                              <p className="min-w-0 truncate text-xs text-muted-foreground">{p.cargo_nome ?? "Sem cargo"}</p>
-                              {usaSetores && (() => {
-                                const alterado = setorDiaDivergeDoHabitual(p.setor_origem ?? "nenhum", p.setor_id, p.setor_habitual_id);
-                                const cls = cn(
-                                  "inline-flex max-w-[55%] shrink-0 items-center gap-1 truncate rounded-full border px-2 py-0.5 text-[11px] font-semibold",
-                                  alterado ? "border-primary/50 bg-primary/10 text-primary" : p.setor_id ? "border-border bg-muted/50" : "border-dashed text-muted-foreground",
-                                );
-                                const conteudo = (
-                                  <>
-                                    {alterado ? <ArrowLeftRight className="h-3 w-3 shrink-0" /> : !p.setor_id ? <AlertTriangle className="h-3 w-3 shrink-0" /> : null}
-                                    <span className="truncate">{p.setor_nome ?? SETOR_NAO_DEFINIDO_LABEL}</span>
-                                  </>
-                                );
-                                return onAlterarSetor ? (
-                                  <Button
-                                    variant="ghost"
-                                    type="button"
-                                    className={cn(cls, "h-7 cursor-pointer hover:border-primary hover:bg-primary/15")}
-                                    title="Toque para alterar o setor deste dia"
-                                    aria-label={`Setor ${p.setor_nome ?? "não definido"}. Alterar setor deste dia`}
-                                    onClick={() => onAlterarSetor(p, data)}
-                                  >
-                                    {conteudo}
-                                    <Pencil className="h-3 w-3 shrink-0 opacity-60" aria-hidden="true" />
-                                  </Button>
-                                ) : (
-                                  <span className={cls}>{conteudo}</span>
-                                );
-                              })()}
-                            </div>
-                            {/* Linha 3: horário (carga) */}
-                            <div className="flex min-w-0 flex-wrap items-center justify-between gap-1">
-                              <p className="text-xs font-medium tabular-nums">
-                                {p.entrada ?? "--:--"} – {p.saida ?? "--:--"}{" "}
-                                <span className="text-muted-foreground">({formatarHoras(p.carga_prevista_horas)})</span>
-                              </p>
-                              {compacto && podeRegistrar && p.avulso_id && (() => {
-                                const reg = avulsos.find((a) => a.id === p.avulso_id);
-                                return reg ? (
-                                  <span className="flex gap-1">
-                                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => onEditarAvulsa(reg)}>Editar</Button>
-                                    <ConfirmarAcaoDialog
-                                      titulo="Remover do dia?"
-                                      descricao={`${reg.nome ?? "A pessoa"} deixará de constar neste dia.`}
-                                      confirmar="Remover"
-                                      cancelar="Cancelar"
-                                      onConfirm={() => onExcluirAvulsa(reg)}
-                                    >
-                                      <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">Remover</Button>
-                                    </ConfirmarAcaoDialog>
-                                  </span>
-                                ) : null;
-                              })()}
-                            </div>
-                            {p.ocorrencias?.length ? (
-                              <div className="flex flex-wrap items-center gap-1">
-                                <OcorrenciaBadges ocorrencias={p.ocorrencias} />
-                                <Button variant="link" size="sm" className="h-auto p-0 text-xs"
-                                  onClick={() => navigate(`/dp/ocorrencias?colaborador=${p.colaborador_id}&data=${data}`)}>
-                                  Ver ocorrências
-                                </Button>
-                              </div>
-                            ) : null}
+                            <EquipePessoaCard
+                              pessoa={p}
+                              data={data}
+                              vinculo={vinculoPessoa(p, regimes)}
+                              unidade={nomeUnidade ?? bloco.unidade_nome ?? null}
+                              telefoneExtra={avulsos.find((a) => a.id === p.avulso_id)?.telefone}
+                              onAusencia={!p.avulso_id && onRegistrarAusencia ? () => onRegistrarAusencia(p.colaborador_id) : undefined}
+                              onTroca={!p.avulso_id && onRegistrarTroca ? () => onRegistrarTroca(p.colaborador_id) : undefined}
+                              onSetor={usaSetores && onAlterarSetor ? () => onAlterarSetor(p, data) : undefined}
+                              onEditarExtra={podeRegistrar && p.avulso_id ? () => {
+                                const registro = avulsos.find((a) => a.id === p.avulso_id);
+                                if (registro) onEditarAvulsa(registro);
+                              } : undefined}
+                            />
+                            {p.ocorrencias?.length ? <OcorrenciaBadges ocorrencias={p.ocorrencias} /> : null}
                         </li>
                       ))}
                     </ul>
@@ -1504,6 +1424,7 @@ export default function DpOperacaoPanorama({
                 periodosHabituais={periodosHab}
                 onContagemTurno={setContagemTurno}
                 onRegistrarAusencia={podeRegistrar ? (id) => abrirAusenciaPessoa(dataDoDetalhe, id) : undefined}
+                onRegistrarTroca={podeRegistrar ? (id) => abrirTrocaGestor(dataDoDetalhe, id) : undefined}
                 acoesFolga={companyIdCal && podeRegistrar ? (id, fixa) => (
                   <FolgasDoDiaPainel
                     companyId={companyIdCal}
@@ -1749,6 +1670,8 @@ export default function DpOperacaoPanorama({
               {...propsAvulsas}
               {...propsSetor}
               onRegistrarAusencia={podeRegistrar ? (id) => abrirAusenciaPessoa(data, id) : undefined}
+              onRegistrarTroca={podeRegistrar ? (id) => abrirTrocaGestor(data, id) : undefined}
+              regimes={regimesColab}
               acoesFolga={companyIdCal && podeRegistrar ? (id, fixa) => (
                 <FolgasDoDiaPainel
                   companyId={companyIdCal}
