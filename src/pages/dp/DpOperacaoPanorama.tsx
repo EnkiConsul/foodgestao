@@ -2,7 +2,7 @@ import { FeriadosDia } from "@/components/dp/FeriadoCategoriaBadge";
 import { PrazosRescisao } from "@/components/dp/calendario/PrazosRescisao";
 import { IniciosTrabalho } from "@/components/dp/calendario/IniciosTrabalho";
 import { RegistrarTrocaGestorDialog } from "@/components/dp/trocas/RegistrarTrocaGestorDialog";
-import { FeriadoLojaFechadaToggle } from "@/components/dp/FeriadoLojaFechadaToggle";
+import { FeriadoLojaFechadaToggle, LojaSemExpedienteSelo } from "@/components/dp/FeriadoLojaFechadaToggle";
 import { textoFeriadosDia } from "@/lib/dp/feriados-apresentacao";
 import { Fragment, type ReactNode } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -2012,6 +2012,7 @@ export default function DpOperacaoPanorama({
         {dia && <>
           <div className="flex flex-wrap items-center gap-1 rounded-xl border border-primary/20 bg-calendar-day-header px-2 py-1.5 text-xs text-calendar-header-foreground">
             <div className="flex min-w-0 flex-[1_1_180px] items-center gap-1">{inicioCabecalho}</div>
+            {unidadeId && <LojaSemExpedienteSelo unidadeId={unidadeId} data={data} feriadoNome={dia.feriado_nome ?? undefined} />}
             <span className="ml-auto inline-flex shrink-0 items-center gap-1" title={`${dia.trabalhando} trabalhando${dia.aguardando > 0 ? ` · ${dia.aguardando} aguardando` : ""}`} aria-label={`${dia.trabalhando} trabalhando`}><Users className="h-3.5 w-3.5" /><strong>{dia.trabalhando}</strong></span>
             <Popover open={acoesInicioOpen} onOpenChange={setAcoesInicioOpen}><PopoverTrigger asChild><Button size="sm" className="h-8 shrink-0 gap-1 rounded-full bg-primary px-3 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90" aria-label="Ações do calendário"><MoreHorizontal className="h-4 w-4" />Ações</Button></PopoverTrigger>
               <PopoverContent align="end" className="w-80 max-w-[calc(100vw-2rem)] space-y-1 rounded-xl p-2">
@@ -2065,6 +2066,7 @@ export default function DpOperacaoPanorama({
               {diaPopout?.feriado_nome && (
                 <FeriadosDia dia={diaPopout} />
               )}
+              {diaPopout && dataPopout && unidadeId && <span className="ml-1 inline-flex align-middle"><LojaSemExpedienteSelo unidadeId={unidadeId} data={dataPopout} feriadoNome={diaPopout.feriado_nome ?? undefined} /></span>}
             </DialogDescription>
             {dataPopout && diaPopout && (
               <Popover><PopoverTrigger asChild><Button size="sm" className="h-8 rounded-full px-3 text-xs"><MoreHorizontal className="mr-1 h-4 w-4" />Ações</Button></PopoverTrigger>
