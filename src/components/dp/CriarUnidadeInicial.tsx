@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Store, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useCompanyContext } from "@/contexts/CompanyContext";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
 
 /** Estado vazio: sugere criar a primeira loja com os dados da empresa (mesmo CNPJ). */
 export function CriarUnidadeInicial({ onManual }: { onManual: () => void }) {
