@@ -17,6 +17,7 @@ import { VerMenuCompleto } from "@/components/mobile/VerMenuCompleto";
 import { ImportarDocumentoAtalho } from "@/components/dp/home/ImportarDocumentoAtalho";
 import { AcoesDoDiaCard } from "@/components/dp/home/AcoesDoDiaCard";
 import { AniversariantesCard } from "@/components/dp/home/AniversariantesCard";
+import { DpPrimeirosPassosCard } from "@/components/dp/home/DpPrimeirosPassosCard";
 
 export default function DpHome() {
   const isMobile = useIsMobile();
@@ -45,6 +46,7 @@ export default function DpHome() {
         }
       />
 
+      <DpPrimeirosPassosCard />
       <AvisosGestorGate />
       <PontoConformidadeAlerta />
 
