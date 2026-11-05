@@ -7,6 +7,7 @@ import { emitirNotificacaoDescumprimento, PERCENTUAL_MULTA_CONVOCACAO } from "@/
 import { Switch } from "@/components/ui/switch";
 import { podeReceberFolga } from "@/lib/dp/folga-elegibilidade";
 import { solicitacaoAusentaNoDia } from "@/lib/dp/solicitacao-datas";
+import { invalidarRotina } from "@/lib/dp/rotina-cache";
 import { isSocio } from "@/lib/dp/contrato-policy";
 import { opcoesAusencia, motivoDisponivelNoDia, type GrupoAusencia } from "@/lib/dp/ausencia-elegibilidade";
 import { AlertTriangle } from "lucide-react";
@@ -414,9 +415,11 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
       qc.invalidateQueries({ predicate: (q) => String(q.queryKey[0] ?? "").startsWith("dp_ocorrencia") });
       qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
       setFaltaOpen(false);
+      qc.invalidateQueries({ queryKey: ["dp_ausencias_do_dia"] });
+      void invalidarRotina(qc);
       const n = pendenteNotif.current;
       pendenteNotif.current = null;
-      if (!n || !selectedCompanyId || input.colaboradorId !== form.colaborador_id || input.data !== n.data) return;
+      if (!n || !selectedCompanyId || input.colaboradorId !== form.colaborador_id || input.data !== n.data || input.tipo !== "falta") return;
       try {
         const bytes = await emitirNotificacaoDescumprimento({
           companyId: selectedCompanyId, colaboradorId: form.colaborador_id, nome: nomeColab,

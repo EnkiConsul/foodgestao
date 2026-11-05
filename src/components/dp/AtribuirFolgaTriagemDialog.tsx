@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { podeReceberFolga, podeReceberCompensatoria } from "@/lib/dp/folga-elegibilidade";
+import { invalidarRotina } from "@/lib/dp/rotina-cache";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
@@ -98,7 +99,7 @@ export function AtribuirFolgaTriagemDialog({
 
   /** Dias fixos de folga do colaborador, para oferecer a troca da folga semanal. */
   const fixosQuery = useQuery({
-    queryKey: ["dp_triagem_fixos", colaboradorId],
+    queryKey: ["dp_triagem_fixos", companyId, colaboradorId, dataIso],
     enabled: open && !!colaboradorId,
     queryFn: async (): Promise<number[]> => {
       const { data: cfg, error: cfgError } = await supabase
@@ -250,6 +251,7 @@ export function AtribuirFolgaTriagemDialog({
       qc.invalidateQueries({ queryKey: ["dp_ausencias_do_dia"] });
       qc.invalidateQueries({ queryKey: ["dp_ocorrencias"] });
       qc.invalidateQueries({ queryKey: ["minhas_ocorrencias_mes"] });
+      void invalidarRotina(qc);
       onOpenChange(false);
       onDone?.();
     },

@@ -3,6 +3,7 @@
 - [x] Validar folga por vínculo/regra da unidade e exceção individual; registrar compensatória com origem e justificativa, sem apuração de ponto.
 - [x] Simplificar faltas em justificada/injustificada com comunicação separada; preservar decisão de impactos e históricos.
 - [x] Mover loja fechada para Ações e verificar fluxos no celular, testes isolados e erros; não publicar nem gravar testes em clientes.
+- [ ] Validar este fluxo completo na conta Sandbox autorizada: formulários conferidos em 390/1280 com dados fictícios e envio interceptado, 107 regressões aprovadas e banco isolado exercitado; nenhuma gravação em cliente. Sessão disponível pertence a cliente real e não será usada para testes; falta acesso à conta Sandbox indicada.
 - [x] Feriados Fase 2 (parcial): folga regular/dominical escolhida ou atribuída automaticamente bloqueada em feriado da loja; troca entre colegas pelo portal bloqueada em feriado (gestor segue podendo). Não testado com gravação real.
 - [x] Feriados: avisos D-10/D-5 ao gestor no Gerador de Escala.
 - [ ] Feriados Fase 3: convocação automática na escala, notificação ao colaborador e motivos de dispensa/falta em feriado.
