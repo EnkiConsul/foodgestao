@@ -22056,6 +22056,31 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_cadastrar_empresa_onboarding_com_unidade: {
+        Args: {
+          p_bairro: string
+          p_cep: string
+          p_cidade: string
+          p_cnpj: string
+          p_complemento: string
+          p_criar_unidade?: boolean
+          p_email_cliente: string
+          p_email_empresa: string
+          p_logradouro: string
+          p_modulos_slugs: string[]
+          p_nome_completo: string
+          p_nome_fantasia: string
+          p_numero: string
+          p_razao_social: string
+          p_segmento_id: string
+          p_telefone_cliente: string
+          p_telefone_empresa: string
+          p_uf: string
+          p_whatsapp_cliente: string
+          p_whatsapp_empresa: string
+        }
+        Returns: Json
+      }
       fn_mfa_nudge_estado: {
         Args: never
         Returns: {
