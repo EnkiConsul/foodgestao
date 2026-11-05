@@ -333,6 +333,7 @@ export default function Onboarding() {
             nomeFantasia={empresa.nomeFantasia}
             razaoSocial={empresa.razaoSocial}
             modulosSlugs={modulos}
+            lojaCriada={criarUnidade && modulos.includes("dp")}
             trialTerminaEm={result.trial_termina_em}
             onContinuar={(d) => void handleAcessarPainel(d)}
           />
