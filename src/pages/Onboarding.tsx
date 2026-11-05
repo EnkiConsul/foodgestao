@@ -269,6 +269,7 @@ export default function Onboarding() {
 
   const handleExit = async () => {
     setExiting(true);
+    try { localStorage.removeItem(RASCUNHO_KEY); } catch { /* ignora */ }
     try {
       await supabase.auth.signOut();
     } catch (error) {
