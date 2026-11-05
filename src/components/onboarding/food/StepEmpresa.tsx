@@ -80,6 +80,7 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
         <Field id="onb-cnpj" label="CNPJ" required error={errors.cnpj}>
           <CnpjInput
             id="onb-cnpj"
+            autoLookup
             value={data.cnpj}
             onChange={(v) => update({ cnpj: v })}
             onLookup={handleCnpjLookup}

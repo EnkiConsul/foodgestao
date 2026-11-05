@@ -89,7 +89,7 @@ function validateEmpresa(d: EmpresaFormData): Partial<Record<keyof EmpresaFormDa
 export default function Onboarding() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { setContext } = useCompanyContext();
+  const { setContext, refreshCompanies } = useCompanyContext();
   const submit = useOnboardingSubmit();
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
