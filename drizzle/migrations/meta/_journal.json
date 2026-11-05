@@ -1380,6 +1380,13 @@
       "when": 1793895521263,
       "tag": "0196_folga_bloqueio_data_so_colaborador",
       "breakpoints": true
+    },
+    {
+      "idx": 197,
+      "version": "7",
+      "when": 1793897861771,
+      "tag": "0197_onboarding_trial_por_modulo",
+      "breakpoints": true
     }
   ]
 }
