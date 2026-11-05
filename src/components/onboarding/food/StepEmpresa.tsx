@@ -5,7 +5,9 @@ import { CnpjInput } from "@/components/shared/CnpjInput";
 import { EnderecoFields } from "@/components/shared/EnderecoFields";
 import { SegmentoSelect } from "./SegmentoSelect";
 import { maskPhone } from "@/lib/phone";
-import { AlertCircle } from "lucide-react";
+import { useState } from "react";
+import { AlertCircle, Building2, Pencil } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { EmpresaFormData } from "@/pages/Onboarding";
 import type { CnpjLookupResult } from "@/hooks/useCnpjLookup";
 
@@ -24,7 +26,16 @@ function maskCep(v: string) {
 }
 
 export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive, setCnpjInactive }: Props) {
+  const [preenchidoPelaReceita, setPreenchidoPelaReceita] = useState(false);
+  const [editando, setEditando] = useState(false);
+  const camposResumo: (keyof EmpresaFormData)[] = ["razaoSocial", "nomeFantasia", "cep", "logradouro", "numero", "bairro", "cidade", "uf"];
+  const temErroResumo = camposResumo.some((k) => errors[k]);
+  const completo = Boolean(data.razaoSocial && data.cep && data.logradouro && data.numero && data.bairro && data.cidade && data.uf);
+  const mostrarResumo = preenchidoPelaReceita && completo && !editando && !temErroResumo;
+
   const handleCnpjLookup = (d: CnpjLookupResult) => {
+    setPreenchidoPelaReceita(Boolean(d.razao_social));
+    setEditando(false);
     update({
       razaoSocial: d.razao_social ?? data.razaoSocial,
       nomeFantasia: d.nome_fantasia ?? data.nomeFantasia,
@@ -53,7 +64,7 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
 
       {/* Responsável */}
       <fieldset className="space-y-4">
-        <legend className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <legend className="text-xs font-semibold text-muted-foreground">
           Responsável pelo Cadastro
         </legend>
         <Field id="onb-nome" label="Nome Completo" required error={errors.nomeCompleto}>
@@ -73,7 +84,7 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
 
       {/* Empresa */}
       <fieldset className="space-y-4">
-        <legend className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <legend className="text-xs font-semibold text-muted-foreground">
           Empresa
         </legend>
 
@@ -100,6 +111,26 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
           </div>
         )}
 
+        {mostrarResumo && (
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+            <div className="flex items-start gap-3">
+              <Building2 className="h-5 w-5 shrink-0 mt-0.5 text-primary" aria-hidden="true" />
+              <div className="min-w-0 flex-1 text-sm">
+                <p className="font-semibold text-foreground break-words">{data.nomeFantasia || data.razaoSocial}</p>
+                {data.nomeFantasia && <p className="text-xs text-muted-foreground break-words">{data.razaoSocial}</p>}
+                <p className="mt-1 text-xs text-muted-foreground break-words">
+                  {data.logradouro}, {data.numero}{data.complemento ? ` - ${data.complemento}` : ""} · {data.bairro} · {data.cidade}/{data.uf} · CEP {data.cep}
+                </p>
+                <p className="mt-1 text-[11px] text-primary">Dados preenchidos pela Receita Federal</p>
+              </div>
+              <Button type="button" variant="ghost" size="sm" className="shrink-0 h-9" onClick={() => setEditando(true)}>
+                <Pencil className="h-4 w-4 mr-1" aria-hidden="true" /> Editar
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {!mostrarResumo && (
         <div className="grid gap-4 md:grid-cols-2">
           <Field id="onb-razao" label="Razão Social" required error={errors.razaoSocial}>
             <Input
@@ -123,6 +154,7 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
             />
           </Field>
         </div>
+        )}
 
         <Field id="onb-segmento" label="Segmento" required error={errors.segmentoId}>
           <SegmentoSelect
@@ -136,9 +168,10 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
         </Field>
       </fieldset>
 
+      {!mostrarResumo && (
       {/* Endereço */}
       <fieldset className="space-y-4">
-        <legend className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <legend className="text-xs font-semibold text-muted-foreground">
           Endereço
         </legend>
         <EnderecoFields
@@ -157,10 +190,11 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
           obrigatorios={["cep", "logradouro", "numero", "bairro", "cidade", "uf"]}
         />
       </fieldset>
+      )}
 
       {/* Contato */}
       <fieldset className="space-y-4">
-        <legend className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <legend className="text-xs font-semibold text-muted-foreground">
           Contato
         </legend>
         <div className="grid gap-4 md:grid-cols-2">
