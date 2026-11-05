@@ -30,7 +30,7 @@ export function LojaSemExpedienteSelo({ unidadeId, data, feriadoNome }: Props) {
   const q = useOperacaoDia(unidadeId, data);
   if (!q.data?.fechada) return null;
   return (
-    <Badge variant="outline" className="shrink-0 gap-1 border-calendar-feriado/40 bg-background text-[11px]">
+    <Badge variant="outline" className="shrink-0 gap-1 border-primary/40 bg-background text-[11px]">
       <Lock className="h-3 w-3" />{feriadoNome ? "Loja fechada no feriado" : "Sem expediente"}
     </Badge>
   );
