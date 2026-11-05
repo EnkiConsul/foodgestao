@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, Search } from "lucide-react";
@@ -21,12 +21,14 @@ interface CnpjInputProps {
   /** Erro externo (validação do formulário) a ser anunciado junto do campo. */
   describedBy?: string;
   invalid?: boolean;
+  /** Consulta a Receita automaticamente ao completar 14 dígitos válidos. */
+  autoLookup?: boolean;
 }
 
 export const CnpjInput = forwardRef<HTMLInputElement, CnpjInputProps>(function CnpjInput(
   {
     id, value, onChange, onLookup, onPendingChange, placeholder = "00.000.000/0000-00",
-    disabled, className, required, describedBy, invalid,
+    disabled, className, required, describedBy, invalid, autoLookup = false,
   },
   ref,
 ) {
@@ -44,6 +46,14 @@ export const CnpjInput = forwardRef<HTMLInputElement, CnpjInputProps>(function C
   useEffect(() => {
     onPendingChange?.(lookup.isPending);
   }, [lookup.isPending, onPendingChange]);
+
+  const ultimoAuto = useRef<string | null>(null);
+  useEffect(() => {
+    if (!autoLookup || !validFormat || disabled || ultimoAuto.current === digits) return;
+    ultimoAuto.current = digits;
+    void handleLookup();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoLookup, validFormat, digits, disabled]);
 
   const handleLookup = async () => {
     if (!canLookup) return;
@@ -77,13 +87,14 @@ export const CnpjInput = forwardRef<HTMLInputElement, CnpjInputProps>(function C
         <Button
           type="button"
           variant="outline"
-          size="icon"
+          className="h-10 shrink-0 gap-1.5 px-3"
           onClick={handleLookup}
           disabled={!canLookup}
           title={validFormat ? "Buscar dados do CNPJ na Receita Federal" : "Informe um CNPJ válido para buscar"}
           aria-label="Buscar CNPJ"
         >
           {lookup.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+          <span className="text-sm">Buscar</span>
         </Button>
       </div>
       {showError && (
@@ -95,6 +106,9 @@ export const CnpjInput = forwardRef<HTMLInputElement, CnpjInputProps>(function C
       )}
       {lookup.isPending && (
         <p className="text-xs text-muted-foreground">Consultando Receita Federal…</p>
+      )}
+      {autoLookup && !complete && !showError && (
+        <p className="text-xs text-muted-foreground">Digite o CNPJ e preenchemos os dados da Receita automaticamente.</p>
       )}
     </div>
   );

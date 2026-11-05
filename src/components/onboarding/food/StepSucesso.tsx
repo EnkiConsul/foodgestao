@@ -7,7 +7,7 @@ interface Props {
   razaoSocial: string;
   modulosSlugs: string[];
   trialTerminaEm: string;
-  onContinuar: () => void;
+  onContinuar: (destino?: string) => void;
 }
 
 export function StepSucesso({ nomeFantasia, razaoSocial, modulosSlugs, trialTerminaEm, onContinuar }: Props) {
@@ -58,10 +58,27 @@ export function StepSucesso({ nomeFantasia, razaoSocial, modulosSlugs, trialTerm
         </div>
       </div>
 
-      <Button size="lg" className="w-full" onClick={onContinuar}>
-        Acessar Painel
-        <ArrowRight className="ml-2 h-4 w-4" />
-      </Button>
+      {/* Destino direto pelo módulo escolhido — sem passar pelo Hub. */}
+      <div className="space-y-2">
+        {modulosSlugs.includes("dp") && (
+          <Button size="lg" className="h-12 w-full" onClick={() => onContinuar("/dp")}>
+            Acessar Pessoas 360°
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        )}
+        {modulosSlugs.includes("financeiro") && (
+          <Button size="lg" variant={modulosSlugs.includes("dp") ? "outline" : "default"} className="h-12 w-full" onClick={() => onContinuar("/dashboard")}>
+            Acessar Financeiro
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        )}
+        {!modulosSlugs.includes("dp") && !modulosSlugs.includes("financeiro") && (
+          <Button size="lg" className="h-12 w-full" onClick={() => onContinuar("/hub")}>
+            Acessar Painel
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
