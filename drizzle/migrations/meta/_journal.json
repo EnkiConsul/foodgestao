@@ -1394,6 +1394,13 @@
       "when": 1793898416159,
       "tag": "0198_dp_unidade_inicial_onboarding",
       "breakpoints": true
+    },
+    {
+      "idx": 199,
+      "version": "7",
+      "when": 1793900875265,
+      "tag": "0199_onboarding_com_unidade_atomico",
+      "breakpoints": true
     }
   ]
 }
