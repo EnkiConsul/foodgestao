@@ -55,6 +55,8 @@ Deno.serve(async (req) => {
     const contaExiste = Array.isArray(existente) && existente.length > 0;
 
     if (action === "info") {
+      await admin.from("concierge_provisionamentos").update({ link_aberto_em: new Date().toISOString() })
+        .eq("invite_grupo_id", invite.grupo_id).is("link_aberto_em", null);
       const { data: grupo } = await admin
         .from("company_invites").select("companies(name)").eq("grupo_id", invite.grupo_id).eq("status", "pending");
       return jsonResponse(req, 200, {

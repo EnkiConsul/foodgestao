@@ -33,6 +33,10 @@ export async function aplicarGrupoConvite(admin: any, grupoId: string, userId: s
     await admin.from("company_invites").update({ status: "accepted" }).eq("id", c.id);
     if (c.companies?.name) nomes.push(c.companies.name);
   }
+  // Empresas preparadas pela Aveto (concierge): transfere a titularidade e
+  // começa o teste grátis agora. Sem efeito para convites comuns.
+  const { error: ativErr } = await admin.rpc("concierge_ativar", { p_grupo_id: grupoId, p_user_id: userId });
+  if (ativErr) console.error("concierge_ativar falhou", ativErr.message);
   return nomes;
 }
 
