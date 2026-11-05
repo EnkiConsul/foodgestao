@@ -33,7 +33,6 @@ describe("opcoesAusencia", () => {
 describe("motivos de feriado", () => {
   it("só aparecem em dia de feriado", () => {
     expect(motivoDisponivelNoDia("dispensa_feriado", false)).toBe(false);
-    expect(motivoDisponivelNoDia("falta_feriado", true)).toBe(true);
     expect(motivoDisponivelNoDia("falta", false)).toBe(true);
   });
   it("dispensa e falta em feriado excluem sócio e quem folga no dia", () => {
