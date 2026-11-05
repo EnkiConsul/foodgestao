@@ -202,7 +202,7 @@ export async function montarPayloadItem(
   const assinatura = assinaturaDocumento(batch.source_file_name ?? "", ocr);
   const tipoIa: DocTipo | null = parseNaturezaLine(ocr);
   const tipoHeuristica: DocTipo | null =
-    detectTipoFromText(ocr) ?? detectTipoFromText(batch.source_file_name ?? "");
+    detectTipoFromText(batch.source_file_name ?? "") ?? detectTipoFromText(ocr);
   const tipoDetectado: DocTipo | null = tipoAprendido ?? tipoIa ?? tipoHeuristica;
   const tipoOrigem = tipoAprendido ? "aprendido" : tipoIa ? "ia" : tipoHeuristica ? "keyword" : null;
   const tipoEfetivo = batch.deteccao_automatica ? (tipoDetectado ?? "outros") : batch.tipo;

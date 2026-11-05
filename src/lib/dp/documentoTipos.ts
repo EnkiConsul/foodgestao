@@ -186,7 +186,7 @@ export const DP_DOC_TIPOS: DpDocTipoDef[] = [
     grupo: "jornada",
     importavel: true,
     exigeAceite: true,
-    keywords: ["folha de ponto", "espelho de ponto", "cartao ponto", "registro de ponto", "marcacoes"],
+    keywords: ["folha de ponto", "folha ponto", "espelho de ponto", "espelho ponto", "cartao ponto", "cartao de ponto", "registro de ponto", "marcacoes"],
     badgeClass: "border-amber-300 text-amber-700",
   },
   {
@@ -262,7 +262,8 @@ export const DP_DOC_TIPOS: DpDocTipoDef[] = [
       "termo de ciencia",
       "termo de adesao",
       "termo de compromisso",
-      "admissao",
+      "termo de admissao",
+      "documentos de admissao",
     ],
     badgeClass: "border-slate-300 text-slate-700",
   },

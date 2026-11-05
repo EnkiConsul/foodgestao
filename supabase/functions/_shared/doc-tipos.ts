@@ -102,7 +102,7 @@ const KEYWORDS: Array<[DocTipo, string[]]> = [
   ["adiantamento", ["adiantamento", "antecipacao salarial", "vale salarial"]],
   ["banco_horas", ["banco de horas", "extrato de horas", "compensacao de horas"]],
   ["ajuste_jornada", ["ajuste de jornada", "acordo de compensacao", "alteracao de jornada"]],
-  ["ponto", ["folha de ponto", "espelho de ponto", "cartao ponto", "registro de ponto"]],
+  ["ponto", ["folha de ponto", "folha ponto", "espelho de ponto", "espelho ponto", "cartao ponto", "cartao de ponto", "registro de ponto"]],
   ["acerto_rescisorio", ["acerto rescisorio", "recibo de rescisao", "quitacao rescisoria", "recibo de quitacao"]],
   ["aviso_previo", ["aviso previo"]],
   ["aso_admissional", ["aso admissional", "exame admissional", "atestado de saude ocupacional admissional", "aso de admissao"]],
@@ -131,7 +131,8 @@ const KEYWORDS: Array<[DocTipo, string[]]> = [
       "termo de ciencia",
       "termo de adesao",
       "termo de compromisso",
-      "admissao",
+      "termo de admissao",
+      "documentos de admissao",
     ],
   ],
   ["sindicato", ["convencao coletiva", "acordo coletivo"]],
@@ -158,11 +159,13 @@ export function detectTipoFromText(texto: string | null | undefined): DocTipo | 
 
 /** Lê a linha `NATUREZA: xxx` que o OCR devolve. */
 export function parseNaturezaLine(ocr: string): DocTipo | null {
-  const m = ocr.match(/NATUREZA:\s*([a-z_0-9º\s]+)/i);
+  // Só a própria linha: quebra de linha não pode juntar a linha seguinte (ex.: "ASSINADO").
+  const m = ocr.match(/NATUREZA:[ \t]*([a-z_0-9º \t]+)/i);
   if (!m) return null;
-  const raw = norm(m[1]).trim().replace(/\s+/g, "_");
+  const raw = norm(m[1]).trim().replace(/[ \t]+/g, "_");
   const direto = Object.keys(DOC_TIPO_LABEL).find((k) => k === raw);
   if (direto) return direto as DocTipo;
+  if (raw === "outros" || raw === "") return null;
   return detectTipoFromText(m[1]);
 }
 
