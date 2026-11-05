@@ -22063,6 +22063,10 @@ export type Database = {
         Args: { _opt_out?: boolean }
         Returns: undefined
       }
+      fn_onboarding_sincronizar_trial: {
+        Args: { p_company_id: string; p_modulos: string[]; p_uid: string }
+        Returns: undefined
+      }
       get_accessible_accounts: {
         Args: {
           _company_id?: string
