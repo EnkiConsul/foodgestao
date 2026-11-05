@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { checkOnboardingCnpj, resolveOnboardingByExistingCnpj, resolveOnboardingStatus } from "./onboardingStatus";
+import { checkOnboardingCnpj, resolveOnboardingByExistingCnpj, resolveOnboardingStatus, limparOnboardingStatusCache } from "./onboardingStatus";
 import { marcarOnboardingConcluido } from "./onboardingFinalize";
 
 const responses: Record<string, any> = {};
@@ -45,6 +45,7 @@ vi.mock("./onboardingFinalize", () => ({
 
 describe("onboardingStatus", () => {
   beforeEach(() => {
+    limparOnboardingStatusCache();
     calls.length = 0;
     responses.profiles = { data: { onboarding_completed: false }, error: null };
     responses.companies = { data: [], error: null };
