@@ -15,6 +15,7 @@ import { linkDocumentoAssinado } from "@/lib/documentoArquivo";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { notifyError } from "@/lib/notifyError";
 import { listarNomes, usePagamentosPendentes } from "./FolhaPagamentoAlerta";
+import { FeriadosEscalaConfirmar, useFeriadosEscalaPendentes } from "./FeriadosEscalaConfirmar";
 
 type Parte = { vinculoId: string; documentoId: string | null; mime: string | null };
 type Aprovacao = {
@@ -91,6 +92,7 @@ export function AvisosGestorGate() {
   const qc = useQueryClient();
   const aprov = useAprovacoes();
   const pagtos = usePagamentosPendentes();
+  const feriados = useFeriadosEscalaPendentes();
   // Lê o adiamento já na inicialização: se o aviso foi fechado/adiado,
   // ele nasce fechado — sem abrir e "fechar no fundo" ao voltar ao Início.
   const [adiadoAte, setAdiadoAte] = useState(() =>
@@ -130,7 +132,7 @@ export function AvisosGestorGate() {
 
   const itens = aprov.data ?? [];
   const grupos = pagtos.data ?? [];
-  const total = itens.length + grupos.length;
+  const total = itens.length + grupos.length + (feriados.data?.length ?? 0);
 
   const adiar = (ms: number) => {
     const ate = Date.now() + ms;
@@ -193,6 +195,8 @@ export function AvisosGestorGate() {
               {total} {total === 1 ? "item depende" : "itens dependem"} só de você. Resolva agora ou deixe para depois.
             </DialogDescription>
           </DialogHeader>
+
+          <FeriadosEscalaConfirmar onNavigate={() => setAberto(false)} />
 
           {itens.length > 0 && (
             <div className="space-y-2">
