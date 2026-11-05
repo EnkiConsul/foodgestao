@@ -33,6 +33,7 @@ import { invalidarRotina } from "@/lib/dp/rotina-cache";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import { mensagemErroFolga } from "@/lib/dp/folga-erro";
 
 type Modo = "substituir_fds" | "troca_semanal" | "extra" | "compensatoria";
 
@@ -71,6 +72,26 @@ export function AtribuirFolgaTriagemDialog({
   const [folgaSubstituir, setFolgaSubstituir] = useState("");
   const [dataTrabalho, setDataTrabalho] = useState("");
   const [motivo, setMotivo] = useState("");
+  const [erroSalvar, setErroSalvar] = useState<string | null>(null);
+  const [viewport, setViewport] = useState<{ height: number; bottom: number } | null>(null);
+
+  useEffect(() => {
+    if (!open || !mobile) return;
+    const vv = window.visualViewport;
+    const atualizar = () => setViewport({
+      height: vv?.height ?? window.innerHeight,
+      bottom: Math.max(0, window.innerHeight - ((vv?.height ?? window.innerHeight) + (vv?.offsetTop ?? 0))),
+    });
+    atualizar();
+    vv?.addEventListener("resize", atualizar);
+    vv?.addEventListener("scroll", atualizar);
+    window.addEventListener("resize", atualizar);
+    return () => {
+      vv?.removeEventListener("resize", atualizar);
+      vv?.removeEventListener("scroll", atualizar);
+      window.removeEventListener("resize", atualizar);
+    };
+  }, [open, mobile]);
 
   const mesInicio = dataIso ? `${dataIso.slice(0, 7)}-01` : "";
   const mesFim = useMemo(() => {
@@ -182,10 +203,12 @@ export function AtribuirFolgaTriagemDialog({
     setMotivo("");
     setLimiteMsg(null);
     setJustificativa("");
+    setErroSalvar(null);
   }, [open, dataIso, colaboradorId]);
 
   const atribuir = useMutation({
     mutationFn: async (autorizar: boolean = false) => {
+      setErroSalvar(null);
       if (!elegivel) throw new Error("Este vínculo não participa da atribuição de folgas. Use ausência ou indisponibilidade.");
       if (modo === "compensatoria" && !podeCompensatoria) throw new Error("Compensação não habilitada para este colaborador.");
       if (modo === "compensatoria" && !motivo.trim()) throw new Error("Informe a justificativa da folga compensatória.");
@@ -207,31 +230,15 @@ export function AtribuirFolgaTriagemDialog({
         p_justificativa_excedente: autorizar ? justificativa.trim() : null,
       });
       if (error) {
-        const raw = error.message ?? "";
-        if (raw.includes("FORBIDDEN_UNIDADE"))
-          throw new Error("Você não tem permissão para gerenciar folgas desta unidade.");
-        if (raw.includes("INTERMITENTE"))
-          throw new Error("Intermitente não participa de trocas de folga fixa ou de fim de semana.");
-        if (raw.includes("JUSTIFICATIVA_OBRIGATORIA"))
-          throw new Error("Descreva o motivo da exceção (mínimo 15 caracteres).");
-        if (raw.includes("FOLGA_LIMITE_DIA") || raw.includes("Limite diário"))
-          throw new Error("Este dia já atingiu o limite de pessoas em folga.");
-        if (raw.includes("DUPLICATE_REQUEST"))
-          throw new Error("Este colaborador já tem folga registrada neste dia.");
-        if (raw.includes("NOT_FOUND"))
-          throw new Error("A folga escolhida para substituição não está mais ativa.");
-        if (raw.includes("INVALID_INPUT"))
-          throw new Error("O dia de trabalho precisa ser um dia de folga semanal do colaborador.");
-        if (raw.includes("FORBIDDEN"))
-          throw new Error("Só responsáveis da empresa podem lançar folgas.");
-        throw new Error(raw || "Não foi possível atribuir a folga.");
+        throw new Error(mensagemErroFolga(error));
       }
-      const res = (data ?? {}) as { ok?: boolean; mensagem?: string; limite_atingido?: boolean };
+      const res = (data ?? {}) as { ok?: boolean; mensagem?: string; limite_atingido?: boolean; ja_existia?: boolean };
+      if (res.ja_existia) throw new Error("Este colaborador já tem folga registrada neste dia. Nenhuma folga foi alterada.");
       if (res.ok === false && res.limite_atingido) {
         setLimiteMsg(res.mensagem ?? "Este dia já atingiu o limite de pessoas em folga.");
         throw new Error("LIMITE_SILENCIOSO");
       }
-      if (res.ok === false)
+      if (res.ok !== true)
         throw new Error(res.mensagem ?? "Não foi possível atribuir a folga neste dia.");
     },
     onSuccess: () => {
@@ -255,19 +262,17 @@ export function AtribuirFolgaTriagemDialog({
       onOpenChange(false);
       onDone?.();
     },
-    onError: (e: any) => {
+    onError: (e: unknown) => {
       if (e instanceof Error && e.message === "LIMITE_SILENCIOSO") return;
-      const bruto: string = String(e?.message ?? e ?? "");
-      const m = bruto.match(/^[A-Z_]+:\s*(.+)$/s);
-      const descricao = m
-        ? m[1].charAt(0).toUpperCase() + m[1].slice(1)
-        : "Houve uma falha inesperada ao gravar a folga. Tente novamente — se continuar, relate o problema.";
+      const descricao = mensagemErroFolga(e);
+      setErroSalvar(descricao);
       toast.error("Não foi possível atribuir a folga", { description: descricao });
     },
   });
 
   /** Fechar com preenchimento em andamento pede confirmação para não perder dados. */
   const handleOpenChange = (v: boolean) => {
+    if (!v && atribuir.isPending) return;
     if (!v && !atribuir.isPending) {
       const sujo = modo !== "extra" || !!folgaSubstituir || !!dataTrabalho || !!motivo.trim() || !!justificativa.trim();
       if (sujo && !window.confirm("Descartar o preenchimento desta folga?")) return;
@@ -277,8 +282,13 @@ export function AtribuirFolgaTriagemDialog({
 
   return (
     <Root open={open} onOpenChange={handleOpenChange}>
-      <Content {...(mobile ? { side: "bottom" as const } : {})} className="max-h-[92dvh] overflow-y-auto sm:max-w-md [&_input]:min-h-12 [&_button]:whitespace-normal">
-        <Header>
+      <Content
+        {...(mobile ? { side: "bottom" as const } : {})}
+        style={mobile && viewport ? { maxHeight: viewport.height - 16, bottom: viewport.bottom } : undefined}
+        onOpenAutoFocus={(event) => event.preventDefault()}
+        className="flex max-h-[calc(var(--vvh,100dvh)-1rem)] flex-col overflow-hidden sm:max-w-md [&_input]:min-h-12 [&_button]:whitespace-normal"
+      >
+        <Header className="shrink-0 pr-6 text-left">
           <Title className="text-2xl font-black">Atribuir folga</Title>
           <Description>
             {colaboradorNome} vai folgar em <b>{dataIso && descreverDia(dataIso)}</b>. Diga o que esta
@@ -286,7 +296,7 @@ export function AtribuirFolgaTriagemDialog({
           </Description>
         </Header>
 
-        <div className="space-y-3">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain py-2">
           {regimeQuery.isError && <p role="alert" className="text-sm text-destructive">Não foi possível conferir a elegibilidade. <Button variant="ghost" onClick={() => void regimeQuery.refetch()}>Tentar novamente</Button></p>}
           <div>
             <Label>Tipo de folga</Label>
@@ -379,7 +389,7 @@ export function AtribuirFolgaTriagemDialog({
             />
           </div>
 
-          {intermitente && (
+          {intermitente && !regimeQuery.isLoading && (
             <p className="rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
               Este vínculo não participa da atribuição de folgas. Registre ausência ou indisponibilidade no calendário.
             </p>
@@ -401,20 +411,22 @@ export function AtribuirFolgaTriagemDialog({
               />
               <Button
                 variant="destructive"
-                className="min-h-10 w-full"
+                className="min-h-12 w-full"
                 disabled={atribuir.isPending || justificativa.trim().length < 15}
                 onClick={() => atribuir.mutate(true)}
               >
-                Autorizar Acima do Limite
+                Autorizar acima do limite
               </Button>
             </div>
           )}
         </div>
 
-        <Footer className="sticky bottom-0 mt-3 flex-col-reverse gap-2 border-t bg-background pt-3 sm:flex-row">
+        {erroSalvar && <p role="alert" className="shrink-0 text-sm text-destructive">{erroSalvar}</p>}
+        <Footer className="shrink-0 flex-col-reverse gap-2 border-t bg-background pt-3 sm:flex-row">
           <Button
             variant="ghost"
-            onClick={() => onOpenChange(false)}
+            onClick={() => handleOpenChange(false)}
+            disabled={atribuir.isPending}
             className="min-h-12 w-full sm:w-auto"
           >
             Cancelar
