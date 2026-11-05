@@ -13,7 +13,6 @@
 - `dp_ficha_aplicar` é `SECURITY DEFINER` autorizada por `tem_permissao(company_id, 'dp.colaboradores', 'inclusao')`; `dp_colaboradores` segue sem gravação direta para `authenticated`.
 - Filtros `in`/`not.in` do PostgREST vão entre parênteses ("(a,b)") — sem eles a consulta aborta (PGRST100).
 - O portal não lê `dp_colaboradores` de colegas: `dp_portal_equipe_unidade()` expõe só nome, função e folga fixa.
-- Pré-admissão: o checklist compartilhado governa leitura e envio; desativar requisito preserva anexos.
 - Imagem da assinatura (PNG em data URL) é gravada só pelo servidor em `assinatura_imagem` (dp_recibos/dp_documento_aceites), imutável, e estampada no PDF com rubrica em todas as páginas — reimpressão fiel.
 - Leave-change terms update only the certificate copy's acceptance text/signature after matching content hash and version; keep original PDF and audit evidence.
 - Piso do cargo: com sindicato patronal na unidade grava no patronal (convenção); sem patronal grava direto na unidade (Cargo + Unidade) — o patronal acelera, nunca bloqueia.
@@ -27,7 +26,6 @@
 - Read subdirectory `AGENTS.md` before edits.
 - Manager-created swaps use a dedicated authorized atomic RPC and immutable origin; reuse the leave motor and linked evidence, never synthesize participant consent/signatures or external attendance postings.
 - Manager swap shortcuts retain employee/date context and offer leave dates from the shared operational calendar, with server preview and atomic registration remaining authoritative to avoid invented dates or bypassed checks.
-- Pre-admission correction/retake uses a service-only atomic RPC with expected version and actor audit; retake is explicit, never triggered by an upload, and never bypasses admission checks. Renew the existing non-revoked invite without shortening its expiry or exposing/regenerating its token; WhatsApp refers to the previously received link.
 - Portal request refusals are classified by server domain tokens before notifying; preserve transport errors for audit and never classify Pix failures by matching prose.
 - Stale-bundle recovery shares a 30-second sessionStorage guard across global, lazy and boundary handlers; without persistent storage only manual recovery is safe.
 - Certificate external files are rendered and serialized in isolated PDFs before copying pages; keep originals and acceptance evidence unchanged when reproduction fails.
@@ -39,6 +37,7 @@
 - Movable holidays use explicit unit-selected codes and Gregorian computus in the shared helper and database resolver; include the code in reads and replication to keep annual dates consistent without scheduled jobs or automatic holiday enrollment.
 - National holiday enrollment defaults to federal fixed dates; its confirmation dialog may include Good Friday only through explicit local opt-in, using the movable code and preserving existing/inactive rules, because Law 9,093/1995, article 2 requires municipal legislation.
 - Recrutamento 360 rules live in `src/pages/recrutamento/AGENTS.md`.
+- Pre-admission rules live in `src/components/dp/preadmissao/AGENTS.md`.
 
 - Ações do Dia: decide documents only; other requests use dedicated DSR/release-undo screens.
 
@@ -58,9 +57,7 @@
 - Termination planning and registration share conditions and bank controls; proposed leave dates are recalculated by the server and persisted with process-linked agenda records atomically, preserving cancellation evidence and legal end dates.
 - Termination calendar diagnostics and terminal bank concentration use one shared pure helper; read-only projections never persist agenda changes, and compensation updates cannot change the process legal end or settlement deadline, preventing simulation from becoming attendance accounting.
 - Termination notifications identify employees in the shared server notifier and navigate with collaborator_id, never the process ref_id; this covers every producer without duplicating identity logic.
-- Pre-admission activation inherits the reviewed habitual sector into the employee and empty worked-day slots, preserving explicit daily sectors and validating company scope.
 - Provisional employee cards resolve admission by company-scoped routine ID and open the official review form; admission updates synchronize operational fields transactionally without formalizing the regime or replacing past schedule configurations.
-- Pre-admission document groups use requirement plus person identity and retain individual versioned decisions; portrait panning protects the face guide while document cropping protects all edges, using the shared geometry helper.
 - Portal access enters the consult-only state `aviso_pos_trabalho` after the last attendance of a running notice (decided in the DB wrapper over `dp_portal_decisao_base`); operational RPCs keep requiring `ativo`, so colleagues' routines are hidden automatically.
 - Termination preparation lives in `dp_desligamento_preparacoes` (admin-only, never read by the portal); the official process, agenda changes and employee notifications are created only after the manager confirms the conversation happened, so employees are never surprised in the app.
 - Contract anniversaries use a shared eligibility/current-contract-date helper; portal celebrations use a session-scoped minimal RPC with no birth year or age, keeping administrative birth information out of colleague reads.

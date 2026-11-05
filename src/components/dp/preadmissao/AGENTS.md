@@ -11,3 +11,7 @@
 - Selfie 3x4 always passes through `ImagemEnquadrarDialog` (oval badge mask) for candidate and manager.
 - Employment regimes (CLT/intermitente) in a unit with a time clock get `possui_folha_ponto = true` by trigger `trg_dp_colab_ponto_clt_padrao`, unless a dispensation justification exists.
 - Manager re-read (`ler_documento_gestor`) follows the same OCR rule: fills only empty form fields, never name/CPF, never saves by itself.
+- Pré-admissão: o checklist compartilhado governa leitura e envio; desativar requisito preserva anexos.
+- Pre-admission correction/retake uses a service-only atomic RPC with expected version and actor audit; retake is explicit, never triggered by an upload, and never bypasses admission checks. Renew the existing non-revoked invite without shortening its expiry or exposing/regenerating its token; WhatsApp refers to the previously received link.
+- Pre-admission activation inherits the reviewed habitual sector into the employee and empty worked-day slots, preserving explicit daily sectors and validating company scope.
+- Pre-admission document groups use requirement plus person identity and retain individual versioned decisions; portrait panning protects the face guide while document cropping protects all edges, using the shared geometry helper.
