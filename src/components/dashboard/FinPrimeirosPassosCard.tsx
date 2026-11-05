@@ -22,14 +22,15 @@ export function FinPrimeirosPassosCard() {
     enabled: !!selectedCompanyId && !oculto,
     queryFn: async () => {
       const id = selectedCompanyId!;
-      const [banco, lanc, membros, convites] = await Promise.all([
+      const [banco, contas, lanc, membros, convites] = await Promise.all([
         supabase.from("pluggy_connections" as any).select("id", { count: "exact", head: true }).eq("company_id", id),
+        supabase.from("accounts").select("id", { count: "exact", head: true }).eq("context", "pj").eq("company_id", id),
         supabase.from("transactions").select("id", { count: "exact", head: true }).eq("company_id", id),
         supabase.from("company_members").select("id", { count: "exact", head: true }).eq("company_id", id).eq("perfil", "contabilidade"),
         supabase.from("company_invites").select("id", { count: "exact", head: true }).eq("company_id", id).eq("perfil", "contabilidade"),
       ]);
       return {
-        banco: (banco.count ?? 0) > 0,
+        banco: (banco.count ?? 0) + (contas.count ?? 0) > 0,
         lancamento: (lanc.count ?? 0) > 0,
         contador: (membros.count ?? 0) + (convites.count ?? 0) > 0,
       };
@@ -61,7 +62,7 @@ export function FinPrimeirosPassosCard() {
       <div className="grid gap-2 md:grid-cols-3">
         <Passo feito={data.banco} icon={Landmark} titulo="Conectar o banco" desc="Extrato automático pelo Open Finance" to="/contas-bancarias" acao="Conectar" />
         <Passo feito={data.lancamento} icon={Receipt} titulo="Primeiro lançamento" desc="Categorias de food service já prontas" to="/lancamentos" acao="Lançar" />
-        <Passo feito={data.contador} icon={Calculator} titulo="Convidar o contador" desc="Acesso só de leitura, sem custo" to="/gestao-usuarios" state={{ openInvite: true }} acao="Convidar" />
+        <Passo feito={data.contador} icon={Calculator} titulo="Convidar o contador" desc="Acesso só de leitura, sem custo" to="/gestao-usuarios" state={{ openInvite: true, defaultRole: "contabilidade" }} acao="Convidar" />
       </div>
     </section>
   );
