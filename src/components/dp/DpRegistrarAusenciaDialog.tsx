@@ -48,7 +48,7 @@ import { sanitizeStorageFilename } from "@/lib/storage";
 type Tipo = Database["public"]["Enums"]["dp_solicitacao_tipo"];
 
 /** Motivos do roteador: cada um abre o fluxo oficial da sua área. */
-export type Motivo = "folga" | "ferias" | "afastamento" | "falta" | "suspensao" | "indisponibilidade" | "liberacao" | "socio" | "dispensa_feriado" | "falta_feriado";
+export type Motivo = "folga" | "ferias" | "afastamento" | "falta" | "suspensao" | "indisponibilidade" | "liberacao" | "socio" | "dispensa_feriado";
 
 const MOTIVO_LABEL: Record<Motivo, string> = {
   folga: "Folga (compensatória, extra ou troca)",
@@ -60,7 +60,15 @@ const MOTIVO_LABEL: Record<Motivo, string> = {
   liberacao: "Liberação do Gestor",
   socio: "Ausência do Sócio",
   dispensa_feriado: "Dispensa em Feriado",
-  falta_feriado: "Falta em Feriado Convocado",
+};
+
+/** Motivos que pertencem a uma tela oficial: abrem o formulário dela diretamente. */
+const MOTIVOS_TELA_PROPRIA: Partial<Record<Motivo, string>> = {
+  folga: "Folga",
+  ferias: "Férias",
+  afastamento: "Atestado ou licença",
+  falta: "Falta",
+  suspensao: "Suspensão",
 };
 
 /** Sócio não tem falta, suspensão nem férias celetistas. */
@@ -252,15 +260,14 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
   useEffect(() => { if (open) { setNotificar(false); setAssinaturaNotif("digital"); } }, [open]);
   const pendenteNotif = useRef<{ data: string; entrada: string | null; saida: string | null; aceitaEm: string | null } | null>(null);
 
-  const continuar = () => {
+  const continuar = (m: Motivo = motivo) => {
     if (!form.colaborador_id) return toast.error("Selecione o colaborador");
     if (!form.data_alvo) return toast.error("Informe a data");
-    switch (motivo) {
+    switch (m) {
       case "folga":
         onOpenChange(false);
         setFolgaOpen(true);
         break;
-      case "falta_feriado":
       case "falta":
         pendenteNotif.current = conv && notificar
           ? { data: form.data_alvo, entrada: conv.entrada, saida: conv.saida, aceitaEm: conv.respondida_em ?? null }
@@ -284,11 +291,11 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
         break;
       case "dispensa_feriado":
         if (!origemDispensa) return toast.error("Informe a origem da dispensa");
-        dispensa.mutate(motivo);
+        dispensa.mutate(m);
         break;
       case "liberacao":
       case "socio":
-        dispensa.mutate(motivo);
+        dispensa.mutate(m);
         break;
     }
   };
@@ -505,7 +512,12 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
               </div>
               <div className="grid gap-1.5">
                 <Label>Motivo *</Label>
-                <Select value={motivo} onValueChange={(v) => setMotivo(v as Motivo)} disabled={!!conv}>
+                <Select value={motivo} onValueChange={(v) => {
+                  const m = v as Motivo;
+                  setMotivo(m);
+                  // Motivos com tela própria abrem o formulário oficial na hora.
+                  if (MOTIVOS_TELA_PROPRIA[m] && form.colaborador_id && form.data_alvo && !ausDia.isLoading && !ausDia.isError) continuar(m);
+                }} disabled={!!conv}>
                   <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {motivosDisponiveis.map((m) => (
@@ -538,14 +550,25 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
                   )}
                 </div>
               )}
-              {nomeFeriado && (motivo === "dispensa_feriado" || motivo === "falta_feriado") && (
-                <div className={`grid gap-3 rounded-md border p-3 ${motivo === "falta_feriado" ? "border-destructive/40 bg-destructive/5" : "border-border bg-muted/40"}`}>
-                  {motivo === "dispensa_feriado" ? (
+              {MOTIVOS_TELA_PROPRIA[motivo] && (
+                <p className="rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                  Este motivo tem tela própria. Ao escolher a pessoa e a data, o formulário de <strong className="text-foreground">{MOTIVOS_TELA_PROPRIA[motivo]}</strong> abre direto; nada é gravado antes de você confirmar lá.
+                  {motivo === "falta" && nomeFeriado && <> A data é feriado ({nomeFeriado}): a falta já fica registrada como falta em feriado convocado.</>}
+                </p>
+              )}
+              {nomeFeriado && motivo === "dispensa_feriado" && (
+                <div className="grid gap-3 rounded-md border border-border bg-muted/40 p-3">
+                  {motivo === "dispensa_feriado" && (
                     <>
                       <p className="text-xs text-muted-foreground">
                         <strong className="text-foreground">{nomeFeriado}:</strong> o colaborador não trabalha e o dia segue remunerado como feriado.
                         Não gera falta, desconto, dobra nem folga compensatória, e a folga da semana não muda.
                       </p>
+                      {origemDispensa === "empresa" && (
+                        <p className="rounded-md border border-warning/40 bg-warning/10 p-2 text-xs text-foreground">
+                          <strong>Liberalidade da empresa:</strong> se o colaborador já foi convocado, a empresa abre mão do trabalho e paga o dia normalmente, sem falta nem desconto.
+                        </p>
+                      )}
                       <div className="grid gap-1.5">
                         <Label>Origem da dispensa *</Label>
                         <div className="grid grid-cols-2 gap-2">
@@ -560,14 +583,6 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
                         <Textarea rows={2} maxLength={300} value={form.motivo} onChange={(e) => setForm({ ...form, motivo: e.target.value })} />
                       </div>
                     </>
-                  ) : (
-                    <div className="flex gap-2 text-sm">
-                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-                      <p>
-                        <strong>Falta em {nomeFeriado}.</strong> O colaborador estava escalado. Pode haver desconto do dia e do descanso semanal;
-                        a tratativa (Abono, Compensação ou Desconto em Folha) é feita em Ocorrências.
-                      </p>
-                    </div>
                   )}
                 </div>
               )}
@@ -689,8 +704,8 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
             ) : (
               <>
                 <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                <Button onClick={continuar} disabled={!unidadeSel || !form.colaborador_id || ausDia.isLoading || ausDia.isError || indisp.isPending || dispensa.isPending}>
-                  {["indisponibilidade", "liberacao", "socio", "dispensa_feriado"].includes(motivo) ? (indisp.isPending || dispensa.isPending ? "Salvando..." : "Registrar") : "Continuar"}
+                <Button onClick={() => continuar()} disabled={!unidadeSel || !form.colaborador_id || ausDia.isLoading || ausDia.isError || indisp.isPending || dispensa.isPending}>
+                  {["indisponibilidade", "liberacao", "socio", "dispensa_feriado"].includes(motivo) ? (indisp.isPending || dispensa.isPending ? "Salvando..." : "Registrar") : MOTIVOS_TELA_PROPRIA[motivo] ? `Abrir ${MOTIVOS_TELA_PROPRIA[motivo]}` : "Continuar"}
                 </Button>
               </>
             )}
@@ -729,7 +744,7 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
         onOpenChange={setFaltaOpen}
         colaboradores={opcoes.filter((o) => !o.bloqueio).map((o) => o.colab).map((c) => ({ id: c.id, nome: c.nome }))}
         somenteFalta
-        contexto={motivo === "falta_feriado" ? `Falta em feriado convocado (${nomeFeriado ?? "feriado"})` : undefined}
+        contexto={motivo === "falta" && nomeFeriado ? `Falta em feriado convocado (${nomeFeriado ?? "feriado"})` : undefined}
         dataInicial={form.data_alvo}
         colaboradorInicial={form.colaborador_id}
         saving={falta.isPending}

@@ -37,7 +37,7 @@ describe("motivos de feriado", () => {
     expect(motivoDisponivelNoDia("falta", false)).toBe(true);
   });
   it("dispensa e falta em feriado excluem sócio e quem folga no dia", () => {
-    for (const motivo of ["dispensa_feriado", "falta_feriado"]) {
+    for (const motivo of ["dispensa_feriado"]) {
       const r = opcoesAusencia(colabs, { ...base, unidadeId: "u1", motivo });
       expect(r.find((o) => o.colab.id === "s")!.bloqueio).toBeTruthy();
       expect(r.find((o) => o.colab.id === "b")!.bloqueio).toBeTruthy();
