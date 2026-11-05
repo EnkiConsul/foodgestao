@@ -745,15 +745,15 @@ function DetalheDiaOperacao({
                             key={`${p.colaborador_id}-${p.categoria}-${p.ocorrencia_id ?? p.avulso_id ?? ""}`}
                             className="min-w-0 space-y-1 px-1 py-2 hover:bg-muted/30 md:py-1.5"
                           >
-                            {/* Linha 1: nome + vínculo */}
-                            <div className="flex min-w-0 items-center justify-between gap-2">
-                              <p className="min-w-0 flex-1 truncate text-sm font-bold" title={p.nome}>{p.nome}</p>
+                            {/* Nome e ação; metadados ficam na linha seguinte para não espremer o nome. */}
+                            <div className="flex min-w-0 items-start justify-between gap-2">
+                              <p className="min-w-0 flex-1 whitespace-normal break-words text-sm font-bold" title={p.nome}>{p.nome}</p>
                               {onRegistrarAusencia && !p.avulso_id && (
                                 <Button
                                   type="button"
                                   variant="ghost"
                                   size="icon"
-                                  className="h-9 w-9 shrink-0 text-calendar-falta"
+                                  className="h-12 w-12 shrink-0 text-calendar-falta"
                                   aria-label={`Registrar ausência de ${p.nome}`}
                                   title="Registrar ausência"
                                   onClick={() => onRegistrarAusencia(p.colaborador_id)}
@@ -761,16 +761,18 @@ function DetalheDiaOperacao({
                                   <UserX className="h-4 w-4" />
                                 </Button>
                               )}
+                            </div>
+                            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                               {p.aguardando_registro && (
                                 <span
-                                  className="shrink-0 rounded-full border border-amber-500/50 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-500"
+                                  className="rounded-full border border-warning/50 bg-warning/10 px-2 py-0.5 text-[10px] font-semibold text-warning"
                                   title="Pré-admissão ativa na rotina como freelancer provisório, aguardando a admissão oficial."
                                 >
                                   Aguardando admissão
                                 </span>
                               )}
                               <span className={cn(
-                                "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                                "rounded-full px-2 py-0.5 text-[10px] font-bold",
                                 vinculoPessoa(p, regimes) === "Fixo" ? "bg-primary/10 text-primary" : "bg-foreground text-background",
                               )}>
                                 {vinculoPessoa(p, regimes)}
