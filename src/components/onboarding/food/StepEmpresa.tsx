@@ -168,8 +168,8 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
         </Field>
       </fieldset>
 
-      {!mostrarResumo && (
       {/* Endereço */}
+      {!mostrarResumo && (
       <fieldset className="space-y-4">
         <legend className="text-xs font-semibold text-muted-foreground">
           Endereço
