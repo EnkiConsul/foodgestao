@@ -81,6 +81,8 @@ type UnifiedDoc = {
   aceite_em?: string | null;
   /** Validação digital dispensada porque o documento já veio assinado. */
   aceiteDispensado?: boolean;
+  /** Assinatura encerrada: colaborador desligado e prazo de 30 dias do portal vencido. */
+  aceiteEncerrado?: boolean;
   /** Documento de assinatura física: null = não se aplica. */
   viaFisica?: { path: string | null; mime: string | null; em: string | null } | null;
   rescisao_grupo_id?: string | null;
@@ -186,7 +188,7 @@ const ACOES_WIDTH = 96;
 
 
 function aceiteLabel(r: UnifiedDoc) {
-  if (r.aceite === null) return r.aceiteDispensado ? "Dispensado" : "—";
+  if (r.aceite === null) return r.aceiteEncerrado ? "Encerrado" : r.aceiteDispensado ? "Dispensado" : "—";
   return r.aceite ? "Aceito" : "Aguardando";
 }
 
@@ -221,6 +223,13 @@ function AssinaturaSelo({ r, longo }: { r: UnifiedDoc; longo?: boolean }) {
     ) : (
       <span className="inline-flex items-center whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800">
         Falta via assinada
+      </span>
+    );
+  }
+  if (r.aceiteEncerrado) {
+    return (
+      <span title="Colaborador desligado e prazo de 30 dias de acesso ao portal encerrado." className="inline-flex items-center whitespace-nowrap rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+        {longo ? "Assinatura encerrada (desligado após 30 dias)" : "Encerrado"}
       </span>
     );
   }
@@ -494,7 +503,7 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
         fetchAllPages<any>((from, to) =>
           supabase
             .from("dp_documentos")
-            .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status, exige_aceite, assinatura_detectada, rescisao_grupo_id, comprovante_file_path, comprovante_mime_type, via_assinada_path, via_assinada_mime, via_assinada_em, assinatura_fisica, comprovante_modalidade, comprovante_valor_bancario_cents, comprovante_valor_especie_cents, comprovantes_extra_qtd, comprovantes_extra_cents, valor_liquido_cents, comprovante_recibo_documento_id")
+            .select("id, titulo, tipo, referencia_data, file_path, mime_type, created_at, colaborador_id, aprovacao_status, exige_aceite, assinatura_detectada, rescisao_grupo_id, comprovante_file_path, comprovante_mime_type, via_assinada_path, via_assinada_mime, via_assinada_em, assinatura_fisica, comprovante_modalidade, comprovante_valor_bancario_cents, comprovante_valor_especie_cents, comprovantes_extra_qtd, comprovantes_extra_cents, valor_liquido_cents, comprovante_recibo_documento_id, assinatura_dispensada_em")
             .eq("company_id", cId)
             // Excluídos (arquivados) saem da tela na hora; o banco preserva o histórico.
             .is("arquivado_em", null)
@@ -563,7 +572,8 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
           mime_type: d.mime_type,
           titulo: d.titulo,
           // Atestado é comprovante médico: nunca pede aceite da pessoa.
-          aceite: d.exige_aceite && d.tipo !== "atestado" ? aceitos.has(d.id) : null,
+          aceite: d.exige_aceite && d.tipo !== "atestado" ? (aceitos.has(d.id) ? true : d.assinatura_dispensada_em ? null : false) : null,
+          aceiteEncerrado: !!d.assinatura_dispensada_em && !aceitos.has(d.id),
           aceite_em: aceitoEm.get(d.id) ?? null,
           aceiteDispensado: !d.exige_aceite && d.assinatura_detectada === true && !docTipoAssinaturaFisica(d.tipo),
           viaFisica: !d.exige_aceite && (d.assinatura_fisica || docTipoAssinaturaFisica(d.tipo))

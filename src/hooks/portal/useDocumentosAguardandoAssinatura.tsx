@@ -62,6 +62,7 @@ export function selecionarPendentesAssinatura(
         !SO_ASSINATURA_FISICA.has(String(d.tipo ?? "")) &&
         (d.aprovacao_status ?? "aprovado") === "aprovado" &&
         !d.arquivado_em &&
+        !d.assinatura_dispensada_em &&
         (d.ciclo_status ?? "ativo") === "ativo" &&
         !aceitos.has(d.id),
     )
@@ -117,7 +118,7 @@ export function useDocumentosAguardandoAssinatura() {
         supabase
           .from("dp_documentos")
           .select(
-            "id, titulo, tipo, referencia_data, file_path, file_name, mime_type, aprovacao_status, submetido_por_colaborador, exige_aceite, assinatura_fisica, created_at, arquivado_em, ciclo_status",
+            "id, titulo, tipo, referencia_data, file_path, file_name, mime_type, aprovacao_status, submetido_por_colaborador, exige_aceite, assinatura_fisica, created_at, arquivado_em, ciclo_status, assinatura_dispensada_em",
           )
           .eq("colaborador_id", colab.data!.id)
           .eq("exige_aceite", true),
@@ -138,6 +139,7 @@ export function useDocumentosAguardandoAssinatura() {
           .or(`solicitante_id.eq.${cid},destino_id.eq.${cid}`)
           .eq("status", "aprovada")
           .eq("origem_registro", "portal")
+          .is("assinatura_dispensada_em", null)
           .gte("data_original", corte.toISOString().slice(0, 10))
           .limit(20);
         const f = (d: string | null) => (d ? new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : "—");
