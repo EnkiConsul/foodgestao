@@ -115,6 +115,30 @@ export default function Onboarding() {
     }));
   }, [user]);
 
+  // Rascunho no aparelho: se a tela fechar ou o sinal cair, o cadastro volta de onde parou.
+  const RASCUNHO_KEY = "aveto:onboarding-rascunho";
+  const [rascunhoLido, setRascunhoLido] = useState(false);
+  useEffect(() => {
+    if (!user || rascunhoLido) return;
+    setRascunhoLido(true);
+    try {
+      const r = JSON.parse(localStorage.getItem(RASCUNHO_KEY) || "null");
+      if (!r || r.userId !== user.id) return;
+      setEmpresa((d) => ({ ...d, ...r.empresa, aceitouLgpd: false }));
+      if (Array.isArray(r.modulos)) setModulos(r.modulos);
+      if (typeof r.criarUnidade === "boolean") setCriarUnidade(r.criarUnidade);
+      if (r.step === 2) setStep(2);
+      toast.info("Continuamos de onde você parou.");
+    } catch { /* rascunho inválido: ignora */ }
+  }, [user, rascunhoLido]);
+  useEffect(() => {
+    if (!user || !rascunhoLido || step === 3) return;
+    try {
+      const { aceitouLgpd: _a, ...resto } = empresa;
+      localStorage.setItem(RASCUNHO_KEY, JSON.stringify({ userId: user.id, empresa: resto, modulos, criarUnidade, step }));
+    } catch { /* sem armazenamento */ }
+  }, [user, rascunhoLido, empresa, modulos, criarUnidade, step]);
+
   const updateEmpresa = (patch: Partial<EmpresaFormData>) => {
     setEmpresa((d) => ({ ...d, ...patch }));
     setErrors((e) => {
@@ -212,6 +236,7 @@ export default function Onboarding() {
         await marcarOnboardingConcluido(user.id);
       }
 
+      try { localStorage.removeItem("aveto:onboarding-rascunho"); } catch { /* ignora */ }
       setResult(res);
       setStep(3);
     } catch (err) {

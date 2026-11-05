@@ -4,6 +4,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { CnpjInput } from "@/components/shared/CnpjInput";
 import { EnderecoFields } from "@/components/shared/EnderecoFields";
 import { SegmentoSelect } from "./SegmentoSelect";
+import { useSegmentos } from "@/hooks/useSegmentos";
+import { segmentoPorCnae } from "@/lib/onboarding/segmentoPorCnae";
 import { maskPhone } from "@/lib/phone";
 import { useState } from "react";
 import { AlertCircle, Building2, Pencil } from "lucide-react";
@@ -33,7 +35,16 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
   const completo = Boolean(data.razaoSocial && data.cep && data.logradouro && data.numero && data.bairro && data.cidade && data.uf);
   const mostrarResumo = preenchidoPelaReceita && completo && !editando && !temErroResumo;
 
+  const { data: segmentos } = useSegmentos();
+  const [segmentoSugerido, setSegmentoSugerido] = useState(false);
+
   const handleCnpjLookup = (d: CnpjLookupResult) => {
+    let segmentoId: string | undefined;
+    if (!data.segmentoId) {
+      const nomeSeg = segmentoPorCnae(d.cnae, `${d.nome_fantasia ?? ""} ${d.razao_social ?? ""}`);
+      segmentoId = nomeSeg ? segmentos?.find((s) => s.nome === nomeSeg)?.id : undefined;
+      setSegmentoSugerido(Boolean(segmentoId));
+    }
     setPreenchidoPelaReceita(Boolean(d.razao_social));
     setEditando(false);
     update({
@@ -48,6 +59,7 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
       uf: (d.uf ?? data.uf).toUpperCase().slice(0, 2),
       telefoneEmpresa: d.telefone ? maskPhone(d.telefone) : data.telefoneEmpresa,
       emailEmpresa: d.email && !data.emailEmpresa ? d.email : data.emailEmpresa,
+      ...(segmentoId ? { segmentoId } : {}),
     });
     const situ = (d.situacao ?? "").toLowerCase();
     setCnpjInactive(situ.includes("baix") || situ.includes("inap") || situ.includes("suspens"));
@@ -160,11 +172,14 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
           <SegmentoSelect
             id="onb-segmento"
             value={data.segmentoId}
-            onChange={(v) => update({ segmentoId: v })}
+            onChange={(v) => { setSegmentoSugerido(false); update({ segmentoId: v }); }}
             required
             invalid={Boolean(errors.segmentoId)}
             describedBy={errors.segmentoId ? "onb-segmento-erro" : undefined}
           />
+          {segmentoSugerido && data.segmentoId && (
+            <p className="text-[11px] text-primary">Sugerido pela atividade do CNPJ. Altere se não for o seu caso.</p>
+          )}
         </Field>
       </fieldset>
 

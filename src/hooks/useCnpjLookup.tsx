@@ -16,6 +16,8 @@ export interface CnpjLookupResult {
   uf: string | null;
   cep: string | null;
   situacao: string | null;
+  cnae?: string | null;
+  cnae_descricao?: string | null;
   endereco_formatado: string;
   _cached?: boolean;
   _stale?: boolean;
