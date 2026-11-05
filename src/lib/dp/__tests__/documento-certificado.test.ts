@@ -31,7 +31,7 @@ describe("certificado de validação", () => {
     ]) {
       expect(html).toContain(v);
     }
-    expect(html).toContain("Certificado de Validação de Documento");
+    expect(html).toContain("Certificado de Assinatura Eletrônica");
     expect(html).toMatch(/05\/09\/2026/);
   });
 

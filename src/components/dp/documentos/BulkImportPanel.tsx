@@ -125,8 +125,9 @@ export function BulkImportPanel({
   const loteNovoRef = useRef<string | null>(null);
 
   const rolarAte = useCallback((el: HTMLElement | null) => {
-    if (!el || emJanela) return;
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (!el) return;
+    // Na janela (atalho do celular), rola dentro dela até o lote em processamento.
+    requestAnimationFrame(() => el.scrollIntoView({ behavior: "smooth", block: emJanela ? "center" : "start" }));
   }, [emJanela]);
 
   /**
@@ -630,7 +631,7 @@ export function BulkImportPanel({
             <span>
               <span className="font-medium">Arquivo já é a via assinada</span>
               <span className="block text-[11px] text-muted-foreground">
-                Documento assinado à mão: fica registrado direto como “Via assinada”, sem validação digital.
+                Documento assinado à mão: fica registrado direto como “Via assinada”, sem assinatura eletrônica.
               </span>
             </span>
           </label>

@@ -414,7 +414,7 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
     setCertStatus("carregando");
     certificadoValidacaoPdf(preview.id.slice(4))
       .then((c) => { if (cancelado) c.revogar(); else { atual = c; setCertPreview(c); setCertStatus("idle"); } })
-      .catch((e) => { if (!cancelado) { setCertStatus("falhou"); toast.warning(e instanceof Error ? e.message : "Não foi possível carregar a validação digital. Mostrando o documento original."); } });
+      .catch((e) => { if (!cancelado) { setCertStatus("falhou"); toast.warning(e instanceof Error ? e.message : "Não foi possível carregar a assinatura eletrônica. Mostrando o documento original."); } });
     return () => { cancelado = true; atual?.revogar(); setCertPreview(null); };
   }, [preview]);
   const [detalhe, setDetalhe] = useState<UnifiedDoc | null>(null);
@@ -1347,7 +1347,7 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
           );
         })()}
         // Documento aprovado: aguarda o certificado; o original só entra se ele falhar.
-        aguardando={certStatus === "carregando" && !certPreview ? "Carregando validação digital..." : null}
+        aguardando={certStatus === "carregando" && !certPreview ? "Carregando assinatura eletrônica..." : null}
         // O comprovante fica sempre visível abaixo do documento.
         // Usa a versão mais recente da lista: o comprovante recém-importado aparece sem reabrir.
         comprovanteDocumentoId={(() => {
@@ -1357,7 +1357,7 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
         })()}
         // Assinado: o comprovante bancário já vem dentro do certificado; o recibo em
         // dinheiro é outro documento e continua aparecendo abaixo.
-        somenteReciboVinculado={false}
+        somenteReciboVinculado={!!certPreview}
         comprovantesExtras={extrasPreview.map((e) => ({ id: e.id, path: e.file_path, mime: e.mime_type ?? null, rotulo: e.natureza === "estorno" ? "Comprovante de Estorno (Devolução)" : e.natureza === "repagamento" ? "Novo Comprovante (Valor Correto)" : undefined }))}
         toolbar={preview && preview.tipo_key === "atestado" ? (
           <AtestadoResumo rowId={preview.id} filePath={preview.file_path} />

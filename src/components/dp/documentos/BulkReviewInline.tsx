@@ -355,7 +355,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] }),
-    onError: (e: any) => notifyError(e, { surface: "Importar documentos", action: "concluir a ação", fallback: "Falha ao alterar validação digital" }),
+    onError: (e: any) => notifyError(e, { surface: "Importar documentos", action: "concluir a ação", fallback: "Falha ao alterar assinatura eletrônica" }),
   });
 
   /** Interruptor do lote: aplica a todas as páginas ainda não importadas. */
@@ -374,7 +374,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] });
       qc.invalidateQueries({ queryKey: ["dp_bulk_batch_info", batchId] });
     },
-    onError: (e: any) => notifyError(e, { surface: "Importar documentos", action: "concluir a ação", fallback: "Falha ao alterar validação digital do lote" }),
+    onError: (e: any) => notifyError(e, { surface: "Importar documentos", action: "concluir a ação", fallback: "Falha ao alterar assinatura eletrônica do lote" }),
   });
 
   const setTipoItem = useMutation({
@@ -1113,11 +1113,11 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
               <div className="min-w-0">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
-                  Exigir validação digital do colaborador
+                  Exigir assinatura eletrônica do colaborador
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {current.assinatura_detectada === true
-                    ? "Este documento já parece assinado pelo colaborador. É necessário mesmo assim pedir a validação digital?"
+                    ? "Este documento já parece assinado pelo colaborador. É necessário mesmo assim pedir a assinatura eletrônica?"
                     : "Padrão do sistema: o colaborador precisa dar o aceite eletrônico no portal."}
                 </p>
               </div>
@@ -1126,7 +1126,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
                   checked={current.exige_aceite !== false}
                   disabled={current.status === "imported" || setExigeAceite.isPending}
                   onCheckedChange={(v) => setExigeAceite.mutate({ id: current.id, exige: v })}
-                  aria-label="Exigir validação digital"
+                  aria-label="Exigir assinatura eletrônica"
                 />
                 <span className="text-xs text-muted-foreground w-20">
                   {current.exige_aceite !== false ? "Com validação" : "Dispensado"}
@@ -1147,7 +1147,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
         <div className="px-3 sm:px-4 py-3 border-t bg-muted/10 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-2">
             {docTipoAssinaturaFisica((batchInfo.data as any)?.tipo) ? (
-              <span className="text-xs text-muted-foreground">Assinatura física — sem validação digital</span>
+              <span className="text-xs text-muted-foreground">Assinatura física — sem assinatura eletrônica</span>
             ) : (<>
             <Switch
               id="lote-aceite"
@@ -1156,7 +1156,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
               onCheckedChange={(v) => setExigeAceiteLote.mutate(v)}
             />
             <Label htmlFor="lote-aceite" className="text-xs text-muted-foreground cursor-pointer">
-              Exigir validação digital em todo o lote
+              Exigir assinatura eletrônica em todo o lote
             </Label>
             </>)}
           </div>

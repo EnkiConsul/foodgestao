@@ -1,5 +1,5 @@
 /**
- * Certificado de validação digital em PDF único.
+ * Certificado de assinatura eletrônica em PDF único.
  *
  * Monta, no servidor: (1) a página do certificado com os dados da aprovação
  * eletrônica, (2) o documento que foi assinado, página por página, e (3) o
@@ -178,7 +178,7 @@ function paginaCertificado(
   const { width, height } = page.getSize();
   const margem = 48;
   const largura = width - margem * 2;
-  const usado = timbrado(page, negrito, fonte, marca, "Certificado de Validação de Documento", d.empresa);
+  const usado = timbrado(page, negrito, fonte, marca, "Certificado de Assinatura Eletrônica", d.empresa);
   let y = height - usado - 18;
 
   const campos: Array<[string, string]> = [
@@ -245,7 +245,7 @@ function paginaCertificado(
   }
 }
 
-/** Página separadora do anexo (comprovante sem validação digital própria). */
+/** Página separadora do anexo (comprovante sem assinatura eletrônica própria). */
 function paginaAnexo(
   pdf: PDFDocument,
   fonte: PDFFont,
@@ -267,7 +267,7 @@ function paginaAnexo(
       `Competência do documento: ${competencia || "—"}. Arquivo: ${arquivo || "—"}. ${
         pagoEm === "—" ? "Sem data de pagamento informada." : `Pagamento registrado em ${pagoEm}.`
       } ${quitacao ? `Forma de pagamento: ${quitacao}. ` : ""}Este comprovante acompanha o documento ` +
-        "aprovado como anexo e não possui validação digital própria.",
+        "aprovado como anexo e não possui assinatura eletrônica própria.",
       fonte, 10.5, width - margem * 2,
     )
   ) {
@@ -562,7 +562,7 @@ Deno.serve(async (req) => {
       avisos.push("O arquivo do documento não pôde ser lido no momento da emissão deste certificado.");
     }
 
-    // Comprovante (anexo, mesmo sem validação digital própria)
+    // Comprovante (anexo, mesmo sem assinatura eletrônica própria)
     let compBytes: Uint8Array | null = null;
     if (comp?.file_path) {
       const baixarComp = await admin.storage.from(BUCKET).download(comp.file_path);
@@ -644,7 +644,7 @@ Deno.serve(async (req) => {
       try {
         await pdf.attach(compBytes, String(comp?.file_name ?? "comprovante-pagamento"), {
           mimeType: String(comp?.mime_type ?? "application/octet-stream"),
-          description: "Comprovante de pagamento (sem validação digital própria)",
+          description: "Comprovante de pagamento (sem assinatura eletrônica própria)",
         });
       } catch {
         // anexo embutido é complementar: as páginas visíveis já garantem a leitura

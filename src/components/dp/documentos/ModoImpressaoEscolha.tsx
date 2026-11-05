@@ -2,12 +2,12 @@ import { cn } from "@/lib/utils";
 
 /**
  * Escolha do formato de impressão de termos/recibos:
- * validação digital (com assinaturas e carimbos) ou folha limpa para assinar à mão,
+ * assinatura eletrônica (com assinaturas e carimbos) ou folha limpa para assinar à mão,
  * sem data de emissão do sistema e com a data em branco.
  */
 export function ModoImpressaoEscolha({ manual, onChange }: { manual: boolean; onChange: (v: boolean) => void }) {
   const opcoes = [
-    { v: false, label: "Com Validação Digital" },
+    { v: false, label: "Com Assinatura Eletrônica" },
     { v: true, label: "Para Assinar à Mão" },
   ];
   return (

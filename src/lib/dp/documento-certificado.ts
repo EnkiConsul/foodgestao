@@ -37,7 +37,7 @@ export async function certificadoValidacaoPdf(
   const limite = new Promise<never>((_, rejeitar) => {
     relogio = setTimeout(() => {
       if (cacheCertificados.get(documentoId) === atual) cacheCertificados.delete(documentoId);
-      rejeitar(new Error("A validação digital demorou demais. Mostrando o documento original; tente abrir novamente."));
+      rejeitar(new Error("A assinatura eletrônica demorou demais. Mostrando o documento original; tente abrir novamente."));
     }, 20_000);
   });
   try {
@@ -59,13 +59,13 @@ async function gerarCertificadoBlob(documentoId: string): Promise<Blob> {
       signal: controle.signal,
     });
   } catch {
-    throw new Error("A validação digital demorou demais. Mostrando o documento original; tente abrir novamente.");
+    throw new Error("A assinatura eletrônica demorou demais. Mostrando o documento original; tente abrir novamente.");
   } finally {
     clearTimeout(limite);
   }
   const { data, error } = resposta;
   if (controle.signal.aborted) {
-    throw new Error("A validação digital demorou demais. Mostrando o documento original; tente abrir novamente.");
+    throw new Error("A assinatura eletrônica demorou demais. Mostrando o documento original; tente abrir novamente.");
   }
   if (error) {
     let frase = "";
@@ -170,7 +170,7 @@ export function certificadoValidacaoHtml(d: CertificadoValidacaoDados): string {
       </div>
       <div class="selo"></div>
       <header>
-        <h1>Certificado de Validação de Documento</h1>
+        <h1>Certificado de Assinatura Eletrônica</h1>
         <p>${esc(d.empresa)}</p>
       </header>
 
