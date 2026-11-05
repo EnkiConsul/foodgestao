@@ -18,6 +18,7 @@ import {
   type DpUnidadeWithCounts,
 } from "@/hooks/useDpCadastros";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
+import { CriarUnidadeInicial } from "@/components/dp/CriarUnidadeInicial";
 import { UnidadeFormDialog, formatCNPJ, onlyNumbers, type UnidadeAba } from "@/components/dp/UnidadeFormDialog";
 import { useDpFuncionamentoResumo } from "@/hooks/useDpFuncionamentoResumo";
 import { useDpPontoConformidade } from "@/hooks/useDpPontoConformidade";
@@ -216,7 +217,7 @@ export default function DpUnidades() {
               )}
               {!list.isLoading && rows.length === 0 && (
                 <tr><td colSpan={8} className="p-12 text-center text-muted-foreground">
-                  {(list.data ?? []).length === 0 ? "Nenhuma unidade cadastrada." : "Nenhuma unidade encontrada com os filtros atuais."}
+                  {(list.data ?? []).length === 0 ? <CriarUnidadeInicial onManual={openNew} /> : "Nenhuma unidade encontrada com os filtros atuais."}
                 </td></tr>
               )}
               {rows.map((u) => (
@@ -317,7 +318,7 @@ export default function DpUnidades() {
         )}
         {!list.isLoading && rows.length === 0 && (
           <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
-            {(list.data ?? []).length === 0 ? "Nenhuma unidade cadastrada." : "Nenhuma unidade encontrada com os filtros atuais."}
+            {(list.data ?? []).length === 0 ? <CriarUnidadeInicial onManual={openNew} /> : "Nenhuma unidade encontrada com os filtros atuais."}
           </div>
         )}
         {!list.isLoading && rows.map((u) => (
