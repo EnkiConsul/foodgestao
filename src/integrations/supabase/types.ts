@@ -3115,6 +3115,68 @@ export type Database = {
           },
         ]
       }
+      concierge_provisionamentos: {
+        Row: {
+          ativado_em: string | null
+          ativado_user_id: string | null
+          company_id: string
+          conta_existente: boolean
+          criado_em: string
+          criado_por: string
+          email_enviado_em: string | null
+          gestor_email: string | null
+          gestor_nome: string
+          gestor_whatsapp: string | null
+          invite_grupo_id: string | null
+          invite_id: string | null
+          link_aberto_em: string | null
+          modulos: string[]
+          whatsapp_enviado_em: string | null
+        }
+        Insert: {
+          ativado_em?: string | null
+          ativado_user_id?: string | null
+          company_id: string
+          conta_existente?: boolean
+          criado_em?: string
+          criado_por: string
+          email_enviado_em?: string | null
+          gestor_email?: string | null
+          gestor_nome: string
+          gestor_whatsapp?: string | null
+          invite_grupo_id?: string | null
+          invite_id?: string | null
+          link_aberto_em?: string | null
+          modulos: string[]
+          whatsapp_enviado_em?: string | null
+        }
+        Update: {
+          ativado_em?: string | null
+          ativado_user_id?: string | null
+          company_id?: string
+          conta_existente?: boolean
+          criado_em?: string
+          criado_por?: string
+          email_enviado_em?: string | null
+          gestor_email?: string | null
+          gestor_nome?: string
+          gestor_whatsapp?: string | null
+          invite_grupo_id?: string | null
+          invite_id?: string | null
+          link_aberto_em?: string | null
+          modulos?: string[]
+          whatsapp_enviado_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "concierge_provisionamentos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_companies: {
         Row: {
           company_id: string
@@ -18369,6 +18431,56 @@ export type Database = {
         Args: { _account: string; _interna: boolean; _motivo: string }
         Returns: undefined
       }
+      admin_concierge_lista: {
+        Args: never
+        Returns: {
+          ativado_em: string
+          cnpj: string
+          colaboradores: number
+          company_id: string
+          conta_existente: boolean
+          convite_expira_em: string
+          convite_status: string
+          criado_em: string
+          email_enviado_em: string
+          empresa: string
+          fichas: number
+          gestor_email: string
+          gestor_nome: string
+          gestor_whatsapp: string
+          link_aberto_em: string
+          modulos: string[]
+          token: string
+          unidades: number
+          whatsapp_enviado_em: string
+        }[]
+      }
+      admin_concierge_renovar_convite: {
+        Args: { p_company_id: string }
+        Returns: Json
+      }
+      admin_provisionar_empresa_concierge: {
+        Args: {
+          p_bairro: string
+          p_cep: string
+          p_cidade: string
+          p_cnpj: string
+          p_complemento: string
+          p_criar_unidade?: boolean
+          p_email_empresa: string
+          p_gestor_email: string
+          p_gestor_nome: string
+          p_gestor_whatsapp: string
+          p_logradouro: string
+          p_modulos: string[]
+          p_nome_fantasia: string
+          p_numero: string
+          p_razao_social: string
+          p_telefone_empresa: string
+          p_uf: string
+        }
+        Returns: Json
+      }
       app_error_log_record: {
         Args: {
           _action?: string
@@ -18915,6 +19027,10 @@ export type Database = {
           module: string
           subscription_id: string
         }[]
+      }
+      concierge_ativar: {
+        Args: { p_grupo_id: string; p_user_id: string }
+        Returns: undefined
       }
       consume_recovery_reset: {
         Args: { p_challenge_id: string; p_reset_token_hash: string }
