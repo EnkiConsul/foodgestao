@@ -37,6 +37,17 @@ export function mensagemConcierge(o: { nome: string; empresa: string; link: stri
     `Seus 7 dias de teste grátis começam quando você criar a senha. Qualquer dúvida, estamos por aqui!`;
 }
 
+export function mensagemApoio(o: { nome: string; empresa: string; temPessoas: boolean; fim: string }) {
+  const nome = primeiroNome(o.nome);
+  const itens = o.temPessoas
+    ? "🏢 *Loja configurada:* unidade pronta para a operação.\n👥 *Equipe pré-carregada:* subimos as fichas dos colaboradores. Você só confere e aprova.\n"
+    : "🏢 *Empresa configurada* e pronta para uso.\n";
+  return `Olá${nome ? `, ${nome}` : ""}! Aqui é da equipe da *AVETO 360*. 🍕\n\n` +
+    `Finalizamos a parametrização do ambiente da *${o.empresa}* para você:\n\n${itens}` +
+    `⏳ *Teste grátis renovado:* seus dias de teste foram reiniciados e vão até ${o.fim}.\n\n` +
+    `Acesse com seu login e senha de sempre:\n👉 ${APP_URL}/auth\n\nSe precisar de apoio para conferir as fichas, estamos por aqui! 🚀`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Método não permitido" }, 405);
@@ -54,9 +65,21 @@ Deno.serve(async (req) => {
     if (!isAdmin) return json({ error: "Sem permissão" }, 403);
 
     const { data: p } = await admin.from("concierge_provisionamentos")
-      .select("company_id, invite_id, gestor_nome, gestor_email, gestor_whatsapp, modulos, conta_existente, ativado_em, companies(name, trade_name)")
+      .select("company_id, invite_id, gestor_nome, gestor_email, gestor_whatsapp, modulos, conta_existente, ativado_em, modo, parametrizacao_concluida_em, companies(name, trade_name, trial_termina_em)")
       .eq("company_id", parsed.data.companyId).maybeSingle();
     if (!p) return json({ error: "Empresa não encontrada" }, 404);
+    if (p.modo === "apoio") {
+      if (!p.parametrizacao_concluida_em) return json({ error: "Conclua a parametrização antes de avisar o cliente." }, 409);
+      // deno-lint-ignore no-explicit-any
+      const e = (p as any).companies;
+      const fim = e?.trial_termina_em ? new Date(e.trial_termina_em).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "daqui a 7 dias";
+      const msg = mensagemApoio({ nome: p.gestor_nome, empresa: e?.trade_name || e?.name || "sua empresa", temPessoas: (p.modulos ?? []).includes("dp"), fim });
+      const phone = normalizeBRPhone(p.gestor_whatsapp);
+      if (!phone) return json({ success: false, whatsapp: false, email: false, whatsappErro: "gestor sem WhatsApp" });
+      const r = await sendZapiText(phone, msg);
+      if (r.ok) await admin.from("concierge_provisionamentos").update({ whatsapp_enviado_em: new Date().toISOString() }).eq("company_id", p.company_id);
+      return json({ success: r.ok, whatsapp: r.ok, email: false, whatsappErro: r.ok ? null : String(r.error ?? `HTTP ${r.httpStatus}`) });
+    }
     if (p.ativado_em) return json({ error: "O gestor já ativou o acesso." }, 409);
 
     const { data: inv } = await admin.from("company_invites").select("token, status, expires_at").eq("id", p.invite_id).maybeSingle();

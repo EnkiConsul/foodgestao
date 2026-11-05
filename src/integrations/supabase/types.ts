@@ -3130,7 +3130,9 @@ export type Database = {
           invite_grupo_id: string | null
           invite_id: string | null
           link_aberto_em: string | null
+          modo: string
           modulos: string[]
+          parametrizacao_concluida_em: string | null
           whatsapp_enviado_em: string | null
         }
         Insert: {
@@ -3147,7 +3149,9 @@ export type Database = {
           invite_grupo_id?: string | null
           invite_id?: string | null
           link_aberto_em?: string | null
+          modo?: string
           modulos: string[]
+          parametrizacao_concluida_em?: string | null
           whatsapp_enviado_em?: string | null
         }
         Update: {
@@ -3164,7 +3168,9 @@ export type Database = {
           invite_grupo_id?: string | null
           invite_id?: string | null
           link_aberto_em?: string | null
+          modo?: string
           modulos?: string[]
+          parametrizacao_concluida_em?: string | null
           whatsapp_enviado_em?: string | null
         }
         Relationships: [
@@ -18431,6 +18437,26 @@ export type Database = {
         Args: { _account: string; _interna: boolean; _motivo: string }
         Returns: undefined
       }
+      admin_concierge_assumir_empresa: {
+        Args: { p_company_id: string }
+        Returns: Json
+      }
+      admin_concierge_buscar_empresa: {
+        Args: { p_busca: string }
+        Returns: {
+          cnpj: string
+          colaboradores: number
+          company_id: string
+          dono_nome: string
+          em_apoio: boolean
+          empresa: string
+          unidades: number
+        }[]
+      }
+      admin_concierge_concluir_parametrizacao: {
+        Args: { p_company_id: string }
+        Returns: Json
+      }
       admin_concierge_lista: {
         Args: never
         Returns: {
@@ -18449,7 +18475,9 @@ export type Database = {
           gestor_nome: string
           gestor_whatsapp: string
           link_aberto_em: string
+          modo: string
           modulos: string[]
+          parametrizacao_concluida_em: string
           token: string
           unidades: number
           whatsapp_enviado_em: string

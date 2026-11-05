@@ -15,15 +15,16 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Copy, FileUp, Loader2, MessageCircle, RefreshCw, Sparkles, Search } from "lucide-react";
+import { CheckCircle2, LifeBuoy, Copy, FileUp, Loader2, MessageCircle, RefreshCw, Sparkles, Search } from "lucide-react";
 
 type Prov = {
   company_id: string; empresa: string; cnpj: string; gestor_nome: string; gestor_email: string | null;
   gestor_whatsapp: string | null; modulos: string[]; conta_existente: boolean; criado_em: string;
   whatsapp_enviado_em: string | null; email_enviado_em: string | null; link_aberto_em: string | null;
   ativado_em: string | null; convite_status: string | null; convite_expira_em: string | null; token: string | null;
-  unidades: number; colaboradores: number; fichas: number;
+  unidades: number; colaboradores: number; fichas: number; modo: string; parametrizacao_concluida_em: string | null;
 };
+type Busca = { company_id: string; empresa: string; cnpj: string; dono_nome: string | null; unidades: number; colaboradores: number; em_apoio: boolean };
 
 const ERROS: Record<string, string> = {
   empresa_ja_cadastrada: "Já existe uma empresa com este CNPJ.",
@@ -33,6 +34,8 @@ const ERROS: Record<string, string> = {
   gestor_contato_obrigatorio: "Informe o WhatsApp ou o e-mail do gestor.",
   email_invalido: "E-mail do gestor inválido.",
   nenhum_modulo_selecionado: "Escolha pelo menos um módulo.",
+  aguardando_convite: "Esta empresa já está preparada e aguarda o gestor criar a senha.",
+  empresa_da_aveto: "Esta empresa já pertence a você.",
   sem_permissao: "Apenas super admin pode fazer isso.",
 };
 const traduz = (m: string) => Object.entries(ERROS).find(([k]) => m.includes(k))?.[1] ?? m;
@@ -124,6 +127,36 @@ export function ConciergePainel() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const [apoioAberto, setApoioAberto] = useState(false);
+  const [busca, setBusca] = useState("");
+  const { data: achados = [], isFetching: buscando } = useQuery({
+    queryKey: ["admin-concierge-busca", busca],
+    enabled: apoioAberto && busca.trim().length >= 3,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("admin_concierge_buscar_empresa" as never, { p_busca: busca } as never);
+      if (error) throw error;
+      return (data ?? []) as unknown as Busca[];
+    },
+  });
+  const assumir = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("admin_concierge_assumir_empresa" as never, { p_company_id: id } as never);
+      if (error) throw new Error(traduz(error.message));
+      return id;
+    },
+    onSuccess: (id) => { toast.success("Apoio iniciado. A empresa já aparece no seletor do topo."); setApoioAberto(false); recarregar(); abrirFichas(id); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const concluir = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("admin_concierge_concluir_parametrizacao" as never, { p_company_id: id } as never);
+      if (error) throw new Error(traduz(error.message));
+      return id;
+    },
+    onSuccess: (id) => { toast.success("Parametrização concluída e teste grátis renovado."); qc.invalidateQueries(); enviar.mutate(id); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const abrirFichas = (id: string) => {
     setContext("pj", id);
     qc.invalidateQueries();
@@ -140,22 +173,27 @@ export function ConciergePainel() {
           <CardTitle className="text-base">Empresas preparadas pela Aveto</CardTitle>
           <p className="text-sm text-muted-foreground">Crie a empresa, carregue as fichas e envie o acesso ao gestor. O teste grátis começa quando ele criar a senha.</p>
         </div>
-        <Button onClick={() => setAberto(true)}><Sparkles className="mr-2 h-4 w-4" />Preparar Empresa</Button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button variant="outline" onClick={() => setApoioAberto(true)}><LifeBuoy className="mr-2 h-4 w-4" />Apoiar Empresa Cadastrada</Button>
+          <Button onClick={() => setAberto(true)}><Sparkles className="mr-2 h-4 w-4" />Preparar Empresa</Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {isLoading ? <p className="text-sm text-muted-foreground">Carregando…</p> : lista.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nenhuma empresa preparada ainda.</p>
         ) : lista.map((p) => {
-          const expirado = !p.ativado_em && (p.convite_status !== "pending" || (p.convite_expira_em && new Date(p.convite_expira_em) < new Date()));
+          const apoio = p.modo === "apoio";
+          const expirado = !apoio && !p.ativado_em && (p.convite_status !== "pending" || (p.convite_expira_em && new Date(p.convite_expira_em) < new Date()));
           return (
             <div key={p.company_id} className="rounded-md border p-3 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">{p.empresa}</span>
                 <span className="text-xs text-muted-foreground">{maskCnpj(p.cnpj ?? "")}</span>
-                {p.ativado_em ? <Badge>Ativo desde {dt(p.ativado_em)}</Badge>
+                {apoio ? (p.parametrizacao_concluida_em ? <Badge>Parametrização concluída {dt(p.parametrizacao_concluida_em)}</Badge> : <Badge variant="secondary">Em parametrização pela Aveto</Badge>)
+                  : p.ativado_em ? <Badge>Ativo desde {dt(p.ativado_em)}</Badge>
                   : expirado ? <Badge variant="destructive">Link expirado</Badge>
                   : <Badge variant="secondary">Aguardando senha</Badge>}
-                {p.conta_existente && <Badge variant="outline">Gestor já tem conta</Badge>}
+                {!apoio && p.conta_existente && <Badge variant="outline">Gestor já tem conta</Badge>}
               </div>
               <div className="text-xs text-muted-foreground">
                 Gestor: {p.gestor_nome}{p.gestor_whatsapp ? ` · ${maskPhone(p.gestor_whatsapp)}` : ""}{p.gestor_email ? ` · ${p.gestor_email}` : ""}
@@ -164,9 +202,23 @@ export function ConciergePainel() {
                 <div>Lojas: <b>{p.unidades}</b></div>
                 <div>Colaboradores: <b>{p.colaboradores}</b> {p.fichas > 0 && <span className="text-muted-foreground">({p.fichas} importações)</span>}</div>
                 <div>Envio: <b>{dt(p.whatsapp_enviado_em) ?? dt(p.email_enviado_em) ?? "não enviado"}</b></div>
-                <div>Link: <b>{p.link_aberto_em ? `aberto ${dt(p.link_aberto_em)}` : "não aberto"}</b></div>
+                {!apoio && <div>Link: <b>{p.link_aberto_em ? `aberto ${dt(p.link_aberto_em)}` : "não aberto"}</b></div>}
               </div>
-              {!p.ativado_em && (
+              {apoio && (
+                <div className="flex flex-wrap gap-2">
+                  {!p.parametrizacao_concluida_em && p.modulos.includes("dp") && (
+                    <Button size="sm" variant="outline" onClick={() => abrirFichas(p.company_id)}><FileUp className="mr-1 h-4 w-4" />Importar Fichas</Button>
+                  )}
+                  {!p.parametrizacao_concluida_em ? (
+                    <Button size="sm" disabled={concluir.isPending || enviar.isPending} onClick={() => concluir.mutate(p.company_id)}>
+                      {concluir.isPending && concluir.variables === p.company_id ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1 h-4 w-4" />}Notificar Conclusão
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="outline" disabled={enviar.isPending} onClick={() => enviar.mutate(p.company_id)}><MessageCircle className="mr-1 h-4 w-4" />Reenviar Aviso</Button>
+                  )}
+                </div>
+              )}
+              {!apoio && !p.ativado_em && (
                 <div className="flex flex-wrap gap-2">
                   {p.modulos.includes("dp") && (
                     <Button size="sm" variant="outline" onClick={() => abrirFichas(p.company_id)}><FileUp className="mr-1 h-4 w-4" />Importar Fichas</Button>
@@ -192,6 +244,33 @@ export function ConciergePainel() {
           );
         })}
       </CardContent>
+
+      <Dialog open={apoioAberto} onOpenChange={setApoioAberto}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Apoiar Empresa Cadastrada</DialogTitle>
+            <DialogDescription>Para cliente que já criou a conta e parou antes de configurar. A Aveto entra só para parametrizar; o Dono continua o mesmo e, ao concluir, a Aveto sai e o teste grátis é renovado.</DialogDescription>
+          </DialogHeader>
+          <Input autoFocus placeholder="CNPJ ou nome da empresa" value={busca} onChange={(e) => setBusca(e.target.value)} />
+          <div className="space-y-2">
+            {busca.trim().length < 3 ? <p className="text-xs text-muted-foreground">Digite ao menos 3 caracteres.</p>
+              : buscando ? <p className="text-xs text-muted-foreground">Buscando…</p>
+              : achados.length === 0 ? <p className="text-xs text-muted-foreground">Nenhuma empresa encontrada.</p>
+              : achados.map((a) => (
+                <div key={a.company_id} className="flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{a.empresa}</p>
+                    <p className="text-xs text-muted-foreground">{maskCnpj(a.cnpj ?? "")}{a.dono_nome ? ` · ${a.dono_nome}` : ""}</p>
+                    <p className="text-xs text-muted-foreground">{a.unidades} lojas · {a.colaboradores} colaboradores{a.unidades === 0 && a.colaboradores === 0 ? " · parou no cadastro" : ""}</p>
+                  </div>
+                  <Button size="sm" disabled={assumir.isPending} onClick={() => assumir.mutate(a.company_id)}>
+                    {assumir.isPending && assumir.variables === a.company_id && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}Assumir e Importar Fichas
+                  </Button>
+                </div>
+              ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={aberto} onOpenChange={setAberto}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
