@@ -5,9 +5,11 @@ import { MODULES } from "@/lib/modules";
 interface Props {
   selectedSlugs: string[];
   onToggle: (slug: string) => void;
+  criarUnidade?: boolean;
+  onCriarUnidadeChange?: (v: boolean) => void;
 }
 
-export function StepModulos({ selectedSlugs, onToggle }: Props) {
+export function StepModulos({ selectedSlugs, onToggle, criarUnidade, onCriarUnidadeChange }: Props) {
   // Usa a lista de módulos do código, não o catálogo do banco.
   // Exibe somente módulos principais (sem parent) e que estejam prontos.
   const modulos = MODULES.filter((m) => m.available && !m.parent);
@@ -43,6 +45,26 @@ export function StepModulos({ selectedSlugs, onToggle }: Props) {
           />
         ))}
       </div>
+
+      {selectedSlugs.includes("dp") && onCriarUnidadeChange && (
+        <label className="flex items-start gap-3 rounded-xl border border-border bg-card p-4 cursor-pointer">
+          <input
+            type="checkbox"
+            className="mt-1 h-5 w-5 shrink-0 accent-primary"
+            checked={!!criarUnidade}
+            onChange={(e) => onCriarUnidadeChange(e.target.checked)}
+          />
+          <span className="text-sm">
+            <span className="font-semibold text-foreground block">
+              Usar este CNPJ como a primeira loja no Pessoas 360°
+            </span>
+            <span className="text-xs text-muted-foreground">
+              Criamos a unidade com o mesmo nome e endereço da empresa para você já cadastrar colaboradores.
+              Desmarque se a gestão de pessoas for em outro CNPJ — dá para ajustar depois em Unidades.
+            </span>
+          </span>
+        </label>
+      )}
 
       <p className="text-xs text-muted-foreground text-center">
         {selectedSlugs.length === 0

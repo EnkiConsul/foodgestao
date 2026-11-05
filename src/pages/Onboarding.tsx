@@ -95,6 +95,7 @@ export default function Onboarding() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [empresa, setEmpresa] = useState<EmpresaFormData>(EMPTY_EMPRESA);
   const [modulos, setModulos] = useState<string[]>([]);
+  const [criarUnidade, setCriarUnidade] = useState(true);
   const [errors, setErrors] = useState<Partial<Record<keyof EmpresaFormData, string>>>({});
   const [cnpjPending, setCnpjPending] = useState(false);
   const [cnpjChecking, setCnpjChecking] = useState(false);
@@ -205,6 +206,14 @@ export default function Onboarding() {
         modulosSlugs: modulos,
       });
 
+      if (criarUnidade && modulos.includes("dp") && res?.company_id) {
+        const { error: unErr } = await supabase.rpc("dp_criar_unidade_inicial", { p_company_id: res.company_id });
+        if (unErr) {
+          console.error("[onboarding] falha ao criar unidade inicial", unErr);
+          toast.warning("Empresa criada. Cadastre sua loja em Pessoas → Unidades.");
+        }
+      }
+
       // Marca onboarding concluído no profile
       if (user) {
         await marcarOnboardingConcluido(user.id);
@@ -295,7 +304,12 @@ export default function Onboarding() {
 
         {step === 2 && (
           <>
-            <StepModulos selectedSlugs={modulos} onToggle={toggleModulo} />
+            <StepModulos
+              selectedSlugs={modulos}
+              onToggle={toggleModulo}
+              criarUnidade={criarUnidade}
+              onCriarUnidadeChange={setCriarUnidade}
+            />
             <div className="mt-6 md:mt-8 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3">
               <Button variant="ghost" onClick={() => setStep(1)} disabled={submit.isPending} className="w-full sm:w-auto min-h-10">
                 <ArrowLeft className="mr-2 h-4 w-4" />
