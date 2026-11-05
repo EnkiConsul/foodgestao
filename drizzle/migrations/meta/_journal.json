@@ -1352,6 +1352,13 @@
       "when": 1793836354374,
       "tag": "0192_folgas_compensatorias_e_notificacoes_contextuais",
       "breakpoints": true
+    },
+    {
+      "idx": 193,
+      "version": "7",
+      "when": 1793843061884,
+      "tag": "0193_folga_compensatoria_gestor_e_loja_sem_expediente",
+      "breakpoints": true
     }
   ]
 }
