@@ -45,7 +45,7 @@ export function DpPrimeirosPassosCard() {
           <p className="text-sm font-medium text-foreground">1. Loja cadastrada</p>
           {!temUnidade && (
             <Button asChild size="sm" variant="outline" className="mt-2 h-10">
-              <Link to="/dp/unidades">Cadastrar loja</Link>
+              <Link to="/dp/cadastros/unidades">Cadastrar loja</Link>
             </Button>
           )}
         </div>
