@@ -14002,6 +14002,8 @@ export type Database = {
           atualizado_por: string | null
           company_id: string
           data: string
+          escala_confirmada_em: string | null
+          escala_confirmada_por: string | null
           fechada: boolean
           id: string
           unidade_id: string
@@ -14011,6 +14013,8 @@ export type Database = {
           atualizado_por?: string | null
           company_id: string
           data: string
+          escala_confirmada_em?: string | null
+          escala_confirmada_por?: string | null
           fechada?: boolean
           id?: string
           unidade_id: string
@@ -14020,6 +14024,8 @@ export type Database = {
           atualizado_por?: string | null
           company_id?: string
           data?: string
+          escala_confirmada_em?: string | null
+          escala_confirmada_por?: string | null
           fechada?: boolean
           id?: string
           unidade_id?: string

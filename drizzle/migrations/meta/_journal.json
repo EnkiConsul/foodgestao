@@ -1359,6 +1359,13 @@
       "when": 1793843061884,
       "tag": "0193_folga_compensatoria_gestor_e_loja_sem_expediente",
       "breakpoints": true
+    },
+    {
+      "idx": 194,
+      "version": "7",
+      "when": 1793889998906,
+      "tag": "0194_feriado_escala_confirmada",
+      "breakpoints": true
     }
   ]
 }
