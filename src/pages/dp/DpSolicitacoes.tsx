@@ -1,3 +1,4 @@
+import { datasSolicitacao, ehTrocaFolga } from "@/lib/dp/solicitacao-datas";
 import { TIPOS_LICENCA_CURTA, TIPO_AFASTAMENTO_LABEL } from "@/lib/dp/licencas";
 import { abrirNoApp } from "@/lib/visualizadorGlobal";
 import { diasDeAntecedencia, ehCompensacaoFeriado, motivoLegivel, MOTIVO_COMPENSACAO_FERIADO } from "@/lib/dp/termos-compensacao";
@@ -368,12 +369,13 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="font-medium truncate">{s.dp_colaboradores?.nome ?? "Funcionário"}</div>
-                    <div className="text-sm text-muted-foreground truncate">
+                    <div className="text-sm text-muted-foreground break-words">
                       {s.tipo === "folga" && s.data_fim ? (
                         <>
                           <span className="mr-2">Troca de folga</span>
                           <b>
-                            folga em {formatBR(s.data_alvo)} · trabalha em {formatBR(s.data_fim)}
+                            <span className="block">Folga atual: {formatBR(s.data_fim)} · passará a trabalhar</span>
+                            <span className="block">Folga desejada: {formatBR(s.data_alvo)}</span>
                           </b>
                         </>
                       ) : (
@@ -587,6 +589,7 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
                     <span className="ml-2 text-xs font-medium text-muted-foreground">{s.tipo === "folga" && s.data_fim ? "Troca de folga" : s.tipo === "folga" && ehCompensacaoFeriado(s.motivo) ? "Compensação de Feriado" : s.tipo === "folga" && s.fora_da_janela ? "Folga extra (exceção)" : tipoLabel(s.tipo)}</span>
                   </div>
                   <div className="truncate text-muted-foreground">{s.dp_colaboradores?.nome ?? "—"}</div>
+                  {ehTrocaFolga(s) && <div className="mt-1 text-xs text-muted-foreground">Folga atual: {formatBR(s.data_fim)}<br />Folga desejada: {formatBR(s.data_alvo)}</div>}
                   {motivoLegivel(s.motivo) && <div className="text-muted-foreground mt-0.5 line-clamp-1 md:line-clamp-none">{motivoLegivel(s.motivo)}</div>}
                   {s.resposta_admin && (
                     <div className="text-xs text-muted-foreground mt-1 line-clamp-1 md:line-clamp-none">
@@ -628,13 +631,13 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
                 </SelectContent>
               </Select>
             </div>}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className="grid gap-1.5">
-                <Label>Data alvo</Label>
+                <Label>{(tipoFixo ?? form.tipo) === "folga" ? "Folga desejada" : "Data inicial"}</Label>
                 <Input type="date" value={form.data_alvo} onChange={(e) => setForm({ ...form, data_alvo: e.target.value })} />
               </div>
               <div className="grid gap-1.5">
-                <Label>Data fim (opcional)</Label>
+                <Label>{(tipoFixo ?? form.tipo) === "folga" ? "Folga atual (se troca)" : "Data final (opcional)"}</Label>
                 <Input type="date" value={form.data_fim} onChange={(e) => setForm({ ...form, data_fim: e.target.value })} />
               </div>
             </div>
@@ -732,8 +735,7 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
         description={detailsRow ? STATUS_META[detailsRow.status].label : undefined}
         meta={detailsRow ? [
           { label: "Tipo", value: <span className="capitalize">{detailsRow.tipo === "folga" && detailsRow.data_fim ? "Troca de folga" : detailsRow.tipo === "folga" && ehCompensacaoFeriado(detailsRow.motivo) ? "Compensação de Feriado" : detailsRow.tipo === "folga" && detailsRow.fora_da_janela ? "Folga extra (exceção)" : detailsRow.tipo}</span> },
-          { label: "Data alvo", value: formatBR(detailsRow.data_alvo) },
-          ...(detailsRow.data_fim ? [{ label: "Data fim", value: formatBR(detailsRow.data_fim) }] : []),
+          ...datasSolicitacao(detailsRow).map((d) => ({ label: d.label, value: formatBR(d.data) })),
           { label: "Criada em", value: new Date(detailsRow.created_at).toLocaleString("pt-BR") },
           ...(prazoCompensacao(detailsRow) ? [{
             label: "Prazo",

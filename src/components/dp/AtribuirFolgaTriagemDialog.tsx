@@ -28,6 +28,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { podeReceberFolga, podeReceberCompensatoria } from "@/lib/dp/folga-elegibilidade";
+import { invalidarRotina } from "@/lib/dp/rotina-cache";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 
 type Modo = "substituir_fds" | "troca_semanal" | "extra" | "compensatoria";
@@ -56,6 +60,13 @@ export function AtribuirFolgaTriagemDialog({
   onDone,
 }: Props) {
   const qc = useQueryClient();
+  const mobile = useIsMobile();
+  const Root = mobile ? Sheet : Dialog;
+  const Content = mobile ? SheetContent : DialogContent;
+  const Header = mobile ? SheetHeader : DialogHeader;
+  const Title = mobile ? SheetTitle : DialogTitle;
+  const Description = mobile ? SheetDescription : DialogDescription;
+  const Footer = mobile ? SheetFooter : DialogFooter;
   const [modo, setModo] = useState<Modo>("extra");
   const [folgaSubstituir, setFolgaSubstituir] = useState("");
   const [dataTrabalho, setDataTrabalho] = useState("");
@@ -88,21 +99,26 @@ export function AtribuirFolgaTriagemDialog({
 
   /** Dias fixos de folga do colaborador, para oferecer a troca da folga semanal. */
   const fixosQuery = useQuery({
-    queryKey: ["dp_triagem_fixos", colaboradorId],
+    queryKey: ["dp_triagem_fixos", companyId, colaboradorId, dataIso],
     enabled: open && !!colaboradorId,
     queryFn: async (): Promise<number[]> => {
-      const { data: cfg } = await supabase
+      const { data: cfg, error: cfgError } = await supabase
         .from("dp_colaborador_config_trabalho")
         .select("id")
         .eq("colaborador_id", colaboradorId)
+        .eq("company_id", companyId)
+        .lte("vigencia_inicio", dataIso)
+        .or(`vigencia_fim.is.null,vigencia_fim.gte.${dataIso}`)
         .order("vigencia_inicio", { ascending: false })
         .limit(1)
         .maybeSingle();
+      if (cfgError) throw cfgError;
       if (!cfg?.id) return [];
-      const { data: dias } = await supabase
+      const { data: dias, error: diasError } = await supabase
         .from("dp_colaborador_config_dias")
         .select("dow, trabalha")
         .eq("config_id", cfg.id);
+      if (diasError) throw diasError;
       return (dias ?? [])
         .filter((d: any) => d.trabalha === false)
         .map((d: any) => Number(d.dow));
@@ -124,30 +140,36 @@ export function AtribuirFolgaTriagemDialog({
     return out;
   }, [fixosQuery.data, dataIso]);
 
-  /** Intermitente não participa de folga fixa, troca semanal nem escolha de fim de semana. */
+  /** Este vínculo não participa da atribuição de folgas. Registre ausência ou indisponibilidade no calendário. */
   const regimeQuery = useQuery({
     queryKey: ["dp_triagem_regime", colaboradorId],
     enabled: open && !!colaboradorId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_colaboradores")
-        .select("regime, unidade_id")
+        .select("regime, unidade_id, forma_pagamento, vinculo_label")
+        .eq("company_id", companyId)
         .eq("id", colaboradorId)
         .maybeSingle();
       if (error) throw error;
-      const row = data as { regime?: string; unidade_id?: string } | null;
+      const row = data;
+      if (!row) throw new Error("Colaborador não encontrado.");
       let compensa = false;
       if (row?.unidade_id) {
-        const { data: u } = await supabase.from("dp_unidades").select("compensa_feriados").eq("id", row.unidade_id).maybeSingle();
-        compensa = !!(u as { compensa_feriados?: boolean } | null)?.compensa_feriados;
+        const { data: u, error: ue } = await supabase.from("dp_unidades").select("compensa_feriados").eq("company_id", companyId).eq("id", row.unidade_id).maybeSingle();
+        if (ue) throw ue;
+        compensa = !!u?.compensa_feriados;
       }
-      return { regime: String(row?.regime ?? "").toLowerCase() || null, compensa };
+      const { data: ex, error: ee } = await supabase.from("dp_colaborador_compensacao").select("usa_compensa_feriados").eq("company_id", companyId).eq("colaborador_id", colaboradorId).maybeSingle();
+      if (ee) throw ee;
+      return { pessoa: row, compensa, individual: ex?.usa_compensa_feriados };
     },
   });
-  const intermitente = regimeQuery.data?.regime === "intermitente";
+  const elegivel = !!regimeQuery.data && podeReceberFolga(regimeQuery.data.pessoa);
+  const intermitente = !elegivel;
   /** Compensatória só para CLT (não intermitente) em unidade que compensa feriados. */
-  const podeCompensatoria = regimeQuery.data?.regime === "clt";
-  const temCompensacao = !!regimeQuery.data?.compensa && podeCompensatoria;
+  const podeCompensatoria = !!regimeQuery.data && podeReceberCompensatoria(regimeQuery.data.pessoa, regimeQuery.data.compensa, regimeQuery.data.individual);
+  const temCompensacao = podeCompensatoria;
 
   const [limiteMsg, setLimiteMsg] = useState<string | null>(null);
   const [justificativa, setJustificativa] = useState("");
@@ -164,8 +186,9 @@ export function AtribuirFolgaTriagemDialog({
 
   const atribuir = useMutation({
     mutationFn: async (autorizar: boolean = false) => {
-      if (intermitente && modo !== "extra")
-        throw new Error("Intermitente não participa de trocas de folga fixa ou de fim de semana.");
+      if (!elegivel) throw new Error("Este vínculo não participa da atribuição de folgas. Use ausência ou indisponibilidade.");
+      if (modo === "compensatoria" && !podeCompensatoria) throw new Error("Compensação não habilitada para este colaborador.");
+      if (modo === "compensatoria" && !motivo.trim()) throw new Error("Informe a justificativa da folga compensatória.");
       if (modo === "substituir_fds" && !folgaSubstituir)
         throw new Error("Escolha a folga que será substituída.");
       if (modo === "troca_semanal" && !dataTrabalho)
@@ -175,13 +198,11 @@ export function AtribuirFolgaTriagemDialog({
       const { data, error } = await supabase.rpc("dp_folga_atribuir_admin_v2" as any, {
         p_colaborador: colaboradorId,
         p_data: dataIso,
-        p_modo: modo === "compensatoria" ? "extra" : modo,
+        p_modo: modo,
         p_folga_substituir_id: modo === "substituir_fds" ? folgaSubstituir : null,
         p_data_trabalho: modo === "troca_semanal" ? dataTrabalho : null,
         p_motivo:
-          modo === "compensatoria"
-            ? `FOLGA COMPENSATÓRIA${motivo.trim() ? ` — ${motivo.trim()}` : ""}`
-            : motivo.trim() || null,
+          motivo.trim() || null,
         p_autorizar_excedente: autorizar,
         p_justificativa_excedente: autorizar ? justificativa.trim() : null,
       });
@@ -220,13 +241,17 @@ export function AtribuirFolgaTriagemDialog({
             ? "A folga anterior foi cancelada automaticamente."
             : modo === "troca_semanal"
               ? "O dia de folga semanal foi registrado como trabalho por troca."
-              : "Folga extra registrada sem alterar as folgas do mês.",
+              : modo === "compensatoria" ? "Folga compensatória registrada com justificativa em Ocorrências." : "Folga extra registrada sem alterar as folgas do mês.",
       });
       qc.invalidateQueries({ queryKey: ["dp_folgas"] });
       qc.invalidateQueries({ queryKey: ["dp_folgas_efetivadas"] });
       qc.invalidateQueries({ queryKey: ["dp_solicitacoes"] });
       qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
       qc.invalidateQueries({ queryKey: ["dp_home_stats"] });
+      qc.invalidateQueries({ queryKey: ["dp_ausencias_do_dia"] });
+      qc.invalidateQueries({ queryKey: ["dp_ocorrencias"] });
+      qc.invalidateQueries({ queryKey: ["minhas_ocorrencias_mes"] });
+      void invalidarRotina(qc);
       onOpenChange(false);
       onDone?.();
     },
@@ -251,34 +276,35 @@ export function AtribuirFolgaTriagemDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md max-h-[90svh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-black">Atribuir folga</DialogTitle>
-          <DialogDescription>
+    <Root open={open} onOpenChange={handleOpenChange}>
+      <Content {...(mobile ? { side: "bottom" as const } : {})} className="max-h-[92dvh] overflow-y-auto sm:max-w-md [&_input]:min-h-12 [&_button]:whitespace-normal">
+        <Header>
+          <Title className="text-2xl font-black">Atribuir folga</Title>
+          <Description>
             {colaboradorNome} vai folgar em <b>{dataIso && descreverDia(dataIso)}</b>. Diga o que esta
             folga significa na escala.
-          </DialogDescription>
-        </DialogHeader>
+          </Description>
+        </Header>
 
         <div className="space-y-3">
+          {regimeQuery.isError && <p role="alert" className="text-sm text-destructive">Não foi possível conferir a elegibilidade. <Button variant="ghost" onClick={() => void regimeQuery.refetch()}>Tentar novamente</Button></p>}
           <div>
             <Label>Tipo de folga</Label>
             <Select value={modo} onValueChange={(v) => setModo(v as Modo)}>
-              <SelectTrigger className="rounded-xl">
+              <SelectTrigger className="min-h-12" disabled={!elegivel || regimeQuery.isError}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {!intermitente && (
                   <SelectItem
                     value="substituir_fds"
-                    disabled={(folgasQuery.data ?? []).length === 0}
+                    disabled={folgasQuery.isError || (folgasQuery.data ?? []).length === 0}
                   >
                     Troca de uma folga já marcada
                   </SelectItem>
                 )}
                 {!intermitente && (
-                  <SelectItem value="troca_semanal" disabled={diasSemanaFixos.length === 0}>
+                  <SelectItem value="troca_semanal" disabled={fixosQuery.isError || diasSemanaFixos.length === 0}>
                     Troca da folga semanal da semana
                   </SelectItem>
                 )}
@@ -292,7 +318,7 @@ export function AtribuirFolgaTriagemDialog({
                 : modo === "troca_semanal"
                   ? "O colaborador trabalha no dia da folga semanal e folga neste dia no lugar dele."
                   : modo === "compensatoria"
-                    ? "Compensa feriado trabalhado ou horas negociadas. Fica registrada como folga compensatória."
+                    ? "Descanso autorizado conforme a regra de compensação da unidade. Não apura ponto ou saldo de horas."
                     : "Folga adicional: a folga semanal e as folgas já marcadas continuam como estão."}
             </p>
             {modo === "extra" && temCompensacao && (
@@ -304,9 +330,9 @@ export function AtribuirFolgaTriagemDialog({
 
           {modo === "substituir_fds" && (
             <div>
-              <Label>Folga que será substituída</Label>
+              <Label>Folga atual</Label>
               <Select value={folgaSubstituir} onValueChange={setFolgaSubstituir}>
-                <SelectTrigger className="rounded-xl">
+                <SelectTrigger className="min-h-12">
                   <SelectValue placeholder="Escolha a folga" />
                 </SelectTrigger>
                 <SelectContent>
@@ -323,9 +349,9 @@ export function AtribuirFolgaTriagemDialog({
 
           {modo === "troca_semanal" && (
             <div>
-              <Label>Dia em que vai trabalhar</Label>
+              <Label>Folga atual · dia que passará a trabalhar</Label>
               <Select value={dataTrabalho} onValueChange={setDataTrabalho}>
-                <SelectTrigger className="rounded-xl">
+                <SelectTrigger className="min-h-12">
                   <SelectValue placeholder="Escolha o dia" />
                 </SelectTrigger>
                 <SelectContent>
@@ -342,7 +368,7 @@ export function AtribuirFolgaTriagemDialog({
           <div>
             <Label className="flex items-center gap-2">
               Motivo
-              <span className="text-xs font-normal text-muted-foreground">(opcional)</span>
+              <span className="text-xs font-normal text-muted-foreground">{modo === "compensatoria" ? "(obrigatório)" : "(opcional)"}</span>
             </Label>
             <Textarea
               rows={3}
@@ -355,7 +381,7 @@ export function AtribuirFolgaTriagemDialog({
 
           {intermitente && (
             <p className="rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
-              Intermitente não participa de folga fixa, troca semanal nem escolha de fim de semana.
+              Este vínculo não participa da atribuição de folgas. Registre ausência ou indisponibilidade no calendário.
             </p>
           )}
 
@@ -385,23 +411,23 @@ export function AtribuirFolgaTriagemDialog({
           )}
         </div>
 
-        <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
+        <Footer className="sticky bottom-0 mt-3 flex-col-reverse gap-2 border-t bg-background pt-3 sm:flex-row">
           <Button
             variant="ghost"
             onClick={() => onOpenChange(false)}
-            className="min-h-10 w-full sm:w-auto"
+            className="min-h-12 w-full sm:w-auto"
           >
             Cancelar
           </Button>
           <Button
             onClick={() => atribuir.mutate(false)}
-            disabled={atribuir.isPending}
-            className="min-h-10 w-full sm:w-auto"
+            disabled={atribuir.isPending || regimeQuery.isLoading || regimeQuery.isError || !elegivel || (modo === "compensatoria" && (!podeCompensatoria || !motivo.trim()))}
+            className="min-h-12 w-full sm:w-auto"
           >
             {atribuir.isPending ? "Atribuindo..." : "Confirmar folga"}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </Footer>
+      </Content>
+    </Root>
   );
 }

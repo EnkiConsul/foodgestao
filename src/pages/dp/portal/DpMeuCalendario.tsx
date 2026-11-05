@@ -2348,7 +2348,7 @@ export default function DpMeuCalendario() {
             </div>
             {excecaoModo === "troca_semanal" && (
               <div>
-                <Label>Dia da folga semanal que você vai trabalhar</Label>
+                <Label>Folga atual · dia que passará a trabalhar</Label>
                 <Select value={excecaoDiaTrabalho} onValueChange={setExcecaoDiaTrabalho}>
                   <SelectTrigger className="rounded-xl">
                     <SelectValue placeholder="Escolha o dia" />
@@ -2366,8 +2366,8 @@ export default function DpMeuCalendario() {
                 )}
                 {excecaoDiaTrabalho && selectedDay && (
                   <p className="mt-2 rounded-xl border border-sky-200 bg-sky-500/10 px-3 py-2 text-xs font-medium text-sky-700">
-                    Você pede para trabalhar em {descreverDia(excecaoDiaTrabalho)} (sua folga semanal) e folgar em{" "}
-                    {descreverDia(selectedDay.iso)} no lugar dele.
+                    <span className="block">Folga atual: {descreverDia(excecaoDiaTrabalho)} · passará a trabalhar</span>
+                    <span className="block">Folga desejada: {descreverDia(selectedDay.iso)}</span>
                   </p>
                 )}
               </div>

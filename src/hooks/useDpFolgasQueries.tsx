@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { solicitacaoNoPeriodo } from "@/lib/dp/solicitacao-datas";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
@@ -112,14 +113,13 @@ export function useDpFolgasQueries({
         .eq("company_id", selectedCompanyId!)
         .not("status", "in", "(cancelada,recusada)")
         .not("data_alvo", "is", null)
-        .lte("data_alvo", toISO)
-        .or(`data_fim.gte.${fromISO},and(data_fim.is.null,data_alvo.gte.${fromISO})`);
+        .or(`and(data_alvo.gte.${fromISO},data_alvo.lte.${toISO}),and(data_fim.gte.${fromISO},data_fim.lte.${toISO}),and(tipo.neq.folga,data_alvo.lte.${toISO},data_fim.gte.${fromISO})`);
 
       if (tipoFilter !== "todos") q = q.eq("tipo", tipoFilter);
       if (colabFilter !== "todos") q = q.eq("colaborador_id", colabFilter);
       const { data, error } = await q;
       if (error) throw error;
-      let rows = (data ?? []) as SolicitacaoRow[];
+      let rows = ((data ?? []) as SolicitacaoRow[]).filter(r => solicitacaoNoPeriodo(r, fromISO, toISO));
       if (unidadeFilter !== "todas") {
         rows = rows.filter((r) => r.dp_colaboradores?.unidade_id === unidadeFilter);
       }

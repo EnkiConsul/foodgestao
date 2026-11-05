@@ -1,3 +1,4 @@
+import { podeReceberFolga } from "./folga-elegibilidade";
 // Quem pode receber um registro de ausência numa data: estava ativo no dia
 // (admitido até a data e não desligado antes dela) e ainda não tem ausência.
 export interface ColabAusencia {
@@ -7,6 +8,9 @@ export interface ColabAusencia {
   deleted_at?: string | null;
   unidade_id?: string | null;
   folga_fixa_semana?: number | null;
+  regime?: string | null;
+  forma_pagamento?: string | null;
+  vinculo_label?: string | null;
 }
 
 /** Ativo na data: admitido até ela e desligado só depois dela (ou no próprio dia). */
@@ -61,6 +65,9 @@ export function opcoesAusencia<T extends ColabAusencia>(
   return elegiveisParaAusencia(colabs, opts.data, opts.comAusencia)
     .filter((c) => c.unidade_id === opts.unidadeId)
     .map((c) => {
+      if (opts.motivo === "folga" && c.regime && !podeReceberFolga(c)) {
+        return { colab: c, grupo: opts.ehSocio(c) ? "socios" as const : "escalados" as const, bloqueio: "Use ausência ou indisponibilidade para este vínculo" };
+      }
       if (opts.ehSocio(c)) {
         return { colab: c, grupo: "socios" as const, bloqueio: soEscalados ? "Não se aplica a sócio" : null };
       }
