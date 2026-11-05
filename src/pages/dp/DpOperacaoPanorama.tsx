@@ -2016,7 +2016,7 @@ export default function DpOperacaoPanorama({
             <Popover open={acoesInicioOpen} onOpenChange={setAcoesInicioOpen}><PopoverTrigger asChild><Button size="sm" className="h-8 shrink-0 gap-1 rounded-full bg-primary px-3 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90" aria-label="Ações do calendário"><MoreHorizontal className="h-4 w-4" />Ações</Button></PopoverTrigger>
               <PopoverContent align="end" className="w-80 max-w-[calc(100vw-2rem)] space-y-1 rounded-xl p-2">
                 {podeRegistrar && <>
-                  {dia.feriado_nome && unidadeId && <FeriadoLojaFechadaToggle unidadeId={unidadeId} data={data} feriadoNome={dia.feriado_nome} />}
+                  {unidadeId && <FeriadoLojaFechadaToggle unidadeId={unidadeId} data={data} feriadoNome={dia.feriado_nome ?? undefined} />}
                   <Button variant="ghost" className="h-10 w-full justify-start gap-2 text-xs" onClick={() => { setAcoesInicioOpen(false); setAusenciaData(data); setAusenciaMotivo(undefined); setAusenciaOpen(true); }}><Plus className="h-4 w-4 text-calendar-falta" />Registrar Ausência</Button>
                   <Button variant="ghost" className="h-10 w-full justify-start gap-2 text-xs" onClick={() => { setAcoesInicioOpen(false); abrirNovaAvulsa(data); }}><UserPlus className="h-4 w-4 text-primary" />Mão de Obra Extra</Button>
                 </>}
@@ -2070,7 +2070,7 @@ export default function DpOperacaoPanorama({
               <Popover><PopoverTrigger asChild><Button size="sm" className="h-8 rounded-full px-3 text-xs"><MoreHorizontal className="mr-1 h-4 w-4" />Ações</Button></PopoverTrigger>
                 <PopoverContent align="end" className="w-80 max-w-[calc(100vw-2rem)] space-y-1 rounded-xl p-2">
                   {podeRegistrar && <>
-                    {diaPopout.feriado_nome && unidadeId && <FeriadoLojaFechadaToggle unidadeId={unidadeId} data={dataPopout} feriadoNome={diaPopout.feriado_nome} />}
+                    {unidadeId && <FeriadoLojaFechadaToggle unidadeId={unidadeId} data={dataPopout} feriadoNome={diaPopout.feriado_nome ?? undefined} />}
                     <Button variant="ghost" className="h-10 w-full justify-start gap-2 text-xs" onClick={() => abrirTrocaGestor(dataPopout)}><ArrowLeftRight className="h-4 w-4" />Registrar troca</Button>
                     <Button variant="ghost" className="h-10 w-full justify-start gap-2 text-xs" onClick={() => { setAusenciaData(dataPopout); setAusenciaMotivo(undefined); setAusenciaOpen(true); }}><Plus className="h-4 w-4 text-calendar-falta" />Registrar Ausência</Button>
                     <Button variant="ghost" className="h-10 w-full justify-start gap-2 text-xs" onClick={() => abrirNovaAvulsa(dataPopout)}><UserPlus className="h-4 w-4 text-primary" />Mão de Obra Extra</Button>

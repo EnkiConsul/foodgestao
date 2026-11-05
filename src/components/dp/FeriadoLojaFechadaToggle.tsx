@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-interface Props { unidadeId: string; data: string; feriadoNome: string }
+interface Props { unidadeId: string; data: string; feriadoNome?: string | null }
 
 /** Marca a loja como fechada num feriado: ninguém da unidade é convocado automaticamente nesse dia. */
 export function FeriadoLojaFechadaToggle({ unidadeId, data, feriadoNome }: Props) {
@@ -34,7 +34,7 @@ export function FeriadoLojaFechadaToggle({ unidadeId, data, feriadoNome }: Props
       : await supabase.from("dp_unidade_feriado_operacao").delete().eq("unidade_id", unidadeId).eq("data", data);
     setSalvando(false);
     if (error) { toast.error("Não foi possível salvar. Verifique sua permissão para alterar folgas."); return; }
-    toast.success(fechada ? "Loja marcada como fechada no feriado." : "Loja aberta no feriado.");
+    toast.success(fechada ? (feriadoNome ? "Loja marcada como fechada no feriado." : "Loja marcada sem expediente nesta data.") : "Loja volta a operar nesta data.");
     qc.invalidateQueries({ queryKey: key });
     qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
     qc.invalidateQueries({ queryKey: ["dp_panorama_feriados"] });
@@ -44,14 +44,14 @@ export function FeriadoLojaFechadaToggle({ unidadeId, data, feriadoNome }: Props
     <label className="flex min-h-12 items-start gap-3 border-b border-border p-2 text-sm">
       <Store className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
       <span className="min-w-0 flex-1">
-        <span className="block font-medium">Loja fechada neste feriado ({feriadoNome})</span>
+        <span className="block font-medium">{feriadoNome ? `Loja fechada neste feriado (${feriadoNome})` : "Loja sem expediente nesta data"}</span>
         <span className="block text-xs text-muted-foreground">
           {q.data?.fechada
-            ? "Ninguém desta unidade será convocado automaticamente nesse dia."
-            : "Ligue se a loja não vai abrir: ninguém será convocado automaticamente."}
+            ? "Ninguém será escalado nem poderá pedir folga: o dia é descanso remunerado e não usa a cota."
+            : feriadoNome ? "Ligue se a loja não vai abrir: ninguém será convocado automaticamente." : "Use para reforma, manutenção ou recesso: ninguém será escalado nem poderá pedir folga."}
         </span>
       </span>
-      <Switch checked={!!q.data?.fechada} disabled={q.isLoading || q.isError || salvando} onCheckedChange={alternar} aria-label="Loja fechada neste feriado" />
+      <Switch checked={!!q.data?.fechada} disabled={q.isLoading || q.isError || salvando} onCheckedChange={alternar} aria-label={feriadoNome ? "Loja fechada neste feriado" : "Loja sem expediente nesta data"} />
     </label>
   );
 }
