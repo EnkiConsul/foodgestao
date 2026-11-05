@@ -204,15 +204,8 @@ export default function Onboarding() {
         whatsappEmpresa: empresa.whatsappEmpresa,
         emailEmpresa: empresa.emailEmpresa,
         modulosSlugs: modulos,
+        criarUnidade: criarUnidade && modulos.includes("dp"),
       });
-
-      if (criarUnidade && modulos.includes("dp") && res?.company_id) {
-        const { error: unErr } = await supabase.rpc("dp_criar_unidade_inicial", { p_company_id: res.company_id });
-        if (unErr) {
-          console.error("[onboarding] falha ao criar unidade inicial", unErr);
-          toast.warning("Empresa criada. Cadastre sua loja em Pessoas → Unidades.");
-        }
-      }
 
       // Marca onboarding concluído no profile
       if (user) {

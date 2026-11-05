@@ -21,6 +21,7 @@ export interface OnboardingSubmitPayload {
   whatsappEmpresa: string;
   emailEmpresa: string;
   modulosSlugs: string[];
+  criarUnidade?: boolean;
 }
 
 export interface OnboardingSubmitResult {
@@ -33,7 +34,7 @@ const digits = (v: string) => (v ?? "").replace(/\D/g, "");
 export function useOnboardingSubmit() {
   return useMutation<OnboardingSubmitResult, Error & { code?: string }, OnboardingSubmitPayload>({
     mutationFn: async (payload) => {
-      const { data, error } = await supabase.rpc("fn_cadastrar_empresa_onboarding" as any, {
+      const { data, error } = await supabase.rpc("fn_cadastrar_empresa_onboarding_com_unidade" as any, {
         p_nome_completo: payload.nomeCompleto,
         p_email_cliente: payload.emailCliente,
         p_telefone_cliente: digits(payload.telefoneCliente),
@@ -53,6 +54,7 @@ export function useOnboardingSubmit() {
         p_whatsapp_empresa: digits(payload.whatsappEmpresa),
         p_email_empresa: payload.emailEmpresa,
         p_modulos_slugs: payload.modulosSlugs,
+        p_criar_unidade: !!payload.criarUnidade,
       });
 
       if (error) {

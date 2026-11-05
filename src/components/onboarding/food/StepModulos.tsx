@@ -59,8 +59,7 @@ export function StepModulos({ selectedSlugs, onToggle, criarUnidade, onCriarUnid
               Usar este CNPJ como a primeira loja no Pessoas 360°
             </span>
             <span className="text-xs text-muted-foreground">
-              Criamos a unidade com o mesmo nome e endereço da empresa para você já cadastrar colaboradores.
-              Desmarque se a gestão de pessoas for em outro CNPJ — dá para ajustar depois em Unidades.
+              Mesmo nome e endereço da empresa. Desmarque se a equipe for de outro CNPJ.
             </span>
           </span>
         </label>
