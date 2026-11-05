@@ -236,11 +236,12 @@ export default function Onboarding() {
     }
   };
 
-  const handleAcessarPainel = () => {
+  const handleAcessarPainel = async (destino = "/") => {
     if (result?.company_id) {
+      try { await refreshCompanies(); } catch { /* segue */ }
       setContext("pj", result.company_id);
     }
-    navigate("/");
+    navigate(destino, { replace: true });
   };
 
   const requestExit = () => {
@@ -340,7 +341,7 @@ export default function Onboarding() {
             razaoSocial={empresa.razaoSocial}
             modulosSlugs={modulos}
             trialTerminaEm={result.trial_termina_em}
-            onContinuar={handleAcessarPainel}
+            onContinuar={(d) => void handleAcessarPainel(d)}
           />
         )}
       </OnboardingShell>

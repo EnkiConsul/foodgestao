@@ -464,7 +464,15 @@ export default function Auth() {
               toast.success("Cadastro realizado!", {
                 description: "Confirme pelo código enviado ao seu WhatsApp.",
               });
-              if (userId) void enviarOtp(whatsapp, userId, email.trim());
+              if (userId) {
+                void enviarOtp(whatsapp, userId, email.trim()).then((ok) => {
+                  // Falha no WhatsApp: salta direto para a confirmação por e-mail (o link já foi enviado).
+                  if (!ok) {
+                    setMode("confirm-email");
+                    toast.info("Confirme pelo e-mail", { description: "Não conseguimos enviar o código no WhatsApp. Enviamos um link de confirmação para o seu e-mail." });
+                  }
+                });
+              }
             } else {
               toast.success("Cadastro realizado!");
               const consumed = await consumePendingInviteToken();
