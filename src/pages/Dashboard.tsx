@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Wallet, Landmark, CalendarIcon } from "lucide-react";
 import { fromCents, subtractMoney, sumMoney, toCents } from "@/lib/money";
 import { useAuth } from "@/hooks/useAuth";
+import { FinPrimeirosPassosCard } from "@/components/dashboard/FinPrimeirosPassosCard";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { usePrivacy } from "@/hooks/usePrivacy";
@@ -384,6 +385,8 @@ export default function Dashboard() {
       </div>
 
       {/* Bento Grid */}
+      <FinPrimeirosPassosCard />
+
       <div className="grid grid-cols-12 gap-2.5 md:gap-4 lg:gap-5">
         {/* KPIs */}
         {kpis.map((kpi) => {
