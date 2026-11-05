@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
+import { FeriadosEscalaConfirmar, useFeriadosEscalaPendentes } from "@/components/dp/home/FeriadosEscalaConfirmar";
 
 const dataBR = (d: string) => new Date(d.slice(0, 10) + "T12:00:00").toLocaleDateString("pt-BR");
 
@@ -30,6 +31,7 @@ export function AcoesDoDiaCard({ emFaixa = false }: { emFaixa?: boolean }) {
   const { ignoradas, adiadas } = useDpPendenciasDecisoes();
   const isMobile = useIsMobile();
   const [aberto, setAberto] = useState(false);
+  const nFeriados = useFeriadosEscalaPendentes().data?.length ?? 0;
 
   const abertas = useMemo(
     () => filtrarAbertas(stable.data.filter((p) => !ignoradas.has(p.id)), { ...prefs.pendencias_adiadas, ...adiadas })
@@ -45,14 +47,17 @@ export function AcoesDoDiaCard({ emFaixa = false }: { emFaixa?: boolean }) {
     ? "Falha ao carregar"
     : carregando
     ? "Carregando…"
-    : abertas.length === 0
+    : abertas.length === 0 && nFeriados === 0
       ? "Tudo em dia"
+    : abertas.length === 0
+      ? `${nFeriados} escala${nFeriados > 1 ? "s" : ""} de feriado`
       : [atrasadas > 0 && `${atrasadas} ${atrasadas === 1 ? "atrasada" : "atrasadas"}`, hoje > 0 && `${hoje} para hoje`]
           .filter(Boolean)
           .join(" · ") || "Nenhuma urgente";
 
   const conteudo = (
     <div className="space-y-3">
+      <FeriadosEscalaConfirmar onNavigate={() => setAberto(false)} />
       {falhou && stable.ready && (
         <div role="status" className="flex min-w-0 items-start gap-2 rounded-lg border border-border bg-muted/40 p-3 text-muted-foreground">
           <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
@@ -76,7 +81,7 @@ export function AcoesDoDiaCard({ emFaixa = false }: { emFaixa?: boolean }) {
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Carregando ações…
         </div>
       )}
-      {stable.ready && abertas.length === 0 && !falhou && (
+      {stable.ready && abertas.length === 0 && nFeriados === 0 && !falhou && (
         <div className="flex flex-col items-center gap-2 px-6 py-8 text-center">
           <CheckCircle2 className="h-10 w-10 text-primary" aria-hidden="true" />
           <p className="text-base font-semibold">Tudo em dia!</p>
@@ -141,8 +146,8 @@ export function AcoesDoDiaCard({ emFaixa = false }: { emFaixa?: boolean }) {
           <p className={cn("whitespace-normal font-semibold", emFaixa ? "text-[11px] leading-tight sm:text-xs" : "text-xs leading-snug sm:text-sm")}>Ações do Dia</p>
           {!emFaixa && <p className={cn("col-span-2 row-start-2 whitespace-normal break-words text-[11px] leading-snug sm:text-xs", atrasadas > 0 || (falhou && !stable.ready) ? "text-destructive" : "text-muted-foreground")}>{resumo}</p>}
         </div>
-        {!carregando && abertas.length > 0 && (
-          <span className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold tabular-nums text-primary-foreground">{abertas.length}</span>
+        {!carregando && abertas.length + nFeriados > 0 && (
+          <span className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold tabular-nums text-primary-foreground">{abertas.length + nFeriados}</span>
         )}
         {emFaixa && (carregando || (falhou && !stable.ready)) && <span className="text-xs text-muted-foreground" title={resumo}>{carregando ? "…" : "!"}</span>}
         {!emFaixa && <ChevronRight className="hidden h-4 w-4 shrink-0 text-muted-foreground sm:block" aria-hidden="true" />}

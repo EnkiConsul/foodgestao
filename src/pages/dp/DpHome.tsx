@@ -5,7 +5,6 @@ import { Link } from "react-router-dom";
 import { CalendarioOperacaoResumo } from "@/components/dp/home/CalendarioOperacaoResumo";
 import { AtalhosFavoritos } from "@/components/dp/home/AtalhosFavoritos";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import { FeriadosProximosAlerta } from "@/components/dp/FeriadosProximosAlerta";
 import { KpiCards } from "@/components/dp/home/KpiCards";
 import { MenusPrincipaisCards } from "@/components/dp/home/MenusPrincipaisCards";
 import { PontoConformidadeAlerta } from "@/components/dp/PontoConformidadeAlerta";
@@ -60,8 +59,6 @@ export default function DpHome() {
           <AniversariantesCard compacto />
         </div>
       </div>
-
-      <FeriadosProximosAlerta companyId={selectedCompanyId} comAtalho />
 
       <CalendarioOperacaoResumo />
 

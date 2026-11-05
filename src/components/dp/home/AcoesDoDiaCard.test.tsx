@@ -13,6 +13,7 @@ vi.mock("@/hooks/useDpPendencias", () => ({
 vi.mock("@/hooks/useDpUserPrefs", () => ({ useDpUserPrefs: () => ({ prefs: { pendencias_adiadas: {} } }) }));
 vi.mock("@/hooks/useDpPendenciasDecisoes", () => ({ useDpPendenciasDecisoes: () => ({ ignoradas: new Set(), adiadas: {} }) }));
 vi.mock("@/hooks/use-mobile", () => ({ useIsMobile: () => false }));
+vi.mock("@/components/dp/home/FeriadosEscalaConfirmar", () => ({ useFeriadosEscalaPendentes: () => ({ data: [] }), FeriadosEscalaConfirmar: () => null }));
 vi.mock("@/components/dp/pendencias/PendenciaAcoes", () => ({ PendenciaAcoes: () => null }));
 
 describe("Ações do Dia durante falha de atualização", () => {
