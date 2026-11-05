@@ -518,7 +518,7 @@ function DetalheDiaOperacao({
     void melhor; return periodoInicial ?? "todos";
   }, [contagemPeriodos, periodoInicial]);
   // Escolha do gestor vale para o dia aberto; ao trocar de dia volta ao turno mais cheio.
-  const [ausenciaDetalhe, setAusenciaDetalhe] = useState<{ id: string; nome: string } | null>(null);
+  const [ausenciaDetalhe, setAusenciaDetalhe] = useState<{ id: string | null; nome: string; afastamento?: { titulo: string; inicio: string; fim: string; motivo?: string | null } } | null>(null);
   const [escolhaPeriodo, setEscolhaPeriodo] = useState<{ data: string; p: "todos" | "dia" | "noite" | "madrugada" } | null>(null);
   const periodo = escolhaPeriodo?.data === data ? escolhaPeriodo.p : periodoPadrao;
   const setPeriodo = (p: "todos" | "dia" | "noite" | "madrugada") => setEscolhaPeriodo({ data, p });
@@ -963,7 +963,7 @@ function DetalheDiaOperacao({
 
 
 
-      <AusenciaDetalheSheet ocorrenciaId={ausenciaDetalhe?.id ?? null} nome={ausenciaDetalhe?.nome ?? ""} onOpenChange={(o) => { if (!o) setAusenciaDetalhe(null); }} />
+      <AusenciaDetalheSheet open={!!ausenciaDetalhe} ocorrenciaId={ausenciaDetalhe?.id ?? null} afastamento={ausenciaDetalhe?.afastamento} nome={ausenciaDetalhe?.nome ?? ""} onOpenChange={(o) => { if (!o) setAusenciaDetalhe(null); }} />
       <div className="min-w-0" aria-label="Ausências do dia">
       {(() => {
         // Indisponíveis para convocação no dia; se aceitou convocação (está na escala), a indisponibilidade é desconsiderada.
@@ -989,21 +989,24 @@ function DetalheDiaOperacao({
                       ? rotuloTipoOcorrencia(p.ocorrencias[0])
                       : CATEGORIA_LABEL[p.categoria];
                 const detalheId = p.categoria !== "folga_extra" && p.categoria !== "folga_padrao" ? p.ocorrencia_id ?? p.ocorrencias?.[0]?.id : undefined;
+                const afastamento = !detalheId && reg && (p.categoria === "ferias" || p.categoria === "atestado")
+                  ? { titulo: tipo, inicio: reg.inicio, fim: reg.fim, motivo: reg.motivo ?? null } : undefined;
+                const abrir = detalheId || afastamento ? () => setAusenciaDetalhe({ id: detalheId ?? null, nome: p.nome, afastamento }) : undefined;
                 const extra = reg && reg.fim !== reg.inicio ? ` · até ${reg.fim.split("-").reverse().join("/")}` : "";
                 return (
                   <li
                     key={p.ocorrencia_id ?? p.colaborador_id}
-                    className={`flex min-w-0 items-center gap-2 py-2 ${detalheId ? "min-h-11 cursor-pointer rounded-md hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" : ""}`}
-                    {...(detalheId ? {
+                    className={`flex min-w-0 items-center gap-2 py-2 ${abrir ? "min-h-11 cursor-pointer rounded-md hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" : ""}`}
+                    {...(abrir ? {
                       role: "button", tabIndex: 0, "aria-label": `Ver detalhes: ${p.nome} · ${tipo}`,
-                      onClick: () => setAusenciaDetalhe({ id: detalheId, nome: p.nome }),
-                      onKeyDown: (e: React.KeyboardEvent) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setAusenciaDetalhe({ id: detalheId, nome: p.nome }); } },
+                      onClick: abrir,
+                      onKeyDown: (e: React.KeyboardEvent) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(); } },
                     } : {})}
                   >
                     <span aria-hidden="true" className="shrink-0 text-sm leading-none">{tagSocio(p) ? "🤝" : ICONE[p.categoria] ?? "•"}</span>
                     <span className="min-w-0 truncate text-sm font-medium" title={[p.nome, reg?.motivo].filter(Boolean).join(" · ")}>{primeiroNome(p.nome)}</span>
                     <span className="min-w-0 flex-1 text-xs text-muted-foreground">{tagSocio(p) ? "Folga Sócio" : tipo}{extra}</span>
-                    {detalheId && <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                    {abrir && <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />}
                     {acoesFolga && (p.categoria === "folga_extra" || p.categoria === "folga_padrao") && (
                       <div className="flex shrink-0 items-center gap-1">{acoesFolga(p.colaborador_id, p.categoria === "folga_padrao")}</div>
                     )}

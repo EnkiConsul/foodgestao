@@ -13,20 +13,23 @@ import {
 } from "@/lib/dp/ocorrencias";
 
 interface Props {
+  open: boolean;
   ocorrenciaId: string | null;
+  /** Férias/afastamento vindos do módulo oficial, sem ocorrência vinculada. */
+  afastamento?: { titulo: string; inicio: string; fim: string; motivo?: string | null };
   nome: string;
   onOpenChange: (open: boolean) => void;
 }
 
 /** Detalhes de leitura de uma ausência do dia; edição continua na tela oficial de Ocorrências. */
-export function AusenciaDetalheSheet({ ocorrenciaId, nome, onOpenChange }: Props) {
+export function AusenciaDetalheSheet({ open, ocorrenciaId, afastamento, nome, onOpenChange }: Props) {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const open = !!ocorrenciaId;
+  const fmt = (d: string) => String(d).split("-").reverse().join("/");
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["dp_ocorrencia_detalhe", ocorrenciaId],
-    enabled: open,
+    enabled: open && !!ocorrenciaId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_ocorrencias")
@@ -38,13 +41,34 @@ export function AusenciaDetalheSheet({ ocorrenciaId, nome, onOpenChange }: Props
     },
   });
 
-  const titulo = data ? rotuloTipoOcorrencia(data) : "Ausência";
+  const titulo = data ? rotuloTipoOcorrencia(data) : afastamento?.titulo ?? "Ausência";
+  const justificativa: string = data ? (data.justificativa_final || data.justificativa_inicial || "") : "";
+  const liberalidade = /liberalidade da empresa/i.test(justificativa);
   const corpo = (
     <div className="space-y-4 text-sm">
       {isLoading && <Skeleton className="h-24 w-full" />}
       {error && <p className="text-destructive">Não foi possível carregar os detalhes.</p>}
+      {!ocorrenciaId && afastamento && (
+        <dl className="space-y-3">
+          <div>
+            <dt className="text-xs text-muted-foreground">Período</dt>
+            <dd>{afastamento.inicio === afastamento.fim ? fmt(afastamento.inicio) : `${fmt(afastamento.inicio)} até ${fmt(afastamento.fim)}`}</dd>
+          </div>
+          {afastamento.motivo && (
+            <div>
+              <dt className="text-xs text-muted-foreground">Motivo</dt>
+              <dd className="whitespace-pre-wrap break-words">{afastamento.motivo}</dd>
+            </div>
+          )}
+        </dl>
+      )}
       {data && (
         <>
+          {liberalidade && (
+            <p className="rounded-md border border-primary/40 bg-primary/10 p-3 text-xs">
+              Dispensa por liberalidade da empresa: o dia é remunerado integralmente e não conta como falta.
+            </p>
+          )}
           <div className="flex flex-wrap gap-2">
             <Badge variant="outline">{titulo}</Badge>
             <Badge variant="secondary">{ESTADO_LABEL[data.estado as keyof typeof ESTADO_LABEL] ?? data.estado}</Badge>
@@ -52,7 +76,7 @@ export function AusenciaDetalheSheet({ ocorrenciaId, nome, onOpenChange }: Props
           <dl className="space-y-3">
             <div>
               <dt className="text-xs text-muted-foreground">Data</dt>
-              <dd>{String(data.data_operacional).split("-").reverse().join("/")}</dd>
+              <dd>{fmt(data.data_operacional)}</dd>
             </div>
             {(data.justificativa_final || data.justificativa_inicial) && (
               <div>
@@ -83,13 +107,12 @@ export function AusenciaDetalheSheet({ ocorrenciaId, nome, onOpenChange }: Props
           </dl>
         </>
       )}
-      <Button
+      {ocorrenciaId && <Button
         className="h-12 w-full justify-between"
-        disabled={!ocorrenciaId}
         onClick={() => { onOpenChange(false); navigate(`/dp/ocorrencias?id=${ocorrenciaId}`); }}
       >
         Abrir em Ocorrências <ChevronRight className="h-4 w-4" />
-      </Button>
+      </Button>}
     </div>
   );
 
