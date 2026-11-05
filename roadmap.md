@@ -1,4 +1,5 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
+- [ ] Corrigir nome completo no cartão mobile, janela de folga acima do teclado e erro explicativo da compensatória; preservar elegibilidade/evidências e não usar clientes em testes.
 - [x] Corrigir trocas como duas datas pontuais, pendências sem ausência, nomenclatura Folga atual/desejada e notificação contextual.
 - [x] Validar folga por vínculo/regra da unidade e exceção individual; registrar compensatória com origem e justificativa, sem apuração de ponto.
 - [x] Simplificar faltas em justificada/injustificada com comunicação separada; preservar decisão de impactos e históricos.
