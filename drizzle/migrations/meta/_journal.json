@@ -1373,6 +1373,13 @@
       "when": 1793893187352,
       "tag": "0195_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 196,
+      "version": "7",
+      "when": 1793895521263,
+      "tag": "0196_folga_bloqueio_data_so_colaborador",
+      "breakpoints": true
     }
   ]
 }
