@@ -285,7 +285,7 @@ export function DocDetalhesDialog(props: {
             ) : (
             <div className="rounded-lg border p-3">
               <div className="mb-2 flex items-center justify-between gap-2">
-                <div className="text-xs font-medium text-muted-foreground">Validação Digital</div>
+                <div className="text-xs font-medium text-muted-foreground">Assinatura Eletrônica</div>
                 {aceiteBadge()}
               </div>
               <div className="grid gap-4 sm:grid-cols-3">

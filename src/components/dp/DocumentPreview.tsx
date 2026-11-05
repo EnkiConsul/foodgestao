@@ -146,7 +146,7 @@ export function DocumentPreview({
 
   useEffect(() => {
     if (!open || aguardando) {
-      // Esperando validação digital (ou fechado): nada de busca concorrente e
+      // Esperando assinatura eletrônica (ou fechado): nada de busca concorrente e
       // o carregamento anterior é limpo para não prender o ícone girando.
       setLoading(false);
       return;

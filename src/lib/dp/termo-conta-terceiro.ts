@@ -1,6 +1,6 @@
 // Termo de Autorização para Pagamento em Conta/Pix de Terceiro.
 // Mesmo padrão dos demais termos: prévia editável, escolha da assinatura
-// (portal com validação digital ou via impressa) e via assinada na ficha.
+// (portal com assinatura eletrônica ou via impressa) e via assinada na ficha.
 import { supabase } from "@/integrations/supabase/client";
 import { registrarDocumento } from "@/lib/dp/documentos-oficial";
 import { CLAUSULA_ASSINATURA_FISICA } from "@/lib/dp/termos-compensacao";

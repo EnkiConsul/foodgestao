@@ -125,7 +125,7 @@ export function DocSubstituirDialog(props: {
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             />
             <p className="text-xs text-muted-foreground">
-              O arquivo atual será apagado e a validação digital, se já concedida, voltará para "Aguardando".
+              O arquivo atual será apagado e a assinatura eletrônica, se já concedida, voltará para "Aguardando".
             </p>
             <AvisoViaFisica />
           </div>
