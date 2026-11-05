@@ -13,6 +13,7 @@ import {
   modulosAtivos, mrrPotencial, semAcessoV2, semAssinatura, temEmpresa, STATUS_LABEL,
 } from "@/lib/admin/cliente360";
 import { Cliente360Drawer } from "@/components/admin/cliente360/Cliente360Drawer";
+import { ConciergePainel } from "@/components/admin/concierge/ConciergePainel";
 
 type Filtro =
   | "clientes" | "cortesia" | "cortesia30" | "carencia" | "inadimplentes" | "um_modulo"
@@ -99,6 +100,8 @@ export default function AdminClientes() {
   return (
     <div className="space-y-6">
       <AdminPageHeader title="Clientes" description="Contas de cobrança de produção (modelo V2)" />
+
+      <ConciergePainel />
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
         {[
