@@ -1,4 +1,6 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
+- [x] Corrigir nome completo no cartão mobile, janela de folga acima do teclado e erro explicativo da compensatória. 45 testes aprovados; formulário com dados fictícios conferido em 407/1280 e teclado simulado, falha preserva motivo/preenchimento. RPC vigente já aceita compensatória; sem migração, publicação ou gravações reais.
+- [ ] Validar esta correção em aparelho com teclado real e registro completo na conta Sandbox autorizada; teste visual simulado e banco isolado não substituem essa homologação, e clientes reais não serão usados.
 - [x] Corrigir trocas como duas datas pontuais, pendências sem ausência, nomenclatura Folga atual/desejada e notificação contextual.
 - [x] Validar folga por vínculo/regra da unidade e exceção individual; registrar compensatória com origem e justificativa, sem apuração de ponto.
 - [x] Simplificar faltas em justificada/injustificada com comunicação separada; preservar decisão de impactos e históricos.
