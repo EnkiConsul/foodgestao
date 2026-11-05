@@ -197,12 +197,12 @@ export class AmbienteInvalidoError extends Error {
 }
 
 function envDoBuild(): EnvBruto {
-  const e = (import.meta as unknown as { env?: Record<string, string | undefined> }).env ?? {};
+  // Acesso estático: o Vite só substitui `import.meta.env.VITE_*` escrito literalmente.
   return {
-    VITE_APP_ENV: e.VITE_APP_ENV,
-    VITE_SUPABASE_URL: e.VITE_SUPABASE_URL,
-    VITE_SUPABASE_PUBLISHABLE_KEY: e.VITE_SUPABASE_PUBLISHABLE_KEY,
-    VITE_SUPABASE_PROJECT_ID: e.VITE_SUPABASE_PROJECT_ID,
+    VITE_APP_ENV: import.meta.env.VITE_APP_ENV,
+    VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
+    VITE_SUPABASE_PUBLISHABLE_KEY: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    VITE_SUPABASE_PROJECT_ID: import.meta.env.VITE_SUPABASE_PROJECT_ID,
   };
 }
 
