@@ -1343,7 +1343,8 @@ export function ComprovanteAnexarDialog(props: {
         ) : (
         <DialogFooter className="sticky -bottom-5 -mx-4 flex-col-reverse gap-2 border-t bg-background px-4 pb-1 pt-3 sm:-mx-6 sm:flex-row sm:gap-2 sm:px-6">
           <Button
-            variant="outline"
+            variant="ghost"
+            className="w-full sm:w-auto"
             onClick={() => props.onOpenChange(false)}
             disabled={ocupado}
           >
