@@ -8,6 +8,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3.23.8";
 import { normalizeBRPhone, sendZapiText } from "../_shared/zapi.ts";
 import { sendTemplateEmail } from "../_shared/transactional-email-templates/send-email.ts";
+import { mensagemApoio, type EntregaApoio } from "../_shared/concierge-entrega.ts";
 
 const APP_URL = "https://aveto360.com";
 const Body = z.object({ companyId: z.string().uuid() });
@@ -37,17 +38,6 @@ export function mensagemConcierge(o: { nome: string; empresa: string; link: stri
     `Seus 7 dias de teste grátis começam quando você criar a senha. Qualquer dúvida, estamos por aqui!`;
 }
 
-export function mensagemApoio(o: { nome: string; empresa: string; temPessoas: boolean; fim: string }) {
-  const nome = primeiroNome(o.nome);
-  const itens = o.temPessoas
-    ? "🏢 *Loja configurada:* unidade pronta para a operação.\n👥 *Equipe pré-carregada:* subimos as fichas dos colaboradores. Você só confere e aprova.\n"
-    : "🏢 *Empresa configurada* e pronta para uso.\n";
-  return `Olá${nome ? `, ${nome}` : ""}! Aqui é da equipe da *AVETO 360*. 🍕\n\n` +
-    `Finalizamos a parametrização do ambiente da *${o.empresa}* para você:\n\n${itens}` +
-    `⏳ *Teste grátis renovado:* seus dias de teste foram reiniciados e vão até ${o.fim}.\n\n` +
-    `Acesse com seu login e senha de sempre:\n👉 ${APP_URL}/auth\n\nSe precisar de apoio para conferir as fichas, estamos por aqui! 🚀`;
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Método não permitido" }, 405);
@@ -55,7 +45,10 @@ Deno.serve(async (req) => {
     const parsed = Body.safeParse(await req.json().catch(() => ({})));
     if (!parsed.success) return json({ error: "Dados inválidos" }, 400);
 
-    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const url = Deno.env.get("SUPABASE_URL");
+    const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!url || !key) return json({ error: "Serviço indisponível" }, 503);
+    const admin = createClient(url, key);
     const auth = req.headers.get("Authorization") ?? "";
     if (!auth.startsWith("Bearer ")) return json({ error: "Faça login" }, 401);
     const { data: claimsRes } = await admin.auth.getClaims(auth.slice(7));
@@ -65,20 +58,43 @@ Deno.serve(async (req) => {
     if (!isAdmin) return json({ error: "Sem permissão" }, 403);
 
     const { data: p } = await admin.from("concierge_provisionamentos")
-      .select("company_id, invite_id, gestor_nome, gestor_email, gestor_whatsapp, modulos, conta_existente, ativado_em, modo, parametrizacao_concluida_em, companies(name, trade_name, trial_termina_em)")
+      .select("company_id, invite_id, gestor_nome, gestor_email, gestor_whatsapp, modulos, conta_existente, ativado_em, modo, parametrizacao_concluida_em, entrega_resumo, companies(name, trade_name, trial_termina_em)")
       .eq("company_id", parsed.data.companyId).maybeSingle();
     if (!p) return json({ error: "Empresa não encontrada" }, 404);
     if (p.modo === "apoio") {
       if (!p.parametrizacao_concluida_em) return json({ error: "Conclua a parametrização antes de avisar o cliente." }, 409);
       // deno-lint-ignore no-explicit-any
       const e = (p as any).companies;
-      const fim = e?.trial_termina_em ? new Date(e.trial_termina_em).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "daqui a 7 dias";
-      const msg = mensagemApoio({ nome: p.gestor_nome, empresa: e?.trade_name || e?.name || "sua empresa", temPessoas: (p.modulos ?? []).includes("dp"), fim });
+      const entrega = (p.entrega_resumo ?? { modo_trial: "manter", prazos: [], unidades: 0, fichas: 0 }) as EntregaApoio;
+      const msg = mensagemApoio({ nome: p.gestor_nome, empresa: e?.trade_name || e?.name || "sua empresa", temPessoas: (p.modulos ?? []).includes("dp"), entrega });
       const phone = normalizeBRPhone(p.gestor_whatsapp);
-      if (!phone) return json({ success: false, whatsapp: false, email: false, whatsappErro: "gestor sem WhatsApp" });
-      const r = await sendZapiText(phone, msg);
-      if (r.ok) await admin.from("concierge_provisionamentos").update({ whatsapp_enviado_em: new Date().toISOString() }).eq("company_id", p.company_id);
-      return json({ success: r.ok, whatsapp: r.ok, email: false, whatsappErro: r.ok ? null : String(r.error ?? `HTTP ${r.httpStatus}`) });
+      let whatsapp = false; let whatsappErro: string | null = phone ? null : "Gestor sem WhatsApp";
+      if (phone) {
+        try {
+          const r = await sendZapiText(phone, msg);
+          whatsapp = r.ok;
+          if (!r.ok) whatsappErro = String(r.error ?? `HTTP ${r.httpStatus}`);
+        } catch { whatsappErro = "Falha no envio pelo WhatsApp"; }
+      }
+      let email = false; let emailErro: string | null = null;
+      if (p.gestor_email) {
+        try {
+          const r = await sendTemplateEmail("concierge-conclusao", p.gestor_email, {
+            idempotencyKey: `concierge-conclusao-${p.company_id}-${p.parametrizacao_concluida_em}`,
+            templateData: { message: msg },
+          });
+          email = r.sent;
+          if (!r.sent) emailErro = "Destinatário indisponível para e-mail";
+        } catch { emailErro = "Falha no envio por e-mail"; }
+      }
+      const upd: Record<string, string> = {};
+      if (whatsapp) upd.whatsapp_enviado_em = new Date().toISOString();
+      if (email) upd.email_enviado_em = new Date().toISOString();
+      if (Object.keys(upd).length) {
+        const { error } = await admin.from("concierge_provisionamentos").update(upd).eq("company_id", p.company_id);
+        if (error) return json({ error: "Aviso enviado, mas não foi possível atualizar o histórico." }, 500);
+      }
+      return json({ success: whatsapp || email, whatsapp, email, whatsappErro, emailErro });
     }
     if (p.ativado_em) return json({ error: "O gestor já ativou o acesso." }, 409);
 

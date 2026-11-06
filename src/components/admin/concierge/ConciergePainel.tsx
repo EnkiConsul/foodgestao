@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { mensagemApoio, type EntregaApoio, type ModoTrial } from "../../../../supabase/functions/_shared/concierge-entrega";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -37,6 +39,8 @@ const ERROS: Record<string, string> = {
   aguardando_convite: "Esta empresa já está preparada e aguarda o gestor criar a senha.",
   empresa_da_aveto: "Esta empresa já pertence a você.",
   sem_permissao: "Apenas super admin pode fazer isso.",
+  trial_compartilhado: "O teste cobre outras empresas. Mantenha o prazo atual; a renovação deve ser avaliada para o grupo completo.",
+  modo_trial_invalido: "Escolha uma opção válida para o teste grátis.",
 };
 const traduz = (m: string) => Object.entries(ERROS).find(([k]) => m.includes(k))?.[1] ?? m;
 const dt = (s: string | null) => (s ? new Date(s).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : null);
@@ -108,11 +112,13 @@ export function ConciergePainel() {
     mutationFn: async (companyId: string) => {
       const { data, error } = await supabase.functions.invoke("concierge-entregar-acesso", { body: { companyId } });
       if (error) throw new Error(await lerErro(error));
-      return data as { whatsapp: boolean; email: boolean; whatsappErro?: string | null };
+      return data as { whatsapp: boolean; email: boolean; whatsappErro?: string | null; emailErro?: string | null };
     },
     onSuccess: (r) => {
       if (r.whatsapp || r.email) toast.success(`Acesso enviado${r.whatsapp ? " pelo WhatsApp" : ""}${r.whatsapp && r.email ? " e" : ""}${r.email ? " por e-mail" : ""}.`);
-      else toast.error(`Não foi possível enviar${r.whatsappErro ? ` (WhatsApp: ${r.whatsappErro})` : ""}. Copie o link e envie manualmente.`);
+      else toast.error(`Aviso não enviado. ${r.whatsappErro ?? ""} ${r.emailErro ?? ""} Use Reenviar Aviso para tentar novamente.`);
+      if (r.email && r.whatsappErro) toast.warning(`E-mail enviado; WhatsApp não enviado: ${r.whatsappErro}`);
+      if (r.whatsapp && r.emailErro) toast.warning(`WhatsApp enviado; ${r.emailErro}`);
       recarregar();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -147,13 +153,25 @@ export function ConciergePainel() {
     onSuccess: (id) => { toast.success("Apoio iniciado. A empresa já aparece no seletor do topo."); setApoioAberto(false); recarregar(); abrirFichas(id); },
     onError: (e: Error) => toast.error(e.message),
   });
+  const [entregaEmpresa, setEntregaEmpresa] = useState<Prov | null>(null);
+  const [modoTrial, setModoTrial] = useState<ModoTrial>("manter");
+  const { data: previa, isFetching: previaCarregando, error: previaErro } = useQuery({
+    queryKey: ["admin-concierge-previa", entregaEmpresa?.company_id, modoTrial],
+    enabled: !!entregaEmpresa,
+    queryFn: async () => {
+      if (!entregaEmpresa) throw new Error("Escolha a empresa");
+      const { data, error } = await supabase.rpc("admin_concierge_previa_entrega", { p_company_id: entregaEmpresa.company_id, p_modo_trial: modoTrial });
+      if (error) throw new Error(traduz(error.message));
+      return data as unknown as EntregaApoio & { prazos: { modulo: string; fim: string | null; fim_atual: string | null }[] };
+    },
+  });
   const concluir = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.rpc("admin_concierge_concluir_parametrizacao" as never, { p_company_id: id } as never);
+    mutationFn: async ({ id, modo }: { id: string; modo: ModoTrial }) => {
+      const { error } = await supabase.rpc("admin_concierge_concluir_parametrizacao", { p_company_id: id, p_modo_trial: modo });
       if (error) throw new Error(traduz(error.message));
       return id;
     },
-    onSuccess: (id) => { toast.success("Parametrização concluída e teste grátis renovado."); qc.invalidateQueries(); enviar.mutate(id); },
+    onSuccess: (id) => { toast.success("Parametrização concluída. Enviando o aviso ao gestor…"); setEntregaEmpresa(null); qc.invalidateQueries(); enviar.mutate(id); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -210,8 +228,8 @@ export function ConciergePainel() {
                     <Button size="sm" variant="outline" onClick={() => abrirFichas(p.company_id)}><FileUp className="mr-1 h-4 w-4" />Importar Fichas</Button>
                   )}
                   {!p.parametrizacao_concluida_em ? (
-                    <Button size="sm" disabled={concluir.isPending || enviar.isPending} onClick={() => concluir.mutate(p.company_id)}>
-                      {concluir.isPending && concluir.variables === p.company_id ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1 h-4 w-4" />}Notificar Conclusão
+                    <Button size="sm" disabled={concluir.isPending || enviar.isPending} onClick={() => { setModoTrial("manter"); setEntregaEmpresa(p); }}>
+                      <CheckCircle2 className="mr-1 h-4 w-4" />Notificar Conclusão
                     </Button>
                   ) : (
                     <Button size="sm" variant="outline" disabled={enviar.isPending} onClick={() => enviar.mutate(p.company_id)}><MessageCircle className="mr-1 h-4 w-4" />Reenviar Aviso</Button>
@@ -232,7 +250,7 @@ export function ConciergePainel() {
                         {p.whatsapp_enviado_em || p.email_enviado_em ? "Reenviar Acesso" : "Enviar Acesso"}
                       </Button>
                       {p.token && (
-                        <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(linkDe(p.token!)); toast.success("Link copiado"); }}>
+                        <Button size="sm" variant="ghost" onClick={() => { if (!p.token) return; navigator.clipboard.writeText(linkDe(p.token)); toast.success("Link copiado"); }}>
                           <Copy className="mr-1 h-4 w-4" />Copiar Link
                         </Button>
                       )}
@@ -245,11 +263,48 @@ export function ConciergePainel() {
         })}
       </CardContent>
 
+      <Dialog open={!!entregaEmpresa} onOpenChange={(open) => { if (!open && !concluir.isPending) setEntregaEmpresa(null); }}>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Concluir parametrização</DialogTitle>
+            <DialogDescription>{entregaEmpresa?.empresa} · {entregaEmpresa?.unidades} lojas · {entregaEmpresa?.fichas} importações de fichas</DialogDescription>
+          </DialogHeader>
+          <RadioGroup value={modoTrial} onValueChange={(value) => setModoTrial(value as ModoTrial)} disabled={concluir.isPending} className="gap-3">
+            {([
+              ["manter", "Manter prazo atual"],
+              ["reiniciar_7d", "Reiniciar 7 dias a partir de hoje"],
+              ["somar_7d", "Somar 7 dias ao prazo vigente"],
+            ] as const).map(([value, label]) => (
+              <label key={value} className="flex min-h-11 items-center gap-3 text-sm">
+                <RadioGroupItem value={value} id={`trial-${value}`} /><span>{label}</span>
+              </label>
+            ))}
+          </RadioGroup>
+          {previaCarregando ? <p className="text-sm text-muted-foreground">Calculando prazos…</p> : previaErro ? <p role="alert" className="text-sm text-destructive">{previaErro.message}</p> : previa && entregaEmpresa && (
+            <>
+              <div className="space-y-1 border-y py-3 text-sm">
+                {previa.prazos.map((p) => <p key={p.modulo}>{p.modulo === "dp" ? "Pessoas 360°" : "Financeiro 360°"}: {p.fim_atual ? `atual ${dt(p.fim_atual)}` : "sem teste vigente"}{p.fim && ` → ${dt(p.fim)}`}</p>)}
+              </div>
+              <div className="space-y-2">
+                <Label>Mensagem ao gestor</Label>
+                <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{mensagemApoio({ nome: entregaEmpresa.gestor_nome, empresa: entregaEmpresa.empresa, temPessoas: entregaEmpresa.modulos.includes("dp"), entrega: previa })}</p>
+              </div>
+            </>
+          )}
+          <DialogFooter className="sticky bottom-0 bg-background pt-3">
+            <Button variant="ghost" disabled={concluir.isPending} onClick={() => setEntregaEmpresa(null)}>Cancelar</Button>
+            <Button disabled={concluir.isPending || previaCarregando || !!previaErro || !previa} onClick={() => { if (entregaEmpresa) concluir.mutate({ id: entregaEmpresa.company_id, modo: modoTrial }); }}>
+              {concluir.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageCircle className="mr-2 h-4 w-4" />}Concluir e notificar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={apoioAberto} onOpenChange={setApoioAberto}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Apoiar Empresa Cadastrada</DialogTitle>
-            <DialogDescription>Para cliente que já criou a conta e parou antes de configurar. A Aveto entra só para parametrizar; o Dono continua o mesmo e, ao concluir, a Aveto sai e o teste grátis é renovado.</DialogDescription>
+            <DialogDescription>O Dono continua o mesmo. Ao concluir, o apoio da Aveto é encerrado; a renovação do teste é opcional.</DialogDescription>
           </DialogHeader>
           <Input autoFocus placeholder="CNPJ ou nome da empresa" value={busca} onChange={(e) => setBusca(e.target.value)} />
           <div className="space-y-2">
