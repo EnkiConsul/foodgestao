@@ -53,6 +53,7 @@ export function useDpComprovanteComplementarAcoes() {
     qc.invalidateQueries({ queryKey: ["dp_documentos"] });
     qc.invalidateQueries({ queryKey: ["dp_doc_detalhes"] });
     qc.invalidateQueries({ queryKey: ["dp_historico_documentos"] });
+    qc.invalidateQueries({ queryKey: ["dp_historico_unified"] });
     void resolverPendencias(qc, { companyId: selectedCompanyId });
   };
 
