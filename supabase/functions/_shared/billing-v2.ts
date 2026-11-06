@@ -371,8 +371,10 @@ export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: 
           desfeitos: desfeitos.map((d) => d.id), pendentes, resposta_incerta: incerto, erro: detalhe.slice(0, 800) } }), false),
     ])).filter((x): x is string => !!x);
     if (falhas.length) {
-      await gravarComRetry("evento desfazimento_incompleto", () => admin.from("billing_account_events").insert({ billing_account_id: conta.id, actor_id: conta.titular_user_id,
+      const eInc = await gravarComRetry("evento desfazimento_incompleto", () => admin.from("billing_account_events").insert({ billing_account_id: conta.id, actor_id: conta.titular_user_id,
         tipo_evento: "desfazimento_incompleto", payload: { subscription_id: sub.id, asaas_env: conta.asaas_env, falhas, erro: detalhe.slice(0, 400) } }), false);
+      // Último recurso: o alerta não pode se perder (a resposta ao cliente segue abaixo).
+      if (eInc) await gravarEmergencia(admin, { ...sub, asaas_env: conta.asaas_env }, "desfazimento_incompleto", `${eInc} | falhas: ${falhas.join("; ")}`);
     }
     criados.length = 0;
     console.error("[contratar] falha", ok ? "desfeita" : "COMPENSAÇÃO PENDENTE", sub.id, detalhe, JSON.stringify(pendentes), falhas.length ? `LOCAL INCOMPLETO ${JSON.stringify(falhas)}` : "");
@@ -391,13 +393,36 @@ async function eventoConta(admin: SupabaseClient, sub: any, tipo: string, actorI
     const { data } = await admin.from("subscriptions").select("billing_account_id").eq("id", sub.id).maybeSingle();
     contaId = (data as any)?.billing_account_id ?? null;
   }
-  if (!contaId) { console.warn(`[billing] evento ${tipo} sem conta de cobrança`, sub?.id); return; }
-  const { error } = await admin.from("billing_account_events").insert({ billing_account_id: contaId, tipo_evento: tipo, actor_id: actorId ?? null,
-    payload: { subscription_id: sub?.id ?? null, ...payload } });
-  if (error) {
-    console.error(`[billing] evento ${tipo} falhou`, error.message);
-    if (estrito) throw new BillingError(500, "Falha ao registrar o histórico da operação. Fale com o suporte.", error.message);
+  if (!contaId) {
+    console.warn(`[billing] evento ${tipo} sem conta de cobrança`, sub?.id);
+    if (estrito) await escalarAlertaCritico(admin, sub, tipo, "sem conta de cobrança");
+    return;
   }
+  const erro = await gravarComRetry(`evento ${tipo}`, () => admin.from("billing_account_events").insert({ billing_account_id: contaId, tipo_evento: tipo, actor_id: actorId ?? null,
+    payload: { subscription_id: sub?.id ?? null, ...payload } }), false);
+  if (erro && estrito) await escalarAlertaCritico(admin, sub, tipo, erro);
+}
+
+/**
+ * Registro crítico que falhou 2x: grava aviso de emergência (alerta no Backoffice,
+ * com 1 nova tentativa) e SEMPRE interrompe com erro 500 explícito — nunca só log.
+ */
+async function gravarEmergencia(admin: SupabaseClient, sub: any, tipo: string, erro: string): Promise<string | null> {
+  const subId = sub?.id ?? null;
+  const emergencia = subId
+    ? await gravarComRetry(`emergência ${tipo}`, () => admin.from("billing_v2_desfeita_eventos").insert({
+        subscription_id: subId, event_id: `falha_registro:${tipo}:${crypto.randomUUID()}`, event_type: `${tipo}_nao_registrado`,
+        asaas_env: sub?.asaas_env ?? "desconhecido", alerta: true, motivo: `Registro "${tipo}" não gravado após 2 tentativas: ${erro}`.slice(0, 800) }), false)
+    : "sem assinatura";
+  console.error(`[billing] ALERTA CRÍTICO ${tipo} não registrado`, subId, erro, emergencia ? `EMERGÊNCIA TAMBÉM FALHOU: ${emergencia}` : "aviso de emergência gravado");
+  return emergencia;
+}
+
+async function escalarAlertaCritico(admin: SupabaseClient, sub: any, tipo: string, erro: string): Promise<never> {
+  const subId = sub?.id ?? null;
+  const emergencia = await gravarEmergencia(admin, sub, tipo, erro);
+  throw new BillingError(500, "Falha crítica ao registrar a regularização da cobrança. Nossa equipe precisa conferir; fale com o suporte.",
+    { tipo, subscription_id: subId, erro, aviso_emergencia: !emergencia });
 }
 
 
@@ -551,8 +576,8 @@ export async function desfazerUpgrade(admin: SupabaseClient, sub: any, criados: 
   const reservaId = (reserva as any).id as string;
   const reverterReserva = async (motivo: string, extra: Record<string, unknown> = {}) => {
     const ins = () => admin.from("subscription_events").insert({ subscription_id: sub.id, tipo_evento: "upgrade_desfeito_revertido", actor_id: actorId ?? null, payload: { reserva_id: reservaId, motivo, ...extra } });
-    let { error } = await ins(); if (error) ({ error } = await ins());
-    if (error) console.error("[billing] ALERTA reversão da reserva não gravada", sub.id, reservaId, error.message);
+    const erro = await gravarComRetry("evento upgrade_desfeito_revertido", ins, false);
+    if (erro) await escalarAlertaCritico(admin, sub, "upgrade_desfeito_revertido", `reserva ${reservaId}: ${erro}`);
   };
   // Corrida: entre as reservas válidas do ciclo, só a mais antiga segue.
   const ini = sub.current_period_start ?? "1970-01-01";
@@ -598,13 +623,17 @@ export async function desfazerUpgrade(admin: SupabaseClient, sub: any, criados: 
       } catch (e) { console.error("[billing] recriar cobrança falhou", (e as Error).message); }
     }
     const ok = planoOk && (!cobrancaCancelada || !!novaCobranca);
-    await reverterReserva(motivo, { plano_revertido: planoOk, cobranca_recriada: novaCobranca });
+    // Falha ao anular a reserva não pode impedir o registro da compensação: guarda e relança depois.
+    let falhaReversao: unknown = null;
+    try { await reverterReserva(motivo, { plano_revertido: planoOk, cobranca_recriada: novaCobranca }); }
+    catch (e) { falhaReversao = e; }
     if (!ok) {
+      console.error("[billing] ALERTA desfazer_upgrade com compensação pendente", sub.id);
       await eventoConta(admin, sub, "compensacao_pendente", actorId, { origem: "desfazer_upgrade", alerta: true, motivo,
         plano_upgrade: planoAtual, plano_anterior: ant.plano, plano_revertido: planoOk, invoice_id: fat.id,
-        cobranca_cancelada: fat.external_invoice_id ?? null, cobranca_recriada: novaCobranca, asaas_env: sub.asaas_env });
-      console.error("[billing] ALERTA desfazer_upgrade com compensação pendente", sub.id);
+        cobranca_cancelada: fat.external_invoice_id ?? null, cobranca_recriada: novaCobranca, asaas_env: sub.asaas_env }, true);
     }
+    if (falhaReversao) throw falhaReversao;
     throw new BillingError(500, ok
       ? "Não conseguimos concluir a desistência; seu plano e a cobrança da diferença foram mantidos. Tente novamente."
       : "Não conseguimos concluir a desistência. Nossa equipe foi avisada e vai regularizar sua cobrança.");
