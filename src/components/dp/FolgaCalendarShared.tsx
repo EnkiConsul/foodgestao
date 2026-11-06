@@ -1,5 +1,9 @@
 import { useMemo } from "react";
-import { ChevronLeft, ChevronRight, Lock, LockOpen, AlertCircle, CheckCircle2, Cake, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Lock, LockOpen, AlertCircle, CheckCircle2, Cake, Users, Flame } from "lucide-react";
+import { diaEhPico } from "@/lib/dp/calendario-rotina";
+import { textoFeriadosDia, type FeriadoDia } from "@/lib/dp/feriados-apresentacao";
+import type { MarcoPagamento } from "@/lib/dp/pagamentos-marcos";
+import { PilulaPagamento } from "@/components/dp/calendario/PagamentosDia";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -39,6 +43,12 @@ export interface FolgaCalendarSharedProps {
   variant?: "chunky" | "compact";
   /** Marcadores próprios do colaborador por dia (ex.: Atestado, Falta). */
   marcadoresPorDia?: Map<string, string[]>;
+  /** Feriados da unidade por dia (mesma apresentação do calendário do gestor). */
+  feriadosPorDia?: Map<string, FeriadoDia[]>;
+  /** Destaca os dias de pico de operação como no calendário do gestor. */
+  mostrarPico?: boolean;
+  /** Previsões de pagamento por dia. */
+  pagamentosPorDia?: Map<string, MarcoPagamento[]>;
 }
 
 type Cell =
@@ -91,6 +101,9 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
     diasElegiveis,
     tetoMensal,
     marcadoresPorDia,
+    feriadosPorDia,
+    mostrarPico = false,
+    pagamentosPorDia,
     onPrev,
     onNext,
     onSelectDay,
@@ -153,6 +166,12 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
     tetoMensal,
   ]);
 
+  const feriadoDe = (iso: string) => {
+    const feriados = feriadosPorDia?.get(iso) ?? [];
+    return { feriados, feriado_nome: feriados.length ? feriados.map((f) => f.nome).join(" • ") : null };
+  };
+  const picoEm = (iso: string) => mostrarPico && diaEhPico(iso, feriadoDe(iso).feriado_nome);
+
   const chunky = variant === "chunky";
   const containerCls = chunky
     ? "rounded-3xl border bg-card p-4 md:p-8 shadow-sm"
@@ -204,6 +223,9 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
                     <span className={cn("text-sm font-bold", !wknd && "text-muted-foreground", past && "opacity-50")}>
                       {c.date.getDate()}
                     </span>
+                    {picoEm(c.iso) && <Flame className="h-3.5 w-3.5 fill-amber-500 text-amber-500" aria-label="Pico de operação" />}
+                    {feriadoDe(c.iso).feriado_nome && <span role="img" aria-label={textoFeriadosDia(feriadoDe(c.iso))} title={textoFeriadosDia(feriadoDe(c.iso))} className="text-[13px] leading-none">🎉</span>}
+                    {pagamentosPorDia?.get(c.iso)?.map((m) => <PilulaPagamento key={m.tipo} marco={m} />)}
                     {isAdmin && wknd && c.status !== "blocked" && (
                       <Badge
                         variant="outline"
@@ -302,6 +324,7 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
               className={cn(
                 "group relative flex min-h-[100px] flex-col border p-2 text-left transition-all md:min-h-[130px]",
                 statusStyles[c.status],
+                picoEm(c.iso) && (c.status === "weekday" || c.status === "past") && "bg-calendar-pico",
                 clickable && "cursor-pointer hover:shadow-md hover:z-10",
               )}
             >
@@ -358,6 +381,12 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
                       {m}
                     </span>
                   ))}
+                  {feriadoDe(c.iso).feriado_nome && (
+                    <span className="max-w-full truncate rounded bg-primary px-1 text-[9px] font-bold leading-4 text-primary-foreground" title={textoFeriadosDia(feriadoDe(c.iso))} aria-label={textoFeriadosDia(feriadoDe(c.iso))}>
+                      🎉 {feriadoDe(c.iso).feriado_nome}
+                    </span>
+                  )}
+                  {pagamentosPorDia?.get(c.iso)?.map((m) => <PilulaPagamento key={m.tipo} marco={m} className="w-fit" />)}
                 </div>
                 <div className="flex flex-col items-end gap-0.5">
                   {c.status === "available" && !isAdmin && <LockOpen className="h-3.5 w-3.5 text-emerald-500" />}
@@ -367,6 +396,7 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
                   {c.status === "pending" && <AlertCircle className="h-4 w-4 text-violet-600" />}
                   {c.status === "blocked" && <Lock className="h-3.5 w-3.5 text-destructive" />}
                   {c.birthday && <Cake className="h-3.5 w-3.5 text-amber-500" />}
+                  {picoEm(c.iso) && <Flame className="h-4 w-4 shrink-0 fill-amber-500 text-amber-500" aria-label="Pico de operação"><title>Pico de operação</title></Flame>}
                 </div>
               </div>
 
