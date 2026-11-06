@@ -30,6 +30,35 @@ vi.mock("@/components/dp/ImagemZoomViewer", () => ({
   ImagemZoomViewer: () => <div data-testid="imagem" />,
 }));
 
+/**
+ * O pdfjs real resolve `getDocument().promise` num documento que só tem
+ * `cleanup()`; `destroy()` pertence à tarefa. O mock repete essa forma para
+ * que chamar `doc.destroy()` quebre exatamente como quebrou no aparelho.
+ */
+const pdf = vi.hoisted(() => {
+  const doc: any = {
+    numPages: 2,
+    getPage: async () => ({
+      getViewport: () => ({ width: 500, height: 700 }),
+      render: () => ({ promise: Promise.resolve() }),
+    }),
+    cleanup: vi.fn(),
+  };
+  const task: any = { promise: Promise.resolve(doc), destroy: vi.fn() };
+  return { doc, task };
+});
+
+vi.mock("pdfjs-dist", () => ({
+  GlobalWorkerOptions: {},
+  getDocument: () => pdf.task,
+}));
+
+vi.mock("pdfjs-dist/build/pdf.worker.min.mjs?worker", () => ({
+  default: class {
+    terminate() {}
+  },
+}));
+
 import { DocumentoAssinarViewer } from "@/components/dp/portal/DocumentoAssinarViewer";
 
 const PNG = "data:image/png;base64,AA";
@@ -77,5 +106,37 @@ describe("Tela de leitura e assinatura", () => {
     await waitFor(() => expect(concluir).toBeEnabled());
     fireEvent.click(concluir);
     expect(onConcluir).toHaveBeenCalledWith(PNG);
+  });
+
+  it("fechar o documento PDF não quebra ao liberar o carregamento", async () => {
+    const fetchOriginal = global.fetch;
+    global.fetch = vi.fn(async () => ({
+      ok: true,
+      arrayBuffer: async () => new ArrayBuffer(8),
+    })) as unknown as typeof fetch;
+    try {
+      const { unmount } = render(
+        <DocumentoAssinarViewer
+          open
+          onOpenChange={() => undefined}
+          titulo="Contracheque"
+          filePath="c1/colab1/contracheque.pdf"
+          fileName="contracheque.pdf"
+          mimeType="application/pdf"
+          nomeColaborador="Nordman Lima"
+          onConcluir={vi.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: /Rubricar página 1/i })).toBeInTheDocument(),
+      );
+      // O documento resolvido não tem destroy: quem libera é a tarefa.
+      expect(typeof pdf.doc.destroy).toBe("undefined");
+      expect(() => unmount()).not.toThrow();
+      expect(pdf.task.destroy).toHaveBeenCalled();
+      expect(pdf.doc.cleanup).toHaveBeenCalled();
+    } finally {
+      global.fetch = fetchOriginal;
+    }
   });
 });

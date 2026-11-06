@@ -10,6 +10,24 @@ import { podeConcluirAssinatura, proximaPaginaSemRubrica, rubricaObrigatoria } f
 
 const BUCKET = "dp-documentos";
 
+/**
+ * Libera um PDF do pdfjs sem estourar na desmontagem.
+ * `destroy()` pertence à tarefa de carregamento; o documento já resolvido só
+ * expõe `cleanup()`. Chamar `doc.destroy()` dá "destroy is not a function".
+ */
+function liberarPdf(task: any, doc: any) {
+  try {
+    doc?.cleanup?.();
+  } catch {
+    /* já liberado */
+  }
+  try {
+    task?.destroy?.();
+  } catch {
+    /* já liberado */
+  }
+}
+
 type Props = {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -116,6 +134,7 @@ export function DocumentoAssinarViewer({
   useEffect(() => {
     if (!url || !isPdf) return;
     let cancelado = false;
+    let task: any = null;
     let doc: any = null;
     (async () => {
       try {
@@ -125,9 +144,12 @@ export function DocumentoAssinarViewer({
         const resp = await fetch(url);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const buf = await resp.arrayBuffer();
-        doc = await pdfjs.getDocument({ data: buf }).promise;
+        task = pdfjs.getDocument({ data: buf });
+        doc = await task.promise;
         if (cancelado) {
-          doc.destroy();
+          liberarPdf(task, doc);
+          task = null;
+          doc = null;
           return;
         }
         setPdfDoc(doc);
@@ -138,7 +160,9 @@ export function DocumentoAssinarViewer({
     })();
     return () => {
       cancelado = true;
-      doc?.destroy();
+      liberarPdf(task, doc);
+      task = null;
+      doc = null;
     };
   }, [url, isPdf]);
 

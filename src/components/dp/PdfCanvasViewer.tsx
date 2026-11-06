@@ -52,7 +52,11 @@ export function PdfCanvasViewer({ url, title }: Props) {
         taskRef.current = task;
         const doc = await task.promise;
         if (cancelado) {
-          task.destroy();
+          try {
+            task.destroy();
+          } catch {
+            /* já liberado */
+          }
           return;
         }
         docRef.current = doc;
@@ -65,7 +69,17 @@ export function PdfCanvasViewer({ url, title }: Props) {
     })();
     return () => {
       cancelado = true;
-      taskRef.current?.destroy();
+      // destroy() vive na tarefa; o documento resolvido só tem cleanup().
+      try {
+        docRef.current?.cleanup?.();
+      } catch {
+        /* já liberado */
+      }
+      try {
+        taskRef.current?.destroy?.();
+      } catch {
+        /* já liberado */
+      }
       taskRef.current = null;
       docRef.current = null;
     };
