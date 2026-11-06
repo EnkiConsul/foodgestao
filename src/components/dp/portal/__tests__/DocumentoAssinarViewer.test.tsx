@@ -30,6 +30,35 @@ vi.mock("@/components/dp/ImagemZoomViewer", () => ({
   ImagemZoomViewer: () => <div data-testid="imagem" />,
 }));
 
+/**
+ * O pdfjs real resolve `getDocument().promise` num documento que só tem
+ * `cleanup()`; `destroy()` pertence à tarefa. O mock repete essa forma para
+ * que chamar `doc.destroy()` quebre exatamente como quebrou no aparelho.
+ */
+const pdf = vi.hoisted(() => {
+  const doc: any = {
+    numPages: 2,
+    getPage: async () => ({
+      getViewport: () => ({ width: 500, height: 700 }),
+      render: () => ({ promise: Promise.resolve() }),
+    }),
+    cleanup: vi.fn(),
+  };
+  const task: any = { promise: Promise.resolve(doc), destroy: vi.fn() };
+  return { doc, task };
+});
+
+vi.mock("pdfjs-dist", () => ({
+  GlobalWorkerOptions: {},
+  getDocument: () => pdf.task,
+}));
+
+vi.mock("pdfjs-dist/build/pdf.worker.min.mjs?worker", () => ({
+  default: class {
+    terminate() {}
+  },
+}));
+
 import { DocumentoAssinarViewer } from "@/components/dp/portal/DocumentoAssinarViewer";
 
 const PNG = "data:image/png;base64,AA";
