@@ -201,7 +201,13 @@ export function OcorrenciaFormDialog({
             </div>
             {!somenteFalta && <div className="space-y-1.5">
               <Label>O que aconteceu *</Label>
-              <Select value={tipo} onValueChange={(v) => setTipo(v as OcorrenciaTipo)}>
+              <Select value={tipo} onValueChange={(v) => {
+                setTipo(v as OcorrenciaTipo);
+                if (v === "falta" || v === "ausencia_justificada") {
+                  setClassificacao(v === "ausencia_justificada" ? "justificada" : "injustificada");
+                }
+                setAssid(null);
+              }}>
                 <SelectTrigger className="min-h-12">
                   <SelectValue />
                 </SelectTrigger>
@@ -219,7 +225,11 @@ export function OcorrenciaFormDialog({
           {ehFalta && <div className="space-y-3">
             {contexto && <p className="text-sm font-medium">{contexto}</p>}
             <Label>Classificação da falta *</Label>
-            <Select value={classificacao} onValueChange={(v) => setClassificacao(v as ClassificacaoFalta)}>
+            <Select value={classificacao} onValueChange={(v) => {
+              setClassificacao(v as ClassificacaoFalta);
+              setTipo(v === "justificada" ? "ausencia_justificada" : "falta");
+              setAssid(null);
+            }}>
               <SelectTrigger className="min-h-12"><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="justificada">Falta justificada</SelectItem><SelectItem value="injustificada">Falta injustificada</SelectItem></SelectContent>
             </Select>
