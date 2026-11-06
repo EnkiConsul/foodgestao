@@ -1,4 +1,5 @@
 # Roadmap — Pré-admissão ativa na rotina da loja
+- [ ] Implementar entrega do apoio com prazo opcional (manter/reiniciar 7 dias/somar 7 dias), prévia e mensagem fiel, preservando ativação e sem testes em clientes reais.
 - [x] Organizar cartões da equipe com nome curto no celular, detalhes ao tocar e menu contextual; 61 testes aprovados e cartão/detalhes/ação de ausência conferidos em 390/1280 com pessoa fictícia, sem erros ou publicação. Integração autenticada completa não exercitada: permanece a restrição de testes somente na conta Sandbox autorizada.
 - [x] Corrigir nome completo no cartão mobile, janela de folga acima do teclado e erro explicativo da compensatória. 45 testes aprovados; formulário com dados fictícios conferido em 407/1280 e teclado simulado, falha preserva motivo/preenchimento. RPC vigente já aceita compensatória; sem migração, publicação ou gravações reais.
 - [ ] Validar esta correção em aparelho com teclado real e registro completo na conta Sandbox autorizada; teste visual simulado e banco isolado não substituem essa homologação, e clientes reais não serão usados.
