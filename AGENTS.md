@@ -42,7 +42,6 @@
 - Ações do Dia: decide documents only; other requests use dedicated DSR/release-undo screens.
 
 - Leave previews retain the request row to open its exact details.
-- Payment calendar milestones come from the pure `pagamentos-marcos` engine fed by unit rules and unit holidays; the portal receives only its own eligible rules via `dp_portal_meus_pagamentos`, so forecasts never promise pay to ineligible bonds.
 - Portal operation uses server-scoped RPCs; approved leave and confirmed absences override work in every source, with shared cache invalidation after decisions and periodic portal refresh to reflect other devices.
 - Leave/vacation evidence is source-linked, transactional and impact-protected; cancellation retires it. Administrative completion never implies external posting.
 - Occurrence quick filters use the shared type-query helper before the result limit; leave/swap filtering uses source links instead of labels so both absence and worked-day evidence remain visible.
