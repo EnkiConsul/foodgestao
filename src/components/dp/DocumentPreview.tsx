@@ -140,7 +140,6 @@ export function DocumentPreview({
     c.id === "recibo" ? "Recibo (dinheiro)" : c.id === "recibo-diferenca" ? "Recibo (diferença)"
       : listaComprovantes.filter((x) => !x.rotulo).length > 1 ? `Comprovante ${i + 1}` : (c.rotulo ?? "Comprovante");
   const pendenteAnexo = (c: { rotulo?: string }) => !!c.rotulo && /Aguardando/i.test(c.rotulo);
-  const urlAtiva = anexoAtivo ? anexoAtivo.url : resolvedUrl;
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(url ?? null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -223,6 +222,8 @@ export function DocumentPreview({
       if (criada) URL.revokeObjectURL(criada);
     };
   }, [open, resolvedUrl, ehHeicLegado]);
+
+  const urlAtiva = anexoAtivo ? anexoAtivo.url : resolvedUrl;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
