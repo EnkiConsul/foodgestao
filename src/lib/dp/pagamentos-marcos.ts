@@ -102,7 +102,7 @@ export function marcosPagamentoDoMes(
       data: quintoDiaUtil(competencia, naoUteis),
       rotulo: rotuloSalario,
       curto: rotuloSalario === "Salário" ? "Salário" : "Bolsa",
-      detalhe: `Previsão do ${rotuloSalario.toLowerCase()} de ${nomeMesAnterior(competencia)}: 5º dia útil (sábado conta; domingos e feriados da loja não contam).`,
+      detalhe: `Referente a ${nomeMesAnterior(competencia)}. 5º dia útil: sábado conta; domingos e feriados da loja não contam.`,
     });
   } else if (s?.tipo === "dia_fixo" && s.dia) {
     marcos.push({
@@ -110,7 +110,7 @@ export function marcosPagamentoDoMes(
       data: diaFixoNoMes(competencia, s.dia),
       rotulo: rotuloSalario,
       curto: rotuloSalario === "Salário" ? "Salário" : "Bolsa",
-      detalhe: `Previsão do ${rotuloSalario.toLowerCase()}: todo dia ${s.dia}, conforme a regra da loja.`,
+      detalhe: `Todo dia ${s.dia}, conforme a regra da loja.`,
     });
   }
   if (regra.adiantamentoDia) {
@@ -119,7 +119,7 @@ export function marcosPagamentoDoMes(
       data: diaFixoNoMes(competencia, regra.adiantamentoDia),
       rotulo: "Adiantamento salarial",
       curto: "Adiantamento",
-      detalhe: `Previsão do adiantamento salarial: todo dia ${regra.adiantamentoDia}.`,
+      detalhe: `Todo dia ${regra.adiantamentoDia}, conforme a regra da loja.`,
     });
   }
   if (regra.vaDia) {
@@ -128,7 +128,7 @@ export function marcosPagamentoDoMes(
       data: periodoVaDe(regra.vaDia, 0, `${competencia.slice(0, 7)}-01`).pagamento,
       rotulo: "Vale-alimentação",
       curto: "VA",
-      detalhe: `Previsão do crédito do vale-alimentação: todo dia ${regra.vaDia}.`,
+      detalhe: `Crédito todo dia ${regra.vaDia}.`,
     });
   }
   return marcos.sort((a, b) => a.data.localeCompare(b.data) || ORDEM[a.tipo] - ORDEM[b.tipo]);
