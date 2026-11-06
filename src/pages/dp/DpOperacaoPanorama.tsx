@@ -89,6 +89,8 @@ import { DpErrorState } from "@/components/dp/DpErrorState";
 import { DpStatCard } from "@/components/dp/DpStatCard";
 import { DpTabsBar } from "@/components/dp/DpTabsBar";
 import { DiasEmLista } from "@/components/dp/DiasEmLista";
+import { PagamentosDoDia, PilulaPagamento } from "@/components/dp/calendario/PagamentosDia";
+import { useDpPagamentosMarcos } from "@/hooks/useDpPagamentosMarcos";
 import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Lock, MoreHorizontal } from "lucide-react";
@@ -564,7 +566,10 @@ function DetalheDiaOperacao({
 
   if (resumoInicio) return (
     <div className="space-y-2">
-      {diaEhPico(data, dia.feriado_nome) && <span className="inline-flex items-center gap-1 text-xs font-semibold text-warning-foreground"><Flame className="h-3.5 w-3.5 fill-warning text-warning" />Pico de operação</span>}
+      {(diaEhPico(data, dia.feriado_nome) || pagamentosDia.length > 0) && <div className="flex flex-wrap items-center gap-1.5">
+        {diaEhPico(data, dia.feriado_nome) && <span className="inline-flex items-center gap-1 text-xs font-semibold text-warning-foreground"><Flame className="h-3.5 w-3.5 fill-warning text-warning" />Pico de operação</span>}
+        {pagamentosDia.map((m) => <PilulaPagamento key={m.tipo} marco={m} />)}
+      </div>}
       {[...contagemPeriodos].map(([per, quantidade]) => {
         const fora = foraDaOperacao.filter((p) => periodoPessoa(p) === per);
         const Icon = per === "dia" ? Sun : Moon;
@@ -589,6 +594,7 @@ function DetalheDiaOperacao({
           <Flame className="h-3.5 w-3.5" /> Pico de operação
         </div>
       )}
+      {pagamentosDia.length > 0 && <PagamentosDoDia marcos={pagamentosDia} className="w-full" />}
       {contagemPeriodos.size > 1 && (
         <div className="inline-flex flex-wrap gap-1 rounded-full border bg-muted/40 p-1" role="tablist" aria-label="Turno do dia">
           {([
