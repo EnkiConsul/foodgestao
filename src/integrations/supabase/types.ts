@@ -3124,6 +3124,7 @@ export type Database = {
           criado_em: string
           criado_por: string
           email_enviado_em: string | null
+          entrega_resumo: Json | null
           gestor_email: string | null
           gestor_nome: string
           gestor_whatsapp: string | null
@@ -3143,6 +3144,7 @@ export type Database = {
           criado_em?: string
           criado_por: string
           email_enviado_em?: string | null
+          entrega_resumo?: Json | null
           gestor_email?: string | null
           gestor_nome: string
           gestor_whatsapp?: string | null
@@ -3162,6 +3164,7 @@ export type Database = {
           criado_em?: string
           criado_por?: string
           email_enviado_em?: string | null
+          entrega_resumo?: Json | null
           gestor_email?: string | null
           gestor_nome?: string
           gestor_whatsapp?: string | null
@@ -18453,10 +18456,12 @@ export type Database = {
           unidades: number
         }[]
       }
-      admin_concierge_concluir_parametrizacao: {
-        Args: { p_company_id: string }
-        Returns: Json
-      }
+      admin_concierge_concluir_parametrizacao:
+        | { Args: { p_company_id: string }; Returns: Json }
+        | {
+            Args: { p_company_id: string; p_modo_trial: string }
+            Returns: Json
+          }
       admin_concierge_lista: {
         Args: never
         Returns: {
@@ -18482,6 +18487,10 @@ export type Database = {
           unidades: number
           whatsapp_enviado_em: string
         }[]
+      }
+      admin_concierge_previa_entrega: {
+        Args: { p_company_id: string; p_modo_trial?: string }
+        Returns: Json
       }
       admin_concierge_renovar_convite: {
         Args: { p_company_id: string }
@@ -19059,6 +19068,10 @@ export type Database = {
       concierge_ativar: {
         Args: { p_grupo_id: string; p_user_id: string }
         Returns: undefined
+      }
+      concierge_prazo: {
+        Args: { p_agora: string; p_fim: string; p_modo: string }
+        Returns: string
       }
       consume_recovery_reset: {
         Args: { p_challenge_id: string; p_reset_token_hash: string }
