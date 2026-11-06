@@ -1947,7 +1947,7 @@ export default function DpOperacaoPanorama({
       </Tabs>
       </>}
 
-      {inicioEmLinha && <PrazosRescisao data={data} unidadeId={unidadeId} />}
+      {inicioEmLinha && <PrazosRescisao data={data} unidadeId={unidadeId} compacto />}
       {inicioEmLinha && <IniciosTrabalho data={data} unidadeId={unidadeId} />}
       {inicioEmLinha && <section className="space-y-2" aria-label="Visão oficial do dia">
         {dia && <>
