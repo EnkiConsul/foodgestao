@@ -664,6 +664,13 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
     });
     return Array.from(set).sort((a, b) => (a < b ? 1 : -1));
   }, [query.data]);
+  // O visualizador acompanha o registro atualizado da lista: depois de anexar
+  // o comprovante, o selo do topo muda na hora para quitado.
+  useEffect(() => {
+    if (!preview) return;
+    const atual = (query.data ?? []).find((r) => r.id === preview.id);
+    if (atual && atual !== preview) setPreviewRaw(atual);
+  }, [query.data, preview]);
 
   const arquivosPorRescisao = useMemo(() => {
     const contagem = new Map<string, number>();

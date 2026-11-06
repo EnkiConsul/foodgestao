@@ -32,6 +32,7 @@ export function useDpComprovantePagamento() {
     qc.invalidateQueries({ queryKey: ["dp_documentos"] });
     qc.invalidateQueries({ queryKey: ["dp_doc_detalhes"] });
     qc.invalidateQueries({ queryKey: ["dp_historico_documentos"] });
+    qc.invalidateQueries({ queryKey: ["dp_historico_unified"] });
     qc.invalidateQueries({ queryKey: ["meus_documentos"] });
     void resolverPendencias(qc, {
       companyId: selectedCompanyId,
