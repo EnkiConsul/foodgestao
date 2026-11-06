@@ -9,6 +9,18 @@ import { usePinchZoom } from "@/hooks/usePinchZoom";
 (pdfjsLib as unknown as { GlobalWorkerOptions: { workerPort: Worker } })
   .GlobalWorkerOptions.workerPort ||= new PdfWorker();
 
+/** Limite de pixels por canvas aceito com folga por Android e iOS. */
+const MAX_PIXELS = 16_000_000;
+const MAX_LADO = 8192;
+
+/** Densidade de pixels que mantém o canvas dentro do limite do aparelho. */
+export function densidadeSegura(larguraCss: number, alturaCss: number, dpr = typeof window === "undefined" ? 1 : window.devicePixelRatio || 1): number {
+  const alvo = Math.min(Math.max(dpr, 1), 3);
+  const porArea = Math.sqrt(MAX_PIXELS / Math.max(1, larguraCss * alturaCss));
+  const porLado = MAX_LADO / Math.max(1, larguraCss, alturaCss);
+  return Math.max(0.5, Math.min(alvo, porArea, porLado));
+}
+
 type Props = {
   /** URL (assinada ou blob) do PDF a renderizar. */
   url: string;
@@ -80,39 +92,40 @@ export function PdfCanvasViewer({ url, title }: Props) {
     // Renderiza fora da tela e troca de uma vez, evitando piscar ao dar zoom.
     const novo = document.createElement("div");
     (async () => {
-      for (let n = 1; n <= doc.numPages; n++) {
-        if (cancelado) return;
-        const page = await doc.getPage(n);
-        const base = page.getViewport({ scale: 1 });
-        const escala = (larguraBase / base.width) * zoom;
-        const viewport = page.getViewport({ scale: escala });
-        const canvas = document.createElement("canvas");
-        const dpr = Math.min(window.devicePixelRatio || 1, zoom > 2 ? 2 : 3);
-        canvas.width = Math.floor(viewport.width * dpr);
-        canvas.height = Math.floor(viewport.height * dpr);
-        canvas.style.width = `${Math.floor(viewport.width)}px`;
-        canvas.style.height = `${Math.floor(viewport.height)}px`;
-        canvas.className = "block mx-auto mb-4 shadow-md bg-white rounded";
-        const ctx = canvas.getContext("2d");
-        if (!ctx) continue;
-        novo.appendChild(canvas);
-        try {
-          await page.render({
-            canvasContext: ctx,
-            viewport,
-            canvas,
-            transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined,
-          } as Parameters<typeof page.render>[0]).promise;
-        } catch (e) {
-          // Troca de documento ou de zoom cancela a renderização em andamento:
-          // é esperado, não é erro.
-          if (e instanceof Error && e.name === "RenderingCancelledException") return;
-          throw e;
+      try {
+        for (let n = 1; n <= doc.numPages; n++) {
+          if (cancelado) return;
+          const page = await doc.getPage(n);
+          const base = page.getViewport({ scale: 1 });
+          const escala = (larguraBase / base.width) * zoom;
+          const css = page.getViewport({ scale: escala });
+          // O PDF é desenhado direto na resolução final (escala × densidade da
+          // tela), sem matriz extra: a proporção do buffer é a mesma do CSS e o
+          // texto não distorce. A densidade cai só o necessário para o canvas
+          // caber no limite do celular, que deixaria a página em branco.
+          const densidade = densidadeSegura(css.width, css.height);
+          const viewport = page.getViewport({ scale: escala * densidade });
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.round(viewport.width);
+          canvas.height = Math.round(viewport.height);
+          canvas.style.width = `${canvas.width / densidade}px`;
+          canvas.style.height = `${canvas.height / densidade}px`;
+          canvas.className = "block mx-auto mb-4 shadow-md bg-white rounded";
+          const ctx = canvas.getContext("2d");
+          if (!ctx) continue;
+          novo.appendChild(canvas);
+          await page.render({ canvasContext: ctx, viewport, canvas } as Parameters<typeof page.render>[0]).promise;
         }
+        if (cancelado) return;
+        container.replaceChildren(...Array.from(novo.children));
+        aplicarAncora();
+      } catch (e) {
+        // Troca de documento ou de zoom cancela a renderização em andamento:
+        // é esperado, não é erro. Em qualquer outra falha a escala visual do
+        // gesto é desfeita para a página nunca ficar esticada.
+        if (cancelado || (e instanceof Error && e.name === "RenderingCancelledException")) return;
+        aplicarAncora();
       }
-      if (cancelado) return;
-      container.replaceChildren(...Array.from(novo.children));
-      aplicarAncora();
     })();
     return () => {
       cancelado = true;
