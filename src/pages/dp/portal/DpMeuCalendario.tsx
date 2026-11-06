@@ -23,6 +23,7 @@ import {
   ArrowLeftRight,
   CalendarDays,
   CalendarClock,
+  Flame,
   ChevronLeft,
   ChevronRight,
   Lock,
@@ -97,6 +98,11 @@ import {
 } from "@/lib/dp/folga-rules";
 import { buildBloqueiosDeRegras, type RegraRow } from "@/lib/dp/bloqueio-rules";
 import { cn } from "@/lib/utils";
+import { diaEhPico } from "@/lib/dp/calendario-rotina";
+import { agruparFeriadosDia, textoFeriadosDia, type FeriadoDia } from "@/lib/dp/feriados-apresentacao";
+import { FERIADO_CATEGORIA_LABEL, type FeriadoCategoria } from "@/lib/dp/feriados";
+import { useMeusPagamentosMarcos } from "@/hooks/useDpPagamentosMarcos";
+import { PagamentosDoDia, PilulaPagamento } from "@/components/dp/calendario/PagamentosDia";
 import { DiasEmLista, type DiaEmLista } from "@/components/dp/DiasEmLista";
 import { SocioBloqueioDialog } from "@/components/dp/SocioBloqueioDialog";
 import { isSocio } from "@/lib/dp/contrato-policy";
@@ -282,6 +288,33 @@ export default function DpMeuCalendario() {
   const resumoFolgas = resumoEscolhaFolgas(regrasConfig, { sexo: (meRef.data as { sexo?: string | null } | undefined)?.sexo ?? null });
   /** No padrão CLT o sistema gera a folga dominical — o colaborador não marca nem remove. */
   const folgaCltAutomatica = folgaDominicalAutomatica(regrasConfig);
+
+  /** Feriados da minha loja no mês, com a mesma fonte e apresentação do gestor. */
+  const feriadosQuery = useQuery({
+    queryKey: ["dp_meus_feriados_cal", myUnidade, range.start, range.end],
+    enabled: !!myUnidade,
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("dp_feriados_resolver_v2", {
+        _unidade_id: myUnidade!,
+        _inicio: range.start,
+        _fim: range.end,
+      });
+      if (error) throw error;
+      return agruparFeriadosDia(
+        (data ?? []).map((f) => ({ data: f.data, nome: f.nome, categoria: f.categoria as FeriadoCategoria, unidade_id: myUnidade! })),
+        myUnidade,
+        [],
+      );
+    },
+  });
+  const feriadosPorDia = feriadosQuery.data ?? new Map<string, FeriadoDia[]>();
+  const feriadoDoDia = (iso: string) => {
+    const feriados = feriadosPorDia.get(iso) ?? [];
+    return { feriados, feriado_nome: feriados.length ? feriados.map((f) => f.nome).join(" • ") : null };
+  };
+  /** Previsões de salário, adiantamento e VA que valem para mim neste mês. */
+  const pagamentos = useMeusPagamentosMarcos(`${ano}-${String(mes).padStart(2, "0")}`, !!meRef.data?.id);
 
   /** Atestados e faltas do próprio colaborador, marcados no calendário dele. */
   const marcadoresQuery = useQuery({
@@ -1795,6 +1828,9 @@ export default function DpMeuCalendario() {
           diasElegiveis={diasElegiveis}
           tetoMensal={tetoMensal}
           marcadoresPorDia={marcadoresQuery.data}
+          feriadosPorDia={feriadosPorDia}
+          mostrarPico
+          pagamentosPorDia={pagamentos.porData}
           variant="chunky"
           onPrev={goPrev}
           onNext={goNext}
@@ -1856,6 +1892,18 @@ export default function DpMeuCalendario() {
                 <Lock key="bloq" className="h-3.5 w-3.5 text-destructive" aria-label="Dia bloqueado" />,
               );
             }
+            const fer = feriadoDoDia(iso);
+            if (diaEhPico(iso, fer.feriado_nome)) {
+              icones.push(<Flame key="pico" className="h-3.5 w-3.5 fill-amber-500 text-amber-500" aria-label="Pico de operação" />);
+            }
+            if (fer.feriado_nome) {
+              icones.push(
+                <span key="fer" title={textoFeriadosDia(fer)} role="img" aria-label={textoFeriadosDia(fer)} className="text-[13px] leading-none">
+                  🎉
+                </span>,
+              );
+            }
+            for (const m of pagamentos.porData.get(iso) ?? []) chips.push(<PilulaPagamento key={`pag-${m.tipo}`} marco={m} />);
             if (!blocked && status === "available" && wknd) {
               chips.push(
                 <span key="disp" className="inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">
@@ -1934,7 +1982,7 @@ export default function DpMeuCalendario() {
             };
           })}
         />
-        <LegendaFolgas className="mt-2.5" />
+        <LegendaFolgas className="mt-2.5" marcos />
       </div>
 
       <p className="text-xs text-muted-foreground">
@@ -1961,6 +2009,30 @@ export default function DpMeuCalendario() {
 
           {selectedDay && dayInfo && (
             <div className="space-y-4">
+              {(() => {
+                const fer = feriadoDoDia(selectedDay.iso);
+                const pico = diaEhPico(selectedDay.iso, fer.feriado_nome);
+                const pags = pagamentos.porData.get(selectedDay.iso) ?? [];
+                if (!fer.feriados.length && !pico && !pags.length) return null;
+                return (
+                  <section className="space-y-2" aria-label="Marcos do dia">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {fer.feriados.map((f) => (
+                        <span key={`${f.categoria}-${f.nome}`} className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                          <span aria-hidden="true">🎉</span>
+                          <span className="truncate">Feriado {FERIADO_CATEGORIA_LABEL[f.categoria]} · {f.nome}</span>
+                        </span>
+                      ))}
+                      {pico && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400">
+                          <Flame className="h-3.5 w-3.5" /> Pico de operação
+                        </span>
+                      )}
+                    </div>
+                    <PagamentosDoDia marcos={pags} />
+                  </section>
+                );
+              })()}
               <section className="space-y-2">
                 <h2 className="font-semibold">Ocorrências do dia</h2>
                 {ocorrenciasPeriodo.isLoading ? <p role="status" className="text-sm">Carregando ocorrências…</p> : ocorrenciasPeriodo.isError ? <div role="alert"><p className="text-sm">Não foi possível consultar as ocorrências.</p><Button variant="outline" onClick={() => ocorrenciasPeriodo.refetch()}>Tentar novamente</Button></div> : <>

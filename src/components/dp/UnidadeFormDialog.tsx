@@ -61,6 +61,8 @@ const blank = {
   possui_relogio_ponto: false,
   tem_adiantamento: false,
   dia_adiantamento: "" as string,
+  pagamento_salario_tipo: "" as "" | "quinto_dia_util" | "dia_fixo",
+  pagamento_salario_dia: "" as string,
   banco_horas: false,
   compensa_feriados: false,
   convoca_feriados_automatico: false,
@@ -88,6 +90,8 @@ export interface UnidadeEdicao {
   relogio_ponto_dispensa_justificativa?: string | null;
   tem_adiantamento?: boolean | null;
   dia_adiantamento?: number | null;
+  pagamento_salario_tipo?: string | null;
+  pagamento_salario_dia?: number | null;
   banco_horas?: boolean | null;
   compensa_feriados?: boolean | null;
   convoca_feriados_automatico?: boolean | null;
@@ -223,6 +227,11 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
         possui_relogio_ponto: unidade.possui_relogio_ponto ?? false,
         tem_adiantamento: unidade.tem_adiantamento ?? false,
         dia_adiantamento: unidade.dia_adiantamento != null ? String(unidade.dia_adiantamento) : "",
+        pagamento_salario_tipo:
+          unidade.pagamento_salario_tipo === "quinto_dia_util" || unidade.pagamento_salario_tipo === "dia_fixo"
+            ? unidade.pagamento_salario_tipo
+            : "",
+        pagamento_salario_dia: unidade.pagamento_salario_dia != null ? String(unidade.pagamento_salario_dia) : "",
         banco_horas: unidade.banco_horas ?? false,
         compensa_feriados: unidade.compensa_feriados ?? false,
         convoca_feriados_automatico: unidade.convoca_feriados_automatico ?? false,
@@ -318,6 +327,11 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
       });
       return;
     }
+    if (form.pagamento_salario_tipo === "dia_fixo" && !form.pagamento_salario_dia) {
+      setAba("dados");
+      toast.error("Informe o dia do pagamento do salário");
+      return;
+    }
     const semData = politicasPendentes.find((p) => !datasPolitica[p.politica]);
     if (semData) {
       setAba("dados");
@@ -355,6 +369,9 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
         ...(unidadeId ? {} : { possui_relogio_ponto: form.possui_relogio_ponto }),
         tem_adiantamento: form.tem_adiantamento,
         dia_adiantamento: form.dia_adiantamento ? Number(form.dia_adiantamento) : null,
+        pagamento_salario_tipo: form.pagamento_salario_tipo || null,
+        pagamento_salario_dia:
+          form.pagamento_salario_tipo === "dia_fixo" && form.pagamento_salario_dia ? Number(form.pagamento_salario_dia) : null,
         banco_horas: form.banco_horas,
         compensa_feriados: form.compensa_feriados,
         convoca_feriados_automatico: form.convoca_feriados_automatico,
@@ -575,6 +592,63 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
                   />
                   Confirmo que a convenção ou acordo coletivo vigente autoriza essas práticas nesta unidade.
                 </label>
+              </div>
+            )}
+          </div>
+          <div className="space-y-3 rounded-xl border border-border p-3">
+            <div className="space-y-1">
+              <Label htmlFor="pagamento_salario_tipo">Pagamento do salário mensal</Label>
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                Aparece como previsão no calendário dos mensalistas e no calendário do gestor.
+              </p>
+            </div>
+            <Select
+              value={form.pagamento_salario_tipo || "nao_informado"}
+              onValueChange={(v) =>
+                setForm({
+                  ...form,
+                  pagamento_salario_tipo: v === "nao_informado" ? "" : (v as "quinto_dia_util" | "dia_fixo"),
+                  pagamento_salario_dia: v === "dia_fixo" ? form.pagamento_salario_dia : "",
+                })
+              }
+            >
+              <SelectTrigger id="pagamento_salario_tipo">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="nao_informado">Não informar</SelectItem>
+                <SelectItem value="quinto_dia_util">5º dia útil do mês</SelectItem>
+                <SelectItem value="dia_fixo">Dia fixo do mês</SelectItem>
+              </SelectContent>
+            </Select>
+            {form.pagamento_salario_tipo === "quinto_dia_util" && (
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                Conta de segunda a sábado (CLT, art. 459, §1º). Domingos e feriados nacionais, estaduais e municipais
+                cadastrados na unidade não contam. Com Pix, o pagamento pode ser feito no próprio sábado.
+              </p>
+            )}
+            {form.pagamento_salario_tipo === "dia_fixo" && (
+              <div className="space-y-2">
+                <Label htmlFor="pagamento_salario_dia">Dia do Pagamento *</Label>
+                <Select
+                  value={form.pagamento_salario_dia || ""}
+                  onValueChange={(v) => setForm({ ...form, pagamento_salario_dia: v })}
+                >
+                  <SelectTrigger id="pagamento_salario_dia">
+                    <SelectValue placeholder="Selecione o dia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 31 }, (_, i) => i + 1).map((dia) => (
+                      <SelectItem key={dia} value={dia.toString()}>{dia}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {Number(form.pagamento_salario_dia) > 5 && (
+                  <p className="rounded-lg border border-warning/40 bg-warning/10 p-2.5 text-[11px] leading-relaxed">
+                    Atenção: para o salário do mês anterior, a CLT fixa o prazo até o 5º dia útil. Depois do dia 5,
+                    a data pode passar desse prazo em alguns meses.
+                  </p>
+                )}
               </div>
             )}
           </div>

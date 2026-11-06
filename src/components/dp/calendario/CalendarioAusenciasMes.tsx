@@ -2,6 +2,8 @@ import { FeriadosDia } from "@/components/dp/FeriadoCategoriaBadge";
 import { useDpDesligamentosAgenda } from "@/hooks/useDpDesligamentosAgenda";
 import { useDpIniciosCalendario } from "@/hooks/useDpIniciosCalendario";
 import { MarcosPessoasChips } from "./MarcosPessoasChips";
+import { PilulaPagamento } from "./PagamentosDia";
+import { useDpPagamentosMarcos } from "@/hooks/useDpPagamentosMarcos";
 import { marcosRescisao, rescisoesPeriodo } from "@/lib/dp/rescisao-calendario";
 import { textoFeriadosDia } from "@/lib/dp/feriados-apresentacao";
 import { useEffect, useMemo, useState } from "react";
@@ -123,6 +125,8 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
   const { data: aniversariantes = [] } = useDpAniversariantes30d(ini?.slice(0, 7));
   const { data: inicios = [] } = useDpIniciosCalendario(ini?.slice(0, 7) ?? selecionado.slice(0, 7));
   const iniciosDoDia = (iso: string) => inicios.filter((e) => (!unidadeId || e.unidadeId === unidadeId) && e.data === iso);
+  const pagamentos = useDpPagamentosMarcos(ini?.slice(0, 7) ?? selecionado.slice(0, 7), unidadeId);
+  const pagamentosDoDia = (iso: string) => pagamentos.porData.get(iso) ?? [];
   const aniversariosDoDia = (iso: string) => aniversariantes.filter((a) => (!unidadeId || a.unidadeId === unidadeId) && a.diaMes === `${iso.slice(8)}/${iso.slice(5, 7)}`);
   const bloqueiosQuery = useBloqueiosEfetivos(selectedCompanyId, unidadeId, ini, fimMes);
   const parciaisQuery = useBloqueiosParciais(selectedCompanyId, unidadeId, ini, fimMes);
@@ -526,6 +530,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
               ),
               chips: (
                 <>
+                  {pagamentosDoDia(d.data).map((m) => <PilulaPagamento key={m.tipo} marco={m} />)}
                   {iniciosDoDia(d.data).map((e) => <span key={e.id} className="inline-flex shrink-0 items-center gap-1 rounded-md border border-primary/30 px-2 py-0.5 text-[10px] font-semibold text-primary"><UserPlus className="h-3 w-3" />{e.tipo === "prevista" ? "Admissão prevista" : e.tipo === "formal" ? "Admissão" : "Início"}: {primeiroNome(e.nome)}</span>)}
                   {marcosDoDia(d.data).map((m) => <span key={m.key} className="inline-flex shrink-0 rounded-md border border-primary/40 px-2 py-0.5 text-[10px] font-semibold text-primary">{m.label}: {primeiroNome(m.nome)}</span>)}
                   {aus.slice(0, 3).map((a) => (
@@ -596,6 +601,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                       <span className={cn("inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold tabular-nums", d.alerta && d.avaliacao.situacao === "abaixo" ? "bg-destructive text-destructive-foreground" : "bg-primary/15 text-primary")} title="Trabalhando"><Users className="h-3 w-3" />{d.trabalhando}</span>
                     </div>
                     {aniversariosDoDia(d.data).length > 0 && <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-foreground" title={aniversariosDoDia(d.data).map((a) => `${a.nome} · ${a.tipo === "nascimento" ? "Nascimento" : "Contratação"}`).join("; ")}><Cake className="h-3.5 w-3.5 shrink-0 text-primary" />{aniversariosDoDia(d.data).length} aniversariante(s)</span>}
+                    {pagamentosDoDia(d.data).length > 0 && <span className="flex flex-wrap gap-1">{pagamentosDoDia(d.data).map((m) => <PilulaPagamento key={m.tipo} marco={m} />)}</span>}
                     {marcosDoDia(d.data).map((m) => <span key={m.key} className="break-words text-[10px] font-semibold text-primary">{m.label}: {primeiroNome(m.nome)}</span>)}
                     {iniciosDoDia(d.data).map((e) => <span key={e.id} className="inline-flex items-center gap-1 break-words text-[10px] font-semibold text-primary"><UserPlus className="h-3 w-3 shrink-0" />{e.tipo === "prevista" ? "Admissão prevista" : e.tipo === "formal" ? "Admissão" : "Início"}: {primeiroNome(e.nome)}</span>)}
                     <div className={cn("mt-0.5", compacto ? "grid grid-cols-2 gap-1" : "flex flex-col gap-1")}>

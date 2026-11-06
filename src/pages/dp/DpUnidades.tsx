@@ -444,6 +444,16 @@ export default function DpUnidades() {
                     : "Não"}
                 </p>
               </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Pagamento do salário</Label>
+                <p>
+                  {viewing.pagamento_salario_tipo === "quinto_dia_util"
+                    ? "5º dia útil do mês"
+                    : viewing.pagamento_salario_tipo === "dia_fixo"
+                      ? `Todo dia ${viewing.pagamento_salario_dia ?? "—"}`
+                      : "Não informado"}
+                </p>
+              </div>
             </div>
           )}
           <DialogFooter>

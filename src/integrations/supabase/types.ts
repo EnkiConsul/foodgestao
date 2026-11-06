@@ -14344,6 +14344,8 @@ export type Database = {
           logradouro: string | null
           nome: string
           numero: string | null
+          pagamento_salario_dia: number | null
+          pagamento_salario_tipo: string | null
           possui_relogio_ponto: boolean
           relogio_ponto_dispensa_em: string | null
           relogio_ponto_dispensa_justificativa: string | null
@@ -14377,6 +14379,8 @@ export type Database = {
           logradouro?: string | null
           nome: string
           numero?: string | null
+          pagamento_salario_dia?: number | null
+          pagamento_salario_tipo?: string | null
           possui_relogio_ponto?: boolean
           relogio_ponto_dispensa_em?: string | null
           relogio_ponto_dispensa_justificativa?: string | null
@@ -14410,6 +14414,8 @@ export type Database = {
           logradouro?: string | null
           nome?: string
           numero?: string | null
+          pagamento_salario_dia?: number | null
+          pagamento_salario_tipo?: string | null
           possui_relogio_ponto?: boolean
           relogio_ponto_dispensa_em?: string | null
           relogio_ponto_dispensa_justificativa?: string | null
@@ -21437,6 +21443,17 @@ export type Database = {
           tipo: string
           via_assinada_em: string
           via_assinada_path: string
+        }[]
+      }
+      dp_portal_meus_pagamentos: {
+        Args: { _competencia: string }
+        Returns: {
+          adiantamento_dia: number
+          salario_dia: number
+          salario_rotulo: string
+          salario_tipo: string
+          unidade_id: string
+          va_dia: number
         }[]
       }
       dp_portal_minha_regra_compensacao: {
