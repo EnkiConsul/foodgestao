@@ -76,6 +76,9 @@ export function usePinchZoom(
 
     const onStart = (e: TouchEvent) => {
       if (e.touches.length !== 2) return;
+      // Segundo dedo chegou: impede o navegador de seguir rolando a página com
+      // o primeiro dedo, que roubava o gesto de pinça no Android.
+      if (e.cancelable) e.preventDefault();
       const r = el.getBoundingClientRect();
       inicio = dist(e.touches);
       meio = {
@@ -88,6 +91,7 @@ export function usePinchZoom(
       if (!ativo || e.touches.length !== 2) return;
       e.preventDefault();
       const { zoom: z, min: mi, max: ma } = estado.current;
+      if (!inicio) return;
       razao = limitar(z * (dist(e.touches) / inicio), mi, ma) / z;
       aplicarVisual(razao);
     };
@@ -111,12 +115,19 @@ export function usePinchZoom(
       wheelTimer = setTimeout(confirmar, 150);
     };
 
-    el.addEventListener("touchstart", onStart, { passive: true });
+    // Safari (iOS) aplica o zoom da página inteira por eventos próprios.
+    const bloquearGestoNativo = (e: Event) => e.preventDefault();
+
+    el.addEventListener("touchstart", onStart, { passive: false });
     el.addEventListener("touchmove", onMove, { passive: false });
     el.addEventListener("touchend", onEnd);
     el.addEventListener("touchcancel", onEnd);
     el.addEventListener("wheel", onWheel, { passive: false });
+    el.addEventListener("gesturestart", bloquearGestoNativo);
+    el.addEventListener("gesturechange", bloquearGestoNativo);
     return () => {
+      el.removeEventListener("gesturestart", bloquearGestoNativo);
+      el.removeEventListener("gesturechange", bloquearGestoNativo);
       clearTimeout(wheelTimer);
       el.removeEventListener("touchstart", onStart);
       el.removeEventListener("touchmove", onMove);
