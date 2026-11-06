@@ -23,6 +23,8 @@ import { useDpUserPrefs } from "@/hooks/useDpUserPrefs";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
 import { ausenciasVisiveis, diaEhPico, folgaEhDominical, periodoHabitual, pessoaNoFiltro, tipoAusencia, type PeriodoTurno } from "@/lib/dp/calendario-rotina";
 import { mensagemAlerta } from "@/lib/dp/operacao-panorama";
+import { useDpPagamentosMarcos } from "@/hooks/useDpPagamentosMarcos";
+import { IconesPagamento } from "@/components/dp/calendario/PagamentosDia";
 
 type ControladorOficial = typeof import("@/pages/dp/DpOperacaoPanorama").default;
 const CalendarioOficial = lazyWithRetry<Parameters<ControladorOficial>[0], ControladorOficial>(() => import("@/pages/dp/DpOperacaoPanorama"));
@@ -60,6 +62,7 @@ export function CalendarioOperacaoResumo() {
     ...AUSENCIAS_BASE.slice(1),
   ];
   const p = useDpOperacaoPanorama(competencia, unidade || null);
+  const pagamentos = useDpPagamentosMarcos(competencia, unidade || null);
   const habitual = useMemo(() => periodoHabitual(p.dias), [p.dias]);
   const dias = useMemo(() => p.dias.map((d) => {
     if (periodo === "todos") return d;
@@ -146,6 +149,7 @@ export function CalendarioOperacaoResumo() {
                 <span className="inline-flex items-center gap-1"><Flame className="h-3 w-3 text-warning" />Pico</span>
                 <span className="inline-flex items-center gap-1"><AlertTriangle className="h-3 w-3 text-destructive" />Alerta</span>
                 <span className="inline-flex items-center gap-1"><Cake className="h-3 w-3 text-primary" />Aniversários</span>
+                {pagamentos.marcos.length > 0 && <span className="inline-flex items-center gap-1"><IconesPagamento marcos={pagamentos.marcos.filter((m, i, a) => a.findIndex((x) => x.tipo === m.tipo) === i)} />Pagamentos</span>}
               </div>
               <div className="relative isolate">
                 <div className="grid grid-cols-7 overflow-hidden rounded-t-xl"><CalendarioSemanaCabecalho diasDominicais={diasDominicais} compacto /></div>
@@ -153,12 +157,12 @@ export function CalendarioOperacaoResumo() {
                   {Array.from({ length: p.dias[0]?.dow ?? 0 }).map((_, i) => <div key={`v${i}`} aria-hidden="true" />)}
                   {dias.map((d) => <Button key={d.data} variant="ghost"
                     title={[textoFeriadosDia(d), d.alerta ? mensagemAlerta(d, d.avaliacao, p.unidades.find((u) => u.id === unidade)?.nome ?? null) : null].filter(Boolean).join(" · ") || undefined}
-                    aria-label={`Selecionar ${d.data}, ${textoFeriadosDia(d)}, ${d.trabalhando} trabalhando, ${AUSENCIAS_MES.map((a) => `${a.valor(d)} ${a.label.toLowerCase()}`).join(", ")}${diaEhPico(d.data, d.feriado_nome) ? ", dia de pico" : ""}${d.alerta ? ", alerta de equipe" : ""}${aniversariosDoDia(d.data).length ? `, ${aniversariosDoDia(d.data).length} aniversariantes` : ""}`}
+                    aria-label={`Selecionar ${d.data}, ${textoFeriadosDia(d)}, ${d.trabalhando} trabalhando, ${AUSENCIAS_MES.map((a) => `${a.valor(d)} ${a.label.toLowerCase()}`).join(", ")}${diaEhPico(d.data, d.feriado_nome) ? ", dia de pico" : ""}${d.alerta ? ", alerta de equipe" : ""}${aniversariosDoDia(d.data).length ? `, ${aniversariosDoDia(d.data).length} aniversariantes` : ""}${(pagamentos.porData.get(d.data) ?? []).map((m) => `, previsão de ${m.rotulo.toLowerCase()}`).join("")}`}
                     aria-pressed={d.data === selecionado} aria-current={d.data === hoje ? "date" : undefined}
                     onClick={() => { navegar({ type: "selecionar", data: d.data }); if (window.matchMedia("(max-width: 1023px)").matches) abrirDia(d.data); }}
                     className={cn("relative flex h-[112px] min-w-0 flex-col justify-start gap-0.5 rounded-lg border px-0.5 py-1 text-xs transition-opacity [&_svg]:size-2.5", "border-border bg-card", diaEhPico(d.data, d.feriado_nome) && "bg-calendar-pico", d.data < hoje && d.data !== selecionado && "opacity-45 grayscale-[0.3] hover:opacity-100", d.data === selecionado && "border-primary ring-1 ring-inset ring-primary", d.alerta && "border-destructive ring-1 ring-inset ring-destructive/60")}>
                     <span className="flex h-6 w-full items-center justify-between gap-0.5 px-0.5">
-                      <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold", d.data === hoje && "bg-primary text-primary-foreground")}>{Number(d.data.slice(8))}</span>
+                      <span className="flex min-w-0 items-center gap-0.5"><span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold", d.data === hoje && "bg-primary text-primary-foreground")}>{Number(d.data.slice(8))}</span><IconesPagamento marcos={pagamentos.porData.get(d.data) ?? []} /></span>
                       <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold tabular-nums text-primary" title={`${d.trabalhando} trabalhando`}><Users className="h-2.5 w-2.5" />{d.trabalhando}</span>
                       <span className="absolute bottom-1 right-1">{d.alerta ? <AlertTriangle className="text-destructive" /> : d.feriado_nome ? <span className="text-[10px]" role="img" aria-label={textoFeriadosDia(d)}>🎉</span> : diaEhPico(d.data) ? <Flame className="text-warning" /> : null}</span>
                     </span>
