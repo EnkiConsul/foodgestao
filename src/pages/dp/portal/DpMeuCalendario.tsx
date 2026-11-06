@@ -1982,7 +1982,7 @@ export default function DpMeuCalendario() {
             };
           })}
         />
-        <LegendaFolgas className="mt-2.5" />
+        <LegendaFolgas className="mt-2.5" marcos />
       </div>
 
       <p className="text-xs text-muted-foreground">

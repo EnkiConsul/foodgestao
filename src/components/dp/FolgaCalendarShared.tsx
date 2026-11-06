@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { ChevronLeft, ChevronRight, Lock, LockOpen, AlertCircle, CheckCircle2, Cake, Users, Flame } from "lucide-react";
+import { ChevronLeft, ChevronRight, Lock, LockOpen, AlertCircle, CheckCircle2, Cake, Users, Flame, Banknote } from "lucide-react";
 import { diaEhPico } from "@/lib/dp/calendario-rotina";
 import { textoFeriadosDia, type FeriadoDia } from "@/lib/dp/feriados-apresentacao";
 import type { MarcoPagamento } from "@/lib/dp/pagamentos-marcos";
@@ -289,7 +289,7 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
             );
           })}
         </div>
-        <Legend />
+        <Legend marcos={mostrarPico} />
       </div>
     );
   }
@@ -426,20 +426,20 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
           );
         })}
       </div>
-      <Legend />
+      <Legend marcos={mostrarPico} />
     </div>
   );
 }
 
-function Legend() {
-  return <LegendaFolgas className="mt-5 border-t pt-4" />;
+function Legend({ marcos = false }: { marcos?: boolean }) {
+  return <LegendaFolgas className="mt-5 border-t pt-4" marcos={marcos} />;
 }
 
 /**
  * Legenda compacta do calendário de folgas (portal e DP). Só explica o que já
  * aparece nos dias — os indicadores continuam visíveis em cada data.
  */
-export function LegendaFolgas({ className }: { className?: string }) {
+export function LegendaFolgas({ className, marcos = false }: { className?: string; marcos?: boolean }) {
   const itens = [
     { cls: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300", label: "Disponível", icon: <LockOpen className="h-3 w-3" /> },
     { cls: "border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-300", label: "Minha folga / troca", icon: <CheckCircle2 className="h-3 w-3" /> },
@@ -448,6 +448,13 @@ export function LegendaFolgas({ className }: { className?: string }) {
     { cls: "border-violet-500/40 bg-violet-500/15 text-violet-700 dark:text-violet-300", label: "Pendente", icon: <AlertCircle className="h-3 w-3" /> },
     { cls: "border-destructive/30 bg-destructive/10 text-destructive", label: "Lotado", icon: <Users className="h-3 w-3" /> },
     { cls: "border-destructive/40 bg-destructive/15 text-destructive", label: "Bloqueado", icon: <Lock className="h-3 w-3" /> },
+    ...(marcos
+      ? [
+          { cls: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400", label: "Pico de operação", icon: <Flame className="h-3 w-3 fill-amber-500 text-amber-500" /> },
+          { cls: "border-primary/30 bg-primary/10 text-primary", label: "Feriado", icon: <span aria-hidden="true">🎉</span> },
+          { cls: "border-success/40 bg-success/10 text-success", label: "Pagamento previsto", icon: <Banknote className="h-3 w-3" /> },
+        ]
+      : []),
   ];
   return (
     <div className={cn("flex flex-wrap items-center gap-1.5", className)} aria-label="Legenda">
