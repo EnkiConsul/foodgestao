@@ -497,7 +497,7 @@ export function ComprovanteAnexarDialog(props: {
       const lido = await lerComprovante(file);
       setLeitura(lido);
       if (lido.pagoEm && !pagoEm) setPagoEm(lido.pagoEm);
-      if (lido.valorCents && !bancario && modalidade === "bancario") {
+      if (lido.valorCents && !bancario && modalidade !== "especie") {
         setBancario((lido.valorCents / 100).toFixed(2).replace(".", ","));
       }
     } finally {
@@ -836,7 +836,7 @@ export function ComprovanteAnexarDialog(props: {
         props.onOpenChange(v);
       }}
     >
-      <DialogContent className="max-h-[92vh] w-[calc(100vw-1rem)] max-w-md overflow-y-auto overflow-x-hidden">
+      <DialogContent className="max-h-[92vh] w-[calc(100vw-1.5rem)] max-w-md gap-3 overflow-y-auto overflow-x-hidden px-4 py-5 sm:px-6">
         <DialogHeader>
           <DialogTitle>
             {props.complementar
@@ -856,26 +856,10 @@ export function ComprovanteAnexarDialog(props: {
 
         <ValorDocumentoSelo documentoId={props.alvo.documentoId} />
 
-        <div className="grid min-w-0 gap-3 rounded-md border bg-muted/30 p-3 sm:grid-cols-3">
-          <div className="min-w-0">
-            <p className="text-xs text-muted-foreground">Colaborador</p>
-            <p className="break-words text-sm font-medium">
-              {props.colaboradorNome ?? "Não informado"}
-            </p>
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs text-muted-foreground">Tipo</p>
-            <p className="break-words text-sm font-medium">
-              {docTipoLabel(props.alvo.tipo)}
-            </p>
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs text-muted-foreground">Competência</p>
-            <p className="text-sm font-medium">
-              {props.competencia ?? "Não informada"}
-            </p>
-          </div>
-        </div>
+        <p className="min-w-0 break-words text-xs text-muted-foreground">
+          <strong className="text-foreground">{props.colaboradorNome ?? "Colaborador não informado"}</strong>
+          {" · "}{docTipoLabel(props.alvo.tipo)}{" · "}{props.competencia ?? "Competência não informada"}
+        </p>
 
         <input
           ref={inputRef}
@@ -891,23 +875,25 @@ export function ComprovanteAnexarDialog(props: {
         />
 
         {dialogoFoto}
-        <AvisoViaFisica />
-        <DicaEnquadramento />
-        <div className="grid gap-1.5">
-          <Label className="text-xs">Arquivo do comprovante</Label>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={abrirSeletorFoto}
-              disabled={ocupado}
-            >
-              <Upload className="mr-1 size-4" /> Escolher Arquivo
-            </Button>
-            <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-              {arquivo ? arquivo.name : `PDF, foto ou print, até ${MAX_MB} MB`}
+        {!arquivo ? <AvisoViaFisica /> : null}
+        {!arquivo ? <DicaEnquadramento /> : null}
+        <div className="grid min-w-0 gap-1.5">
+          <Button
+            type="button"
+            size="lg"
+            onClick={abrirSeletorFoto}
+            disabled={ocupado}
+            variant={arquivo ? "outline" : "default"}
+            className="h-auto min-h-12 w-full min-w-0 justify-start gap-2 whitespace-normal py-2 text-left"
+          >
+            <Upload className="size-5 shrink-0" />
+            <span className="min-w-0 flex-1">
+              <span className="block font-semibold">{arquivo ? "Trocar Arquivo" : "Escolher Comprovante"}</span>
+              <span className="block truncate text-xs font-normal opacity-80">
+                {arquivo ? arquivo.name : `PDF, foto ou print, até ${MAX_MB} MB`}
+              </span>
             </span>
-          </div>
+          </Button>
           {lendo ? (
             <p className="flex items-center gap-1.5 text-xs text-primary">
               <Loader2 className="size-3.5 animate-spin" /> Lendo o comprovante…
@@ -1167,6 +1153,33 @@ export function ComprovanteAnexarDialog(props: {
               <strong>{centsParaBRL(confValor.comprovadoCents)}</strong>
             </p>
             <p className="font-medium">{fraseValor}</p>
+            {confValor.status === "menor" && !props.complementar ? (
+              <div className="space-y-2 rounded-md border border-primary/30 bg-background p-2 text-foreground">
+                <p>O restante foi pago em dinheiro? Registre como pagamento misto e o sistema gera o recibo do valor em dinheiro.</p>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => {
+                    const banco = confValor.comprovadoCents - jaComprovado - (modalidade === "bancario" ? 0 : (brlParaCents(especie) ?? 0));
+                    const faltante = -confValor.diferencaCents + (modalidade === "bancario" ? 0 : (brlParaCents(especie) ?? 0));
+                    if (modalidade === "especie") {
+                      setEspecie((faltante / 100).toFixed(2).replace(".", ","));
+                    } else {
+                      setModalidade("misto");
+                      if (!bancario && banco > 0) setBancario((banco / 100).toFixed(2).replace(".", ","));
+                      setEspecie((faltante / 100).toFixed(2).replace(".", ","));
+                    }
+                    setCienteValor(false);
+                    setJustValor("");
+                    setErro(null);
+                  }}
+                >
+                  <Banknote className="mr-1 size-4" /> Restante em Dinheiro com Recibo ({centsParaBRL(-confValor.diferencaCents)})
+                </Button>
+                <p className="text-muted-foreground">Só se o restante ainda não foi pago, marque a ciência abaixo.</p>
+              </div>
+            ) : null}
             <label className="flex items-start gap-2 text-foreground">
               <input
                 type="checkbox"
@@ -1328,7 +1341,7 @@ export function ComprovanteAnexarDialog(props: {
             </div>
           </div>
         ) : (
-        <DialogFooter className="gap-2 sm:gap-2">
+        <DialogFooter className="sticky -bottom-5 -mx-4 flex-col-reverse gap-2 border-t bg-background px-4 pb-1 pt-3 sm:-mx-6 sm:flex-row sm:gap-2 sm:px-6">
           <Button
             variant="outline"
             onClick={() => props.onOpenChange(false)}
@@ -1337,6 +1350,8 @@ export function ComprovanteAnexarDialog(props: {
             Cancelar
           </Button>
           <Button
+            size="lg"
+            className="w-full sm:w-auto"
             onClick={() => void importar()}
             disabled={ocupado || gerandoRecibo || (!arquivo && !semArquivoEspecie) || lendo}
           >
