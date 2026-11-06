@@ -371,8 +371,10 @@ export async function contratar(admin: SupabaseClient, conta: Conta, userEmail: 
           desfeitos: desfeitos.map((d) => d.id), pendentes, resposta_incerta: incerto, erro: detalhe.slice(0, 800) } }), false),
     ])).filter((x): x is string => !!x);
     if (falhas.length) {
-      await gravarComRetry("evento desfazimento_incompleto", () => admin.from("billing_account_events").insert({ billing_account_id: conta.id, actor_id: conta.titular_user_id,
+      const eInc = await gravarComRetry("evento desfazimento_incompleto", () => admin.from("billing_account_events").insert({ billing_account_id: conta.id, actor_id: conta.titular_user_id,
         tipo_evento: "desfazimento_incompleto", payload: { subscription_id: sub.id, asaas_env: conta.asaas_env, falhas, erro: detalhe.slice(0, 400) } }), false);
+      // Último recurso: o alerta não pode se perder (a resposta ao cliente segue abaixo).
+      if (eInc) await gravarEmergencia(admin, { ...sub, asaas_env: conta.asaas_env }, "desfazimento_incompleto", `${eInc} | falhas: ${falhas.join("; ")}`);
     }
     criados.length = 0;
     console.error("[contratar] falha", ok ? "desfeita" : "COMPENSAÇÃO PENDENTE", sub.id, detalhe, JSON.stringify(pendentes), falhas.length ? `LOCAL INCOMPLETO ${JSON.stringify(falhas)}` : "");
@@ -405,7 +407,7 @@ async function eventoConta(admin: SupabaseClient, sub: any, tipo: string, actorI
  * Registro crítico que falhou 2x: grava aviso de emergência (alerta no Backoffice,
  * com 1 nova tentativa) e SEMPRE interrompe com erro 500 explícito — nunca só log.
  */
-async function escalarAlertaCritico(admin: SupabaseClient, sub: any, tipo: string, erro: string): Promise<never> {
+async function gravarEmergencia(admin: SupabaseClient, sub: any, tipo: string, erro: string): Promise<string | null> {
   const subId = sub?.id ?? null;
   const emergencia = subId
     ? await gravarComRetry(`emergência ${tipo}`, () => admin.from("billing_v2_desfeita_eventos").insert({
@@ -413,6 +415,12 @@ async function escalarAlertaCritico(admin: SupabaseClient, sub: any, tipo: strin
         asaas_env: sub?.asaas_env ?? "desconhecido", alerta: true, motivo: `Registro "${tipo}" não gravado após 2 tentativas: ${erro}`.slice(0, 800) }), false)
     : "sem assinatura";
   console.error(`[billing] ALERTA CRÍTICO ${tipo} não registrado`, subId, erro, emergencia ? `EMERGÊNCIA TAMBÉM FALHOU: ${emergencia}` : "aviso de emergência gravado");
+  return emergencia;
+}
+
+async function escalarAlertaCritico(admin: SupabaseClient, sub: any, tipo: string, erro: string): Promise<never> {
+  const subId = sub?.id ?? null;
+  const emergencia = await gravarEmergencia(admin, sub, tipo, erro);
   throw new BillingError(500, "Falha crítica ao registrar a regularização da cobrança. Nossa equipe precisa conferir; fale com o suporte.",
     { tipo, subscription_id: subId, erro, aviso_emergencia: !emergencia });
 }
