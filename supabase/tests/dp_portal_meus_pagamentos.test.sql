@@ -42,6 +42,7 @@ BEGIN
   PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid, 'role', 'authenticated', 'aud', 'authenticated')::text, true);
   PERFORM set_config('request.jwt.claim.sub', _uid::text, true);
   PERFORM set_config('request.jwt.claim.role', 'authenticated', true);
+  PERFORM set_config('role', 'authenticated', true);
 END $$;
 
 DO $$
@@ -67,12 +68,16 @@ BEGIN
   IF r.adiantamento_dia IS DISTINCT FROM 20 THEN RAISE EXCEPTION 'T3 falhou: %', row_to_json(r); END IF;
   RAISE NOTICE 'T3 ok: mês anterior mantém adiantamento';
 
+  RESET ROLE;
   UPDATE public.dp_colaboradores SET regime = 'intermitente', forma_pagamento = 'horista' WHERE id = f.col;
+  PERFORM pg_temp.como(f.u);
   SELECT * INTO r FROM public.dp_portal_meus_pagamentos('2026-11');
   IF r.salario_tipo IS NOT NULL THEN RAISE EXCEPTION 'T4 falhou: %', row_to_json(r); END IF;
   RAISE NOTICE 'T4 ok: intermitente sem salário mensal';
 
+  RESET ROLE;
   UPDATE public.dp_colaboradores SET regime = 'clt', forma_pagamento = 'mensalista', vinculo_label = 'socio' WHERE id = f.col;
+  PERFORM pg_temp.como(f.u);
   SELECT * INTO r FROM public.dp_portal_meus_pagamentos('2026-10');
   IF r.salario_tipo IS NOT NULL OR r.adiantamento_dia IS NOT NULL THEN RAISE EXCEPTION 'T5 falhou: %', row_to_json(r); END IF;
   RAISE NOTICE 'T5 ok: sócio sem salário/adiantamento';
