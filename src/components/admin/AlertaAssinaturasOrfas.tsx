@@ -2,8 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-
-type Pendencia = { id: string; created_at: string; billing_account_id: string; payload: any; tipo_evento: string };
+import { pendenciasAbertas, type EventoConta as Pendencia } from "@/lib/billing/pendenciasCompensacao";
 
 /**
  * Alerta do Backoffice: compensações pendentes no Asaas, desfazimentos locais
@@ -45,14 +44,8 @@ export function AlertaAssinaturasOrfas() {
         .order("created_at", { ascending: false })
         .limit(300);
       if (error) throw error;
-      const res = (t: string) => new Set((data ?? []).filter((e: any) => e.tipo_evento === t).map((e: any) => e.payload?.subscription_id));
-      const compOk = res("compensacao_resolvida"), desfOk = res("desfazimento_resolvido");
-      const lista = (data ?? []) as Pendencia[];
-      return {
-        compensacoes: lista.filter((e) => e.tipo_evento === "contratacao_falhou_compensacao_pendente" && !compOk.has(e.payload?.subscription_id)),
-        desfazUpgrade: lista.filter((e) => e.tipo_evento === "compensacao_pendente" && !compOk.has(e.payload?.subscription_id)),
-        incompletos: lista.filter((e) => e.tipo_evento === "desfazimento_incompleto" && !desfOk.has(e.payload?.subscription_id)),
-      };
+      // Cada pendência casa com a sua resolução (id ou data posterior), não só pela assinatura.
+      return pendenciasAbertas((data ?? []) as Pendencia[]);
     },
   });
 
@@ -123,7 +116,7 @@ export function AlertaAssinaturasOrfas() {
             <ul className="mt-2 list-disc pl-5 text-xs">
               {desfeitas.map((d: any) => (
                 <li key={d.id}>
-                  {new Date(d.created_at).toLocaleString("pt-BR")} · {d.asaas_env} · {d.event_type} · cobrança {d.payment_id} · assinatura local{" "}
+                  {new Date(d.created_at).toLocaleString("pt-BR")} · {d.asaas_env} · {d.event_type} · cobrança {d.payment_id ?? "—"} · assinatura local{" "}
                   {String(d.subscription_id).slice(0, 8)} — {d.motivo}
                 </li>
               ))}
