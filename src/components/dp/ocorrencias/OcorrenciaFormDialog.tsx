@@ -79,7 +79,15 @@ const GRUPOS_TIPO: { titulo: string; itens: { valor: OcorrenciaTipo; label: stri
 ];
 
 /** Na tela de falta só existem as duas classificações, sem previsão ou atestado. */
-const GRUPOS_TIPO_FALTA = [GRUPOS_TIPO[0]];
+const GRUPOS_TIPO_FALTA: { titulo: string; itens: { valor: OcorrenciaTipo; label: string }[] }[] = [
+  {
+    titulo: "Classificação da falta",
+    itens: [
+      { valor: "falta", label: "Falta injustificada" },
+      { valor: "ausencia_justificada", label: "Falta justificada" },
+    ],
+  },
+];
 
 interface Props {
   open: boolean;
@@ -255,7 +263,7 @@ export function OcorrenciaFormDialog({
               <Input type="date" value={data} onChange={(e) => setData(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label>O que aconteceu *</Label>
+              <Label>{somenteFalta ? "Classificação da falta *" : "O que aconteceu *"}</Label>
               <Select
                 value={tipo}
                 onValueChange={(v) => {
