@@ -1,7 +1,7 @@
 export type ModoTrial = "manter" | "reiniciar_7d" | "somar_7d";
 export type EntregaApoio = {
   modo_trial: ModoTrial;
-  prazos: { modulo: string; fim: string | null }[];
+  prazos: { modulo: string; fim: string | null; fim_atual?: string | null }[];
   unidades: number;
   fichas: number;
 };
