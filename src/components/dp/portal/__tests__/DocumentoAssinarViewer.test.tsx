@@ -107,4 +107,36 @@ describe("Tela de leitura e assinatura", () => {
     fireEvent.click(concluir);
     expect(onConcluir).toHaveBeenCalledWith(PNG);
   });
+
+  it("fechar o documento PDF não quebra ao liberar o carregamento", async () => {
+    const fetchOriginal = global.fetch;
+    global.fetch = vi.fn(async () => ({
+      ok: true,
+      arrayBuffer: async () => new ArrayBuffer(8),
+    })) as unknown as typeof fetch;
+    try {
+      const { unmount } = render(
+        <DocumentoAssinarViewer
+          open
+          onOpenChange={() => undefined}
+          titulo="Contracheque"
+          filePath="c1/colab1/contracheque.pdf"
+          fileName="contracheque.pdf"
+          mimeType="application/pdf"
+          nomeColaborador="Nordman Lima"
+          onConcluir={vi.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: /Rubricar página 1/i })).toBeInTheDocument(),
+      );
+      // O documento resolvido não tem destroy: quem libera é a tarefa.
+      expect(typeof pdf.doc.destroy).toBe("undefined");
+      expect(() => unmount()).not.toThrow();
+      expect(pdf.task.destroy).toHaveBeenCalled();
+      expect(pdf.doc.cleanup).toHaveBeenCalled();
+    } finally {
+      global.fetch = fetchOriginal;
+    }
+  });
 });
