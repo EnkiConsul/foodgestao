@@ -88,7 +88,7 @@ export function useDpPagamentosMarcos(competencia: string, unidadeId: string | n
   });
   const marcos = q.data ?? [];
   const porData = useMemo(() => marcosPorData(marcos), [marcos]);
-  return { marcos, porData, isLoading: q.isLoading, isError: q.isError, refetch: q.refetch, totalUnidades: unidadeId ? 1 : null };
+  return { marcos, porData, isLoading: q.isLoading, isError: q.isError, refetch: q.refetch };
 }
 
 /**
