@@ -134,8 +134,8 @@ export function PdfCanvasViewer({ url, title }: Props) {
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0">
-      <div className="flex items-center justify-end gap-1 px-3 py-1.5 border-b bg-background">
+    <div className="relative flex flex-col h-full min-h-0">
+      <div className="absolute bottom-3 right-3 z-20 flex items-center gap-0.5 rounded-full border bg-background/90 px-1 py-0.5 shadow-md backdrop-blur">
         <Button
           size="icon"
           variant="ghost"
