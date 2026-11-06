@@ -132,14 +132,15 @@ export function DocumentPreview({
     ...(reciboDif ? [{ id: "recibo-diferenca", url: reciboDif.url, mime: reciboDif.mime, path: reciboDif.nome ?? "", rotulo: reciboDif.assinado ? "Recibo da Diferença Paga a Maior · Assinado" : "Recibo da Diferença Paga a Maior · Aguardando assinatura" }] : []),
   ];
   const temAnexos = listaComprovantes.length > 0;
-  const scrollRef = useRef<HTMLDivElement>(null);
-  /** Rola até o documento principal ou até um anexo, dentro da mesma rolagem. */
-  const irPara = (alvo: string) => {
-    const el = scrollRef.current?.querySelector<HTMLElement>(`[data-preview-secao="${alvo}"]`);
-    el?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+  const [aba, setAba] = useState<string>("documento");
+  useEffect(() => { if (open) setAba("documento"); }, [open]);
+  const anexoAtivo = listaComprovantes.find((c) => c.id === aba) ?? null;
+  useEffect(() => { if (aba !== "documento" && !anexoAtivo) setAba("documento"); }, [aba, anexoAtivo]);
   const rotuloAnexo = (c: { id: string; rotulo?: string }, i: number) =>
-    c.rotulo ?? (listaComprovantes.filter((x) => !x.rotulo).length > 1 ? `Comprovante ${i + 1}` : "Comprovante");
+    c.id === "recibo" ? "Recibo (dinheiro)" : c.id === "recibo-diferenca" ? "Recibo (diferença)"
+      : listaComprovantes.filter((x) => !x.rotulo).length > 1 ? `Comprovante ${i + 1}` : (c.rotulo ?? "Comprovante");
+  const pendenteAnexo = (c: { rotulo?: string }) => !!c.rotulo && /Aguardando/i.test(c.rotulo);
+  const urlAtiva = anexoAtivo ? anexoAtivo.url : resolvedUrl;
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(url ?? null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -226,33 +227,29 @@ export function DocumentPreview({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[calc(100%-0.5rem)] sm:w-[95vw] max-w-full sm:max-w-4xl h-[88svh] sm:h-[85vh] flex flex-col p-0 gap-0 overflow-hidden [padding-top:0] [padding-bottom:0] sm:[padding-top:0] sm:[padding-bottom:0]">
-        <DialogHeader className="p-3 pr-12 sm:p-4 border-b">
+        <DialogHeader className="px-3 pt-3 pb-2 pr-12 sm:p-4 border-b space-y-0">
           <DialogTitle className="truncate text-sm sm:text-base">{title}</DialogTitle>
           {temAnexos && (
-            <div className="flex flex-wrap items-center gap-1.5 pt-1">
-              <button
-                type="button"
-                onClick={() => irPara("documento")}
-                className="rounded-full border px-2.5 py-0.5 text-xs font-medium text-muted-foreground hover:bg-accent"
-              >
-                Documento
-              </button>
-              {listaComprovantes.map((c, i) => (
+            <div role="tablist" aria-label="Arquivos do documento" className="-mx-1 flex items-center gap-1 overflow-x-auto px-1 pt-1.5 [scrollbar-width:none]">
+              {[{ id: "documento", nome: "Documento", pend: false }, ...listaComprovantes.map((c, i) => ({ id: c.id, nome: rotuloAnexo(c, i), pend: pendenteAnexo(c) }))].map((t) => (
                 <button
-                  key={c.id}
+                  key={t.id}
                   type="button"
-                  onClick={() => irPara(c.id)}
-                  className="rounded-full border px-2.5 py-0.5 text-xs font-medium text-muted-foreground hover:bg-accent"
+                  role="tab"
+                  aria-selected={aba === t.id}
+                  onClick={() => setAba(t.id)}
+                  className={`relative shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors ${aba === t.id ? "bg-primary text-primary-foreground" : "border text-muted-foreground hover:bg-accent"}`}
                 >
-                  {rotuloAnexo(c, i)} ↓
+                  {t.nome}
+                  {t.pend && <span aria-label="Aguardando assinatura" className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-warning align-middle" />}
                 </button>
               ))}
             </div>
           )}
           {toolbar}
         </DialogHeader>
-        <div ref={scrollRef} className={temAnexos ? "flex-1 min-h-0 overflow-y-auto bg-muted/30" : "flex-1 min-h-0 bg-muted/30"}>
-        <div data-preview-secao="documento" className={temAnexos ? "h-[70svh] sm:h-[68vh]" : "h-full"}>
+        <div className="flex-1 min-h-0 bg-muted/30">
+        <div className={anexoAtivo ? "hidden" : "h-full"}>
           {aguardando ? (
             <div className="flex flex-col items-center justify-center h-full gap-3 text-sm text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin" />
@@ -303,42 +300,29 @@ export function DocumentPreview({
             </div>
           )}
         </div>
-        {/* Quitação na mesma rolagem: comprovantes bancários e recibo em dinheiro. */}
-        {listaComprovantes.map((c, i) => (
-          <section key={c.id} data-preview-secao={c.id} className="border-t">
-            <p className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b bg-background px-3 py-2 text-xs font-semibold uppercase text-muted-foreground">
-              <span>{c.rotulo ?? (listaComprovantes.filter((x) => !x.rotulo).length > 1 ? `Comprovante de Pagamento ${i + 1}` : "Comprovante de Pagamento")}</span>
-              <button
-                type="button"
-                onClick={() => irPara("documento")}
-                className="normal-case font-medium text-primary hover:underline"
-              >
-                Voltar ao documento ↑
-              </button>
-            </p>
-            <div className="h-[70svh] sm:h-[68vh]">
-              {(c.mime ?? "").startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(c.path) ? (
-                <ImagemZoomViewer src={c.url} alt={c.rotulo ?? "Comprovante de pagamento"} />
-              ) : (
-                <PdfCanvasViewer url={c.url} title={c.rotulo ?? "Comprovante de pagamento"} />
-              )}
-            </div>
-          </section>
-        ))}
+        {anexoAtivo && (
+          <div key={anexoAtivo.id} className="h-full">
+            {(anexoAtivo.mime ?? "").startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(anexoAtivo.path) ? (
+              <ImagemZoomViewer src={anexoAtivo.url} alt={anexoAtivo.rotulo ?? "Comprovante de pagamento"} />
+            ) : (
+              <PdfCanvasViewer url={anexoAtivo.url} title={anexoAtivo.rotulo ?? "Comprovante de pagamento"} />
+            )}
+          </div>
+        )}
         </div>
         <DialogFooter className="p-2 sm:p-3 border-t flex-row flex-wrap sm:justify-between gap-2">
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Fechar</Button>
           {acaoDetalhes}
           {acaoRodape}
-          {resolvedUrl && (
+          {urlAtiva && (
             <div className="flex flex-wrap gap-2">
               <Button asChild size="sm" variant="outline" className="hidden sm:inline-flex">
-                <a href={resolvedUrl} target="_blank" rel="noopener noreferrer">
+                <a href={urlAtiva} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-4 w-4 mr-2" /> Nova aba
                 </a>
               </Button>
               <Button asChild size="sm">
-                <a href={resolvedUrl} download>
+                <a href={urlAtiva} download>
                   <Download className="h-4 w-4 mr-2" /> Baixar
                 </a>
               </Button>
