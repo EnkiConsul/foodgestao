@@ -488,6 +488,8 @@ function DetalheDiaOperacao({
     ),
   );
   const ausReg = ausenciasRegistradas.filter((a) => a.inicio <= data && a.fim >= data);
+  const pagamentos = useDpPagamentosMarcos(data.slice(0, 7), unidadeId);
+  const pagamentosDia = pagamentos.porData.get(data) ?? [];
   const rotuloAus = (t: string) => (t === "adiantamento" ? "Adiantamento" : t === "outros" ? "Ausência" : t === "indisponibilidade" ? "Indisponibilidade" : t);
   const avulsosDoDia = avulsos.filter((a) => a.data_inicio <= data && a.data_fim >= data);
 
