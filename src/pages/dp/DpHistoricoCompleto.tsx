@@ -584,7 +584,7 @@ export default function DpHistoricoCompleto({ embutido = false }: { embutido?: b
           comprovante_recibo_id: d.comprovante_recibo_documento_id ?? null,
           comprovante_path: d.comprovante_file_path ?? null,
           comprovante_mime: d.comprovante_mime_type ?? null,
-          quitacao: d.comprovante_file_path
+          quitacao: d.comprovante_file_path || d.comprovante_recibo_documento_id || Number(d.comprovante_valor_especie_cents) > 0
             ? consolidarQuitacao({
                 liquidoCents: d.valor_liquido_cents,
                 temPrincipal: true,
