@@ -4,22 +4,11 @@ import PdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?worker";
 import { Loader2, ZoomIn, ZoomOut, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePinchZoom } from "@/hooks/usePinchZoom";
+import { densidadeSegura } from "@/lib/dp/pdf-densidade";
 
 // Worker compartilhado com os demais visualizadores de PDF do DP.
 (pdfjsLib as unknown as { GlobalWorkerOptions: { workerPort: Worker } })
   .GlobalWorkerOptions.workerPort ||= new PdfWorker();
-
-/** Limite de pixels por canvas aceito com folga por Android e iOS. */
-const MAX_PIXELS = 16_000_000;
-const MAX_LADO = 8192;
-
-/** Densidade de pixels que mantém o canvas dentro do limite do aparelho. */
-export function densidadeSegura(larguraCss: number, alturaCss: number, dpr = typeof window === "undefined" ? 1 : window.devicePixelRatio || 1): number {
-  const alvo = Math.min(Math.max(dpr, 1), 3);
-  const porArea = Math.sqrt(MAX_PIXELS / Math.max(1, larguraCss * alturaCss));
-  const porLado = MAX_LADO / Math.max(1, larguraCss, alturaCss);
-  return Math.max(0.5, Math.min(alvo, porArea, porLado));
-}
 
 type Props = {
   /** URL (assinada ou blob) do PDF a renderizar. */
