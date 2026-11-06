@@ -15,11 +15,18 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   MARCACAO_LABEL,
-  TIPOS_ORDEM,
   TIPO_LABEL,
   type OcorrenciaMarcacao,
   type OcorrenciaTipo,
@@ -35,6 +42,44 @@ function eventoDoTipo(t: OcorrenciaTipo): EventoAssiduidade {
   if (["atraso", "previsao_atraso", "atraso_intervalo", "previsao_atraso_intervalo", "saida_antecipada", "previsao_saida_antecipada"].includes(t)) return "atraso";
   return "folga";
 }
+
+/**
+ * Opções do seletor único "O que aconteceu". A classificação da falta vive aqui:
+ * "Falta injustificada" grava `falta` e "Falta justificada" grava
+ * `ausencia_justificada`, então não existe um segundo seletor repetindo a escolha.
+ */
+const GRUPOS_TIPO: { titulo: string; itens: { valor: OcorrenciaTipo; label: string }[] }[] = [
+  {
+    titulo: "Faltas e ausências",
+    itens: [
+      { valor: "falta", label: "Falta injustificada" },
+      { valor: "ausencia_justificada", label: "Falta justificada" },
+      { valor: "previsao_falta", label: TIPO_LABEL.previsao_falta },
+      { valor: "atestado", label: TIPO_LABEL.atestado },
+    ],
+  },
+  {
+    titulo: "Atrasos e saídas",
+    itens: [
+      { valor: "atraso", label: TIPO_LABEL.atraso },
+      { valor: "previsao_atraso", label: TIPO_LABEL.previsao_atraso },
+      { valor: "saida_antecipada", label: TIPO_LABEL.saida_antecipada },
+      { valor: "previsao_saida_antecipada", label: TIPO_LABEL.previsao_saida_antecipada },
+      { valor: "atraso_intervalo", label: TIPO_LABEL.atraso_intervalo },
+      { valor: "previsao_atraso_intervalo", label: TIPO_LABEL.previsao_atraso_intervalo },
+    ],
+  },
+  {
+    titulo: "Marcação e jornada",
+    itens: [
+      { valor: "esquecimento_marcacao", label: TIPO_LABEL.esquecimento_marcacao },
+      { valor: "divergencia_jornada", label: TIPO_LABEL.divergencia_jornada },
+    ],
+  },
+];
+
+/** Na tela de falta só existem as duas classificações, sem previsão ou atestado. */
+const GRUPOS_TIPO_FALTA = [GRUPOS_TIPO[0]];
 
 interface Props {
   open: boolean;
@@ -96,8 +141,6 @@ export function OcorrenciaFormDialog({
   const Title = mobile ? SheetTitle : DialogTitle;
   const Description = mobile ? SheetDescription : DialogDescription;
   const Footer = mobile ? SheetFooter : DialogFooter;
-  const [classificacao, setClassificacao] = useState<ClassificacaoFalta>("injustificada");
-  const [comunicou, setComunicou] = useState(false);
   const hoje = new Date().toISOString().slice(0, 10);
   const [colaboradorId, setColaboradorId] = useState("");
   const [data, setData] = useState(dataInicial ?? hoje);
@@ -107,6 +150,7 @@ export function OcorrenciaFormDialog({
   const [horarioReal, setHorarioReal] = useState("");
   const [justificativa, setJustificativa] = useState("");
   const [motivo, setMotivo] = useState<string>(MOTIVOS_AUSENCIA[0]);
+  const [comunicou, setComunicou] = useState(false);
   const [assid, setAssid] = useState<DecisaoAssiduidade | null>(null);
 
   useEffect(() => {
@@ -114,22 +158,25 @@ export function OcorrenciaFormDialog({
     setColaboradorId(colaboradorInicial ?? "");
     setData(dataInicial ?? hoje);
     setTipo("falta");
-    setClassificacao("injustificada");
-    setComunicou(false);
-    setAssid(null);
     setMarcacao("entrada");
     setHorarioEstimado("");
     setHorarioReal("");
     setJustificativa("");
     setMotivo(MOTIVOS_AUSENCIA[0]);
+    setComunicou(false);
+    setAssid(null);
   }, [open, dataInicial, colaboradorInicial, hoje]);
 
   const pedeEstimado = useMemo(() => PEDE_ESTIMADO.includes(tipo), [tipo]);
   const pedeReal = useMemo(() => PEDE_REAL.includes(tipo), [tipo]);
   const ehFalta = somenteFalta || tipo === "falta" || tipo === "ausencia_justificada";
+  /** Classificação derivada do tipo escolhido: uma única fonte, sem seletor repetido. */
+  const classificacao: ClassificacaoFalta = tipo === "ausencia_justificada" ? "justificada" : "injustificada";
   const faltaPreparada = prepararFalta(classificacao, comunicou ? "sim" : "nao", justificativa, contexto);
   const evento = ehFalta ? faltaPreparada.evento : eventoDoTipo(tipo);
   const pedeMotivo = useMemo(() => PEDE_MOTIVO.includes(tipo), [tipo]);
+  const justificativaObrigatoria =
+    (ehFalta && classificacao === "justificada") || (pedeMotivo && motivo === "Outro");
 
   const submit = () => {
     if (!colaboradorId) {
@@ -140,7 +187,7 @@ export function OcorrenciaFormDialog({
       toast.error("Informe a data da rotina.");
       return;
     }
-    if ((ehFalta && classificacao === "justificada" || pedeMotivo && motivo === "Outro") && !justificativa.trim()) {
+    if (justificativaObrigatoria && !justificativa.trim()) {
       toast.error("Descreva o motivo da ausência.");
       return;
     }
@@ -167,17 +214,25 @@ export function OcorrenciaFormDialog({
     });
   };
 
+  const grupos = somenteFalta ? GRUPOS_TIPO_FALTA : GRUPOS_TIPO;
+
   return (
     <Root open={open} onOpenChange={onOpenChange}>
       <Content {...(mobile ? { side: "bottom" as const } : {})} className="max-h-[92dvh] overflow-y-auto sm:max-w-lg [&_input]:min-h-12">
         <Header>
           <Title>{somenteFalta ? "Registrar falta" : "Registrar ocorrência"}</Title>
           <Description>
-            Vincule sempre à data da rotina, e não à data em que o horário aconteceu.
+            Vincule à data da rotina, não à data em que o horário aconteceu.
           </Description>
         </Header>
 
-        <div className="space-y-4">
+        {contexto && (
+          <p className="mt-3 rounded-md border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-sm font-medium text-amber-700 dark:text-amber-400">
+            {contexto}
+          </p>
+        )}
+
+        <div className="mt-4 space-y-4">
           <div className="space-y-1.5">
             <Label>Colaborador *</Label>
             <Select value={colaboradorId} onValueChange={setColaboradorId}>
@@ -194,53 +249,57 @@ export function OcorrenciaFormDialog({
             </Select>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className={somenteFalta ? "space-y-3" : "grid gap-3 sm:grid-cols-2"}>
             <div className="space-y-1.5">
               <Label>Data da rotina *</Label>
               <Input type="date" value={data} onChange={(e) => setData(e.target.value)} />
             </div>
-            {!somenteFalta && <div className="space-y-1.5">
+            <div className="space-y-1.5">
               <Label>O que aconteceu *</Label>
-              <Select value={tipo} onValueChange={(v) => {
-                setTipo(v as OcorrenciaTipo);
-                if (v === "falta" || v === "ausencia_justificada") {
-                  setClassificacao(v === "ausencia_justificada" ? "justificada" : "injustificada");
-                }
-                setAssid(null);
-              }}>
+              <Select
+                value={tipo}
+                onValueChange={(v) => {
+                  setTipo(v as OcorrenciaTipo);
+                  setAssid(null);
+                }}
+              >
                 <SelectTrigger className="min-h-12">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {TIPOS_ORDEM.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {TIPO_LABEL[t]}
-                    </SelectItem>
+                  {grupos.map((g) => (
+                    <SelectGroup key={g.titulo}>
+                      <SelectLabel>{g.titulo}</SelectLabel>
+                      {g.itens.map((i) => (
+                        <SelectItem key={i.valor} value={i.valor}>
+                          {i.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   ))}
                 </SelectContent>
               </Select>
-            </div>}
+            </div>
           </div>
 
-          {ehFalta && <div className="space-y-3">
-            {contexto && <p className="text-sm font-medium">{contexto}</p>}
-            <Label>Classificação da falta *</Label>
-            <Select value={classificacao} onValueChange={(v) => {
-              setClassificacao(v as ClassificacaoFalta);
-              setTipo(v === "justificada" ? "ausencia_justificada" : "falta");
-              setAssid(null);
-            }}>
-              <SelectTrigger className="min-h-12"><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="justificada">Falta justificada</SelectItem><SelectItem value="injustificada">Falta injustificada</SelectItem></SelectContent>
-            </Select>
-            <label className="flex min-h-12 items-center gap-3 text-sm"><Checkbox checked={comunicou} onCheckedChange={(v) => setComunicou(v === true)} />Houve comunicação prévia do colaborador</label>
-            <p className="text-xs text-muted-foreground">Comunicação é informação interna. Descontos do dia e DSR dependem da análise e das regras aplicáveis, sem desconto automático.</p>
-          </div>}
+          {ehFalta && (
+            <div className="space-y-2 rounded-md border border-border bg-muted/30 p-3">
+              <label className="flex min-h-11 items-center gap-3 text-sm">
+                <Checkbox checked={comunicou} onCheckedChange={(v) => setComunicou(v === true)} />
+                Houve comunicação prévia do colaborador
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Comunicação é informação interna. Descontos do dia e DSR dependem da análise e das regras
+                aplicáveis, sem desconto automático.
+              </p>
+            </div>
+          )}
+
           {pedeMotivo && !ehFalta && (
             <div className="space-y-1.5">
               <Label>Motivo da ausência *</Label>
               <Select value={motivo} onValueChange={setMotivo}>
-                <SelectTrigger>
+                <SelectTrigger className="min-h-12">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -262,7 +321,7 @@ export function OcorrenciaFormDialog({
               <div className="space-y-1.5">
                 <Label>Qual marcação</Label>
                 <Select value={marcacao} onValueChange={(v) => setMarcacao(v as OcorrenciaMarcacao)}>
-                  <SelectTrigger>
+                  <SelectTrigger className="min-h-12">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -300,7 +359,9 @@ export function OcorrenciaFormDialog({
           )}
 
           <div className="space-y-1.5">
-            <Label>Justificativa</Label>
+            <Label>
+              Justificativa{justificativaObrigatoria ? " *" : ""}
+            </Label>
             <Textarea
               rows={3}
               value={justificativa}
@@ -308,11 +369,12 @@ export function OcorrenciaFormDialog({
               placeholder="O que foi informado sobre o ocorrido"
             />
           </div>
+
           <AssiduidadePergunta colaboradorId={colaboradorId} evento={evento} value={assid} onChange={setAssid} />
         </div>
 
         <Footer className="sticky bottom-0 mt-3 gap-2 border-t bg-background pt-3">
-          <Button className="min-h-12 w-full sm:w-auto" variant="outline" onClick={() => onOpenChange(false)}>
+          <Button className="min-h-12 w-full sm:w-auto" variant="ghost" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
           <Button className="min-h-12 w-full sm:w-auto" onClick={submit} disabled={saving}>
