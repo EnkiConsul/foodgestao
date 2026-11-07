@@ -159,7 +159,7 @@ export function AdminSubscriptions() {
           <SelectFiltro label="Plano" value={fc.plano} onChange={(plano) => setFc({ plano })}
             options={[["", "Todos os planos"], ...planosDisponiveis.map((k) => [k, PLANO_LABEL[k]] as [string, string])]} />
           <SelectFiltro label="Cobrança" value={fc.cobranca} onChange={(cobranca) => setFc({ cobranca })}
-            options={[["", "Toda cobrança"], ["pagantes", "Pagantes"], ["isentos", "Isentos (cortesia)"]]} />
+            options={[["", "Toda cobrança"], ["pagantes", "Pagando agora"], ["nao_cobrado", "Em carência ou trial"], ["isentos", "Isentos (cortesia)"]]} />
           <SelectFiltro label="Forma de cobrança" value={fc.forma} onChange={(forma) => setFc({ forma })}
             options={[["", "Toda forma"], ["automatica", "Automática"], ["manual", "Manual"]]} />
         </BarraFiltros>
@@ -180,12 +180,22 @@ export function AdminSubscriptions() {
           Mostrar contas de teste
         </label>
         {aba === "contratantes" ? (
-          <p className="text-sm text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
-            <span className="font-medium text-foreground">{indic.total} de {plural(subs.length, "assinatura", "assinaturas")}</span>
-            <span>Pagantes: {indic.pagantes}</span>
-            <span>Isentos: {indic.isentos}</span>
-            <span>Valor mensal dos pagantes: <span className="font-medium text-foreground">{brl(indic.valorPagantesCents)}</span></span>
-          </p>
+          <div className="text-sm text-muted-foreground space-y-1">
+            <p className="flex flex-wrap gap-x-3 gap-y-1">
+              <span className="font-medium text-foreground">{indic.total} de {plural(subs.length, "assinatura", "assinaturas")}</span>
+              <span>Receita mensal em vigor: <span className="font-semibold text-foreground">{brl(indic.receitaEmVigorCents)}</span></span>
+              <span title="Valor de tabela de assinaturas que ainda não estão sendo cobradas" className="cursor-help underline decoration-dotted">
+                A receber após carência/trial: {brl(indic.aReceberCents)}
+              </span>
+            </p>
+            <p className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
+              <span>Pagando agora: {indic.pagando} ({brl(indic.pagandoCents)})</span>
+              <span>Em carência: {indic.carencia} ({brl(indic.carenciaCents)})</span>
+              <span>Em trial: {indic.trial} ({brl(indic.trialCents)})</span>
+              <span>Isentos (cortesia): {indic.isentos}</span>
+              {indic.outros > 0 && <span>Outros status: {indic.outros}</span>}
+            </p>
+          </div>
         ) : (
           <p className="text-sm text-muted-foreground">{filtered.length} de {plural(subs.length, "cadastro", "cadastros")}</p>
         )}

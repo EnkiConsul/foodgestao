@@ -31,6 +31,7 @@ export const SUBSCRIPTION_STATUS_LABELS: Record<string, string> = {
   canceled: "Cancelada",
   expired: "Expirada",
   pending: "Pendente",
+  grace: "Em carência",
 };
 
 export const INVOICE_STATUS_LABELS: Record<string, string> = {
@@ -49,6 +50,7 @@ export const SUBSCRIPTION_STATUS_VARIANT: Record<string, "default" | "secondary"
   canceled: "outline",
   expired: "outline",
   pending: "secondary",
+  grace: "secondary",
 };
 
 export const INVOICE_STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
