@@ -1436,6 +1436,13 @@
       "when": 1794003128720,
       "tag": "0204_preadmissao_encerrar_rotina_valida_ator",
       "breakpoints": true
+    },
+    {
+      "idx": 205,
+      "version": "7",
+      "when": 1794050576944,
+      "tag": "0205_admin_assinaturas_lista_e_trava_cadastro",
+      "breakpoints": true
     }
   ]
 }
