@@ -127,7 +127,7 @@ export function casaAtalho(a: string, s: any, hoje: Date) {
     case "carencia": return s.status === "grace";
     case "inadimplentes": return s.status === "past_due";
     case "adicionais": return activeAddons(s) > 0;
-    case "cortesia30": return nosProximos(s.exempt_until, 30, hoje);
+    case "cortesia30": return !!s.is_exempt && nosProximos(s.exempt_until, 30, hoje);
     default: return true;
   }
 }
