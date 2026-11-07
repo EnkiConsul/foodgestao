@@ -17,19 +17,22 @@ export function useAdminSubscriptions(escopo: EscopoAssinaturas = "contratantes"
   });
 }
 
-export function useAdminInvoices(filters?: { status?: string; userId?: string }) {
+export type EscopoFaturas = "reais" | "teste" | "todas";
+
+export function useAdminInvoices(filters?: { status?: string; userId?: string; escopo?: EscopoFaturas }) {
+  const escopo = filters?.escopo ?? "reais";
   return useQuery({
-    queryKey: ["admin-invoices", filters],
+    queryKey: ["admin-invoices", escopo, filters?.status ?? null, filters?.userId ?? null],
     queryFn: async () => {
-      let q = supabase
-        .from("invoices")
-        .select("*, subscription:subscriptions(plan:plans(name, slug))")
-        .order("created_at", { ascending: false });
-      if (filters?.status) q = q.eq("status", filters.status as any);
-      if (filters?.userId) q = q.eq("user_id", filters.userId);
-      const { data, error } = await q;
+      const { data, error } = await supabase.rpc("admin_faturas_lista" as any, { p_escopo: escopo });
       if (error) throw error;
-      return data;
+      let rows = ((data ?? []) as any[]).map((inv) => ({
+        ...inv,
+        subscription: inv.plan_name || inv.plan_slug ? { plan: { name: inv.plan_name, slug: inv.plan_slug } } : null,
+      }));
+      if (filters?.status) rows = rows.filter((r) => r.status === filters.status);
+      if (filters?.userId) rows = rows.filter((r) => r.user_id === filters.userId);
+      return rows;
     },
   });
 }
