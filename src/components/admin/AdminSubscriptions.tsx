@@ -1,4 +1,11 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
+import {
+  ATALHOS, ATALHO_LABEL, PLANOS, PLANO_LABEL, PADRAO_CONTRATANTES, PADRAO_SEM, type ColunaOrdem,
+  type FiltrosContratantes, type FiltrosSem, activeAddons, addonsCents, planCents, planoChave,
+  contarAtivos, escrever, filtrarContratantes, filtrarSem, lerContratantes, lerSem, ordenar, resumo,
+} from "@/lib/admin/assinaturasFiltros";
+import { BarraFiltros, BuscaDebounce, Chips, Intervalo, SelectFiltro } from "./AssinaturasFiltros";
 import { RevokeExemptionDialog } from "@/components/admin/RevokeExemptionDialog";
 import { CarenciaParametroCard } from "@/components/admin/CarenciaParametroCard";
 import { TaxasCartaoParametroCard } from "@/components/admin/TaxasCartaoParametroCard";
@@ -31,28 +38,30 @@ import { Switch } from "@/components/ui/switch";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 const companyLabel = (s: any) => s.company?.trade_name || s.company?.name || "Sem empresa vinculada";
-const activeAddons = (s: any) => (s.addons ?? []).filter((a: any) => a.status === "active").length;
 const brl = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-/** Valor mensal cobrado: plano base + adicionais ativos que não são cortesia. */
-const addonsCents = (s: any) =>
-  (s.addons ?? [])
-    .filter((a: any) => a.status === "active" && !a.is_exempt)
-    .reduce((t: number, a: any) => t + Number(a.price_cents ?? 0) * Number(a.quantity ?? 1), 0);
-const planCents = (s: any) => Number(s.plan?.price_cents ?? 0);
 /** Valor proporcional de adicionais ainda não cobrado, que entra na próxima fatura. */
 const prorataCents = (s: any) =>
   (s.addons ?? [])
     .filter((a: any) => a.status === "active" && !a.is_exempt && !a.prorata_billed_at)
     .reduce((t: number, a: any) => t + Number(a.prorata_cents ?? 0), 0);
 const moduleLabel = (m?: string | null) => (m === "pessoas" ? "Pessoas 360°" : "Financeiro 360°");
-
-const VIGENTES = ["trialing", "active", "grace", "past_due"];
-const statusMatch = (filter: string, st: string) =>
-  filter === "all" ? true : filter === "vigentes" ? VIGENTES.includes(st) : st === filter;
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 
+const CHAVES_C = { q: "q", status: "status", modulo: "modulo", plano: "plano", cobranca: "cobranca", forma: "forma", atalhos: "atalhos", ini_de: "ini_de", ini_ate: "ini_ate", venc_de: "venc_de", venc_ate: "venc_ate" };
+const CHAVES_S = { sq: "q", sstatus: "status", vinculo: "vinculo", cad_de: "cad_de", cad_ate: "cad_ate" };
+const COLUNAS: [ColunaOrdem, string][] = [["empresa", "Empresa"], ["titular", "Dono titular"], ["valor", "Valor/mês"], ["inicio", "Início"], ["vence", "Vence em"], ["trial", "Trial até"]];
+const STATUS_KEYS = Object.keys(SUBSCRIPTION_STATUS_LABELS);
+
 export function AdminSubscriptions() {
-  const [aba, setAba] = useState<"contratantes" | "sem_contratacao">("contratantes");
+  const [params, setParams] = useSearchParams();
+  const aba: "contratantes" | "sem_contratacao" = params.get("aba") === "sem" ? "sem_contratacao" : "contratantes";
+  const setAba = (v: string) => {
+    const p = new URLSearchParams();
+    for (const [k, val] of params) if (!Object.values(CHAVES_C).includes(k) && !Object.values(CHAVES_S).includes(k) && k !== "aba") p.set(k, val);
+    if (v === "sem_contratacao") p.set("aba", "sem");
+    setParams(p, { replace: true });
+    setSort({ col: null, dir: null });
+  };
   const [showTest, setShowTest] = useState(false);
   const contratantesQ = useAdminSubscriptions("contratantes");
   const semQ = useAdminSubscriptions("sem_contratacao");
@@ -73,87 +82,149 @@ export function AdminSubscriptions() {
   const [revokeId, setRevokeId] = useState<string | null>(null);
   const [graceId, setGraceId] = useState<string | null>(null);
   const podeCarencia = (s: any) => s.status === "active" && !s.is_exempt && !s.external_subscription_id;
-  const [filter, setFilter] = useState<string>("vigentes");
-  const [clientSortDir, setClientSortDir] = useState<"asc" | "desc" | null>(null);
+  const [sort, setSort] = useState<{ col: ColunaOrdem | null; dir: "asc" | "desc" | null }>({ col: null, dir: null });
   const [exemptTarget, setExemptTarget] = useState<{ id: string; planId: string } | null>(null);
   const [addonsTarget, setAddonsTarget] = useState<any>(null);
   const openAddons = (s: any) => setAddonsTarget({ id: s.id, module: s.module, planSlug: s.plan?.slug, companyName: companyLabel(s) });
 
-  const filtered = useMemo(() => subs.filter((s: any) => statusMatch(filter, s.status)), [subs, filter]);
+  const fc = useMemo(() => lerContratantes(params, STATUS_KEYS), [params]);
+  const fs = useMemo(() => lerSem(params, STATUS_KEYS), [params]);
+  const setFc = (patch: Partial<FiltrosContratantes>) => {
+    const next = { ...fc, ...patch };
+    if (patch.modulo !== undefined && next.plano) {
+      const ok = plans.some((p: any) => (!next.modulo || p.module === next.modulo) && planoChave({ plan: p }) === next.plano);
+      if (!ok) next.plano = "";
+    }
+    setParams(escrever(params, next as any, PADRAO_CONTRATANTES as any, CHAVES_C), { replace: true });
+  };
+  const setFs = (patch: Partial<FiltrosSem>) =>
+    setParams(escrever(params, { ...fs, ...patch } as any, PADRAO_SEM as any, CHAVES_S), { replace: true });
+  const limpar = () => setParams(escrever(params, aba === "contratantes" ? (PADRAO_CONTRATANTES as any) : (PADRAO_SEM as any),
+    aba === "contratantes" ? (PADRAO_CONTRATANTES as any) : (PADRAO_SEM as any), aba === "contratantes" ? CHAVES_C : CHAVES_S), { replace: true });
+  const ativos = aba === "contratantes" ? contarAtivos(fc, PADRAO_CONTRATANTES) : contarAtivos(fs, PADRAO_SEM);
+
+  const filtered = useMemo(
+    () => (aba === "contratantes" ? filtrarContratantes(subs, fc, displayName) : filtrarSem(subs, fs, displayName)),
+    [aba, subs, fc, fs, displayName],
+  );
+  const sortedFiltered = useMemo(() => ordenar(filtered, sort.col, sort.dir, displayName), [filtered, sort, displayName]);
+  const indic = useMemo(() => resumo(filtered), [filtered]);
 
   const planLabel = (p: any) => (p.is_active ? p.name : `${p.name} (inativo)`);
+  const planosDisponiveis = PLANOS.filter((k) => plans.some((p: any) => (!fc.modulo || p.module === fc.modulo) && planoChave({ plan: p }) === k));
 
-
-  const sortedFiltered = useMemo(() => {
-    if (!clientSortDir) return filtered;
-    const key = (s: any) => {
-      const name = displayName(s.user_id);
-      return name || s.user_id?.slice(0, 8) || "";
-    };
-    return [...filtered].sort((a, b) => {
-      const cmp = key(a).localeCompare(key(b), "pt-BR", { sensitivity: "base" });
-      return clientSortDir === "asc" ? cmp : -cmp;
-    });
-  }, [filtered, clientSortDir, displayName]);
-
-  const toggleClientSort = () => {
-    setClientSortDir((prev) => {
-      if (prev === null) return "asc";
-      if (prev === "asc") return "desc";
-      return null;
-    });
-  };
+  const toggleSort = (col: ColunaOrdem) =>
+    setSort((prev) => (prev.col !== col ? { col, dir: "asc" } : prev.dir === "asc" ? { col, dir: "desc" } : { col: null, dir: null }));
+  const SortHead = ({ col, children }: { col: ColunaOrdem; children: React.ReactNode }) => (
+    <TableHead className="cursor-pointer select-none" onClick={() => toggleSort(col)}
+      aria-sort={sort.col === col ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}>
+      <span className="inline-flex items-center gap-1">
+        {children}
+        {sort.col === col && sort.dir === "asc" ? <ArrowUp className="h-3 w-3" /> : sort.col === col && sort.dir === "desc" ? <ArrowDown className="h-3 w-3" /> : <ArrowUpDown className="h-3 w-3 text-muted-foreground" />}
+      </span>
+    </TableHead>
+  );
+  const statusOpts: [string, string][] = Object.entries(SUBSCRIPTION_STATUS_LABELS) as any;
+  const vazio = ativos > 0 ? (
+    <div className="text-center py-8 space-y-2">
+      <p className="text-sm text-muted-foreground">{aba === "contratantes" ? "Nenhuma assinatura com esses filtros" : "Nenhum cadastro com esses filtros"}</p>
+      <Button size="sm" variant="outline" onClick={limpar}>Limpar filtros</Button>
+    </div>
+  ) : <p className="text-center text-sm text-muted-foreground py-8">{aba === "contratantes" ? "Nenhuma assinatura" : "Nenhum cadastro"}</p>;
 
   return (
     <div className="space-y-4">
-      <Tabs value={aba} onValueChange={(v) => setAba(v as any)}>
+      <Tabs value={aba} onValueChange={setAba}>
         <TabsList>
           <TabsTrigger value="contratantes">Contratantes</TabsTrigger>
           <TabsTrigger value="sem_contratacao">Cadastros sem contratação</TabsTrigger>
         </TabsList>
       </Tabs>
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-        <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-full sm:w-48"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="vigentes">Vigentes</SelectItem>
-            <SelectItem value="all">Todos os status</SelectItem>
-            {Object.entries(SUBSCRIPTION_STATUS_LABELS).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+
+      {aba === "contratantes" ? (
+        <BarraFiltros ativos={ativos} onLimpar={limpar}
+          extra={<>
+            <Chips opcoes={ATALHOS.map((a) => [a, ATALHO_LABEL[a]])} ativos={fc.atalhos}
+              onToggle={(k) => setFc({ atalhos: fc.atalhos.includes(k) ? fc.atalhos.filter((x) => x !== k) : [...fc.atalhos, k] })} />
+            <div className="flex flex-col md:flex-row md:flex-wrap gap-2 md:gap-4">
+              <Intervalo label="Início" de={fc.ini_de} ate={fc.ini_ate} onChange={(ini_de, ini_ate) => setFc({ ini_de, ini_ate })} />
+              <Intervalo label="Vence em" de={fc.venc_de} ate={fc.venc_ate} onChange={(venc_de, venc_ate) => setFc({ venc_de, venc_ate })} />
+            </div>
+          </>}>
+          <BuscaDebounce value={fc.q} onChange={(q) => setFc({ q })} placeholder="Empresa, CNPJ, titular ou e-mail" />
+          <SelectFiltro label="Status" value={fc.status} onChange={(status) => setFc({ status: status || "vigentes" })}
+            options={[["vigentes", "Vigentes"], ["all", "Todos os status"], ...statusOpts]} />
+          <SelectFiltro label="Módulo" value={fc.modulo} onChange={(modulo) => setFc({ modulo })}
+            options={[["", "Todos os módulos"], ["financeiro", "Financeiro 360°"], ["pessoas", "Pessoas 360°"]]} />
+          <SelectFiltro label="Plano" value={fc.plano} onChange={(plano) => setFc({ plano })}
+            options={[["", "Todos os planos"], ...planosDisponiveis.map((k) => [k, PLANO_LABEL[k]] as [string, string])]} />
+          <SelectFiltro label="Cobrança" value={fc.cobranca} onChange={(cobranca) => setFc({ cobranca })}
+            options={[["", "Toda cobrança"], ["pagantes", "Pagantes"], ["isentos", "Isentos (cortesia)"]]} />
+          <SelectFiltro label="Forma de cobrança" value={fc.forma} onChange={(forma) => setFc({ forma })}
+            options={[["", "Toda forma"], ["automatica", "Automática"], ["manual", "Manual"]]} />
+        </BarraFiltros>
+      ) : (
+        <BarraFiltros ativos={ativos} onLimpar={limpar}>
+          <BuscaDebounce value={fs.sq} onChange={(sq) => setFs({ sq })} placeholder="Nome ou e-mail" />
+          <SelectFiltro label="Status" value={fs.sstatus} onChange={(sstatus) => setFs({ sstatus: sstatus || "all" })}
+            options={[["all", "Todos os status"], ...statusOpts]} />
+          <SelectFiltro label="Vínculo" value={fs.vinculo} onChange={(vinculo) => setFs({ vinculo })}
+            options={[["", "Todo vínculo"], ["colaborador", "Colaborador"], ["admin", "Admin/Sócio"], ["nenhum", "Sem vínculo"]]} />
+          <Intervalo label="Cadastro em" de={fs.cad_de} ate={fs.cad_ate} onChange={(cad_de, cad_ate) => setFs({ cad_de, cad_ate })} />
+        </BarraFiltros>
+      )}
+
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-4">
         <label className="flex items-center gap-2 text-sm">
           <Switch checked={showTest} onCheckedChange={setShowTest} />
           Mostrar contas de teste
         </label>
-        <p className="text-sm text-muted-foreground">
-          {plural(filtered.length, aba === "contratantes" ? "assinatura" : "cadastro", aba === "contratantes" ? "assinaturas" : "cadastros")}
-        </p>
+        {aba === "contratantes" ? (
+          <p className="text-sm text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
+            <span className="font-medium text-foreground">{indic.total} de {plural(subs.length, "assinatura", "assinaturas")}</span>
+            <span>Pagantes: {indic.pagantes}</span>
+            <span>Isentos: {indic.isentos}</span>
+            <span>Valor mensal dos pagantes: <span className="font-medium text-foreground">{brl(indic.valorPagantesCents)}</span></span>
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground">{filtered.length} de {plural(subs.length, "cadastro", "cadastros")}</p>
+        )}
+        {aba === "contratantes" && (
+          <div className="md:hidden flex gap-2">
+            <Select value={sort.col ?? "_"} onValueChange={(v) => setSort(v === "_" ? { col: null, dir: null } : { col: v as ColunaOrdem, dir: sort.dir ?? "asc" })}>
+              <SelectTrigger className="flex-1" aria-label="Ordenar por"><SelectValue placeholder="Ordenar por" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_">Ordenar por: padrão</SelectItem>
+                {COLUNAS.map(([k, v]) => <SelectItem key={k} value={k}>Ordenar por: {v}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {sort.col && (
+              <Button variant="outline" size="icon" aria-label="Inverter ordem"
+                onClick={() => setSort({ col: sort.col, dir: sort.dir === "asc" ? "desc" : "asc" })}>
+                {sort.dir === "asc" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       {aba === "sem_contratacao" ? (
-        <SemContratacaoLista itens={sortedFiltered} isLoading={isLoading} />
+        <SemContratacaoLista itens={sortedFiltered} isLoading={isLoading} vazio={vazio} />
       ) : (<>
       {/* Desktop */}
       <div className="hidden md:block rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Empresa Contratante</TableHead>
-              <TableHead className="cursor-pointer select-none" onClick={toggleClientSort}>
-                <span className="inline-flex items-center gap-1">
-                  Dono Titular
-                  {clientSortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : clientSortDir === "desc" ? <ArrowDown className="h-3 w-3" /> : <ArrowUpDown className="h-3 w-3 text-muted-foreground" />}
-                </span>
-              </TableHead>
+              <SortHead col="empresa">Empresa Contratante</SortHead>
+              <SortHead col="titular">Dono Titular</SortHead>
               <TableHead>Plano</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Isenção</TableHead>
-              <TableHead>Valor/mês</TableHead>
-              <TableHead>Início</TableHead>
-              <TableHead>Vence em</TableHead>
-              <TableHead>Trial até</TableHead>
+              <SortHead col="valor">Valor/mês</SortHead>
+              <SortHead col="inicio">Início</SortHead>
+              <SortHead col="vence">Vence em</SortHead>
+              <SortHead col="trial">Trial até</SortHead>
               <TableHead>Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -163,7 +234,7 @@ export function AdminSubscriptions() {
                 <TableRow key={i}>{Array.from({ length: 10 }).map((_, j) => <TableCell key={j}><Skeleton className="h-4 w-20" /></TableCell>)}</TableRow>
               ))
             ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">Nenhuma assinatura</TableCell></TableRow>
+              <TableRow><TableCell colSpan={10}>{vazio}</TableCell></TableRow>
             ) : (
               sortedFiltered.map((s: any) => {
                 const exempt = isExempt(s);
@@ -288,7 +359,7 @@ export function AdminSubscriptions() {
             <div key={i} className="rounded-md border p-3"><Skeleton className="h-20 w-full" /></div>
           ))
         ) : filtered.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground py-8">Nenhuma assinatura</p>
+          vazio
         ) : (
           sortedFiltered.map((s: any) => {
             const exempt = isExempt(s);
@@ -428,9 +499,9 @@ function VinculoBadge({ s }: { s: any }) {
 }
 
 /** Somente leitura: cadastros que nunca contrataram não recebem ações de cobrança. */
-function SemContratacaoLista({ itens, isLoading }: { itens: any[]; isLoading: boolean }) {
+function SemContratacaoLista({ itens, isLoading, vazio }: { itens: any[]; isLoading: boolean; vazio: React.ReactNode }) {
   if (isLoading) return <Skeleton className="h-24 w-full" />;
-  if (itens.length === 0) return <p className="text-center text-sm text-muted-foreground py-8">Nenhum cadastro</p>;
+  if (itens.length === 0) return <>{vazio}</>;
   return (
     <>
       <div className="hidden md:block rounded-md border">
