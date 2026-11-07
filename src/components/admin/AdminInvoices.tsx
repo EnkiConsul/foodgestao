@@ -14,13 +14,28 @@ import { formatCents, INVOICE_STATUS_LABELS, INVOICE_STATUS_VARIANT } from "@/li
 import { useUserNames } from "@/hooks/useUserNames";
 import { ClientCell } from "./ClientCell";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { useSearchParams } from "react-router-dom";
+import { resumirFaturas } from "@/lib/admin/faturasResumo";
 
 export function AdminInvoices() {
   const [status, setStatus] = useState<string>("all");
   const [clientSortDir, setClientSortDir] = useState<"asc" | "desc" | null>(null);
-  const { data: invoices = [], isLoading } = useAdminInvoices(
-    status === "all" ? undefined : { status }
-  );
+  const [params, setParams] = useSearchParams();
+  const showTest = params.get("faturas_teste") === "1";
+  const setShowTest = (v: boolean) => {
+    const next = new URLSearchParams(params);
+    if (v) next.set("faturas_teste", "1"); else next.delete("faturas_teste");
+    setParams(next, { replace: true });
+  };
+  const statusFiltro = status === "all" ? undefined : status;
+  const { data: invoices = [], isLoading } = useAdminInvoices({
+    status: statusFiltro, escopo: showTest ? "todas" : "reais",
+  });
+  const { data: testes = [] } = useAdminInvoices({ status: statusFiltro, escopo: "teste" });
+  const resumo = useMemo(() => resumirFaturas(invoices as any[]), [invoices]);
+  const semReais = !isLoading && (invoices as any[]).every((i) => i.is_test);
+  const vazioMsg = showTest && invoices.length > 0 ? null : "Nenhuma fatura real encontrada para este filtro.";
   const { displayName } = useUserNames();
   
   const update = useUpdateInvoice();
@@ -57,7 +72,31 @@ export function AdminInvoices() {
             ))}
           </SelectContent>
         </Select>
-        <p className="text-sm text-muted-foreground">{invoices.length} faturas</p>
+        <div>
+          <p className="text-sm text-muted-foreground">{invoices.length} faturas</p>
+          {!showTest && testes.length > 0 && (
+            <p className="text-xs text-muted-foreground">{testes.length} faturas de teste ocultas</p>
+          )}
+        </div>
+        <label className="flex items-center gap-2 text-sm sm:ml-auto">
+          <Switch checked={showTest} onCheckedChange={setShowTest} />
+          Mostrar faturas de teste
+        </label>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        {[
+          ["Recebido", formatCents(resumo.recebidoCents)],
+          ["A receber", formatCents(resumo.aReceberCents)],
+          ["Vencido", formatCents(resumo.vencidoCents)],
+          ["Canceladas", String(resumo.canceladas)],
+        ].map(([l, v]) => (
+          <div key={l} className="rounded-md border p-3">
+            <div className="text-xs text-muted-foreground">{l}</div>
+            <div className="text-base font-semibold">{v}</div>
+          </div>
+        ))}
+        <p className="col-span-2 md:col-span-4 text-[11px] text-muted-foreground">Resumo considera apenas faturas reais.</p>
       </div>
 
       {/* Desktop */}
@@ -85,13 +124,16 @@ export function AdminInvoices() {
               Array.from({ length: 4 }).map((_, i) => (
                 <TableRow key={i}>{Array.from({ length: 8 }).map((_, j) => <TableCell key={j}><Skeleton className="h-4 w-16" /></TableCell>)}</TableRow>
               ))
-            ) : invoices.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma fatura</TableCell></TableRow>
+            ) : invoices.length === 0 || (semReais && !showTest) ? (
+              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">{vazioMsg ?? "Nenhuma fatura"}</TableCell></TableRow>
             ) : (
               sortedInvoices.map((inv: any) => (
                 <TableRow key={inv.id}>
                   <TableCell className="font-medium">
-                    <ClientCell userId={inv.user_id} />
+                    <span className="inline-flex items-center gap-2">
+                      <ClientCell userId={inv.user_id} />
+                      {inv.is_test && <Badge variant="outline" className="text-[10px]">Teste</Badge>}
+                    </span>
                   </TableCell>
                   <TableCell>{inv.subscription?.plan?.name ?? "—"}</TableCell>
                   <TableCell className="font-medium">{formatCents(inv.amount_cents - (inv.discount_cents || 0))}</TableCell>
@@ -145,14 +187,14 @@ export function AdminInvoices() {
           Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="rounded-md border p-3"><Skeleton className="h-20 w-full" /></div>
           ))
-        ) : invoices.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground py-8">Nenhuma fatura</p>
+        ) : invoices.length === 0 || (semReais && !showTest) ? (
+          <p className="text-center text-sm text-muted-foreground py-8">{vazioMsg ?? "Nenhuma fatura"}</p>
         ) : (
           sortedInvoices.map((inv: any) => (
             <div key={inv.id} className="rounded-md border p-3 space-y-2">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="text-sm font-medium truncate"><ClientCell userId={inv.user_id} /></div>
+                  <div className="text-sm font-medium truncate flex items-center gap-2"><ClientCell userId={inv.user_id} />{inv.is_test && <Badge variant="outline" className="text-[10px]">Teste</Badge>}</div>
                   <p className="text-[11px] text-muted-foreground truncate">{inv.subscription?.plan?.name ?? "—"}</p>
                 </div>
                 <Badge variant={INVOICE_STATUS_VARIANT[inv.status]} className="shrink-0 text-[10px]">

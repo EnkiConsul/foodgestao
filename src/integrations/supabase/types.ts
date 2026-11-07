@@ -18503,6 +18503,7 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: Json
       }
+      admin_faturas_lista: { Args: { p_escopo?: string }; Returns: Json }
       admin_provisionar_empresa_concierge: {
         Args: {
           p_bairro: string
