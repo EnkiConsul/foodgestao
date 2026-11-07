@@ -4,9 +4,20 @@ import { parseFlexibleDate } from "@/lib/date-utils";
 /** Filtros de análise do Backoffice > Assinaturas (somente navegador). */
 export const STATUS_VIGENTES = ["trialing", "active", "grace", "past_due"];
 export const MODULOS = ["financeiro", "pessoas"] as const;
-export const PLANOS = ["essencial", "gestao", "multiempresa"] as const;
-export const PLANO_LABEL: Record<string, string> = { essencial: "Essencial", gestao: "Gestão", multiempresa: "Multiempresa" };
-export const COBRANCAS = ["pagantes", "isentos"] as const;
+export const PLANOS = ["essencial", "gestao", "multiempresa", "enterprise"] as const;
+export const PLANO_LABEL: Record<string, string> = { essencial: "Essencial", gestao: "Gestão", multiempresa: "Multiempresa", enterprise: "Enterprise" };
+export const COBRANCAS = ["pagantes", "nao_cobrado", "isentos"] as const;
+export const COBRANCA_LABEL: Record<string, string> = { pagantes: "Pagando agora", nao_cobrado: "Em carência ou trial", isentos: "Isentos (cortesia)" };
+
+/** Grupo de cobrança: cada assinatura cai em exatamente um. */
+export type GrupoCobranca = "pagando" | "carencia" | "trial" | "isento" | "outro";
+export function grupoCobranca(s: any): GrupoCobranca {
+  if (isExempt(s)) return "isento";
+  if (s.status === "active" || s.status === "past_due") return "pagando";
+  if (s.status === "grace") return "carencia";
+  if (s.status === "trialing") return "trial";
+  return "outro";
+}
 export const FORMAS = ["automatica", "manual"] as const;
 export const ATALHOS = ["vence7", "trial3", "carencia", "inadimplentes", "adicionais", "cortesia30"] as const;
 export const ATALHO_LABEL: Record<string, string> = {
@@ -34,6 +45,7 @@ export const activeAddons = (s: any) => (s.addons ?? []).filter((a: any) => a.st
 /** Agrupa o plano pelo nome (Essencial / Gestão / Multiempresa). */
 export function planoChave(s: any): string | null {
   const n = norm(s.plan?.name ?? s.plan?.slug);
+  if (n.includes("enterprise")) return "enterprise";
   if (n.includes("multi")) return "multiempresa";
   if (n.includes("gest")) return "gestao";
   if (n.includes("essen")) return "essencial";
@@ -123,7 +135,7 @@ function nosProximos(v: unknown, dias: number, hoje: Date) {
 export function casaAtalho(a: string, s: any, hoje: Date) {
   switch (a) {
     case "vence7": return !["canceled", "expired"].includes(s.status) && nosProximos(s.current_period_end, 7, hoje);
-    case "trial3": return nosProximos(s.trial_ends_at, 3, hoje);
+    case "trial3": return s.status === "trialing" && nosProximos(s.trial_ends_at, 3, hoje);
     case "carencia": return s.status === "grace";
     case "inadimplentes": return s.status === "past_due";
     case "adicionais": return activeAddons(s) > 0;
@@ -138,8 +150,10 @@ export function filtrarContratantes(rows: any[], f: FiltrosContratantes, nome: (
     if (f.status === "vigentes" ? !STATUS_VIGENTES.includes(s.status) : f.status !== "all" && s.status !== f.status) return false;
     if (f.modulo && (s.module ?? "financeiro") !== f.modulo) return false;
     if (f.plano && planoChave(s) !== f.plano) return false;
-    if (f.cobranca === "pagantes" && isExempt(s)) return false;
-    if (f.cobranca === "isentos" && !isExempt(s)) return false;
+    const g = grupoCobranca(s);
+    if (f.cobranca === "pagantes" && g !== "pagando") return false;
+    if (f.cobranca === "nao_cobrado" && g !== "carencia" && g !== "trial") return false;
+    if (f.cobranca === "isentos" && g !== "isento") return false;
     if (f.forma === "automatica" && !s.external_subscription_id) return false;
     if (f.forma === "manual" && s.external_subscription_id) return false;
     if (!f.atalhos.every((a) => casaAtalho(a, s, hoje))) return false;
@@ -168,12 +182,17 @@ export function filtrarSem(rows: any[], f: FiltrosSem, nome: (uid: string) => st
 }
 
 export function resumo(rows: any[]) {
-  const pagantes = rows.filter((s) => !isExempt(s));
+  const g = { pagando: [0, 0], carencia: [0, 0], trial: [0, 0], isento: [0, 0], outro: [0, 0] } as Record<GrupoCobranca, [number, number]>;
+  for (const s of rows) { const k = grupoCobranca(s); g[k][0] += 1; g[k][1] += valorMes(s); }
   return {
     total: rows.length,
-    pagantes: pagantes.length,
-    isentos: rows.length - pagantes.length,
-    valorPagantesCents: pagantes.reduce((t, s) => t + valorMes(s), 0),
+    pagando: g.pagando[0], pagandoCents: g.pagando[1],
+    carencia: g.carencia[0], carenciaCents: g.carencia[1],
+    trial: g.trial[0], trialCents: g.trial[1],
+    isentos: g.isento[0],
+    outros: g.outro[0],
+    receitaEmVigorCents: g.pagando[1],
+    aReceberCents: g.carencia[1] + g.trial[1],
   };
 }
 
