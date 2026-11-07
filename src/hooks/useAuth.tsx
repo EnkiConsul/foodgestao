@@ -195,7 +195,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
       options: {
         emailRedirectTo: window.location.origin,
-        data: { full_name: fullName, ...(whatsapp ? { whatsapp: whatsapp.replace(/\D/g, "") } : {}) },
+        // signup_origin marca o cadastro público de titular: só ele recebe o teste grátis
+        data: { full_name: fullName, signup_origin: "titular", ...(whatsapp ? { whatsapp: whatsapp.replace(/\D/g, "") } : {}) },
       },
     });
     const alreadyRegistered = !error && isAlreadyRegisteredSignup(data);

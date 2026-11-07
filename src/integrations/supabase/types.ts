@@ -18413,6 +18413,7 @@ export type Database = {
         }
         Returns: string
       }
+      admin_assinaturas_lista: { Args: { p_escopo?: string }; Returns: Json }
       admin_backoffice_candidatos: {
         Args: { _busca?: string }
         Returns: {

@@ -26,6 +26,9 @@ import { useUserNames } from "@/hooks/useUserNames";
 import { ExemptSubscriptionDialog } from "./ExemptSubscriptionDialog";
 import { ClientCell } from "./ClientCell";
 import { SubscriptionAddonsDialog } from "./SubscriptionAddonsDialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 const companyLabel = (s: any) => s.company?.trade_name || s.company?.name || "Sem empresa vinculada";
 const activeAddons = (s: any) => (s.addons ?? []).filter((a: any) => a.status === "active").length;
@@ -42,49 +45,41 @@ const prorataCents = (s: any) =>
     .filter((a: any) => a.status === "active" && !a.is_exempt && !a.prorata_billed_at)
     .reduce((t: number, a: any) => t + Number(a.prorata_cents ?? 0), 0);
 const moduleLabel = (m?: string | null) => (m === "pessoas" ? "Pessoas 360°" : "Financeiro 360°");
-import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
-/** Test/seed accounts and collaborator portal logins pollute the list. */
-const SEED_ID_PREFIXES = ["11111111-", "22222222-", "33333333-", "44444444-", "55555555-"];
-function isNoiseAccount(userId?: string | null, name?: string | null) {
-  if (!userId) return false;
-  if (SEED_ID_PREFIXES.some((p) => userId.startsWith(p))) return true;
-  const n = (name ?? "").toLowerCase();
-  if (!n) return false;
-  return (
-    // qualquer domínio interno do portal do colaborador, independente da marca
-    /@portal\.[a-z0-9.-]+\.local$/.test(n) ||
-    n.startsWith("e2e-") ||
-    n.includes("@example.com") ||
-    n.includes("teste analytics")
-  );
-}
+const VIGENTES = ["trialing", "active", "grace", "past_due"];
+const statusMatch = (filter: string, st: string) =>
+  filter === "all" ? true : filter === "vigentes" ? VIGENTES.includes(st) : st === filter;
+const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 
 export function AdminSubscriptions() {
-  const { data: subs = [], isLoading } = useAdminSubscriptions();
+  const [aba, setAba] = useState<"contratantes" | "sem_contratacao">("contratantes");
+  const [showTest, setShowTest] = useState(false);
+  const contratantesQ = useAdminSubscriptions("contratantes");
+  const semQ = useAdminSubscriptions("sem_contratacao");
+  const testeQ = useAdminSubscriptions("teste", showTest);
+  const isLoading = aba === "contratantes" ? contratantesQ.isLoading || (showTest && testeQ.isLoading) : semQ.isLoading;
+  const subs = useMemo(() => {
+    if (aba === "sem_contratacao") {
+      const extra = showTest ? (testeQ.data ?? []).filter((s: any) => !s.company_id) : [];
+      return [...(semQ.data ?? []), ...extra];
+    }
+    const extra = showTest ? (testeQ.data ?? []).filter((s: any) => s.company_id) : [];
+    return [...(contratantesQ.data ?? []), ...extra];
+  }, [aba, showTest, contratantesQ.data, semQ.data, testeQ.data]);
   const { data: plans = [] } = usePlans();
-  const { displayName, realName } = useUserNames();
-  
+  const { displayName } = useUserNames();
+
   const update = useUpdateSubscription();
   const [revokeId, setRevokeId] = useState<string | null>(null);
   const [graceId, setGraceId] = useState<string | null>(null);
   const podeCarencia = (s: any) => s.status === "active" && !s.is_exempt && !s.external_subscription_id;
-  const [filter, setFilter] = useState<string>("all");
-  const [hideTest, setHideTest] = useState(true);
+  const [filter, setFilter] = useState<string>("vigentes");
   const [clientSortDir, setClientSortDir] = useState<"asc" | "desc" | null>(null);
   const [exemptTarget, setExemptTarget] = useState<{ id: string; planId: string } | null>(null);
   const [addonsTarget, setAddonsTarget] = useState<any>(null);
   const openAddons = (s: any) => setAddonsTarget({ id: s.id, module: s.module, planSlug: s.plan?.slug, companyName: companyLabel(s) });
 
-  const byStatus = filter === "all" ? subs : subs.filter((s: any) => s.status === filter);
-  const noiseCount = useMemo(
-    () => byStatus.filter((s: any) => isNoiseAccount(s.user_id, realName(s.user_id))).length,
-    [byStatus, realName]
-  );
-  const filtered = useMemo(
-    () => (hideTest ? byStatus.filter((s: any) => !isNoiseAccount(s.user_id, realName(s.user_id))) : byStatus),
-    [byStatus, hideTest, realName]
-  );
+  const filtered = useMemo(() => subs.filter((s: any) => statusMatch(filter, s.status)), [subs, filter]);
 
   const planLabel = (p: any) => (p.is_active ? p.name : `${p.name} (inativo)`);
 
@@ -111,25 +106,35 @@ export function AdminSubscriptions() {
 
   return (
     <div className="space-y-4">
+      <Tabs value={aba} onValueChange={(v) => setAba(v as any)}>
+        <TabsList>
+          <TabsTrigger value="contratantes">Contratantes</TabsTrigger>
+          <TabsTrigger value="sem_contratacao">Cadastros sem contratação</TabsTrigger>
+        </TabsList>
+      </Tabs>
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
         <Select value={filter} onValueChange={setFilter}>
           <SelectTrigger className="w-full sm:w-48"><SelectValue /></SelectTrigger>
           <SelectContent>
+            <SelectItem value="vigentes">Vigentes</SelectItem>
             <SelectItem value="all">Todos os status</SelectItem>
             {Object.entries(SUBSCRIPTION_STATUS_LABELS).map(([k, v]) => (
               <SelectItem key={k} value={k}>{v}</SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <p className="text-sm text-muted-foreground">{filtered.length} assinaturas</p>
-        {noiseCount > 0 && (
-          <Button size="sm" variant="ghost" onClick={() => setHideTest((v) => !v)}>
-            {hideTest ? `Mostrar contas de teste (${noiseCount})` : "Ocultar contas de teste"}
-          </Button>
-        )}
+        <label className="flex items-center gap-2 text-sm">
+          <Switch checked={showTest} onCheckedChange={setShowTest} />
+          Mostrar contas de teste
+        </label>
+        <p className="text-sm text-muted-foreground">
+          {plural(filtered.length, aba === "contratantes" ? "assinatura" : "cadastro", aba === "contratantes" ? "assinaturas" : "cadastros")}
+        </p>
       </div>
 
-
+      {aba === "sem_contratacao" ? (
+        <SemContratacaoLista itens={sortedFiltered} isLoading={isLoading} />
+      ) : (<>
       {/* Desktop */}
       <div className="hidden md:block rounded-md border">
         <Table>
@@ -169,7 +174,7 @@ export function AdminSubscriptions() {
                     <p className="text-xs text-muted-foreground">{s.company?.cnpj || moduleLabel(s.module)}</p>
                   </TableCell>
                   <TableCell className="font-medium">
-                    <ClientCell userId={s.user_id} />
+                    <TitularCell s={s} />
                   </TableCell>
                   <TableCell>
                     <Select
@@ -292,7 +297,7 @@ export function AdminSubscriptions() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 text-sm">
                     <p className="font-medium truncate">{companyLabel(s)}</p>
-                    <div className="text-xs text-muted-foreground truncate"><ClientCell userId={s.user_id} /></div>
+                    <div className="text-xs text-muted-foreground"><TitularCell s={s} /></div>
                   </div>
                   <Badge variant={SUBSCRIPTION_STATUS_VARIANT[s.status]} className="shrink-0 text-[10px]">
                     {SUBSCRIPTION_STATUS_LABELS[s.status]}
@@ -376,6 +381,8 @@ export function AdminSubscriptions() {
         )}
       </div>
 
+      </>)}
+
       <CarenciaParametroCard />
       <TaxasCartaoParametroCard />
       <NfseParametroCard />
@@ -394,5 +401,77 @@ export function AdminSubscriptions() {
         subscription={addonsTarget}
       />
     </div>
+  );
+}
+
+function TitularCell({ s }: { s: any }) {
+  const colab = Number(s.colaboradores_ativos ?? 0);
+  const admins = Number(s.admins_equipe ?? 0);
+  return (
+    <div className="space-y-0.5">
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <ClientCell userId={s.user_id} />
+        {s.papel_usuario === "titular" && <Badge variant="outline" className="text-[10px]">Titular</Badge>}
+        {s.is_test && <Badge variant="secondary" className="text-[10px]">Teste</Badge>}
+      </div>
+      <p className="text-[11px] text-muted-foreground font-normal">
+        {plural(colab, "colaborador", "colaboradores")} · {plural(admins, "admin", "admins")}
+      </p>
+    </div>
+  );
+}
+
+function VinculoBadge({ s }: { s: any }) {
+  if (s.is_colaborador) return <Badge variant="secondary" className="text-[10px]">Colaborador</Badge>;
+  if (s.is_equipe_admin) return <Badge variant="secondary" className="text-[10px]">Admin/Sócio</Badge>;
+  return <span className="text-xs text-muted-foreground">—</span>;
+}
+
+/** Somente leitura: cadastros que nunca contrataram não recebem ações de cobrança. */
+function SemContratacaoLista({ itens, isLoading }: { itens: any[]; isLoading: boolean }) {
+  if (isLoading) return <Skeleton className="h-24 w-full" />;
+  if (itens.length === 0) return <p className="text-center text-sm text-muted-foreground py-8">Nenhum cadastro</p>;
+  return (
+    <>
+      <div className="hidden md:block rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nome</TableHead>
+              <TableHead>E-mail</TableHead>
+              <TableHead>Cadastro</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Vínculo</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {itens.map((s) => (
+              <TableRow key={s.id}>
+                <TableCell className="font-medium"><ClientCell userId={s.user_id} /></TableCell>
+                <TableCell className="text-sm">{s.email ?? "—"}</TableCell>
+                <TableCell className="text-xs text-muted-foreground">{formatDate(s.cadastro_em ?? s.created_at, "dd/MM/yy")}</TableCell>
+                <TableCell><Badge variant={SUBSCRIPTION_STATUS_VARIANT[s.status]}>{SUBSCRIPTION_STATUS_LABELS[s.status]}</Badge></TableCell>
+                <TableCell><VinculoBadge s={s} /></TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      <div className="md:hidden space-y-2">
+        {itens.map((s) => (
+          <div key={s.id} className="rounded-md border p-3 space-y-1 text-sm">
+            <div className="flex items-start justify-between gap-2">
+              <ClientCell userId={s.user_id} className="min-w-0" />
+              <Badge variant={SUBSCRIPTION_STATUS_VARIANT[s.status]} className="shrink-0 text-[10px]">{SUBSCRIPTION_STATUS_LABELS[s.status]}</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground truncate">{s.email ?? "—"}</p>
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Cadastro {formatDate(s.cadastro_em ?? s.created_at, "dd/MM/yy")}</span>
+              <VinculoBadge s={s} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
   );
 }

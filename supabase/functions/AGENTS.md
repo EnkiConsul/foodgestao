@@ -21,3 +21,4 @@
 - Regras do Pluggy (Open Finance) ficam em `supabase/functions/_shared/AGENTS.md`; leia antes de alterar qualquer função `pluggy-*`.
 - Funções do banco nascem só com `service_role` (privilégios padrão de `postgres` em `public`); toda função que o app chama recebe `GRANT EXECUTE ... TO authenticated` na própria migração, e funções SECURITY DEFINER que gravam conferem dono/admin/super admin por `auth.uid()`, aceitando ator informado só de `service_role`.
 - Carência vencida: `billing_v2_expirar_carencias` (cron diário) muda `grace` → `expired` com evento `carencia_expirada` — acesso nunca fica grátis após o prazo.
+- Backoffice Assinaturas lê só `admin_assinaturas_lista(p_escopo)` (contratantes = produção, não teste, com empresa; sem_contratacao = sem empresa; teste = `is_test`); trial automático de cadastro só nasce com `signup_origin = 'titular'` (cadastro público) e nunca para quem já é colaborador ou membro — colaborador e convidado nunca viram assinatura.
