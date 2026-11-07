@@ -1443,6 +1443,13 @@
       "when": 1794050576944,
       "tag": "0205_admin_assinaturas_lista_e_trava_cadastro",
       "breakpoints": true
+    },
+    {
+      "idx": 206,
+      "version": "7",
+      "when": 1794051439923,
+      "tag": "0206_handle_new_user_subscription_nunca_bloqueia",
+      "breakpoints": true
     }
   ]
 }
