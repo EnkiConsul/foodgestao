@@ -3,16 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { notifyError } from "@/lib/notifyError";
 
-export function useAdminSubscriptions() {
+export type EscopoAssinaturas = "contratantes" | "sem_contratacao" | "teste";
+
+export function useAdminSubscriptions(escopo: EscopoAssinaturas = "contratantes", enabled = true) {
   return useQuery({
-    queryKey: ["admin-subscriptions"],
+    queryKey: ["admin-subscriptions", escopo],
+    enabled,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("subscriptions")
-        .select("*, plan:plans(name, slug, price_cents, billing_period), company:companies(id, name, trade_name, cnpj), addons:subscription_addons(id, quantity, status, price_cents, is_exempt, prorata_cents, prorata_billed_at)")
-        .order("created_at", { ascending: false });
+      const { data, error } = await supabase.rpc("admin_assinaturas_lista" as any, { p_escopo: escopo });
       if (error) throw error;
-      return data;
+      return (data ?? []) as any[];
     },
   });
 }
