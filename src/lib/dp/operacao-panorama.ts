@@ -125,6 +125,8 @@ export interface OcorrenciaPanorama {
   minutos: number | null;
   horario_estimado: string | null;
   horario_real: string | null;
+  /** Subtipo persistido (ex.: dispensa_aviso_art488), nunca inferido do texto. */
+  subtipo?: string | null;
 }
 
 export interface ItemEscalaPanorama {
@@ -340,10 +342,10 @@ const OCORRENCIA_CATEGORIA: Partial<Record<OcorrenciaTipo, CategoriaDia>> = {
   previsao_atraso: "atrasado",
   saida_antecipada: "saida_antecipada",
   previsao_saida_antecipada: "saida_antecipada",
-  // Atestado/ausência justificada registrados como ocorrência operacional
-  // (ex.: motivo de uma cobertura) também tiram a pessoa do quadro do dia.
+  // Atestado médico tira a pessoa do quadro do dia como afastamento.
   atestado: "atestado",
-  ausencia_justificada: "atestado",
+  // Ausência justificada é falta justificada, não atestado médico.
+  ausencia_justificada: "ausente",
   // Atraso no retorno do intervalo: a pessoa trabalhou, só voltou tarde.
   atraso_intervalo: "atrasado",
   previsao_atraso_intervalo: "atrasado",
@@ -353,8 +355,31 @@ const OCORRENCIA_CATEGORIA: Partial<Record<OcorrenciaTipo, CategoriaDia>> = {
 };
 
 /** Exportado para teste: categoria do calendário de cada tipo de ocorrência. */
-export const categoriaDaOcorrencia = (tipo: OcorrenciaTipo): CategoriaDia | undefined =>
-  OCORRENCIA_CATEGORIA[tipo];
+/**
+ * Subtipos de ausência justificada que representam descanso ou dispensa legal
+ * (aviso prévio, banco de horas, compensação, troca, férias). O dia já é
+ * representado pela folga/afastamento vinculado — nunca vira atestado nem falta.
+ */
+const SUBTIPOS_DESCANSO = new Set([
+  "dispensa_aviso_art488",
+  "banco_horas_aviso",
+  "compensacao_feriado",
+  "folga_compensatoria",
+  "folga_extra",
+  "troca_folga",
+  "ferias",
+]);
+
+export const categoriaDaOcorrencia = (
+  tipo: OcorrenciaTipo,
+  detalhe?: { subtipo?: string | null; folga_id?: string | null; troca_id?: string | null },
+): CategoriaDia | undefined => {
+  if (tipo === "ausencia_justificada") {
+    if (detalhe?.subtipo && SUBTIPOS_DESCANSO.has(detalhe.subtipo)) return undefined;
+    if (detalhe?.folga_id || detalhe?.troca_id) return undefined;
+  }
+  return OCORRENCIA_CATEGORIA[tipo];
+};
 
 /** Categorias que já representam a pessoa fora do trabalho no dia. */
 const CATS_AUSENCIA: CategoriaDia[] = ["ausente", "atestado", "ferias", "folga_padrao", "folga_extra"];
@@ -712,7 +737,7 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
     // Falta e atestado/ausência justificada vencem a categoria de trabalho:
     // quem faltou ou está afastado não conta como trabalhando.
     const catAusencia = ocorrencias
-      .map((o) => OCORRENCIA_CATEGORIA[o.tipo])
+      .map((o) => categoriaDaOcorrencia(o.tipo, o))
       .find((c) => c === "ausente" || c === "atestado");
 
     if (principal && catAusencia && categoriasTrabalho.includes(principal.categoria)) {
@@ -728,7 +753,7 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
     }
 
     for (const o of ocorrencias) {
-      const cat = OCORRENCIA_CATEGORIA[o.tipo];
+      const cat = categoriaDaOcorrencia(o.tipo, o);
       if (!cat) continue;
       // Ausência já é representada pela pessoa principal quando a categoria de
       // trabalho foi substituída. Para categorias sem pessoa, não contamos.
@@ -1263,6 +1288,36 @@ export function ehSobDemanda(regime?: string | null, formaPagamento?: string | n
 }
 
 /** ISO date minus one day (UTC-safe). */
+/**
+ * Último comparecimento por colaborador a partir dos processos de desligamento
+ * (já ordenados do mais recente para o mais antigo): vale o processo mais novo.
+ * Sem último comparecimento, usa o dia anterior à dispensa.
+ */
+export function mapaUltimoComparecimento(
+  processos: { colaborador_id: string; ultimo_comparecimento: string | null; dispensado_desde: string | null }[],
+): Map<string, string> {
+  const mapa = new Map<string, string>();
+  for (const p of processos) {
+    if (mapa.has(p.colaborador_id)) continue;
+    const ultimo = p.ultimo_comparecimento ?? (p.dispensado_desde ? diaAnterior(p.dispensado_desde) : null);
+    if (ultimo) mapa.set(p.colaborador_id, ultimo);
+  }
+  return mapa;
+}
+
+/**
+ * Só aplica o último comparecimento ao contrato vigente: em recontratação, um
+ * processo antigo (anterior à admissão atual) nunca tira a pessoa da escala.
+ */
+export function ultimoComparecimentoDoContrato(
+  ultimo: string | null | undefined,
+  dataAdmissao: string | null | undefined,
+): string | null {
+  if (!ultimo) return null;
+  if (dataAdmissao && ultimo < dataAdmissao) return null;
+  return ultimo;
+}
+
 export function diaAnterior(iso: string): string {
   const d = new Date(`${iso}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() - 1);
