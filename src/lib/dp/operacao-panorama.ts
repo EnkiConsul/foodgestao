@@ -1288,6 +1288,36 @@ export function ehSobDemanda(regime?: string | null, formaPagamento?: string | n
 }
 
 /** ISO date minus one day (UTC-safe). */
+/**
+ * Último comparecimento por colaborador a partir dos processos de desligamento
+ * (já ordenados do mais recente para o mais antigo): vale o processo mais novo.
+ * Sem último comparecimento, usa o dia anterior à dispensa.
+ */
+export function mapaUltimoComparecimento(
+  processos: { colaborador_id: string; ultimo_comparecimento: string | null; dispensado_desde: string | null }[],
+): Map<string, string> {
+  const mapa = new Map<string, string>();
+  for (const p of processos) {
+    if (mapa.has(p.colaborador_id)) continue;
+    const ultimo = p.ultimo_comparecimento ?? (p.dispensado_desde ? diaAnterior(p.dispensado_desde) : null);
+    if (ultimo) mapa.set(p.colaborador_id, ultimo);
+  }
+  return mapa;
+}
+
+/**
+ * Só aplica o último comparecimento ao contrato vigente: em recontratação, um
+ * processo antigo (anterior à admissão atual) nunca tira a pessoa da escala.
+ */
+export function ultimoComparecimentoDoContrato(
+  ultimo: string | null | undefined,
+  dataAdmissao: string | null | undefined,
+): string | null {
+  if (!ultimo) return null;
+  if (dataAdmissao && ultimo < dataAdmissao) return null;
+  return ultimo;
+}
+
 export function diaAnterior(iso: string): string {
   const d = new Date(`${iso}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() - 1);

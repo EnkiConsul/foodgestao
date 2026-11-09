@@ -16,6 +16,17 @@ describe("classificação de ocorrências no calendário", () => {
     expect(categoriaDaOcorrencia("falta")).toBe("ausente");
     expect(categoriaDaOcorrencia("previsao_falta")).toBe("ausente");
     expect(categoriaDaOcorrencia("atestado")).toBe("atestado");
-    expect(categoriaDaOcorrencia("ausencia_justificada")).toBe("atestado");
+  });
+  it("ausência justificada é falta justificada, nunca atestado médico", () => {
+    expect(categoriaDaOcorrencia("ausencia_justificada")).toBe("ausente");
+  });
+  it("dispensa do aviso (Art. 488) nunca vira atestado nem falta", () => {
+    expect(categoriaDaOcorrencia("ausencia_justificada", { subtipo: "dispensa_aviso_art488" })).toBeUndefined();
+  });
+  it("descansos vinculados a folga ou troca não viram atestado", () => {
+    expect(categoriaDaOcorrencia("ausencia_justificada", { subtipo: "banco_horas_aviso" })).toBeUndefined();
+    expect(categoriaDaOcorrencia("ausencia_justificada", { subtipo: "compensacao_feriado" })).toBeUndefined();
+    expect(categoriaDaOcorrencia("ausencia_justificada", { folga_id: "f1" })).toBeUndefined();
+    expect(categoriaDaOcorrencia("ausencia_justificada", { troca_id: "t1" })).toBeUndefined();
   });
 });
