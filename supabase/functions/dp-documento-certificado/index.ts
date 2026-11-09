@@ -544,7 +544,7 @@ Deno.serve(async (req) => {
     const { data: registro } = await admin
       .from("dp_documentos")
       .select(
-        "id, company_id, colaborador_id, titulo, tipo, referencia_data, versao, arquivo_sha256, comprovante_pago_em, comprovante_file_name, comprovante_modalidade, comprovante_valor_bancario_cents, comprovante_valor_especie_cents",
+        "id, company_id, colaborador_id, titulo, tipo, referencia_data, versao, arquivo_sha256, comprovante_pago_em, comprovante_file_name, comprovante_modalidade, comprovante_valor_bancario_cents, comprovante_valor_especie_cents, comprovante_recibo_documento_id, recibo_diferenca_documento_id",
       )
       .eq("id", documentoId)
       .maybeSingle();
@@ -564,12 +564,42 @@ Deno.serve(async (req) => {
       admin.from("dp_colaboradores").select("nome, nome_social").eq("id", registro.colaborador_id).maybeSingle(),
     ]);
 
+    // Recibos vinculados à quitação (dinheiro / diferença): só da mesma empresa
+    // e do mesmo colaborador do documento — nunca de outro vínculo.
+    const recibosMeta: ReciboMeta[] = [];
+    for (const ref of recibosVinculados(registro)) {
+      const { data: rdoc } = await admin
+        .from("dp_documentos")
+        .select("id, company_id, colaborador_id, titulo, tipo, file_path, file_name, mime_type, via_assinada_path, versao, created_at")
+        .eq("id", ref.id)
+        .maybeSingle();
+      if (!rdoc || rdoc.company_id !== registro.company_id || rdoc.colaborador_id !== registro.colaborador_id) continue;
+      const [{ data: raceite }, { data: linhaRecibo }] = await Promise.all([
+        admin
+          .from("dp_documento_aceites")
+          .select("id, aceito_em, ip, conteudo_hash, documento_versao, hash_origem, assinatura_imagem")
+          .eq("documento_id", ref.id)
+          .order("aceito_em", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        admin.from("dp_recibos").select("*").eq("documento_id", ref.id).maybeSingle(),
+      ]);
+      recibosMeta.push({ ref, doc: rdoc, aceite: raceite ?? null, linhaRecibo: linhaRecibo ?? null });
+    }
+
     // Certificado consolidado fica guardado: reabrir é instantâneo. A chave muda
-    // quando entra/atualiza o comprovante ou uma nova aprovação, e aí é refeito.
+    // quando entra/atualiza o comprovante, uma nova aprovação ou o recibo é
+    // emitido/assinado, e aí é refeito sozinho.
+    const sufixoRecibos = sufixoCacheRecibos(recibosMeta.map((r) => ({
+      id: String(r.doc.id),
+      aceiteId: (r.aceite?.id as string | undefined) ?? null,
+      viaAssinadaPath: (r.doc.via_assinada_path as string | null) ?? null,
+      versao: (r.doc.versao as number | null) ?? 1,
+    })));
     const chaveCache = [
       registro.company_id,
       "certificados",
-      `${documentoId}-${aceite.id}-${encodeURIComponent(String(comp?.file_path ?? "sem-comprovante")).replace(/%/g, "")}-${String(registro.comprovante_pago_em ?? "").slice(0, 10)}-${String(registro.versao ?? 1)}-r6.pdf`,
+      `${documentoId}-${aceite.id}-${encodeURIComponent(String(comp?.file_path ?? "sem-comprovante")).replace(/%/g, "")}-${String(registro.comprovante_pago_em ?? "").slice(0, 10)}-${String(registro.versao ?? 1)}-${sufixoRecibos}-r7.pdf`,
     ].join("/");
     const pronto = await admin.storage.from(BUCKET).download(chaveCache);
     if (pronto.data && !pronto.error) {
@@ -711,6 +741,72 @@ Deno.serve(async (req) => {
       // mantém o arquivo original se a remontagem falhar
     }
 
+    // Recibos vinculados: a assinatura só é estampada quando o arquivo atual é
+    // exatamente o conteúdo aprovado; o original guardado nunca é alterado.
+    type ReciboPronto = { meta: ReciboMeta; estado: EstadoRecibo; bytes: Uint8Array | null; mime: string; nome: string };
+    const recibosProntos: ReciboPronto[] = [];
+    for (const meta of recibosMeta) {
+      const rdoc = meta.doc;
+      const nomeArq = String(rdoc.file_name ?? "recibo.pdf");
+      let original: Uint8Array | null = null;
+      if (rdoc.file_path) {
+        const baixar = await admin.storage.from(BUCKET).download(String(rdoc.file_path));
+        if (baixar.data) original = new Uint8Array(await baixar.data.arrayBuffer());
+      }
+      const hashArquivo = original ? await sha256Hex(original.slice().buffer as ArrayBuffer) : null;
+      const estado = estadoRecibo({
+        aceite: meta.aceite as never,
+        versaoAtual: (rdoc.versao as number | null) ?? 1,
+        hashArquivo,
+        viaAssinadaPath: (rdoc.via_assinada_path as string | null) ?? null,
+      });
+
+      let bytes = original;
+      let mime = String(rdoc.mime_type ?? "application/pdf");
+      let nome = nomeArq;
+      if (estado === "assinado_eletronico" && original && meta.aceite) {
+        try {
+          if (meta.linhaRecibo) {
+            const { data: empRecibo } = await admin.from("companies").select("name, trade_name, cnpj")
+              .eq("id", registro.company_id).maybeSingle();
+            const linha = {
+              ...meta.linhaRecibo,
+              assinado_em: meta.linhaRecibo.assinado_em ?? meta.aceite.aceito_em,
+              assinado_ip: meta.linhaRecibo.assinado_ip ?? meta.aceite.ip,
+            };
+            bytes = await montarReciboPdf(reciboDaLinha(linha, empRecibo, meta.aceite.assinatura_imagem as string));
+          } else if (rdoc.tipo === "recibo_pagamento_especie") {
+            bytes = await assinarCampoReciboEspecie(original, {
+              assinatura: meta.aceite.assinatura_imagem as string,
+              aceitoEm: String(meta.aceite.aceito_em ?? ""),
+              ip: (meta.aceite.ip as string | null) ?? null,
+            });
+          }
+        } catch (e) {
+          await recordEdgeError({ functionName: FUNCAO, action: "estampar aceite no recibo vinculado", error: e, details: { documento_id: documentoId, recibo_id: rdoc.id } });
+          avisos.push("A assinatura do recibo em dinheiro está comprovada neste certificado, mas não foi possível estampá-la na cópia do recibo.");
+          bytes = original;
+        }
+      } else if (estado === "via_fisica") {
+        const via = String(rdoc.via_assinada_path);
+        const baixarVia = await admin.storage.from(BUCKET).download(via);
+        if (baixarVia.data) {
+          bytes = new Uint8Array(await baixarVia.data.arrayBuffer());
+          nome = via.split("/").pop() || "via-assinada";
+          mime = baixarVia.data.type || (/\.pdf$/i.test(nome) ? "application/pdf" : /\.png$/i.test(nome) ? "image/png" : "image/jpeg");
+        }
+      }
+      if (!bytes) avisos.push("O recibo vinculado à quitação não pôde ser lido no momento da emissão.");
+      if (estado === "aguardando") {
+        avisos.push(
+          meta.ref.origem === "especie"
+            ? "O recibo do pagamento em dinheiro ainda aguarda a assinatura do colaborador; essa parcela só fica comprovada depois da assinatura."
+            : "O recibo da diferença paga ainda aguarda a assinatura do colaborador.",
+        );
+      }
+      recibosProntos.push({ meta, estado, bytes, mime, nome });
+    }
+
     const pendentes: string[] = [];
 
     // Capa primeiro; o documento e o anexo entram nas páginas seguintes.
@@ -750,6 +846,32 @@ Deno.serve(async (req) => {
         });
       } catch {
         // anexo embutido é complementar: as páginas visíveis já garantem a leitura
+      }
+    }
+
+    for (const r of recibosProntos) {
+      const rdoc = r.meta.doc;
+      const valorCents = r.meta.ref.origem === "especie"
+        ? Number(registro.comprovante_valor_especie_cents ?? 0) || null
+        : Number(r.meta.linhaRecibo?.valor_cents ?? 0) || null;
+      paginaAnexoRecibo(pdf, fonte, negrito, marca, dados.empresa, {
+        origem: r.meta.ref.origem,
+        valorCents,
+        pagoEm: dados.pagamentoEm,
+        documentoQuitado: dados.documentoTitulo,
+        competencia: dados.competencia,
+        reciboTitulo: String(rdoc.titulo ?? ""),
+        emitidoEm: dataHora(rdoc.created_at as string | null),
+        estado: r.estado,
+        colaborador: dados.colaborador,
+        aceitoEm: (r.meta.aceite?.aceito_em as string | null) ?? null,
+        ip: (r.meta.aceite?.ip as string | null) ?? null,
+        registroId: (r.meta.aceite?.id as string | null) ?? null,
+        conteudoHash: (r.meta.aceite?.conteudo_hash as string | null) ?? null,
+      });
+      if (r.bytes) {
+        const aviso = await anexarArquivo(pdf, r.bytes, r.mime, r.nome);
+        if (aviso) pendentes.push(aviso);
       }
     }
 
