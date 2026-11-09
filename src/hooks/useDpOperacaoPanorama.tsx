@@ -31,9 +31,12 @@ import {
   ehSobDemanda,
   STATUS_GOZO_VISIVEL_OPERACAO,
   ultimoDiaNaEscala,
+  mapaUltimoComparecimento,
+  ultimoComparecimentoDoContrato,
   diaAnterior,
 } from "@/lib/dp/operacao-panorama";
 import { isSocio } from "@/lib/dp/contrato-policy";
+import { STATUS_PROCESSOS_VISIVEIS } from "@/lib/dp/desligamento-apresentacao";
 import { nomeExibicao } from "@/lib/dp/nomeExibicao";
 import type { HorarioFuncionamentoDia } from "@/lib/dp/turno-utils";
 
@@ -458,21 +461,22 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
     [base.data, unidadeId],
   );
 
-  // Termination notices in progress: last attendance day (already includes the bank grouping).
+  // Termination processes (running, suspended, under review or effectivated):
+  // last attendance day (already includes the bank grouping). Effectivated
+  // processes keep it so the person never returns to the scale until the legal end.
   const ultimosDias = useQuery({
     queryKey: ["dp_operacao", "desligamento_ultimo_dia", selectedCompanyId],
     enabled: !!selectedCompanyId,
     queryFn: async () => {
       const { data, error } = await supabase.from("dp_desligamento_processos")
-        .select("colaborador_id, ultimo_comparecimento, dispensado_desde")
-        .eq("company_id", selectedCompanyId!).eq("status", "aviso_em_curso");
+        .select("colaborador_id, ultimo_comparecimento, dispensado_desde, created_at")
+        .eq("company_id", selectedCompanyId!)
+        .in("status", STATUS_PROCESSOS_VISIVEIS)
+        .order("created_at", { ascending: false });
       if (error) throw error;
-      const mapa = new Map<string, string>();
-      for (const p of (data ?? []) as { colaborador_id: string; ultimo_comparecimento: string | null; dispensado_desde: string | null }[]) {
-        const ultimo = p.ultimo_comparecimento ?? (p.dispensado_desde ? diaAnterior(p.dispensado_desde) : null);
-        if (ultimo) mapa.set(p.colaborador_id, ultimo);
-      }
-      return mapa;
+      return mapaUltimoComparecimento(
+        (data ?? []) as { colaborador_id: string; ultimo_comparecimento: string | null; dispensado_desde: string | null }[],
+      );
     },
   });
 
@@ -525,7 +529,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           ativo: c.ativo !== false,
           data_admissao: c.data_admissao,
           // Leaves the store schedule the day after the last attendance (bank included), with no tag.
-          data_desligamento: ultimoDiaNaEscala(c.data_desligamento, ultimosDias.data?.get(c.id)),
+          data_desligamento: ultimoDiaNaEscala(c.data_desligamento, ultimoComparecimentoDoContrato(ultimosDias.data?.get(c.id), c.data_admissao)),
           // Pré-admissão ativada na rotina: freelancer provisório aguardando
           // o registro oficial (selo na operação).
           aguardando_registro:
@@ -712,6 +716,7 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
           folga_id: o.folga_id,
           troca_id: o.troca_id,
           tipo: o.tipo as OcorrenciaPanorama["tipo"],
+          subtipo: o.subtipo ?? null,
           estado: o.estado as OcorrenciaPanorama["estado"],
           minutos: o.minutos ?? null,
           horario_estimado: o.horario_estimado ? o.horario_estimado.slice(0, 5) : null,
