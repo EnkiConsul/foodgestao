@@ -15,7 +15,10 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "npm
 import { z } from "npm:zod@3";
 import { callerClient, requireUser, serviceClient } from "../_shared/authz.ts";
 import { recordEdgeError } from "../_shared/error-log.ts";
-import { resumoQuitacao } from "../_shared/quitacao.ts";
+import { centsParaBRL, resumoQuitacao, valorPorExtenso } from "../_shared/quitacao.ts";
+import { estadoRecibo, recibosVinculados, sufixoCacheRecibos, type EstadoRecibo, type ReciboVinculadoRef } from "./recibo-vinculado.ts";
+import { assinarCampoReciboEspecie } from "./recibo-especie-assinado.ts";
+import { sha256Hex } from "../_shared/doc-hash.ts";
 import { desenharAssinatura, embutirAssinatura, rubricarPaginas } from "../_shared/assinatura-pdf.ts";
 import { montarReciboPdf, reciboDaLinha } from "../_shared/recibo-pdf.ts";
 import { assinarCampoTermoFolga } from "./termo-folga-assinado.ts";
@@ -219,7 +222,8 @@ function paginaCertificado(
     "identificado, declarando ter conferido e concordado com o seu conteúdo. A aprovação foi registrada pelo " +
     "sistema com data, hora, endereço de internet e identificação do dispositivo utilizado, além da impressão " +
     "digital do conteúdo aprovado, que permite verificar que o arquivo não foi alterado depois. As páginas " +
-    "seguintes reproduzem o documento assinado e, quando houver, o comprovante de pagamento anexado.";
+    "seguintes reproduzem o documento assinado e, quando houver, o comprovante de pagamento e o recibo do " +
+    "pagamento em dinheiro anexados.";
   for (const linha of linhas(texto, fonte, 9.5, largura)) {
     page.drawText(linha, { x: margem, y, size: 9.5, font: fonte, color: rgb(0.25, 0.25, 0.25) });
     y -= 12.5;
@@ -273,6 +277,104 @@ function paginaAnexo(
   ) {
     page.drawText(linha, { x: margem, y, size: 10.5, font: fonte, color: rgb(0.25, 0.25, 0.25) });
     y -= 14;
+  }
+}
+
+type ReciboMeta = {
+  ref: ReciboVinculadoRef;
+  doc: Record<string, unknown>;
+  aceite: Record<string, unknown> | null;
+  linhaRecibo: Record<string, unknown> | null;
+};
+
+const SITUACAO_RECIBO: Record<EstadoRecibo, string> = {
+  assinado_eletronico: "Assinado eletronicamente pelo colaborador no portal",
+  aceite_sem_conferencia: "Aceite registrado pelo colaborador; o arquivo atual difere da versão aprovada",
+  via_fisica: "Via física assinada à mão anexada",
+  aguardando: "Aguardando assinatura do colaborador no portal",
+};
+
+/** Separador timbrado do recibo vinculado à quitação (dinheiro ou diferença). */
+function paginaAnexoRecibo(
+  pdf: PDFDocument,
+  fonte: PDFFont,
+  negrito: PDFFont,
+  marca: Marca,
+  empresa: string,
+  info: {
+    origem: ReciboVinculadoRef["origem"];
+    valorCents: number | null;
+    pagoEm: string;
+    documentoQuitado: string;
+    competencia: string;
+    reciboTitulo: string;
+    emitidoEm: string;
+    estado: EstadoRecibo;
+    colaborador: string;
+    aceitoEm: string | null;
+    ip: string | null;
+    registroId: string | null;
+    conteudoHash: string | null;
+  },
+): void {
+  const page = pdf.addPage(A4);
+  const { width, height } = page.getSize();
+  const margem = 48;
+  const largura = width - margem * 2;
+  const titulo = info.origem === "especie"
+    ? "Anexo — Recibo de Pagamento em Dinheiro (art. 464 da CLT)"
+    : "Anexo — Recibo da Diferença Paga";
+  const usado = timbrado(page, negrito, fonte, marca, titulo, empresa);
+  let y = height - usado - 18;
+
+  const campos: Array<[string, string]> = [];
+  if (info.valorCents && info.valorCents > 0) {
+    campos.push([
+      info.origem === "especie" ? "Valor pago em dinheiro" : "Valor do recibo",
+      `${centsParaBRL(info.valorCents)} (${valorPorExtenso(info.valorCents)})`,
+    ]);
+  }
+  campos.push(
+    ["Data do pagamento", info.pagoEm],
+    ["Documento quitado", info.documentoQuitado],
+    ["Competência", info.competencia],
+    ["Recibo", info.reciboTitulo],
+    ["Recibo gerado em", info.emitidoEm],
+    ["Situação do recibo", SITUACAO_RECIBO[info.estado]],
+  );
+  if (info.estado === "assinado_eletronico" || info.estado === "aceite_sem_conferencia") {
+    campos.push(
+      ["Aprovado por", info.colaborador],
+      ["Data e hora da aprovação", dataHora(info.aceitoEm)],
+      ["Endereço IP", info.ip || "—"],
+      ["Código do registro", info.registroId || "—"],
+      ["Impressão digital do conteúdo", info.conteudoHash || "—"],
+    );
+  }
+
+  for (const [rotulo, valor] of campos) {
+    page.drawText(limpar(rotulo).toUpperCase(), {
+      x: margem, y, size: 7.5, font: negrito, color: rgb(0.42, 0.42, 0.42),
+    });
+    y -= 12;
+    for (const linha of linhas(valor || "—", fonte, 10.5, largura)) {
+      page.drawText(linha, { x: margem, y, size: 10.5, font: fonte, color: rgb(0.07, 0.07, 0.07) });
+      y -= 13;
+    }
+    y -= 6;
+  }
+
+  y -= 6;
+  const texto = info.estado === "aguardando"
+    ? "Este recibo integra a quitação do documento acima, mas ainda não foi assinado pelo colaborador. A parcela " +
+      "correspondente só fica comprovada depois da assinatura no portal ou da via física assinada à mão."
+    : info.estado === "via_fisica"
+    ? "Este recibo integra a quitação do documento acima. As páginas seguintes reproduzem a via física assinada à mão."
+    : "Este recibo integra a quitação do documento acima. As páginas seguintes reproduzem o recibo com a assinatura " +
+      "eletrônica do colaborador, registrada com data, hora, endereço de internet e impressão digital do conteúdo.";
+  for (const linha of linhas(texto, fonte, 9.5, largura)) {
+    page.drawText(linha, { x: margem, y, size: 9.5, font: fonte, color: rgb(0.25, 0.25, 0.25) });
+    y -= 12.5;
   }
 }
 
