@@ -1513,6 +1513,13 @@
       "when": 1794348326702,
       "tag": "0215_teste_gratis_sem_franquia_colaboradores",
       "breakpoints": true
+    },
+    {
+      "idx": 216,
+      "version": "7",
+      "when": 1794349332795,
+      "tag": "0216_enterprise_minimo_colaboradores_teste_sem_limites",
+      "breakpoints": true
     }
   ]
 }

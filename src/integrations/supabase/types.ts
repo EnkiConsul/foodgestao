@@ -18331,6 +18331,18 @@ export type Database = {
         Args: { _subscription_id: string }
         Returns: boolean
       }
+      _billing_v2_colaboradores_ativos: {
+        Args: { _billing_account_id: string; _company_id?: string }
+        Returns: number
+      }
+      _billing_v2_enterprise_bloqueio: {
+        Args: {
+          _billing_account_id: string
+          _company_id: string
+          _plan_id: string
+        }
+        Returns: string
+      }
       _billing_v2_limits: {
         Args: { _sub: string }
         Returns: {
@@ -18731,6 +18743,10 @@ export type Database = {
       billing_v2_ensure_company_account: {
         Args: { _company_id: string }
         Returns: string
+      }
+      billing_v2_enterprise_elegibilidade: {
+        Args: { _company_id: string }
+        Returns: Json
       }
       billing_v2_exempt: {
         Args: {
