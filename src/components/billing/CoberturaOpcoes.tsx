@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { Button } from "@/components/ui/button";
 import type { ModuloAcesso } from "@/hooks/useModuleAccess";
+import { resolverOpcaoUpgrade, type PlanoCatalogo, type SugestaoUpgrade } from "@/lib/billing/coberturaUpgrade";
 
 type Opcoes = {
   pode_gerenciar: boolean;
@@ -11,7 +12,7 @@ type Opcoes = {
   opcoes?: string[];
   custo_mensal_cents?: number;
   prorata_cents?: number;
-  sugestao_upgrade?: { plano: string; nome: string; preco_mensal_cents: number | null; enterprise: boolean } | null;
+  sugestao_upgrade?: SugestaoUpgrade | null;
 };
 
 const brl = (c?: number | null) =>
@@ -30,6 +31,19 @@ export function CoberturaOpcoes({ modulo }: { modulo: ModuloAcesso }) {
       });
       if (error) throw error;
       return data as unknown as Opcoes;
+    },
+  });
+
+  const slugUp = q.data?.sugestao_upgrade?.plano ?? null;
+  // O catálogo decide se o upgrade é direto (inclusive Enterprise por colaborador) ou sob consulta.
+  const planoUp = useQuery({
+    queryKey: ["coverage-upgrade-plano", slugUp],
+    enabled: !!slugUp,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("plans")
+        .select("slug,is_enterprise,price_monthly_cents,features").eq("slug", slugUp!).maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as PlanoCatalogo | null;
     },
   });
 
@@ -68,11 +82,7 @@ export function CoberturaOpcoes({ modulo }: { modulo: ModuloAcesso }) {
           />
         )}
         {ops.includes("upgrade") && up && (
-          up.enterprise ? (
-            <Opcao titulo={`Upgrade para ${up.nome}`} texto="Fale com nosso especialista." href="https://wa.me/5562992365959" />
-          ) : (
-            <Opcao titulo={`Upgrade para ${up.nome}`} texto={`${brl(up.preco_mensal_cents)}/mês`} to={`${base}&acao=upgrade&plano=${up.plano}`} />
-          )
+          <OpcaoUpgradeCard up={up} carregando={planoUp.isLoading} catalogo={planoUp.data} to={`${base}&acao=upgrade&plano=${up.plano}`} />
         )}
         {ops.includes("conta_separada") && (
           <Opcao titulo="Contratar Separadamente" texto="Assinatura própria só para esta empresa." to={`${base}&acao=conta_separada`} />
@@ -82,13 +92,21 @@ export function CoberturaOpcoes({ modulo }: { modulo: ModuloAcesso }) {
   );
 }
 
+function OpcaoUpgradeCard({ up, catalogo, carregando, to }: { up: SugestaoUpgrade; catalogo: PlanoCatalogo | null | undefined; carregando: boolean; to: string }) {
+  if (carregando) return <Opcao titulo={`Upgrade para ${up.nome}`} texto="Carregando valores..." />;
+  const r = resolverOpcaoUpgrade(up, catalogo);
+  return r.tipo === "direto"
+    ? <Opcao titulo={`Upgrade para ${up.nome}`} texto={r.texto} to={to} />
+    : <Opcao titulo={`Upgrade para ${up.nome}`} texto={r.texto} href="https://wa.me/5562992365959" />;
+}
+
 function Opcao({ titulo, texto, to, href }: { titulo: string; texto: string; to?: string; href?: string }) {
   return (
     <div className="flex flex-col gap-2 rounded-lg border p-3">
       <p className="text-sm font-semibold">{titulo}</p>
       <p className="flex-1 text-xs text-muted-foreground">{texto}</p>
-      <Button asChild size="sm" variant="outline">
-        {href ? <a href={href} target="_blank" rel="noopener noreferrer">Falar Agora</a> : <Link to={to!}>Escolher</Link>}
+      <Button asChild size="sm" variant="outline" disabled={!href && !to}>
+        {href ? <a href={href} target="_blank" rel="noopener noreferrer">Falar Agora</a> : to ? <Link to={to}>Escolher</Link> : <span>Aguarde</span>}
       </Button>
     </div>
   );

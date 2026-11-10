@@ -12,7 +12,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatCents } from "@/lib/billing";
+import { formatCents, precoPorColaborador } from "@/lib/billing";
 import { toast } from "sonner";
 import { notifyError } from "@/lib/notifyError";
 
@@ -401,7 +401,7 @@ function AcaoDialog({ acao, companyId, onClose, onDone }: { acao: Acao; companyI
   const planos = useQuery({
     queryKey: ["planos-modulo", s.module], enabled: acao.tipo === "plano",
     queryFn: async () => {
-      const { data } = await supabase.from("plans").select("slug,name,price_monthly_cents,sort_order").eq("module", s.module).eq("is_active", true).order("sort_order");
+      const { data } = await supabase.from("plans").select("slug,name,price_monthly_cents,sort_order,features").eq("module", s.module).eq("is_active", true).order("sort_order");
       return (data ?? []) as Json[];
     },
   });
@@ -501,6 +501,14 @@ function AcaoDialog({ acao, companyId, onClose, onDone }: { acao: Acao; companyI
             ) : (
               <>
                 <div>Novo valor: {formatCents(c.valor_ciclo_novo_cents)} por {cic === "anual" ? "ano" : "mês"}</div>
+                {(() => {
+                  const pc = precoPorColaborador((planos.data ?? []).find((p) => p.slug === plano)?.features);
+                  return pc ? (
+                    <div className="text-xs text-muted-foreground" data-testid="cotacao-por-colaborador">
+                      {formatCents(pc.unitarioCents)} por colaborador ativo/mês, com base de {pc.minimo} colaboradores ({formatCents(pc.baseCents)}/mês). O valor acompanha os colaboradores ativos; folguistas, testes e desligados não contam.
+                    </div>
+                  ) : null;
+                })()}
                 {!c.imediato ? (
                   <div>Vale a partir de {data(c.efetivo_em ?? s.current_period_end)}, na renovação. Nada é cobrado agora.</div>
                 ) : (
