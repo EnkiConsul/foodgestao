@@ -18,8 +18,20 @@ const MENSAGENS_SEGURAS = [
   "Horário inválido na jornada da ficha.",
 ] as const;
 
+/** Travas de franquia do banco (gatilho de limite) em linguagem do gestor. */
+const FRANQUIA: Array<[RegExp, string]> = [
+  [/EXCEDENTE_SEM_PERMISSAO/,
+    "A franquia de colaboradores do plano está completa. Só o dono ou um administrador da empresa pode incluir colaboradores acima da franquia — o que você preencheu continua aqui."],
+  [/EXCEDENTE_CONFIRMACAO_NECESSARIA/,
+    "Este cadastro passa da franquia de colaboradores do plano. Toque em salvar de novo e confirme o valor do excedente — o que você preencheu continua aqui."],
+  [/Limite do plano atingido/i,
+    "A franquia de colaboradores do plano está completa. Amplie o plano para incluir mais colaboradores — o que você preencheu continua aqui."],
+];
+
 export function erroAplicacaoFicha(mensagem: string): Error {
   const texto = mensagem.trim();
+  const franquia = FRANQUIA.find(([re]) => re.test(texto));
+  if (franquia) return new RegraNegada(franquia[1]);
   const segura = MENSAGENS_SEGURAS.find((item) => texto.includes(item));
   if (segura) return new RegraNegada(segura);
 

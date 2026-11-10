@@ -1,11 +1,14 @@
 import { supabase } from "@/integrations/supabase/client";
 import { garantirLimite } from "@/lib/billing/limites";
+import { avaliarFranquia, comparativoEnterprise, type ComparativoEnterprise, type PreviaFranquia } from "@/lib/billing/franquia";
 
 export interface PedidoExcedente {
   de: number;
   para: number;
   limite: number;
   valorUnitCents: number;
+  /** Enterprise mais barato (ou igual) com este colaborador a mais. */
+  enterprise?: ComparativoEnterprise | null;
 }
 
 type Resolver = (ok: boolean) => void;
@@ -22,32 +25,39 @@ function pedirConfirmacao(p: PedidoExcedente): Promise<boolean> {
   return new Promise((resolve) => listener!(p, resolve));
 }
 
+/** Prévia da franquia de colaboradores da empresa (null quando não deu para ler). */
+export async function buscarPreviaFranquia(companyId: string): Promise<PreviaFranquia | null> {
+  const { data, error } = await (supabase.rpc as any)("dp_colaborador_excedente_previa", {
+    _company_id: companyId,
+  });
+  if (error || !data) return null;
+  return data as PreviaFranquia;
+}
+
+export const MENSAGEM_SEM_PERMISSAO =
+  "A franquia de colaboradores do plano está completa. Só o dono ou um administrador da empresa pode incluir colaboradores acima da franquia.";
+
 /**
  * Antes de incluir um colaborador novo.
  * Legado: trava rígida. V2: dono/admin confirma o custo do excedente e a
  * ciência é registrada no servidor; sem permissão de gestão segue bloqueado.
+ * Plano por colaborador ativo (Enterprise) não tem franquia: segue direto.
  */
 export async function garantirColaboradorNovo(companyId: string, nome?: string | null) {
-  const { data, error } = await (supabase.rpc as any)("dp_colaborador_excedente_previa", {
-    _company_id: companyId,
-  });
-  if (error || !data || data.modo !== "v2") {
+  const previa = await buscarPreviaFranquia(companyId);
+  if (!previa || previa.modo !== "v2") {
     await garantirLimite(companyId, "pessoas", "colaboradores");
     return;
   }
-  const limite = Number(data.limite ?? -1);
-  const atual = Number(data.atual ?? 0);
-  if (data.isento || limite < 0 || atual + 1 <= limite) return;
-  if (!data.pode_gerir) {
-    throw new Error(
-      "Limite do plano atingido. Só o dono ou um administrador da empresa pode incluir colaboradores acima da franquia.",
-    );
-  }
+  const estado = avaliarFranquia(previa, 1);
+  if (estado.tipo === "livre" || estado.tipo === "por_colaborador") return;
+  if (estado.tipo === "bloqueado") throw new Error(MENSAGEM_SEM_PERMISSAO);
   const ok = await pedirConfirmacao({
-    de: atual,
-    para: atual + 1,
-    limite,
-    valorUnitCents: Number(data.valor_unit_cents ?? 0),
+    de: estado.atual,
+    para: estado.atual + 1,
+    limite: estado.limite,
+    valorUnitCents: estado.valorUnitCents,
+    enterprise: comparativoEnterprise(previa, 1),
   });
   if (!ok) throw new Error("Cadastro cancelado: o excedente não foi confirmado.");
   const { error: e2 } = await (supabase.rpc as any)("dp_colaborador_excedente_confirmar", {

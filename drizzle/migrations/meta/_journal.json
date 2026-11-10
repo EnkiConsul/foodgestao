@@ -1464,6 +1464,13 @@
       "when": 1794327597948,
       "tag": "0208_billing_enterprise_por_colaborador",
       "breakpoints": true
+    },
+    {
+      "idx": 209,
+      "version": "7",
+      "when": 1794328196272,
+      "tag": "0209_franquia_previa_enterprise",
+      "breakpoints": true
     }
   ]
 }

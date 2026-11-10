@@ -460,6 +460,7 @@ export function useAplicarFicha() {
       qc.invalidateQueries({ queryKey: ["dp_ficha_itens"] });
       qc.invalidateQueries({ queryKey: ["dp_ficha_importacoes"] });
       qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
+      qc.invalidateQueries({ queryKey: ["franquia-colaboradores"] });
       // Chaves REAIS dos hooks de jornada/escala (a rotina grava configuração e dias).
       qc.invalidateQueries({ queryKey: ["dp_colab_config_trabalho"] });
       qc.invalidateQueries({ queryKey: ["dp_escala_base_mes"] });

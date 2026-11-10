@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { garantirColaboradorNovo } from "@/lib/billing/excedente-colaboradores";
+import { FranquiaColaboradoresAviso, useEstadoFranquia } from "@/components/billing/FranquiaColaboradoresAviso";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUpsertDpCargo, useUpsertDpCargoSalario } from "@/hooks/useDpCadastros";
@@ -125,12 +126,14 @@ interface Props {
   emFoco?: boolean;
   /** Chamado após cadastrar/atualizar com sucesso. */
   onConcluido?: (itemId: string, nome: string) => void;
+  /** Mostra o aviso de franquia no cartão (a tela de lote mostra um único aviso no topo). */
+  avisoFranquia?: boolean;
 }
 
 export function FichaRevisaoCard({
   item, cargos, unidades, setores = [], turnos = [], unidadePadraoId, empresaCnpj,
   setorPadraoId = null, regimePadrao = null, onAbrirCadastro, preadmissaoId = null,
-  pessoaApoioId = null, posicao, total, emFoco = false, onConcluido,
+  pessoaApoioId = null, posicao, total, emFoco = false, onConcluido, avisoFranquia = true,
 }: Props) {
   const extraidos = (item.dados_extraidos ?? {}) as Record<string, unknown>;
   const confianca = (item.confianca_campos ?? {}) as Record<string, string>;
@@ -195,6 +198,11 @@ export function FichaRevisaoCard({
   const [whatsappEditado, setWhatsappEditado] = useState(false);
   const empresaDivergente = unidadeSugerida.empresaConfere === "nao";
   const bloqueadoPorEmpresa = empresaDivergente && !confirmouEmpresa;
+  // Franquia: avisa antes de preencher; quem não pode autorizar o excedente não conclui.
+  const criaColaboradorNovo = !(atualizar && !!item.colaborador_existente_id)
+    && !["criado", "atualizado", "ignorado"].includes(item.status);
+  const estadoFranquia = useEstadoFranquia(criaColaboradorNovo ? item.company_id : null);
+  const bloqueadoPorFranquia = estadoFranquia?.tipo === "bloqueado";
 
   const setoresDaUnidade = useMemo(
     () => (unidadeId ? setores.filter((s) => !s.unidade_id || s.unidade_id === unidadeId) : setores),
@@ -741,6 +749,8 @@ export function FichaRevisaoCard({
             </Badge>
           ) : null}
         </div>
+
+        {!aplicado && (avisoFranquia || bloqueadoPorFranquia) && <FranquiaColaboradoresAviso estado={estadoFranquia} />}
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {campo("Nome", "nome")}
@@ -1451,7 +1461,7 @@ export function FichaRevisaoCard({
               size="sm"
               disabled={
                 aplicar.isPending || preparando ||
-                bloqueadoPorEmpresa ||
+                bloqueadoPorEmpresa || bloqueadoPorFranquia ||
                 (!preadmissaoId && !!item.colaborador_existente_id && !atualizar) ||
                 (!!preadmissaoId && (!stagingDados || faltaDecidir > 0))
               }

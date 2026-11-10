@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ConfirmarAcaoDialog } from "@/components/dp/ConfirmarAcaoDialog";
 import { DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { FichaRevisaoCard } from "@/components/dp/ficha-registro/FichaRevisaoCard";
+import { FranquiaColaboradoresAviso, useEstadoFranquia } from "@/components/billing/FranquiaColaboradoresAviso";
 import { FichaHistoricoPainel } from "@/components/dp/ficha-registro/FichaHistoricoPainel";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
@@ -125,6 +126,9 @@ export default function DpFichaRegistroImportar() {
 
   const pendentes = itens.filter((i) => ["pendente", "revisar", "duplicado"].includes(i.status));
   const prontos = itens.filter((i) => ["criado", "atualizado"].includes(i.status));
+  // Avisa no início do lote quantos cadastros novos cabem na franquia.
+  const novasFichas = pendentes.filter((i) => !i.colaborador_existente_id).length;
+  const estadoFranquiaLote = useEstadoFranquia(novasFichas > 0 ? pendentes[0]?.company_id : null, novasFichas);
 
   /** Relógio de tela: usado só para perceber leitura que parou de responder. */
   const [agora, setAgora] = useState(() => Date.now());
@@ -487,6 +491,8 @@ export default function DpFichaRegistroImportar() {
         <div className="space-y-3">
           <h2 className="text-sm font-semibold">Conferir e cadastrar ({pendentes.length})</h2>
 
+          {novasFichas > 0 && <FranquiaColaboradoresAviso estado={estadoFranquiaLote} novos={novasFichas} />}
+
 
           <Card className="bg-muted/20">
             <CardContent className="grid gap-3 p-4 sm:grid-cols-2">
@@ -534,6 +540,7 @@ export default function DpFichaRegistroImportar() {
           {pendentes.map((item, idx) => (
             <div key={item.id} id={`ficha-item-${item.id}`} className="scroll-mt-20">
             <FichaRevisaoCard
+              avisoFranquia={false}
               posicao={itens.findIndex((i) => i.id === item.id) + 1}
               total={itens.length}
               emFoco={idx === 0}
