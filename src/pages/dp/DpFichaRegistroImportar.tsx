@@ -614,8 +614,10 @@ export default function DpFichaRegistroImportar() {
 
           {etapaAtual === 1 && (
             <FichaLoteUnidade
+              companyId={selectedCompanyId}
               unidades={unidadesDaEmpresa}
               unidadeId={unidadeLoteId}
+              identificadaPeloCnpj={!!unidadeLida?.unidade_id && unidadeLida.unidade_id === unidadeLoteId}
               onUnidade={setUnidadeLote}
               sindicatoId={sindicatoLoteId}
               onSindicato={(v) => setSindicatoLote(v)}

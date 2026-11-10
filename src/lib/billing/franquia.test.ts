@@ -49,4 +49,20 @@ describe("franquia de colaboradores", () => {
   it("com vaga na franquia informa quantas restam", () => {
     expect(avaliarFranquia(multiCheio({ atual: 15 }), 1)).toEqual({ tipo: "livre", vagas: 3 });
   });
+
+  it("teste grátis no Enterprise: sem custo extra agora, R$ 10,00 por colaborador e mínimo 19 depois", () => {
+    const e = avaliarFranquia({
+      ...multiCheio(), limite: -1, atual: 0, por_colaborador_cents: 1000, minimo_colaboradores: 19,
+      em_teste: true, teste_termina_em: "2026-11-19T16:30:20Z", plano_nome: "Pessoas 360° Enterprise", sugestao_upgrade: null,
+    }, 47);
+    expect(e).toEqual({
+      tipo: "teste", unitarioCents: 1000, minimo: 19, atual: 0,
+      planoNome: "Pessoas 360° Enterprise", terminaEm: "2026-11-19T16:30:20Z",
+    });
+  });
+
+  it("teste grátis em plano com franquia continua pedindo a ciência do excedente", () => {
+    const e = avaliarFranquia(multiCheio({ em_teste: true }), 1);
+    expect(e.tipo).toBe("excedente");
+  });
 });

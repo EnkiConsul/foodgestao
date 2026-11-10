@@ -18,6 +18,7 @@ import { TrialCountdownBanner } from "@/components/billing/TrialCountdownBanner"
 import { AtrasoPagamentoBanner } from "@/components/billing/AtrasoPagamentoBanner";
 import { AcessoModulosBanner } from "@/components/billing/AcessoModulosBanner";
 import { CarenciaBanner } from "@/components/billing/CarenciaBanner";
+import { ParametrizacaoAvetoBarra } from "@/components/admin/concierge/ParametrizacaoAvetoBarra";
 
 export function AppLayout() {
   useBillingRealtime();
@@ -31,6 +32,7 @@ export function AppLayout() {
         <AppSidebar />
         <div className="flex flex-1 flex-col min-w-0">
           <AppHeader />
+          <ParametrizacaoAvetoBarra />
           <TrialCountdownBanner />
           <AtrasoPagamentoBanner />
           <AcessoModulosBanner />

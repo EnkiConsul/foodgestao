@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Info, Users } from "lucide-react";
+import { AlertTriangle, Gift, Info, Users } from "lucide-react";
 import { buscarPreviaFranquia } from "@/lib/billing/excedente-colaboradores";
 import { avaliarFranquia, type EstadoFranquia } from "@/lib/billing/franquia";
 import { formatCents } from "@/lib/billing";
@@ -36,6 +36,26 @@ interface Props {
 export function FranquiaColaboradoresAviso({ estado, novos = 1, className }: Props) {
   if (!estado) return null;
   if (estado.tipo === "livre") return null;
+
+  if (estado.tipo === "teste") {
+    if (novos <= 1) return null;
+    const fim = estado.terminaEm ? new Date(estado.terminaEm).toLocaleDateString("pt-BR") : null;
+    return (
+      <div role="status" className={cn("flex gap-2 rounded-md border border-primary/30 bg-primary/5 p-3 text-xs", className)}>
+        <Gift className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+        <div className="space-y-0.5">
+          <p className="text-sm font-medium">
+            Teste grátis{estado.planoNome ? ` do ${estado.planoNome}` : ""}{fim ? ` até ${fim}` : ""}
+          </p>
+          <p className="text-muted-foreground">
+            Cadastre toda a equipe sem custo agora. Depois do teste, a mensalidade é{" "}
+            {formatCents(estado.unitarioCents)} por colaborador ativo
+            {estado.minimo > 1 ? ` (mínimo de ${estado.minimo})` : ""}.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (estado.tipo === "por_colaborador") {
     if (novos <= 1) return null;

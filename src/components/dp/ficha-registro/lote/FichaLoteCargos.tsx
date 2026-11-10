@@ -1,17 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ArrowLeft, Loader2, Save } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { AlertTriangle, ArrowLeft, Loader2, Pencil, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { GrupoOrganizacaoInput } from "@/hooks/useDpFichaImportacao";
 import { normalizeCargoNome } from "@/lib/dp/ficha-registro/cargo-match";
 import {
   SETORES_FOOD, cargoGenerico, setorExistenteNaUnidade, type GrupoCargoLote, type OrganizacaoLote, type SetorCadastrado,
 } from "@/lib/dp/ficha-registro/organizacao-lote";
-import { cn } from "@/lib/utils";
 
 const NOVO = "__novo";
 const SEM_SETOR = "__none";
@@ -86,7 +83,10 @@ export function FichaLoteCargos({ grupos, cargos, setores, unidadeId, organizaca
 
   const setoresNovos = SETORES_FOOD.filter((n) => !setorExistenteNaUnidade(n, setoresUnidade, unidadeId));
 
-  const pendentesGenericos = grupos.filter((g) => g.generico && !escolhas[g.chave]?.cargo).length;
+  const genericos = grupos.filter((g) => g.generico);
+  const comCargo = grupos.filter((g) => !g.generico);
+  /** Fichas sem cargo que ficam para a conferência individual (não travam o salvamento). */
+  const paraDepois = genericos.filter((g) => !escolhas[g.chave]?.cargo).length;
   const semNome = grupos.filter((g) => escolhas[g.chave]?.cargo === NOVO && !escolhas[g.chave]?.cargoNome.trim()).length;
   /** Nome digitado que não é cargo (ex.: "Importação eSocial") ou cargo novo que deixou de existir. */
   const nomeInvalido = (g: GrupoCargoLote) => {
@@ -97,7 +97,7 @@ export function FichaLoteCargos({ grupos, cargos, setores, unidadeId, organizaca
     return false;
   };
   const invalidos = grupos.filter(nomeInvalido).length;
-  const totalFichas = grupos.reduce((s, g) => s + g.itemIds.length, 0);
+  const fichasComCargo = comCargo.reduce((s, g) => s + g.itemIds.length, 0);
   const qtdCargosNovos = novosDoLote.length;
   const qtdSetoresNovos = new Set(
     grupos
@@ -107,9 +107,12 @@ export function FichaLoteCargos({ grupos, cargos, setores, unidadeId, organizaca
       .filter((n) => n && !setorExistenteNaUnidade(n, setoresUnidade, unidadeId))
       .map((n) => normalizeCargoNome(n)),
   ).size;
+  const [ajustando, setAjustando] = useState<string | null>(null);
 
   const salvar = () => {
-    const payload: GrupoOrganizacaoInput[] = grupos.map((g) => {
+    const payload: GrupoOrganizacaoInput[] = grupos
+      .filter((g) => !g.generico || !!(escolhas[g.chave] ?? inicial(g)).cargo)
+      .map((g) => {
       const e = escolhas[g.chave] ?? inicial(g);
       const base: GrupoOrganizacaoInput = g.generico ? { item_ids: g.itemIds } : { chave: g.chave };
       if (e.cargo === NOVO) {
@@ -128,132 +131,174 @@ export function FichaLoteCargos({ grupos, cargos, setores, unidadeId, organizaca
     onSalvar(payload);
   };
 
+  const seletorCargo = (g: GrupoCargoLote, e: Escolha) => (
+    <div className="space-y-1">
+      <Select
+        value={e.cargo || (g.generico ? "__depois" : undefined)}
+        onValueChange={(v) => set(g.chave, { cargo: v === "__depois" ? "" : v })}
+      >
+        <SelectTrigger className="h-10" aria-label={`Cargo de ${g.generico ? g.nomes[0] : g.cargoNome}`}>
+          <SelectValue placeholder="Escolha o cargo" />
+        </SelectTrigger>
+        <SelectContent>
+          {g.generico && <SelectItem value="__depois">Definir na conferência</SelectItem>}
+          <SelectItem value={NOVO}>Criar cargo novo</SelectItem>
+          {g.generico && novosDeOutros(g.chave).map((n) => (
+            <SelectItem key={`n-${n}`} value={`nome:${n}`}>{n} (novo)</SelectItem>
+          ))}
+          {cargos.map((c) => (
+            <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {e.cargo === NOVO && (
+        <Input
+          className="h-10"
+          value={e.cargoNome}
+          aria-label="Nome do cargo novo"
+          placeholder={g.generico ? "Função real, ex.: AUXILIAR DE COZINHA" : "Nome do cargo"}
+          onChange={(ev) => set(g.chave, { cargoNome: ev.target.value })}
+        />
+      )}
+      {nomeInvalido(g) && (
+        <p className="text-xs text-destructive">
+          {e.cargo === NOVO ? "Esse nome não é um cargo. Digite a função real." : "Esse cargo novo saiu do lote. Escolha outro."}
+        </p>
+      )}
+    </div>
+  );
+
+  const seletorSetor = (g: GrupoCargoLote, e: Escolha) => (
+    <div className="space-y-1">
+      <Select value={e.setor} onValueChange={(v) => set(g.chave, { setor: v })}>
+        <SelectTrigger className="h-9 text-xs" aria-label={`Setor de ${g.generico ? g.nomes[0] : g.cargoNome}`}>
+          <SelectValue placeholder="Setor" />
+        </SelectTrigger>
+        <SelectContent>
+          {setoresUnidade.map((s) => (
+            <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+          ))}
+          {setoresNovos.map((n) => (
+            <SelectItem key={`s-${n}`} value={`novo:${n}`}>{n}</SelectItem>
+          ))}
+          <SelectItem value={OUTRO_SETOR}>Outro setor…</SelectItem>
+          <SelectItem value={SEM_SETOR}>Sem setor</SelectItem>
+        </SelectContent>
+      </Select>
+      {e.setor === OUTRO_SETOR && (
+        <Input
+          className="h-9"
+          placeholder="Nome do setor"
+          value={e.setorOutro}
+          onChange={(ev) => set(g.chave, { setorOutro: ev.target.value })}
+        />
+      )}
+    </div>
+  );
+
+  const nomeDoCargo = (g: GrupoCargoLote, e: Escolha) => {
+    if (e.cargo === NOVO) return e.cargoNome.trim() || g.cargoNome;
+    if (e.cargo.startsWith("nome:")) return e.cargo.slice(5);
+    return cargos.find((c) => c.id === e.cargo)?.nome ?? g.cargoNome;
+  };
+
   return (
     <div className="space-y-3">
-      <Card className="bg-muted/30">
-        <CardContent className="space-y-1 p-4 text-sm">
-          <p className="font-semibold">{grupos.length} grupos de cargo em {totalFichas} fichas</p>
-          <p className="text-muted-foreground">
-            Escolha uma vez para cada cargo: todas as fichas do grupo já chegam na conferência com o cargo e o setor certos.
-            {qtdCargosNovos > 0 || qtdSetoresNovos > 0
-              ? ` Serão criados ${qtdCargosNovos} cargo(s) e ${qtdSetoresNovos} setor(es).`
-              : ""}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            O salário de cada pessoa continua o da ficha. O piso do cargo fica no cadastro de cargos.
-          </p>
-        </CardContent>
-      </Card>
+      <p className="px-1 text-sm text-muted-foreground">
+        <span className="font-medium text-foreground">{comCargo.length} cargos</span> em {fichasComCargo} fichas.
+        Confira o setor de cada um e salve.
+      </p>
 
-      {grupos.map((g) => {
-        const e = escolhas[g.chave];
-        if (!e) return null;
-        const faixa = faixaSalario(g);
-        return (
-          <Card key={g.chave} className={cn(g.generico && !e.cargo && "border-warning")}>
-            <CardContent className="space-y-3 p-3 sm:p-4">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  {g.generico ? (
-                    <>
-                      <p className="flex items-center gap-1.5 text-sm font-semibold">
-                        <AlertTriangle className="h-4 w-4 shrink-0 text-warning" />
-                        <span className="truncate">{g.nomes[0]}</span>
+      {comCargo.length > 0 && (
+        <Card>
+          <CardContent className="divide-y p-0">
+            {comCargo.map((g) => {
+              const e = escolhas[g.chave];
+              if (!e) return null;
+              const faixa = faixaSalario(g);
+              const aberto = ajustando === g.chave;
+              const novo = e.cargo === NOVO || e.cargo.startsWith("nome:");
+              return (
+                <div key={g.chave} className="space-y-2 px-3 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="min-w-0 flex-1 text-left"
+                      onClick={() => setAjustando(aberto ? null : g.chave)}
+                      aria-expanded={aberto}
+                    >
+                      <p className="flex items-center gap-1.5 text-sm font-medium">
+                        <span className="truncate">{nomeDoCargo(g, e) || "Cargo sem nome"}</span>
+                        <Pencil className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden="true" />
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        A ficha traz "{g.cargoNome || "sem cargo"}", que não é um cargo. Escolha o cargo real.
+                      <p className="truncate text-xs text-muted-foreground">
+                        {[
+                          `${g.itemIds.length} ${g.itemIds.length === 1 ? "pessoa" : "pessoas"}`,
+                          faixa,
+                          novo ? "novo" : "já cadastrado",
+                        ].filter(Boolean).join(" · ")}
                       </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="truncate text-sm font-semibold">{g.cargoNome || "Cargo sem nome"}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {[g.cbo ? `CBO ${g.cbo}` : null, faixa].filter(Boolean).join(" · ")}
-                      </p>
-                    </>
-                  )}
+                    </button>
+                    <div className="w-36 shrink-0 sm:w-48">{seletorSetor(g, e)}</div>
+                  </div>
+                  {aberto && <div className="pb-1">{seletorCargo(g, e)}</div>}
                 </div>
-                {!g.generico && (
-                  <Badge variant="secondary" className="shrink-0">
-                    {g.itemIds.length} {g.itemIds.length === 1 ? "pessoa" : "pessoas"}
-                  </Badge>
-                )}
-              </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
 
-              <div className="grid gap-2 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <Label className="text-xs">Cargo</Label>
-                  <Select value={e.cargo || undefined} onValueChange={(v) => set(g.chave, { cargo: v })}>
-                    <SelectTrigger className="h-10"><SelectValue placeholder="Escolha o cargo" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NOVO}>Criar cargo novo</SelectItem>
-                      {g.generico && novosDeOutros(g.chave).map((n) => (
-                        <SelectItem key={`n-${n}`} value={`nome:${n}`}>{n} (novo)</SelectItem>
-                      ))}
-                      {cargos.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {e.cargo === NOVO && (
-                    <Input
-                      className="h-10"
-                      value={e.cargoNome}
-                      aria-label="Nome do cargo novo"
-                      placeholder={g.generico ? "Nome da função real, ex.: AUXILIAR DE COZINHA" : "Nome do cargo"}
-                      onChange={(ev) => set(g.chave, { cargoNome: ev.target.value })}
-                    />
-                  )}
-                  {nomeInvalido(g) && (
-                    <p className="text-xs text-destructive">
-                      {e.cargo === NOVO
-                        ? "Esse nome não é um cargo. Digite a função real da pessoa."
-                        : "Esse cargo novo não está mais no lote. Escolha outro."}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Setor</Label>
-                  <Select value={e.setor} onValueChange={(v) => set(g.chave, { setor: v })}>
-                    <SelectTrigger className="h-10"><SelectValue placeholder="Escolha o setor" /></SelectTrigger>
-                    <SelectContent>
-                      {setoresUnidade.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
-                      ))}
-                      {setoresNovos.map((n) => (
-                        <SelectItem key={`s-${n}`} value={`novo:${n}`}>{n} (criar)</SelectItem>
-                      ))}
-                      <SelectItem value={OUTRO_SETOR}>Outro setor…</SelectItem>
-                      <SelectItem value={SEM_SETOR}>Sem setor</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {e.setor === OUTRO_SETOR && (
-                    <Input
-                      className="h-10"
-                      placeholder="Nome do setor"
-                      value={e.setorOutro}
-                      onChange={(ev) => set(g.chave, { setorOutro: ev.target.value })}
-                    />
-                  )}
-                </div>
+      {genericos.length > 0 && (
+        <Card className="border-warning/50">
+          <CardContent className="space-y-3 p-3">
+            <div className="flex gap-2">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium">
+                  {genericos.length} {genericos.length === 1 ? "ficha sem cargo" : "fichas sem cargo"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Se não souber agora, deixe para a conferência: quem concluir o cadastro escolhe o cargo.
+                </p>
               </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+            </div>
+            {genericos.map((g) => {
+              const e = escolhas[g.chave];
+              if (!e) return null;
+              return (
+                <div key={g.chave} className="space-y-1.5 rounded-lg bg-muted/30 p-2">
+                  <p className="truncate text-sm font-medium">{g.nomes[0]}</p>
+                  <div className="grid gap-2 sm:grid-cols-[1fr_12rem]">
+                    {seletorCargo(g, e)}
+                    {e.cargo ? seletorSetor(g, e) : null}
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+
+      {(qtdCargosNovos > 0 || qtdSetoresNovos > 0) && (
+        <p className="px-1 text-xs text-muted-foreground">
+          Ao salvar: {qtdCargosNovos} {qtdCargosNovos === 1 ? "cargo novo" : "cargos novos"} e {qtdSetoresNovos}{" "}
+          {qtdSetoresNovos === 1 ? "setor novo" : "setores novos"}. O salário de cada pessoa continua o da ficha.
+        </p>
+      )}
 
       <div className="sticky bottom-[calc(76px+env(safe-area-inset-bottom)+0.5rem)] z-10 flex gap-2 rounded-xl border bg-card p-2 shadow-lg md:bottom-4">
         <Button variant="outline" className="h-11" onClick={onVoltar} aria-label="Voltar para unidade">
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <Button className="h-11 flex-1" disabled={salvando || pendentesGenericos > 0 || semNome > 0 || invalidos > 0} onClick={salvar}>
+        <Button className="h-11 flex-1" disabled={salvando || semNome > 0 || invalidos > 0} onClick={salvar}>
           {salvando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-          {pendentesGenericos > 0
-            ? `Escolha o cargo de ${pendentesGenericos} ficha(s)`
-            : semNome > 0
-              ? `Digite o nome de ${semNome} cargo(s) novo(s)`
-              : invalidos > 0
-                ? "Corrija os cargos destacados"
+          {semNome > 0
+            ? `Digite o nome de ${semNome} cargo(s) novo(s)`
+            : invalidos > 0
+              ? "Corrija os cargos destacados"
+              : paraDepois > 0
+                ? `Salvar · ${paraDepois} para a conferência`
                 : "Salvar e vincular ao lote"}
         </Button>
       </div>

@@ -50,7 +50,7 @@ export async function garantirColaboradorNovo(companyId: string, nome?: string |
     return;
   }
   const estado = avaliarFranquia(previa, 1);
-  if (estado.tipo === "livre" || estado.tipo === "por_colaborador") return;
+  if (estado.tipo === "livre" || estado.tipo === "por_colaborador" || estado.tipo === "teste") return;
   if (estado.tipo === "bloqueado") throw new Error(MENSAGEM_SEM_PERMISSAO);
   const ok = await pedirConfirmacao({
     de: estado.atual,

@@ -1499,6 +1499,13 @@
       "when": 1794342972947,
       "tag": "0213_ficha_lote_organizacao",
       "breakpoints": true
+    },
+    {
+      "idx": 214,
+      "version": "7",
+      "when": 1794346673551,
+      "tag": "0214_franquia_previa_teste_gratis",
+      "breakpoints": true
     }
   ]
 }

@@ -242,7 +242,10 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
     }
     // Nova unidade abre em branco: só a empresa é pré-selecionada quando há uma só.
     const only = companies.length === 1 ? companies[0].id : "";
-    setForm({ ...blank, company_id: only, nome: nomeInicial, ...(inicial ?? {}) });
+    const base = { ...blank, company_id: only, nome: nomeInicial, ...(inicial ?? {}) };
+    setForm(base);
+    // Empresa já conhecida (ex.: lote de fichas): traz endereço e contato dela nos campos vazios.
+    if (inicial?.company_id) void applyCompanyData(inicial.company_id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, unidade?.id, nomeInicial]);
 

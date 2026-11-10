@@ -25,6 +25,11 @@ export interface PreviaFranquia {
   plano?: string | null;
   plano_nome?: string | null;
   por_colaborador_cents?: number | null;
+  /** Mínimo cobrado no plano por colaborador (Enterprise: 19). */
+  minimo_colaboradores?: number | null;
+  /** Assinatura em teste grátis: nada é cobrado até o fim do teste. */
+  em_teste?: boolean | null;
+  teste_termina_em?: string | null;
   sugestao_upgrade?: SugestaoUpgrade | null;
 }
 
@@ -40,6 +45,15 @@ export interface ComparativoEnterprise {
 export type EstadoFranquia =
   | { tipo: "livre"; vagas: number | null }
   | { tipo: "por_colaborador"; unitarioCents: number; atual: number }
+  /** Teste grátis de plano por colaborador: sem custo agora, sem franquia a confirmar. */
+  | {
+      tipo: "teste";
+      unitarioCents: number;
+      minimo: number;
+      atual: number;
+      planoNome: string | null;
+      terminaEm: string | null;
+    }
   | {
       tipo: "excedente";
       atual: number;
@@ -99,6 +113,16 @@ export function avaliarFranquia(previa: PreviaFranquia | null | undefined, novos
   const limite = Number(previa.limite ?? -1);
   if (previa.isento) return { tipo: "livre", vagas: null };
   const unit = Number(previa.por_colaborador_cents ?? 0);
+  if (unit > 0 && previa.em_teste) {
+    return {
+      tipo: "teste",
+      unitarioCents: unit,
+      minimo: Math.max(1, Number(previa.minimo_colaboradores ?? 1)),
+      atual,
+      planoNome: previa.plano_nome ?? null,
+      terminaEm: previa.teste_termina_em ?? null,
+    };
+  }
   if (unit > 0) return { tipo: "por_colaborador", unitarioCents: unit, atual };
   if (limite < 0) return { tipo: "livre", vagas: null };
   if (atual + novos <= limite) return { tipo: "livre", vagas: limite - atual };
