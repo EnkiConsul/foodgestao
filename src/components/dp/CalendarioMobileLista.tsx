@@ -183,6 +183,11 @@ export function CalendarioMobileLista({
                       Disponível
                     </span>
                   )}
+                  {!blocked && status === "quota" && wknd && (
+                    <span className="inline-flex items-center rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[11px] font-semibold text-sky-700">
+                      Pode mudar
+                    </span>
+                  )}
                   {!blocked && status === "fixed" && (
                     <span className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[11px] font-semibold text-blue-600">
                       Semanal

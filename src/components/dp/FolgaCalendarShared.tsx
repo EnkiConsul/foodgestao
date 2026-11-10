@@ -70,6 +70,7 @@ const statusStyles: Record<DateStatusKind, string> = {
   available: "bg-emerald-500/5 border-emerald-500/30 hover:bg-emerald-500/10",
   blocked: "bg-destructive/15 border-destructive/40",
   taken: "bg-destructive/10 border-destructive/30",
+  quota: "bg-sky-500/5 border-sky-500/30 hover:bg-sky-500/10",
   birthday: "bg-destructive/10 border-destructive/30",
   mine: "bg-amber-500/15 border-amber-500/40",
   fixed: "bg-blue-500/10 border-blue-500/30",
@@ -244,6 +245,11 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
                         Disponível
                       </Badge>
                     )}
+                    {!isAdmin && c.status === "quota" && wknd && (
+                      <Badge variant="outline" className="h-5 border-sky-500/30 bg-sky-500/10 px-1.5 py-0 text-[9px] text-sky-700">
+                        Pode mudar
+                      </Badge>
+                    )}
                     {c.status === "blocked" && (
                       <Badge variant="outline" className="h-5 border-destructive/30 bg-destructive/10 px-1.5 py-0 text-[9px] text-destructive">
                         Bloqueado
@@ -366,6 +372,11 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
                       Disponível
                     </span>
                   )}
+                  {!isAdmin && c.status === "quota" && wknd && (
+                    <span className="rounded-md border border-sky-500/30 bg-sky-500/10 px-1.5 py-0.5 text-[9px] font-black text-sky-700">
+                      Pode mudar
+                    </span>
+                  )}
                   {!isAdmin && c.status === "fixed" && (
                     <span className="rounded-md border border-blue-500/30 bg-blue-500/10 px-1.5 py-0.5 text-[9px] font-black text-blue-600">
                       Semanal
@@ -446,6 +457,7 @@ export function LegendaFolgas({ className, marcos = false }: { className?: strin
     { cls: "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300", label: "Folga semanal", icon: null },
     { cls: "border-primary/30 bg-primary/15 text-primary", label: "Folga mensal", icon: null },
     { cls: "border-violet-500/40 bg-violet-500/15 text-violet-700 dark:text-violet-300", label: "Pendente", icon: <AlertCircle className="h-3 w-3" /> },
+    { cls: "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300", label: "Pode mudar sua folga", icon: null },
     { cls: "border-destructive/30 bg-destructive/10 text-destructive", label: "Lotado", icon: <Users className="h-3 w-3" /> },
     { cls: "border-destructive/40 bg-destructive/15 text-destructive", label: "Bloqueado", icon: <Lock className="h-3 w-3" /> },
     ...(marcos

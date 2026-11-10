@@ -130,6 +130,7 @@ const STATUS_LABEL: Record<DateStatusKind, string> = {
   fixed: "Folga semanal",
   blocked: "Bloqueado",
   taken: "Lotado",
+  quota: "Pode mudar sua folga",
   past: "Passado",
   pending: "Pendente",
   birthday: "Aniversariante",
@@ -143,6 +144,7 @@ const STATUS_BADGE: Record<DateStatusKind, string> = {
   fixed: "bg-blue-500/10 text-blue-700 border-blue-200",
   blocked: "bg-red-500/10 text-red-700 border-red-200",
   taken: "bg-red-500/10 text-red-700 border-red-200",
+  quota: "bg-sky-500/10 text-sky-700 border-sky-200",
   past: "bg-muted text-muted-foreground border-transparent",
   pending: "bg-violet-500/10 text-violet-700 border-violet-200",
   birthday: "bg-amber-500/10 text-amber-700 border-amber-200",
@@ -2065,6 +2067,10 @@ export default function DpMeuCalendario() {
                         .map((o) => o.colaboradorId)
                     : []
                 }
+                colegasDeFolga={dayInfo.occupants
+                  .filter((o) => o.colaboradorId !== meRef.data?.id && o.type !== "pending"
+                    && !dataEmAfastamento(afastamentosQuery.data, o.colaboradorId, selectedDay.iso))
+                  .map((o) => ({ id: o.colaboradorId, nome: o.colaboradorNome || "Colega" }))}
                 onTrocar={(id, nome) =>
                   setTradeOpen({
                     occupantId: id,
@@ -2106,7 +2112,9 @@ export default function DpMeuCalendario() {
                       // "Teto do mês" conta a própria folga que está sendo movida:
                       // no mesmo mês, mover não aumenta o total, então segue direto.
                       const tetoPelaPropria =
-                        selectedDay.status === "taken" &&
+                        (selectedDay.status === "quota" &&
+                          folgaParaMover.data.slice(0, 7) === selectedDay.iso.slice(0, 7)) ||
+                        (selectedDay.status === "taken" &&
                         !(manualBlocked.get(selectedDay.iso) && !manualBlocked.get(selectedDay.iso)?.liberada) &&
                         !(() => {
                           const lim = dayLimits.get(selectedDay.iso);
@@ -2115,7 +2123,7 @@ export default function DpMeuCalendario() {
                           ).length;
                           return lim != null && oc >= lim;
                         })() &&
-                        folgaParaMover.data.slice(0, 7) === selectedDay.iso.slice(0, 7);
+                        folgaParaMover.data.slice(0, 7) === selectedDay.iso.slice(0, 7));
                       setRemarcarAviso(
                         !tetoPelaPropria && MOTIVO_STATUS[selectedDay.status]
                           ? `${MOTIVO_STATUS[selectedDay.status]}. Você pode trocar com um colega que folga neste dia ou pedir a mudança ao gestor.`
@@ -2124,7 +2132,7 @@ export default function DpMeuCalendario() {
                     }}
                   >
                     <CalendarClock className="mr-2 h-4 w-4 shrink-0" />
-                    Trocar minha folga de {diaSemanaBR(folgaParaMover.data)} {formatBR(parseYMD(folgaParaMover.data))} por
+                    Mudar minha folga de {diaSemanaBR(folgaParaMover.data)} {formatBR(parseYMD(folgaParaMover.data))} para
                     este dia
                   </Button>
                 )}
@@ -2190,6 +2198,13 @@ export default function DpMeuCalendario() {
 
                 {selectedDay.status === "taken" && (
                   <p className="text-xs text-muted-foreground">Limite de folgas atingido neste dia.</p>
+                )}
+                {selectedDay.status === "quota" && (
+                  <p className="rounded-xl border border-sky-200 bg-sky-500/10 px-3 py-2 text-xs font-medium text-sky-700">
+                    {folgaParaMover
+                      ? `Este dia tem vaga. Você já marcou sua folga do mês em ${diaSemanaBR(folgaParaMover.data)} ${formatBR(parseYMD(folgaParaMover.data))}: toque no botão acima para mudar para este dia, sem precisar do gestor.`
+                      : "Este dia tem vaga, mas você já usou suas folgas deste mês."}
+                  </p>
                 )}
                 {(() => {
                   const dev = meusDevolvidos.data?.find((d) => d.data_alvo === selectedDay.iso);

@@ -1471,6 +1471,13 @@
       "when": 1794328196272,
       "tag": "0209_franquia_previa_enterprise",
       "breakpoints": true
+    },
+    {
+      "idx": 210,
+      "version": "7",
+      "when": 1794332514638,
+      "tag": "0210_portal_rotina_cargo_e_folga_fixa",
+      "breakpoints": true
     }
   ]
 }

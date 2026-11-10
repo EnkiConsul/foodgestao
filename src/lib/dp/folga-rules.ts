@@ -5,6 +5,8 @@ export type DateStatusKind =
   | "available"
   | "blocked"
   | "taken"
+  /** Dia com vaga na loja, mas a cota mensal do colaborador já está usada: dá para mudar a folga para cá. */
+  | "quota"
   | "mine"
   | "past"
   | "birthday"
@@ -358,7 +360,22 @@ export function calculateDateStatus(params: {
   const reservaCount = reservasByDay.get(iso) ?? 0;
   const effectiveCount = monthlyCount + reservaCount;
 
+  // Lotação real da loja vem antes da cota individual: "Lotado" só quando o dia não tem vaga.
+  if (!isAdmin && effectiveCount >= limit && isWknd) {
+    return {
+      status: "taken",
+      label: reservaCount > 0 ? "Reservado" : "Lotado",
+      reason:
+        reservaCount > 0
+          ? "Vagas reservadas por indisponibilidade de convocáveis neste dia."
+          : "Limite de folgas mensais atingido",
+      occupancy: monthlyCount,
+      limit,
+    };
+  }
+
   // Teto mensal do colaborador, derivado da frequência configurada nas regras.
+  // O dia tem vaga: quem já usou a cota pode mudar a própria folga para cá.
   if (!isAdmin && isWknd && myColaboradorId && typeof tetoMensal === "number" && tetoMensal >= 0) {
     const mk = monthKey(date);
     const minhasNoMes = allFolgas.filter(
@@ -375,28 +392,14 @@ export function calculateDateStatus(params: {
     ).length;
     if (minhasNoMes >= tetoMensal) {
       return {
-        status: "taken",
+        status: "quota",
         label: "Teto do mês",
-        reason: `Você já atingiu o teto de ${tetoMensal} folga(s) neste mês, conforme as regras de folga da sua unidade.`,
+        reason: `Este dia tem vaga, mas você já marcou ${tetoMensal} folga(s) neste mês, conforme as regras de folga da sua unidade. Você pode mudar sua folga para este dia.`,
         occupancy: monthlyCount,
         limit,
       };
     }
   }
-
-  if (!isAdmin && effectiveCount >= limit && isWknd) {
-    return {
-      status: "taken",
-      label: reservaCount > 0 ? "Reservado" : "Lotado",
-      reason:
-        reservaCount > 0
-          ? "Vagas reservadas por indisponibilidade de convocáveis neste dia."
-          : "Limite de folgas mensais atingido",
-      occupancy: monthlyCount,
-      limit,
-    };
-  }
-
 
   return {
     status: isWknd ? "available" : "weekday",

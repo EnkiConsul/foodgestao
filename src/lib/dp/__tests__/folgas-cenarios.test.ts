@@ -37,6 +37,17 @@ describe("Cenários de folga", () => {
   it("teto do mês atingido barra nova folga de fim de semana", () => {
     const st = base("2027-01-16", [{ colaborador_id: EU, data: "2027-01-09", direito_origem: "fds" }]);
     expect(st.label).toBe("Teto do mês");
+    // A loja tem vaga: não é "Lotado", é a cota da própria pessoa — pode mudar a folga para cá.
+    expect(st.status).toBe("quota");
+  });
+
+  it("dia sem vaga na loja continua Lotado mesmo com a cota do mês usada", () => {
+    const st = base("2027-01-16", [
+      { colaborador_id: EU, data: "2027-01-09", direito_origem: "fds" },
+      { colaborador_id: COLEGA, data: "2027-01-16", tipo: "normal" },
+    ]);
+    expect(st.status).toBe("taken");
+    expect(st.label).toBe("Lotado");
   });
 
   it("folga fixa deslocada para o sábado não consome o teto", () => {

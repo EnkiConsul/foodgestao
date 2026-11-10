@@ -10,21 +10,16 @@ import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 import { toUpperCadastro } from "@/lib/text/upperCadastro";
 import { nomeExibicao } from "@/lib/dp/nomeExibicao";
 import { hhmm as hhmmBase } from "@/lib/dp/formato";
+import {
+  SEM_TURNO,
+  agruparTurnosRotina,
+  completarForaDaOperacao,
+  type PessoaRotina,
+} from "@/lib/dp/rotina-dia-agrupamento";
 
 const hhmm = (v?: string | null) => hhmmBase(v) || null;
-const SEM_TURNO = "sem-turno";
 
-type Pessoa = {
-  id: string;
-  nome: string;
-  cargo: string;
-  setor: string | null;
-  entrada: string | null;
-  saida: string | null;
-  origem: string | null;
-  turnoChave: string;
-  turnoNome: string | null;
-};
+type Pessoa = PessoaRotina;
 
 const ORIGEM_LABEL: Record<string, string> = {
   escala: "Escala publicada",
@@ -48,6 +43,7 @@ export function RotinaDoDiaPanel({
   iso,
   minhaFolga,
   trocaveis = [],
+  colegasDeFolga = [],
   onTrocar,
 }: {
   iso: string;
@@ -55,6 +51,8 @@ export function RotinaDoDiaPanel({
   minhaFolga: string | null;
   /** Colegas de folga cuja folga pode ser trocada neste dia (regras do calendário). */
   trocaveis?: string[];
+  /** Colegas que o próprio calendário mostra de folga no dia (ex.: folga semanal fixa). */
+  colegasDeFolga?: { id: string; nome: string }[];
   onTrocar?: (colaboradorId: string, nome: string) => void;
 }) {
   const { data: vinculo } = useMeuVinculoPortal();
@@ -118,22 +116,19 @@ export function RotinaDoDiaPanel({
   });
 
   const lista = q.data ?? [];
-  const fora = foraQ.data ?? [];
+  const fora = useMemo(
+    () => completarForaDaOperacao(
+        foraQ.data ?? [],
+        lista,
+        colegasDeFolga.map((c) => ({ id: c.id, nome: toUpperCadastro(c.nome) })),
+      ),
+    [foraQ.data, lista, colegasDeFolga],
+  );
   const meuId = vinculo?.colaboradorId;
   const eu = lista.find((p) => p.id === meuId) ?? null;
   const dependeConvocacao = !!vinculo?.podeSerConvocado;
 
-  const turnos = useMemo(() => {
-    const m = new Map<string, { chave: string; nome: string; entrada: string | null; pessoas: Pessoa[] }>();
-    for (const p of lista) {
-      const atual = m.get(p.turnoChave);
-      if (atual) { atual.pessoas.push(p); continue; }
-      const horario = p.entrada && p.saida ? `${p.entrada} às ${p.saida}` : null;
-      const nome = p.turnoNome ? (horario ? `${p.turnoNome} · ${horario}` : p.turnoNome) : (horario ?? "Horário a confirmar");
-      m.set(p.turnoChave, { chave: p.turnoChave, nome, entrada: p.entrada, pessoas: [p] });
-    }
-    return Array.from(m.values()).sort((a, b) => (a.entrada ?? "99:99").localeCompare(b.entrada ?? "99:99"));
-  }, [lista]);
+  const turnos = useMemo(() => agruparTurnosRotina(lista), [lista]);
 
   const usaSetores = lista.some((p) => !!p.setor);
   const grupos = (pessoas: Pessoa[]) => {
@@ -236,7 +231,7 @@ export function RotinaDoDiaPanel({
                     <span className={cn("min-w-0 break-words", souEu ? "font-bold text-primary" : "font-medium")}>
                       {p.nome}
                       {souEu && <Badge className="ml-1.5 align-middle text-[9px]">Você</Badge>}
-                      <span className="block text-[10px] font-normal text-muted-foreground">{p.cargo}</span>
+                      {p.cargo && <span className="block text-[10px] font-normal text-muted-foreground">{p.cargo}</span>}
                     </span>
                     <span className="flex items-center gap-1.5">
                       <Badge variant="outline" className={cn("text-[10px] uppercase", s.tom)}>{s.texto}</Badge>
