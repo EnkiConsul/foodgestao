@@ -61,8 +61,26 @@ describe("franquia de colaboradores", () => {
     });
   });
 
-  it("teste grátis em plano com franquia continua pedindo a ciência do excedente", () => {
-    const e = avaliarFranquia(multiCheio({ em_teste: true }), 1);
+  it("teste grátis no Gestão (8) com 8 ativos: o 9º entra sem franquia nem custo extra", () => {
+    const e = avaliarFranquia(multiCheio({
+      atual: 8, limite: 8, plano: "pessoas-gestao", em_teste: true, teste_termina_em: "2026-11-19T16:30:20Z",
+    }), 1);
+    expect(e.tipo).toBe("teste");
+    expect(e.tipo === "teste" && e.unitarioCents).toBeNull();
+  });
+
+  it("teste grátis com lote de 47 fichas no Gestão: nenhum excedente a confirmar", () => {
+    const e = avaliarFranquia(multiCheio({ atual: 0, limite: 8, em_teste: true }), 47);
+    expect(e.tipo).toBe("teste");
+  });
+
+  it("teste grátis sem poder de gestão não bloqueia o cadastro", () => {
+    const e = avaliarFranquia(multiCheio({ pode_gerir: false, em_teste: true }), 1);
+    expect(e.tipo).toBe("teste");
+  });
+
+  it("depois do teste, a franquia volta a valer", () => {
+    const e = avaliarFranquia(multiCheio({ em_teste: false }), 1);
     expect(e.tipo).toBe("excedente");
   });
 });

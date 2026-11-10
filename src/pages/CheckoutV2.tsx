@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatCents, precoPorColaborador } from "@/lib/billing";
+import { buscarLimites } from "@/lib/billing/limites";
+import { avisoPlanoAbaixoDaEquipe, sugerirPlanoPessoas, type PlanoCatalogo } from "@/lib/billing/enquadramentoPlano";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { AlertTriangle, Check, MessageCircle } from "lucide-react";
@@ -149,6 +151,27 @@ export default function CheckoutV2() {
   const nfseLigada = !!nfse.data && nfse.data !== "desligado" && nfse.data !== "false";
   const planos = useMemo(() => (catalogo.data?.planos ?? []).filter((p) => p.module === modulo), [catalogo.data, modulo]);
   const planoSel = planos.find((p) => p.slug === plano);
+
+  // Enquadramento: no Pessoas 360°, a tela já marca o menor plano que comporta a equipe ativa.
+  const equipe = useQuery({
+    queryKey: ["checkout-v2-equipe", companyId],
+    enabled: !!companyId && modulo === "pessoas",
+    staleTime: 60_000,
+    queryFn: async () => {
+      const l = await buscarLimites(companyId!, "pessoas");
+      if (!l) return null;
+      return { colaboradores: Number(l.used?.colaboradores ?? 0), unidades: Number(l.used?.unidades ?? 0) };
+    },
+  });
+  const sugerido = modulo === "pessoas" && equipe.data ? sugerirPlanoPessoas(planos as PlanoCatalogo[], equipe.data) : null;
+  const autoSelecionado = useRef(false);
+  useEffect(() => {
+    if (autoSelecionado.current || plano || !sugerido) return;
+    autoSelecionado.current = true;
+    setPlano(sugerido.slug);
+  }, [sugerido, plano]);
+  const avisoEquipe = planoSel && modulo === "pessoas" && equipe.data
+    ? avisoPlanoAbaixoDaEquipe(planoSel as PlanoCatalogo, equipe.data) : null;
   const limEmpresas = catalogo.data?.limites.find((l) => l.plan_id === planoSel?.id && l.recurso === "empresas");
   const permiteGrupo = !!planoSel && ((limEmpresas?.incluido ?? 1) > 1 || !!limEmpresas?.permite_adicional);
   const gerenciaveis = useQuery({
@@ -267,7 +290,7 @@ export default function CheckoutV2() {
         <Passo n={1} titulo="Módulo">
           <div className="grid gap-2 sm:grid-cols-2">
             {MODULOS.map((m) => (
-              <Opcao key={m.id} testid={`modulo-${m.id}`} ativo={modulo === m.id} onClick={() => { setModulo(m.id); setPlano(null); setAdicionais({}); }}>
+              <Opcao key={m.id} testid={`modulo-${m.id}`} ativo={modulo === m.id} onClick={() => { autoSelecionado.current = false; setModulo(m.id); setPlano(null); setAdicionais({}); }}>
                 <p className="font-medium">{m.nome}</p><p className="text-xs text-muted-foreground">{m.texto}</p>
               </Opcao>
             ))}
@@ -286,6 +309,11 @@ export default function CheckoutV2() {
                 </div>
               ) : (
                 <Opcao key={p.slug} testid={`plano-${p.slug}`} ativo={plano === p.slug} onClick={() => { setPlano(p.slug); setAdicionais({}); }}>
+                  {sugerido?.slug === p.slug && equipe.data && (
+                    <Badge variant="secondary" className="mb-1 whitespace-normal text-left">
+                      Recomendado para sua equipe ({equipe.data.colaboradores} {equipe.data.colaboradores === 1 ? "colaborador" : "colaboradores"})
+                    </Badge>
+                  )}
                   <p className="font-medium">{p.name}</p>
                   <p className="text-sm">{formatCents(p.price_monthly_cents)}<span className="text-xs text-muted-foreground">/mês</span></p>
                   {precoPorColaborador(p.features) && (
@@ -296,6 +324,19 @@ export default function CheckoutV2() {
                 </Opcao>
               ))}
             </div>
+            {avisoEquipe && (
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  {avisoEquipe}{" "}
+                  {sugerido && sugerido.slug !== plano && (
+                    <button type="button" className="font-medium text-primary underline" onClick={() => { setPlano(sugerido.slug); setAdicionais({}); }}>
+                      Usar o {sugerido.name}
+                    </button>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
           </Passo>
         )}
 

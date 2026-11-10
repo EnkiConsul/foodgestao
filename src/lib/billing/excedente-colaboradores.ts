@@ -45,6 +45,8 @@ export const MENSAGEM_SEM_PERMISSAO =
  */
 export async function garantirColaboradorNovo(companyId: string, nome?: string | null) {
   const previa = await buscarPreviaFranquia(companyId);
+  // Teste grátis em vigor: sem franquia em nenhum modo (o banco também libera).
+  if (previa?.em_teste) return;
   if (!previa || previa.modo !== "v2") {
     await garantirLimite(companyId, "pessoas", "colaboradores");
     return;

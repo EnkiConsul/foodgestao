@@ -45,10 +45,14 @@ export interface ComparativoEnterprise {
 export type EstadoFranquia =
   | { tipo: "livre"; vagas: number | null }
   | { tipo: "por_colaborador"; unitarioCents: number; atual: number }
-  /** Teste grátis de plano por colaborador: sem custo agora, sem franquia a confirmar. */
+  /**
+   * Teste grátis em vigor (qualquer plano): sem franquia, sem custo extra e sem
+   * ciência a confirmar. O plano é enquadrado pela equipe no fim do teste.
+   */
   | {
       tipo: "teste";
-      unitarioCents: number;
+      /** Valor por colaborador do plano em teste (só planos por colaborador); null nos demais. */
+      unitarioCents: number | null;
       minimo: number;
       atual: number;
       planoNome: string | null;
@@ -113,10 +117,10 @@ export function avaliarFranquia(previa: PreviaFranquia | null | undefined, novos
   const limite = Number(previa.limite ?? -1);
   if (previa.isento) return { tipo: "livre", vagas: null };
   const unit = Number(previa.por_colaborador_cents ?? 0);
-  if (unit > 0 && previa.em_teste) {
+  if (previa.em_teste) {
     return {
       tipo: "teste",
-      unitarioCents: unit,
+      unitarioCents: unit > 0 ? unit : null,
       minimo: Math.max(1, Number(previa.minimo_colaboradores ?? 1)),
       atual,
       planoNome: previa.plano_nome ?? null,

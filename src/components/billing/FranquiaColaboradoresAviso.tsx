@@ -45,12 +45,11 @@ export function FranquiaColaboradoresAviso({ estado, novos = 1, className }: Pro
         <Gift className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
         <div className="space-y-0.5">
           <p className="text-sm font-medium">
-            Teste grátis{estado.planoNome ? ` do ${estado.planoNome}` : ""}{fim ? ` até ${fim}` : ""}
+            Teste grátis{fim ? ` até ${fim}` : ""}: sem limite de colaboradores
           </p>
           <p className="text-muted-foreground">
-            Cadastre toda a equipe sem custo agora. Depois do teste, a mensalidade é{" "}
-            {formatCents(estado.unitarioCents)} por colaborador ativo
-            {estado.minimo > 1 ? ` (mínimo de ${estado.minimo})` : ""}.
+            Cadastre toda a equipe sem custo agora. No fim do teste, mostramos o plano que melhor se enquadra na
+            quantidade de colaboradores ativos — é só vincular o pagamento para continuar.
           </p>
         </div>
       </div>
