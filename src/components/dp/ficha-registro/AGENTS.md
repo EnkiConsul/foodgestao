@@ -1,0 +1,2 @@
+# Importação de fichas
+- Multi-sheet registration imports are organized per batch (unit → job/sector groups → per-sheet review) via `dp_ficha_lote_organizar`, stored in `dp_ficha_importacoes.organizacao` and read by `vinculoOrganizado`; it creates/links jobs and sectors only, never employees, so the official sheet review stays the single creation path. Hand-off notifications (`dp_ficha_lote_notificar`) are super-admin only.
