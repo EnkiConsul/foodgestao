@@ -7,6 +7,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { garantirColaboradorNovo } from "@/lib/billing/excedente-colaboradores";
+import { pedeCienciaExcedente } from "@/lib/billing/franquia";
 import { negarRegra } from "./regraAviso";
 
 type Json = Record<string, unknown>;
@@ -14,9 +15,9 @@ type Json = Record<string, unknown>;
 const MENSAGENS: Record<string, string> = {
   UNAUTHENTICATED: "Faça a entrada novamente para continuar.",
   EXCEDENTE_SEM_PERMISSAO:
-    "Limite do plano atingido. Só o dono ou um administrador pode incluir colaboradores acima da franquia.",
+    "A franquia de colaboradores do plano está completa. Só o dono ou um administrador da empresa pode incluir colaboradores acima da franquia — o que você preencheu continua aqui.",
   EXCEDENTE_CONFIRMACAO_NECESSARIA:
-    "Este cadastro passa da franquia do plano. Salve de novo e confirme o custo do excedente.",
+    "Este cadastro passa da franquia de colaboradores do plano. Toque em salvar de novo e confirme o valor do excedente — o que você preencheu continua aqui.",
   FORBIDDEN: "Você não tem permissão para esta ação nesta empresa.",
   NOT_FOUND: "Registro não encontrado.",
   COLAB_DADOS_INVALIDOS: "Não foi possível ler os dados enviados.",
@@ -81,14 +82,22 @@ export async function salvarColaborador(input: {
   companyId: string;
   dados: Json;
 }): Promise<string> {
+  const nome = (input.dados?.nome as string) ?? null;
   if (!input.id) {
-    await garantirColaboradorNovo(input.companyId, (input.dados?.nome as string) ?? null);
+    await garantirColaboradorNovo(input.companyId, nome);
   }
-  const { data, error } = await (supabase.rpc as any)("dp_colaborador_salvar", {
+  const gravar = () => (supabase.rpc as any)("dp_colaborador_salvar", {
     p_dados: input.dados,
     p_id: input.id ?? null,
     p_company_id: input.companyId,
   });
+  let { data, error } = await gravar();
+  // Reativar um cadastro inativo (ou franquia que encheu no meio do preenchimento)
+  // também consome vaga: pede a ciência do excedente e tenta uma única vez de novo.
+  if (error && pedeCienciaExcedente(error.message)) {
+    await garantirColaboradorNovo(input.companyId, nome);
+    ({ data, error } = await gravar());
+  }
   if (error) lancar(error, "Não foi possível salvar o cadastro.");
   return data as string;
 }

@@ -33,6 +33,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { notifyError } from "@/lib/notifyError";
+import { garantirColaboradorNovo } from "@/lib/billing/excedente-colaboradores";
+import { mensagemErroFranquia } from "@/lib/billing/franquia";
+import { FranquiaColaboradoresAviso, useEstadoFranquia } from "@/components/billing/FranquiaColaboradoresAviso";
 import { gerarFichaAdmissaoPdf } from "@/lib/dp/ficha-admissao-pdf";
 import { AsoAdmissionalCard } from "./AsoAdmissionalCard";
 import { asoLiberaContabilidade, BASES_LEGAIS_DISPENSA, type AsoDados } from "@/lib/dp/aso-admissional";
@@ -548,6 +551,10 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
   const [jornadaEmEdicao, setJornadaEmEdicao] = useState<{ id: string; j: JornadaRascunho } | null>(null);
   const [dataInicioRotina, setDataInicioRotina] = useState("");
   const [ativandoRotina, setAtivandoRotina] = useState(false);
+  // Franquia: ativar na rotina ou efetivar sem cadastro da rotina cria colaborador novo.
+  const colabRotinaId = ((pa?.admin_dados as Record<string, any> | null | undefined)?.rotina?.colaborador_id as string | undefined) ?? null;
+  const estadoFranquia = useEstadoFranquia((ativarRotinaAberto || (confirmarClt && !colabRotinaId)) ? pa?.company_id : null);
+  const bloqueadoPorFranquia = estadoFranquia?.tipo === "bloqueado";
   const regimeAtual = admin.regime_trabalho || data?.preadmissao?.regime_previsto || "clt";
   const isClt = regimeAtual === "clt" || regimeAtual === "intermitente";
   const statusAtual = data?.preadmissao?.status as string | undefined;
@@ -558,6 +565,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     if (!id || !podeEfetivar || efetivando || (semFichaOficial && !cienciaSemFicha)) return;
     setEfetivando(true);
     try {
+      if (!colabRotinaId) await garantirColaboradorNovo(pa!.company_id, ficha.nome ?? null);
       const { data: res, error } = await supabase.rpc("dp_preadmissao_efetivar_direto", {
         p_preadmissao_id: id,
         p_data_admissao: admin.data_admissao || undefined,
@@ -570,7 +578,9 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
       await queryClient.invalidateQueries();
       await refetch();
     } catch (e) {
-      notifyError(e as Error, { surface: "Pessoas 360°", action: "efetivar o colaborador" });
+      const franquia = mensagemErroFranquia((e as Error)?.message) ?? (e instanceof Error && /franquia|excedente/i.test(e.message) ? e.message : null);
+      if (franquia) toast.error(franquia);
+      else notifyError(e as Error, { surface: "Pessoas 360°", action: "efetivar o colaborador" });
     } finally {
       setEfetivando(false);
       setConfirmarClt(false);
@@ -1058,6 +1068,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
     if (!id || !jornadaAtivacao) return;
     setAtivandoRotina(true);
     try {
+      await garantirColaboradorNovo(pa.company_id, ficha.nome ?? null);
       const { error } = await supabase.rpc("dp_preadmissao_ativar_rotina", {
         p_preadmissao_id: id,
         p_data_inicio: dataInicioRotina,
@@ -1073,7 +1084,9 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
       await queryClient.invalidateQueries();
       await refetch();
     } catch (e) {
-      notifyError(e as Error, { surface: "Pessoas 360°", action: "ativar na rotina da loja" });
+      const franquia = mensagemErroFranquia((e as Error)?.message) ?? (e instanceof Error && /franquia|excedente/i.test(e.message) ? e.message : null);
+      if (franquia) toast.error(franquia);
+      else notifyError(e as Error, { surface: "Pessoas 360°", action: "ativar na rotina da loja" });
     } finally {
       setAtivandoRotina(false);
     }
@@ -1453,6 +1466,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
             <AlertDialogDescription>
               O cadastro será efetivado com os dados conferidos. Em seguida você poderá anexar contratos, aditivos e outros documentos para assinatura.
             </AlertDialogDescription>
+            {!colabRotinaId && <FranquiaColaboradoresAviso estado={estadoFranquia} />}
             {semFichaOficial && <div className="space-y-3 text-sm">
               <p className="text-muted-foreground">A ficha de registro ainda não foi recebida ou conferida. Esta decisão será registrada e não substitui as obrigações de registro pela contabilidade.</p>
               <Label className="flex items-start gap-2" htmlFor="ciencia-efetivar-sem-ficha">
@@ -1463,7 +1477,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction disabled={efetivando || (semFichaOficial && !cienciaSemFicha)} onClick={() => void efetivarDireto()}>Confirmar e Efetivar</AlertDialogAction>
+            <AlertDialogAction disabled={efetivando || (semFichaOficial && !cienciaSemFicha) || (!colabRotinaId && bloqueadoPorFranquia)} onClick={() => void efetivarDireto()}>Confirmar e Efetivar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1479,6 +1493,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                   sem acesso ao portal e sem efeito CLT. Ao efetivar a admissão, o mesmo cadastro vira o vínculo
                   oficial e a data de admissão formal passa a contar.
                 </p>
+                <FranquiaColaboradoresAviso estado={estadoFranquia} />
                 <div className="space-y-1">
                   <Label htmlFor="inicio-rotina" className="text-xs">Início das atividades na loja</Label>
                   <Input
@@ -1504,7 +1519,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              disabled={ativandoRotina || !jornadaAtivacao || !dataInicioRotina}
+              disabled={ativandoRotina || !jornadaAtivacao || !dataInicioRotina || bloqueadoPorFranquia}
               onClick={(e) => {
                 e.preventDefault();
                 void ativarRotina();

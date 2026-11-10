@@ -27,6 +27,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { FranquiaColaboradoresAviso, useEstadoFranquia } from "@/components/billing/FranquiaColaboradoresAviso";
 import { useUpsertDpColaborador, useDpColaboradores, type DpColaborador } from "@/hooks/useDpColaboradores";
 import { type PessoaApoio } from "@/hooks/useDpPessoasApoio";
 import { divergenciasIsonomia, DIAS_BASE_PADRAO, type DivergenciaIsonomia } from "@/lib/dp/beneficios-regras";
@@ -470,6 +471,8 @@ export function ColaboradorFormDialog({
 
 
   const isEdit = !!colaborador?.id;
+  // Franquia: aviso antes de preencher um cadastro novo (o rascunho continua disponível).
+  const avisoFranquia = useEstadoFranquia(open && !isEdit && !criadoId && !admissao ? selectedCompanyId : null);
 
   /** Rascunho guardado no sistema: vale só para cadastro novo. */
   const chaveRascunho = useMemo(
@@ -2378,6 +2381,7 @@ export function ColaboradorFormDialog({
 
               </div>
             </DialogHeader>
+            {avisoFranquia && <FranquiaColaboradoresAviso estado={avisoFranquia} className="mt-2" />}
             {admissao?.etapa}
             <div className="-mx-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0 sm:pb-0">
             <TabsList className="w-max justify-start sm:w-full">

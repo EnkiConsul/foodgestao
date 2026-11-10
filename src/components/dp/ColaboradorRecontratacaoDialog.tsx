@@ -15,6 +15,8 @@ import { useDpSetores } from "@/hooks/useDpSetores";
 import { contratoPolicy, formasPagamentoDoRegime } from "@/lib/dp/contrato-policy";
 import { useRecontratarDpColaborador, type DpColaborador } from "@/hooks/useDpColaboradores";
 import { garantirColaboradorNovo } from "@/lib/billing/excedente-colaboradores";
+import { mensagemErroFranquia } from "@/lib/billing/franquia";
+import { FranquiaColaboradoresAviso, useEstadoFranquia } from "@/components/billing/FranquiaColaboradoresAviso";
 
 const REGIMES = ["clt", "intermitente", "estagio", "temporario", "freelancer", "pj", "mei"] as const;
 
@@ -59,6 +61,9 @@ export function ColaboradorRecontratacaoDialog({ colaborador, open, onOpenChange
   const [valorHora, setValorHora] = useState<string>("");
   const [matricula, setMatricula] = useState<string>("");
   const [justificativa, setJustificativa] = useState("");
+  // Recontratar ocupa vaga na franquia: avisa antes de preencher o novo vínculo.
+  const estadoFranquia = useEstadoFranquia(open ? colaborador?.company_id : null);
+  const bloqueadoPorFranquia = estadoFranquia?.tipo === "bloqueado";
 
   useEffect(() => {
     if (!open || !colaborador) return;
@@ -114,7 +119,8 @@ export function ColaboradorRecontratacaoDialog({ colaborador, open, onOpenChange
       toast.success(`${colaborador.nome} recontratado(a) a partir de ${fmtDate(admissao)}.`);
       onOpenChange(false);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível registrar a recontratação.");
+      const msg = e instanceof Error ? e.message : "";
+      toast.error(mensagemErroFranquia(msg) ?? (msg || "Não foi possível registrar a recontratação."));
     }
   };
 
@@ -134,6 +140,7 @@ export function ColaboradorRecontratacaoDialog({ colaborador, open, onOpenChange
         </DialogHeader>
 
         <div className="flex-1 space-y-4 overflow-y-auto p-4">
+          <FranquiaColaboradoresAviso estado={estadoFranquia} />
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="rec-admissao">Nova data de admissão *</Label>
@@ -274,7 +281,7 @@ export function ColaboradorRecontratacaoDialog({ colaborador, open, onOpenChange
           <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button className="flex-1 sm:flex-none" onClick={salvar} disabled={recontratar.isPending}>
+          <Button className="flex-1 sm:flex-none" onClick={salvar} disabled={recontratar.isPending || bloqueadoPorFranquia}>
             {recontratar.isPending ? "Salvando…" : "Confirmar recontratação"}
           </Button>
         </DialogFooter>

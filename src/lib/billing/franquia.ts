@@ -56,6 +56,26 @@ export type EstadoFranquia =
       enterprise: ComparativoEnterprise | null;
     };
 
+const ERROS_FRANQUIA: Array<[RegExp, string]> = [
+  [/EXCEDENTE_SEM_PERMISSAO/,
+    "A franquia de colaboradores do plano está completa. Só o dono ou um administrador da empresa pode incluir colaboradores acima da franquia — o que você preencheu continua aqui."],
+  [/EXCEDENTE_CONFIRMACAO_NECESSARIA/,
+    "Este cadastro passa da franquia de colaboradores do plano. Toque em salvar de novo e confirme o valor do excedente — o que você preencheu continua aqui."],
+  [/Limite do plano atingido/i,
+    "A franquia de colaboradores do plano está completa. Amplie o plano para incluir mais colaboradores — o que você preencheu continua aqui."],
+];
+
+/** Travas de franquia do banco (gatilho de limite) em linguagem do gestor; null se não for de franquia. */
+export function mensagemErroFranquia(texto: string | null | undefined): string | null {
+  const t = String(texto ?? "");
+  return ERROS_FRANQUIA.find(([re]) => re.test(t))?.[1] ?? null;
+}
+
+/** Erro do banco pede a ciência do excedente (cadastro, reativação ou recontratação). */
+export function pedeCienciaExcedente(texto: string | null | undefined): boolean {
+  return /EXCEDENTE_CONFIRMACAO_NECESSARIA/.test(String(texto ?? ""));
+}
+
 /** Comparativo plano atual × Enterprise para `novos` colaboradores a mais. */
 export function comparativoEnterprise(previa: PreviaFranquia, novos = 1): ComparativoEnterprise | null {
   const s = previa.sugestao_upgrade;
