@@ -10152,6 +10152,7 @@ export type Database = {
           erro_mensagem: string | null
           fichas_identificadas: number
           id: string
+          organizacao: Json
           paginas_processadas: number
           status: string
           total_paginas: number
@@ -10169,6 +10170,7 @@ export type Database = {
           erro_mensagem?: string | null
           fichas_identificadas?: number
           id?: string
+          organizacao?: Json
           paginas_processadas?: number
           status?: string
           total_paginas?: number
@@ -10186,6 +10188,7 @@ export type Database = {
           erro_mensagem?: string | null
           fichas_identificadas?: number
           id?: string
+          organizacao?: Json
           paginas_processadas?: number
           status?: string
           total_paginas?: number
@@ -20731,6 +20734,28 @@ export type Database = {
         Returns: Json
       }
       dp_ficha_ignorar: { Args: { p_item_id: string }; Returns: Json }
+      dp_ficha_lote_notificar: {
+        Args: { p_importacao_id: string; p_user_id: string }
+        Returns: Json
+      }
+      dp_ficha_lote_organizar: {
+        Args: {
+          p_grupos: Json
+          p_importacao_id: string
+          p_sindicato_laboral_id?: string
+          p_unidade_id: string
+        }
+        Returns: Json
+      }
+      dp_ficha_lote_responsaveis: {
+        Args: { p_importacao_id: string }
+        Returns: {
+          email: string
+          nome: string
+          perfil: string
+          user_id: string
+        }[]
+      }
       dp_folga_admin_cancelar: {
         Args: {
           p_colaborador: string
@@ -23287,6 +23312,7 @@ export type Database = {
         | "ocorrencia_nova"
         | "desligamento_aviso"
         | "feriado_convocacao"
+        | "ficha_lote_pronto"
       dp_ocorrencia_analise_status: "pendente" | "analisada" | "nao_se_aplica"
       dp_ocorrencia_cobertura_execucao:
         | "prevista"
@@ -23776,6 +23802,7 @@ export const Constants = {
         "ocorrencia_nova",
         "desligamento_aviso",
         "feriado_convocacao",
+        "ficha_lote_pronto",
       ],
       dp_ocorrencia_analise_status: ["pendente", "analisada", "nao_se_aplica"],
       dp_ocorrencia_cobertura_execucao: [

@@ -489,3 +489,96 @@ export function useIgnorarFicha() {
     },
   });
 }
+
+/** Um grupo de cargo enviado para a organização do lote. */
+export interface GrupoOrganizacaoInput {
+  chave?: string | null;
+  /** Só para fichas com cargo genérico: a decisão vale para estas fichas. */
+  item_ids?: string[];
+  cargo_id?: string | null;
+  cargo_nome?: string | null;
+  cbo?: string | null;
+  setor_id?: string | null;
+  setor_nome?: string | null;
+}
+
+function mensagemOrganizacao(e: { message?: string } | null): string {
+  const m = e?.message ?? "";
+  if (/SEM_PERMISSAO/.test(m)) return "Apenas o dono ou um administrador da empresa organiza o lote.";
+  if (/CARGO_GENERICO/.test(m)) return "Escolha o cargo real das fichas marcadas como genéricas.";
+  if (/UNIDADE_INVALIDA/.test(m)) return "Escolha uma unidade desta empresa.";
+  if (/SINDICATO_INVALIDO/.test(m)) return "Escolha um sindicato laboral desta empresa.";
+  if (/SETOR_INVALIDO/.test(m)) return "Um dos setores não pertence à unidade escolhida.";
+  return "Não foi possível salvar cargos e setores. Nada foi alterado; tente novamente.";
+}
+
+/** Cria/vincula cargos e setores do lote numa única transação, sem cadastrar ninguém. */
+export function useOrganizarLoteFicha() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      importacaoId: string;
+      unidadeId: string;
+      sindicatoLaboralId: string | null;
+      grupos: GrupoOrganizacaoInput[];
+    }) => {
+      const { data, error } = await supabase.rpc("dp_ficha_lote_organizar", {
+        p_importacao_id: input.importacaoId,
+        p_unidade_id: input.unidadeId,
+        p_grupos: input.grupos as unknown as Database["public"]["Functions"]["dp_ficha_lote_organizar"]["Args"]["p_grupos"],
+        p_sindicato_laboral_id: input.sindicatoLaboralId ?? undefined,
+      });
+      if (error) throw new Error(mensagemOrganizacao(error));
+      return data as { cargos_criados: number; setores_criados: number };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dp_ficha_importacoes"] });
+      qc.invalidateQueries({ queryKey: ["dp_cargos"] });
+      qc.invalidateQueries({ queryKey: ["dp_setores"] });
+      qc.invalidateQueries({ queryKey: ["dp_sindicatos"] });
+      qc.invalidateQueries({ queryKey: ["dp_laboral_por_cargo"] });
+    },
+  });
+}
+
+export interface ResponsavelLote { user_id: string; nome: string; email: string; perfil: string }
+
+/** Donos/administradores da empresa que podem receber o lote (somente equipe Aveto). */
+export function useResponsaveisLote(importacaoId: string | null, habilitado: boolean) {
+  return useQuery({
+    queryKey: ["dp_ficha_lote_responsaveis", importacaoId],
+    enabled: !!importacaoId && habilitado,
+    queryFn: async (): Promise<ResponsavelLote[]> => {
+      const { data, error } = await supabase.rpc("dp_ficha_lote_responsaveis", { p_importacao_id: importacaoId! });
+      if (error) throw error;
+      return (data ?? []) as ResponsavelLote[];
+    },
+  });
+}
+
+/** Passa o lote ao responsável da empresa, em nome da Aveto 360. */
+export function useNotificarLoteFicha() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ importacaoId, userId }: { importacaoId: string; userId: string }) => {
+      const { data, error } = await supabase.rpc("dp_ficha_lote_notificar", {
+        p_importacao_id: importacaoId,
+        p_user_id: userId,
+      });
+      if (error) {
+        const m = error.message ?? "";
+        throw new Error(
+          /LOTE_SEM_PENDENCIAS/.test(m)
+            ? "Todas as fichas deste lote já foram concluídas."
+            : /RESPONSAVEL_INVALIDO/.test(m)
+              ? "Escolha um dono ou administrador ativo da empresa."
+              : /SEM_PERMISSAO/.test(m)
+                ? "Somente a equipe Aveto pode passar o lote ao responsável."
+                : "Não foi possível enviar a notificação. Tente novamente.",
+        );
+      }
+      return data as { fichas: number };
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_ficha_importacoes"] }),
+  });
+}

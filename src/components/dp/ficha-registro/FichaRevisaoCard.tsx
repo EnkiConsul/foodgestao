@@ -128,12 +128,14 @@ interface Props {
   onConcluido?: (itemId: string, nome: string) => void;
   /** Mostra o aviso de franquia no cartão (a tela de lote mostra um único aviso no topo). */
   avisoFranquia?: boolean;
+  /** Cargo e setor decididos na organização do lote (o gestor ainda pode trocar). */
+  vinculoLote?: { cargoId: string | null; setorId: string | null } | null;
 }
 
 export function FichaRevisaoCard({
   item, cargos, unidades, setores = [], turnos = [], unidadePadraoId, empresaCnpj,
   setorPadraoId = null, regimePadrao = null, onAbrirCadastro, preadmissaoId = null,
-  pessoaApoioId = null, posicao, total, emFoco = false, onConcluido, avisoFranquia = true,
+  pessoaApoioId = null, posicao, total, emFoco = false, onConcluido, avisoFranquia = true, vinculoLote = null,
 }: Props) {
   const extraidos = (item.dados_extraidos ?? {}) as Record<string, unknown>;
   const confianca = (item.confianca_campos ?? {}) as Record<string, string>;
@@ -148,8 +150,11 @@ export function FichaRevisaoCard({
    * Só o nome parecido preenche sozinho. CBO igual com nome diferente (ex.:
    * CUMIM × GARÇONETE) fica como sugestão: o gestor confirma ou cria o cargo.
    */
+  const cargoDoLote =
+    vinculoLote?.cargoId && cargos.some((c) => c.id === vinculoLote.cargoId) ? vinculoLote.cargoId : null;
   const cargoAutomatico =
-    cargoSugerido.motivo === "cbo_e_nome" || cargoSugerido.motivo === "nome" ? cargoSugerido.cargo_id : null;
+    cargoDoLote ??
+    (cargoSugerido.motivo === "cbo_e_nome" || cargoSugerido.motivo === "nome" ? cargoSugerido.cargo_id : null);
   const [cargoId, setCargoIdState] = useState<string | null>(cargoAutomatico);
   const [cargoTocado, setCargoTocado] = useState(false);
   const setCargoId = (id: string | null) => {
@@ -165,7 +170,7 @@ export function FichaRevisaoCard({
   const [unidadeId, setUnidadeId] = useState<string | null>(
     unidadeSugerida.unidade_id ?? unidadePadraoId ?? unidades[0]?.id ?? null,
   );
-  const [setorEscolhido, setSetorEscolhido] = useState<string | null>(null);
+  const [setorEscolhido, setSetorEscolhido] = useState<string | null>(vinculoLote?.setorId ?? null);
   const [regimeEscolhido, setRegimeEscolhido] = useState<string | null>(null);
   const [regimeEscolhidoManual, setRegimeEscolhidoManual] = useState(false);
   const setorId = setorEscolhido ?? setorPadraoId ?? null;

@@ -1492,6 +1492,13 @@
       "when": 1794338082986,
       "tag": "0212_troca_notifica_colega",
       "breakpoints": true
+    },
+    {
+      "idx": 213,
+      "version": "7",
+      "when": 1794342972947,
+      "tag": "0213_ficha_lote_organizacao",
+      "breakpoints": true
     }
   ]
 }
