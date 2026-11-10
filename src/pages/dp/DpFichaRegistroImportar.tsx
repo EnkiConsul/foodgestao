@@ -3,7 +3,7 @@ import { abrirNoApp } from "@/lib/visualizadorGlobal";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, FileText, Loader2, Send, Upload } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronUp, FileText, Loader2, Send, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -75,7 +75,35 @@ export default function DpFichaRegistroImportar() {
   const [file, setFile] = useState<File | null>(null);
   const [verTodosEnvios, setVerTodosEnvios] = useState(false);
   /** `?lote=` vem do aviso enviado ao responsável: abre direto aquele envio. */
-  const [importacaoId, setImportacaoId] = useState<string | null>(() => params.get("lote"));
+  const loteParam = params.get("lote");
+  const [importacaoId, setImportacaoId] = useState<string | null>(() => loteParam);
+
+  /**
+   * O aviso do sino pode chegar com outra empresa aberta: descobrimos de quem é
+   * o lote e trocamos de empresa uma única vez antes de mostrar as fichas.
+   */
+  const { data: empresaDoLoteId = null } = useQuery({
+    queryKey: ["dp_ficha_importacao_empresa", loteParam],
+    enabled: !!loteParam,
+    staleTime: Infinity,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_ficha_importacoes").select("company_id").eq("id", loteParam!).maybeSingle();
+      if (error) throw error;
+      return (data?.company_id as string | null) ?? null;
+    },
+  });
+  const loteResolvido = useRef(false);
+  useEffect(() => {
+    if (!loteParam || !empresaDoLoteId || loteResolvido.current) return;
+    loteResolvido.current = true;
+    if (empresaDoLoteId === selectedCompanyId) return;
+    const destino = companies.find((c) => c.id === empresaDoLoteId);
+    if (!destino) return;
+    setContext("pj", destino.id);
+    setImportacaoId(loteParam);
+    toast.info(`Abrimos a empresa ${destino.trade_name || destino.name} para mostrar este lote.`);
+  }, [loteParam, empresaDoLoteId, selectedCompanyId, companies, setContext]);
 
   const { data: importacoes = [] } = useDpFichaImportacoes();
   const enviar = useEnviarFichaPdf();
@@ -125,6 +153,10 @@ export default function DpFichaRegistroImportar() {
   // Setor e vínculo aplicados a todas as fichas (cargo, unidade e horário seguem ficha por ficha).
   const [setorPadraoId, setSetorPadraoId] = useState<string | null>(null);
   const [regimePadrao, setRegimePadrao] = useState<string | null>(null);
+  /** Turno da maioria do lote: vale só para fichas sem horário reconhecido no PDF. */
+  const [turnoPadraoId, setTurnoPadraoId] = useState<string | null>(null);
+  /** No lote, o envio de arquivo e o histórico ficam recolhidos para a esteira subir. */
+  const [envioAberto, setEnvioAberto] = useState(false);
 
   const { data: colaboradores = [] } = useDpColaboradores();
   const [cadastroAbertoId, setCadastroAbertoId] = useState<string | null>(null);
@@ -184,6 +216,7 @@ export default function DpFichaRegistroImportar() {
     setUnidadeLote(null);
     setSindicatoLote(undefined);
     setAbertoId(null);
+    setTurnoPadraoId(null);
   }, [atual?.id]);
   const etapaAtual: EtapaLote = etapa ?? (organizacao?.organizado_em ? 3 : 1);
   const unidadeLida = useMemo(
@@ -194,6 +227,11 @@ export default function DpFichaRegistroImportar() {
     unidadeLote ?? organizacao?.unidade_id ?? unidadeLida?.unidade_id ?? unidadesDaEmpresa[0]?.id ?? null;
   const sindicatoLoteId = sindicatoLote === undefined ? organizacao?.sindicato_laboral_id ?? null : sindicatoLote;
   const itemAberto = itens.find((i) => i.id === abertoId) ?? null;
+  const compacto = modoLote && !envioAberto;
+  const turnosDoLote = useMemo(
+    () => turnos.filter((t) => t.ativo !== false && (!t.unidade_id || t.unidade_id === unidadeLoteId)),
+    [turnos, unidadeLoteId],
+  );
   const proximaPendente = (depoisDe?: string | null) => {
     const idx = depoisDe ? itens.findIndex((i) => i.id === depoisDe) : -1;
     const ordem = [...itens.slice(idx + 1), ...itens.slice(0, Math.max(idx, 0))];
@@ -258,9 +296,34 @@ export default function DpFichaRegistroImportar() {
         </Card>
       )}
 
+      {compacto && atual && (
+        <Card>
+          <CardContent className="flex items-center gap-3 p-3">
+            <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">{atual.arquivo_nome}</p>
+              <p className="text-xs text-muted-foreground tabular-nums">
+                {itens.length} fichas · {prontos.length} no cadastro
+              </p>
+            </div>
+            <Button variant="outline" size="sm" className="h-10 shrink-0 rounded-full" onClick={() => setEnvioAberto(true)}>
+              <Upload className="h-4 w-4 sm:mr-1.5" />
+              <span className="sr-only sm:not-sr-only">Novo envio</span>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {!compacto && (
+      <>
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
           <CardTitle className="text-base">Enviar ficha em PDF</CardTitle>
+          {modoLote && (
+            <Button variant="ghost" size="sm" className="h-9" onClick={() => setEnvioAberto(false)}>
+              <ChevronUp className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Recolher</span>
+            </Button>
+          )}
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
@@ -455,6 +518,8 @@ export default function DpFichaRegistroImportar() {
           </CardContent>
         </Card>
       )}
+      </>
+      )}
 
       {divergencia.divergente && (
         <Card className="border-destructive/50 bg-destructive/5">
@@ -531,7 +596,7 @@ export default function DpFichaRegistroImportar() {
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button asChild><Link to="/dp/colaboradores">Ver Colaboradores</Link></Button>
               <Button asChild variant="outline"><Link to="/dp/cadastros/cargos">Revisar Cargos</Link></Button>
-              <Button variant="ghost" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+              <Button variant="ghost" onClick={() => { setEnvioAberto(true); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
                 Enviar Novas Fichas
               </Button>
             </div>
@@ -609,17 +674,36 @@ export default function DpFichaRegistroImportar() {
                 </Card>
               )}
               {pendentes.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <Label className="shrink-0 text-xs text-muted-foreground">Vínculo da maioria</Label>
-                  <Select value={regimePadrao ?? "__none"} onValueChange={(v) => setRegimePadrao(v === "__none" ? null : v)}>
-                    <SelectTrigger className="h-9"><SelectValue placeholder="Escolher" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none">Conforme cada ficha</SelectItem>
-                      {REGIMES.map((r) => (
-                        <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="grid gap-2 rounded-xl border bg-muted/20 p-3 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Vínculo da maioria</Label>
+                    <Select value={regimePadrao ?? "__none"} onValueChange={(v) => setRegimePadrao(v === "__none" ? null : v)}>
+                      <SelectTrigger className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none">Conforme cada ficha</SelectItem>
+                        {REGIMES.map((r) => (
+                          <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {turnosDoLote.length > 0 && (
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Turno da maioria</Label>
+                      <Select value={turnoPadraoId ?? "__none"} onValueChange={(v) => setTurnoPadraoId(v === "__none" ? null : v)}>
+                        <SelectTrigger className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none">Conforme cada ficha</SelectItem>
+                          {turnosDoLote.map((t) => (
+                            <SelectItem key={t.id} value={t.id}>{t.nome} · {t.entrada}–{t.saida}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  <p className="text-[11px] text-muted-foreground sm:col-span-2">
+                    Vale para as fichas em que você não escolher outro. O turno só entra nas fichas sem horário lido no PDF.
+                  </p>
                 </div>
               )}
               <FichaLoteLista
@@ -804,6 +888,9 @@ export default function DpFichaRegistroImportar() {
                   unidadePadraoId={unidadeLoteId}
                   empresaCnpj={empresaCnpj}
                   regimePadrao={regimePadrao}
+                  turnoPadraoId={turnoPadraoId}
+                  destacarPendencias
+                  rodapeFixo
                   vinculoLote={vinculoOrganizado(itemAberto, organizacao)}
                   onAbrirCadastro={setCadastroAbertoId}
                   posicao={itens.findIndex((i) => i.id === itemAberto.id) + 1}

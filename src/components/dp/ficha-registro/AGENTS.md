@@ -1,2 +1,3 @@
 # Importação de fichas
 - Multi-sheet registration imports are organized per batch (unit → job/sector groups → per-sheet review) via `dp_ficha_lote_organizar`, stored in `dp_ficha_importacoes.organizacao` and read by `vinculoOrganizado`; it creates/links jobs and sectors only, never employees, so the official sheet review stays the single creation path. Hand-off notifications (`dp_ficha_lote_notificar`) are super-admin only.
+- Batch defaults (majority bond/shift) only prefill the per-sheet review; the majority shift applies only to sheets without read hours (`turnoPadraoDoLote`), so registered hours are never overwritten. Opening `?lote=` resolves the batch's company and switches context once.

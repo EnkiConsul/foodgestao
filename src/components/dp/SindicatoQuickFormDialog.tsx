@@ -14,15 +14,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { maskCnpj } from "@/lib/cnpj";
 import { maskPhone } from "@/lib/phone";
 import { somenteDigitos as onlyDigits } from "@/lib/dp/formato";
+import { dataBaseIso } from "@/lib/dp/sindicato-data-base";
 
-/** Data-base se repete todo ano: guardamos dia/mês com ano fixo 2000. */
-const dataBaseIso = (v: string): string | null => {
-  const m = /^(\d{2})\/(\d{2})$/.exec(v.trim());
-  if (!m) return null;
-  const dia = Number(m[1]), mes = Number(m[2]);
-  if (mes < 1 || mes > 12 || dia < 1 || dia > 31) return null;
-  return `2000-${m[2]}-${m[1]}`;
-};
 
 const emailOk = (v: string) => !v.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 

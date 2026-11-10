@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  agruparCargosLote, cargoGenerico, chaveCargoItem, setorSugeridoParaCargo, situacaoFichaLote, vinculoOrganizado,
+  agruparCargosLote, cargoGenerico, chaveCargoItem, setorSugeridoParaCargo, situacaoFichaLote, turnoPadraoDoLote, vinculoOrganizado,
 } from "../organizacao-lote";
 
 const item = (id: string, cargo: string, cbo: string, extra: Record<string, unknown> = {}, status = "pendente") => ({
@@ -65,5 +65,18 @@ describe("organização do lote de fichas", () => {
     expect(situacaoFichaLote(a, {})).toBe("atencao");
     expect(situacaoFichaLote(a, { grupos: { [chaveCargoItem(a)]: { cargo_id: "g", setor_id: null } } })).toBe("pronta");
     expect(situacaoFichaLote(item("2", "X", "", {}, "criado"), {})).toBe("concluida");
+  });
+});
+
+describe("turno da maioria do lote", () => {
+  const turnos = [{ id: "noite" }, { id: "dia" }];
+  it("preenche ficha sem horário lido", () => {
+    expect(turnoPadraoDoLote(true, "noite", turnos)).toBe("noite");
+  });
+  it("não substitui o horário lido no PDF", () => {
+    expect(turnoPadraoDoLote(false, "noite", turnos)).toBeNull();
+  });
+  it("ignora turno que não existe mais", () => {
+    expect(turnoPadraoDoLote(true, "removido", turnos)).toBeNull();
   });
 });

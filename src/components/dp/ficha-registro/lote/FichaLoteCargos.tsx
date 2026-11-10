@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { GrupoOrganizacaoInput } from "@/hooks/useDpFichaImportacao";
 import { normalizeCargoNome } from "@/lib/dp/ficha-registro/cargo-match";
 import {
-  SETORES_FOOD, setorExistenteNaUnidade, type GrupoCargoLote, type OrganizacaoLote, type SetorCadastrado,
+  SETORES_FOOD, cargoGenerico, setorExistenteNaUnidade, type GrupoCargoLote, type OrganizacaoLote, type SetorCadastrado,
 } from "@/lib/dp/ficha-registro/organizacao-lote";
 import { cn } from "@/lib/utils";
 
@@ -73,15 +73,30 @@ export function FichaLoteCargos({ grupos, cargos, setores, unidadeId, organizaca
     const nomes = new Set<string>();
     for (const g of grupos) {
       const e = escolhas[g.chave];
-      if (!g.generico && e?.cargo === NOVO && e.cargoNome.trim()) nomes.add(e.cargoNome.trim().toUpperCase());
+      const nome = e?.cargo === NOVO ? e.cargoNome.trim().toUpperCase() : "";
+      if (nome && !cargoGenerico(nome)) nomes.add(nome);
     }
     return [...nomes].filter((n) => !cargos.some((c) => normalizeCargoNome(c.nome) === normalizeCargoNome(n)));
   }, [grupos, escolhas, cargos]);
+  /** Novos cargos vindos de outros grupos (o próprio grupo já tem o campo digitado). */
+  const novosDeOutros = (chave: string) => {
+    const proprio = escolhas[chave]?.cargo === NOVO ? escolhas[chave].cargoNome.trim().toUpperCase() : "";
+    return novosDoLote.filter((n) => n !== proprio);
+  };
 
   const setoresNovos = SETORES_FOOD.filter((n) => !setorExistenteNaUnidade(n, setoresUnidade, unidadeId));
 
   const pendentesGenericos = grupos.filter((g) => g.generico && !escolhas[g.chave]?.cargo).length;
-  const semNome = grupos.filter((g) => !g.generico && escolhas[g.chave]?.cargo === NOVO && !escolhas[g.chave]?.cargoNome.trim()).length;
+  const semNome = grupos.filter((g) => escolhas[g.chave]?.cargo === NOVO && !escolhas[g.chave]?.cargoNome.trim()).length;
+  /** Nome digitado que não é cargo (ex.: "Importação eSocial") ou cargo novo que deixou de existir. */
+  const nomeInvalido = (g: GrupoCargoLote) => {
+    const e = escolhas[g.chave];
+    if (!e) return false;
+    if (e.cargo === NOVO) return !!e.cargoNome.trim() && cargoGenerico(e.cargoNome);
+    if (e.cargo.startsWith("nome:")) return !novosDoLote.includes(e.cargo.slice(5));
+    return false;
+  };
+  const invalidos = grupos.filter(nomeInvalido).length;
   const totalFichas = grupos.reduce((s, g) => s + g.itemIds.length, 0);
   const qtdCargosNovos = novosDoLote.length;
   const qtdSetoresNovos = new Set(
@@ -171,8 +186,8 @@ export function FichaLoteCargos({ grupos, cargos, setores, unidadeId, organizaca
                   <Select value={e.cargo || undefined} onValueChange={(v) => set(g.chave, { cargo: v })}>
                     <SelectTrigger className="h-10"><SelectValue placeholder="Escolha o cargo" /></SelectTrigger>
                     <SelectContent>
-                      {!g.generico && <SelectItem value={NOVO}>Criar cargo novo</SelectItem>}
-                      {g.generico && novosDoLote.map((n) => (
+                      <SelectItem value={NOVO}>Criar cargo novo</SelectItem>
+                      {g.generico && novosDeOutros(g.chave).map((n) => (
                         <SelectItem key={`n-${n}`} value={`nome:${n}`}>{n} (novo)</SelectItem>
                       ))}
                       {cargos.map((c) => (
@@ -185,8 +200,16 @@ export function FichaLoteCargos({ grupos, cargos, setores, unidadeId, organizaca
                       className="h-10"
                       value={e.cargoNome}
                       aria-label="Nome do cargo novo"
+                      placeholder={g.generico ? "Nome da função real, ex.: AUXILIAR DE COZINHA" : "Nome do cargo"}
                       onChange={(ev) => set(g.chave, { cargoNome: ev.target.value })}
                     />
+                  )}
+                  {nomeInvalido(g) && (
+                    <p className="text-xs text-destructive">
+                      {e.cargo === NOVO
+                        ? "Esse nome não é um cargo. Digite a função real da pessoa."
+                        : "Esse cargo novo não está mais no lote. Escolha outro."}
+                    </p>
                   )}
                 </div>
                 <div className="space-y-1">
@@ -223,11 +246,15 @@ export function FichaLoteCargos({ grupos, cargos, setores, unidadeId, organizaca
         <Button variant="outline" className="h-11" onClick={onVoltar} aria-label="Voltar para unidade">
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <Button className="h-11 flex-1" disabled={salvando || pendentesGenericos > 0 || semNome > 0} onClick={salvar}>
+        <Button className="h-11 flex-1" disabled={salvando || pendentesGenericos > 0 || semNome > 0 || invalidos > 0} onClick={salvar}>
           {salvando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
           {pendentesGenericos > 0
             ? `Escolha o cargo de ${pendentesGenericos} ficha(s)`
-            : "Salvar e vincular ao lote"}
+            : semNome > 0
+              ? `Digite o nome de ${semNome} cargo(s) novo(s)`
+              : invalidos > 0
+                ? "Corrija os cargos destacados"
+                : "Salvar e vincular ao lote"}
         </Button>
       </div>
     </div>

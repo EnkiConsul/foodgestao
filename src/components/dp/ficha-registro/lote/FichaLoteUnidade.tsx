@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UnidadeFormDialog } from "@/components/dp/UnidadeFormDialog";
+import { SindicatoLaboralRapidoDialog } from "./SindicatoLaboralRapidoDialog";
 import { useDpPatronalPorUnidade, useDpSindicatos } from "@/hooks/useDpCadastros";
 import { formatCnpj } from "@/lib/dp/ficha-registro/unidade-match";
 
@@ -32,6 +33,7 @@ export function FichaLoteUnidade({
   unidades, unidadeId, onUnidade, sindicatoId, onSindicato, cnpjLido, empregadorLido, totalFichas, onContinuar,
 }: Props) {
   const [novaUnidade, setNovaUnidade] = useState(false);
+  const [novoSindicato, setNovoSindicato] = useState(false);
   const { data: sindicatos = [] } = useDpSindicatos();
   const { data: patronais = {} } = useDpPatronalPorUnidade();
   const laborais = sindicatos.filter((s) => s.tipo === "laboral" && s.ativo !== false);
@@ -96,15 +98,30 @@ export function FichaLoteUnidade({
                 : "A unidade não tem sindicato patronal: o piso de cada cargo fica direto na unidade."}
             </p>
           )}
-          <Button variant="link" size="sm" className="h-auto px-0" asChild>
-            <Link to="/dp/cadastros/cargos?aba=sindicatos">Cadastrar ou alterar sindicato</Link>
-          </Button>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <Button type="button" variant="outline" size="sm" className="h-10 w-full sm:w-auto" onClick={() => setNovoSindicato(true)}>
+              <Plus className="mr-1.5 h-4 w-4" /> Cadastrar sindicato aqui
+            </Button>
+            {sindicato && (
+              <Button variant="link" size="sm" className="h-auto px-0" asChild>
+                <Link to="/dp/cadastros/cargos?aba=sindicatos">Alterar data-base no cadastro</Link>
+              </Button>
+            )}
+          </div>
         </div>
 
         <Button className="h-11 w-full sm:w-auto" disabled={!unidadeId} onClick={onContinuar}>
           Continuar para cargos e setores <ArrowRight className="ml-1.5 h-4 w-4" />
         </Button>
       </CardContent>
+
+      {novoSindicato && (
+        <SindicatoLaboralRapidoDialog
+          open={novoSindicato}
+          onOpenChange={setNovoSindicato}
+          onCreated={(id) => onSindicato(id)}
+        />
+      )}
 
       {novaUnidade && (
         <UnidadeFormDialog

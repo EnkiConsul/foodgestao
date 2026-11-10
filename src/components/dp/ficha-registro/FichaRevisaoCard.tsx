@@ -28,6 +28,7 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { matchCargo } from "@/lib/dp/ficha-registro/cargo-match";
 import { matchTurno, type TurnoCadastrado } from "@/lib/dp/ficha-registro/turno-match";
+import { turnoPadraoDoLote } from "@/lib/dp/ficha-registro/organizacao-lote";
 import { formatCnpj, matchUnidade } from "@/lib/dp/ficha-registro/unidade-match";
 import { CONFIANCA_LABEL, nivelDoCampo, trechoDoTexto, type NivelConfianca } from "@/lib/dp/ficha-registro/confianca";
 import { montarPayloadFicha } from "@/lib/dp/ficha-registro/payload";
@@ -130,12 +131,19 @@ interface Props {
   avisoFranquia?: boolean;
   /** Cargo e setor decididos na organização do lote (o gestor ainda pode trocar). */
   vinculoLote?: { cargoId: string | null; setorId: string | null } | null;
+  /** Turno da maioria do lote: vale só para fichas sem horário reconhecido. */
+  turnoPadraoId?: string | null;
+  /** Mostra no topo o que ainda falta a pessoa definir (conferência do lote). */
+  destacarPendencias?: boolean;
+  /** Botões fixos no rodapé da janela, acima da área segura do celular. */
+  rodapeFixo?: boolean;
 }
 
 export function FichaRevisaoCard({
   item, cargos, unidades, setores = [], turnos = [], unidadePadraoId, empresaCnpj,
   setorPadraoId = null, regimePadrao = null, onAbrirCadastro, preadmissaoId = null,
   pessoaApoioId = null, posicao, total, emFoco = false, onConcluido, avisoFranquia = true, vinculoLote = null,
+  turnoPadraoId = null, destacarPendencias = false, rodapeFixo = false,
 }: Props) {
   const extraidos = (item.dados_extraidos ?? {}) as Record<string, unknown>;
   const confianca = (item.confianca_campos ?? {}) as Record<string, string>;
@@ -236,7 +244,8 @@ export function FichaRevisaoCard({
   const jornada = jornadaEditada ?? jornadaLida;
   const turnoSugerido = useMemo(() => matchTurno(jornada, turnos, unidadeId), [jornada, turnos, unidadeId]);
   const [turnoId, setTurnoId] = useState<string | null>(null);
-  const turnoEscolhido = turnoId ?? turnoSugerido.turno_id;
+  const turnoDoLote = turnoPadraoDoLote(jornada.vazia, turnoPadraoId, turnos);
+  const turnoEscolhido = turnoId ?? turnoSugerido.turno_id ?? turnoDoLote;
   const [turnoDialog, setTurnoDialog] = useState(false);
   const { criar: criarTurno } = useDpTurnos();
 
@@ -757,6 +766,45 @@ export function FichaRevisaoCard({
 
         {!aplicado && (avisoFranquia || bloqueadoPorFranquia) && <FranquiaColaboradoresAviso estado={estadoFranquia} />}
 
+        {!aplicado && !ignorado && destacarPendencias && (() => {
+          const pend: Array<{ rotulo: string; alvo: string; abrir?: boolean }> = [];
+          if (!cargoId) pend.push({ rotulo: "cargo", alvo: `ficha-cargo-${item.id}` });
+          for (const r of escolhasPendentes) pend.push({ rotulo: r, alvo: `ficha-completar-${item.id}`, abrir: true });
+          if (usarJornada && !turnoEscolhido && jornada.vazia) pend.push({ rotulo: "horário", alvo: `ficha-turno-${item.id}` });
+          const ir = (p: (typeof pend)[number]) => {
+            if (p.abrir) setCompletarAberto(true);
+            window.setTimeout(
+              () => document.getElementById(p.alvo)?.scrollIntoView({ behavior: "smooth", block: "center" }),
+              60,
+            );
+          };
+          return pend.length === 0 ? (
+            <div className="flex items-center gap-2 rounded-lg border border-success/40 bg-success/10 p-3 text-sm">
+              <Check className="h-4 w-4 shrink-0 text-success" />
+              <span>Tudo definido. Confira os dados lidos e crie o cadastro.</span>
+            </div>
+          ) : (
+            <div className="space-y-2 rounded-lg border border-warning/50 bg-warning/10 p-3">
+              <p className="text-sm font-semibold">O que falta você definir</p>
+              <div className="flex flex-wrap gap-2">
+                {pend.map((p) => (
+                  <Button
+                    key={p.rotulo}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 rounded-full bg-background capitalize"
+                    onClick={() => ir(p)}
+                  >
+                    {p.rotulo}
+                  </Button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">Toque para ir direto ao campo. O restante já veio da ficha.</p>
+            </div>
+          );
+        })()}
+
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {campo("Nome", "nome")}
           {campo("CPF", "cpf")}
@@ -911,7 +959,7 @@ export function FichaRevisaoCard({
         )}
 
         {!aplicado && (
-          <div className="rounded-lg border bg-muted/20">
+          <div className="scroll-mt-20 rounded-lg border bg-muted/20" id={`ficha-completar-${item.id}`}>
             <button
               type="button"
               className="flex w-full items-center justify-between gap-3 p-3 text-left"
@@ -1243,7 +1291,7 @@ export function FichaRevisaoCard({
             )}
 
             {!aplicado && usarJornada && (
-              <div className="mt-3 space-y-1">
+              <div className="mt-3 scroll-mt-20 space-y-1" id={`ficha-turno-${item.id}`}>
                 <div className="flex items-center justify-between gap-2">
                   <Label className="text-xs">Turno correspondente</Label>
                   <Button type="button" variant="ghost" size="sm" className="h-7 text-[11px]" onClick={() => setTurnoDialog(true)}>
@@ -1439,7 +1487,13 @@ export function FichaRevisaoCard({
 
         {!aplicado && (
 
-          <div className="flex flex-wrap justify-end gap-2">
+          <div
+            className={cn(
+              "flex flex-wrap justify-end gap-2",
+              rodapeFixo &&
+                "sticky bottom-0 z-10 -mx-4 -mb-4 rounded-b-lg border-t bg-card px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]",
+            )}
+          >
             <Button
               variant="ghost"
               size="sm"

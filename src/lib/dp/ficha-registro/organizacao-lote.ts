@@ -189,3 +189,16 @@ export function situacaoFichaLote(
   if (!v?.cargoId || item.status === "duplicado" || item.status === "revisar" || cpf.length !== 11) return "atencao";
   return "pronta";
 }
+
+/**
+ * Turno da maioria do lote: só preenche fichas sem horário lido no PDF e só
+ * se o turno ainda existe. Horário lido ou turno escolhido na ficha prevalecem.
+ */
+export function turnoPadraoDoLote(
+  jornadaVazia: boolean,
+  turnoPadraoId: string | null | undefined,
+  turnos: Array<{ id: string }>,
+): string | null {
+  if (!jornadaVazia || !turnoPadraoId) return null;
+  return turnos.some((t) => t.id === turnoPadraoId) ? turnoPadraoId : null;
+}
