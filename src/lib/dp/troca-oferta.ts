@@ -49,3 +49,38 @@ export function folgasOfertaveis<T extends FolgaOfertavel>(
     )
     .sort((a, b) => a.data.localeCompare(b.data));
 }
+
+/** Troca ainda aberta, como lida pelo calendário do portal. */
+export type TrocaAberta = {
+  solicitante_id: string;
+  destino_id: string;
+  data_original: string | null;
+  data_proposta: string | null;
+  status: string;
+};
+
+export type EsperaTroca = "colega" | "gestor";
+
+/**
+ * Colegas do dia `iso` com quem eu já tenho uma troca aberta envolvendo a folga
+ * deles nesse dia. O portal troca o botão "Trocar" pelo aviso de espera — reenviar
+ * a mesma proposta só esbarraria na duplicidade barrada pelo servidor.
+ */
+export function trocasAbertasComColegas(
+  trocas: TrocaAberta[] | null | undefined,
+  meuId: string | null | undefined,
+  iso: string,
+): Map<string, EsperaTroca> {
+  const out = new Map<string, EsperaTroca>();
+  if (!meuId || !trocas?.length) return out;
+  for (const t of trocas) {
+    const espera: EsperaTroca | null =
+      t.status === "pendente_colega" ? "colega" : t.status === "pendente_gestor" ? "gestor" : null;
+    if (!espera) continue;
+    // Eu pedi a folga do colega neste dia.
+    if (t.solicitante_id === meuId && t.data_proposta === iso) out.set(t.destino_id, espera);
+    // O colega me ofereceu a folga dele neste dia.
+    else if (t.destino_id === meuId && t.data_original === iso) out.set(t.solicitante_id, espera);
+  }
+  return out;
+}

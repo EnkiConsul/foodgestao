@@ -99,3 +99,20 @@ export function notificacaoLida(
   if (n.user_id) return false; // pessoal sem lida_em => não lida
   return leiturasIds.has(notificacaoId);
 }
+
+type NotificacaoAudienciaInput = { user_id: string | null; para_admins: boolean | null };
+
+/**
+ * Quem vê cada notificação. Gestão: avisos administrativos compartilhados e os
+ * pessoais do próprio usuário. Portal: somente os pessoais do próprio usuário.
+ * Mensagens pessoais de outro colaborador ("Sua troca foi recusada") nunca
+ * aparecem para quem não é o destinatário, mesmo que a permissão de leitura alcance a linha.
+ */
+export function notificacaoNaAudiencia(
+  n: NotificacaoAudienciaInput,
+  opts: { variant: "admin" | "portal"; userId: string | null | undefined },
+): boolean {
+  if (!opts.userId) return false;
+  if (n.user_id) return n.user_id === opts.userId;
+  return opts.variant === "admin" && n.para_admins === true;
+}

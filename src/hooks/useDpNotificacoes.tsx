@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useAuth } from "@/hooks/useAuth";
 import type { Database } from "@/integrations/supabase/types";
-import { notificacaoLida } from "@/lib/dp/notificacoes";
+import { notificacaoLida, notificacaoNaAudiencia } from "@/lib/dp/notificacoes";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
 
 export type DpNotificacaoRow = Database["public"]["Tables"]["dp_notificacoes"]["Row"];
@@ -22,20 +22,29 @@ export function useDpNotificacoes(opts?: { onlyUnread?: boolean; variant?: "admi
   const qc = useQueryClient();
   // No portal a empresa vem do vínculo autenticado, nunca do seletor
   // administrativo de empresa.
-  const companyId = opts?.variant === "portal" ? vinculo.data?.companyId ?? null : selectedCompanyId;
+  const variant = opts?.variant === "portal" ? "portal" : "admin";
+  const companyId = variant === "portal" ? vinculo.data?.companyId ?? null : selectedCompanyId;
 
   const q = useQuery({
-    queryKey: ["dp_notificacoes", companyId, user?.id],
+    queryKey: ["dp_notificacoes", companyId, user?.id, variant],
     enabled: !!companyId && !!user?.id,
     queryFn: async () => {
-      const { data: rows, error } = await supabase
+      // Audiência explícita: a permissão de leitura da gestão alcança notificações
+      // pessoais de colaboradores, que não pertencem a este sino.
+      let query = supabase
         .from("dp_notificacoes")
         .select("*")
-        .eq("company_id", companyId!)
+        .eq("company_id", companyId!);
+      query = variant === "portal"
+        ? query.eq("user_id", user!.id)
+        : query.or(`user_id.eq.${user!.id},and(user_id.is.null,para_admins.eq.true)`);
+      const { data: rows, error } = await query
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;
-      const list = (rows ?? []) as DpNotificacaoRow[];
+      const list = ((rows ?? []) as DpNotificacaoRow[]).filter((n) =>
+        notificacaoNaAudiencia(n, { variant, userId: user!.id }),
+      );
 
       // Leituras individuais do usuário atual nas notificações compartilhadas.
       const sharedIds = list.filter((n) => !n.user_id).map((n) => n.id);

@@ -9,12 +9,15 @@ export type ProcessoCalendario = {
   colaborador: { nome: string; unidade_id: string | null } | null;
 };
 
-/** Apenas datas persistidas; nenhum cálculo de aviso ou inferência de comparecimento. */
+/**
+ * Apenas datas persistidas; nenhum cálculo de aviso ou inferência de comparecimento.
+ * `curto` é o rótulo das pílulas no celular; o texto completo fica no `label`.
+ */
 export function marcosRescisao(p: ProcessoCalendario) {
   return [
-    { tipo: "ultimo_dia", label: "Último dia", data: p.ultimo_comparecimento },
-    { tipo: "termino", label: "Fim do contrato", data: p.data_efetiva },
-    { tipo: "pagamento", label: "Prazo de pagamento", data: p.prazo_10_dias },
+    { tipo: "ultimo_dia", label: "Último dia", curto: "Últ. dia", data: p.ultimo_comparecimento },
+    { tipo: "termino", label: "Fim do contrato", curto: "Fim", data: p.data_efetiva },
+    { tipo: "pagamento", label: "Prazo de pagamento", curto: "Pagto", data: p.prazo_10_dias },
   ].filter((m): m is typeof m & { data: string } => !!m.data && /^\d{4}-\d{2}-\d{2}$/.test(m.data));
 }
 

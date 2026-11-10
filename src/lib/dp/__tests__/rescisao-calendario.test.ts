@@ -32,4 +32,11 @@ describe("Rescisão no calendário", () => {
   it("não inclui meses sem nenhum marco", () => {
     expect(rescisoesPeriodo([processo], "2026-12")).toEqual([]);
   });
+  it("usa rótulos curtos no celular sem perder o texto completo", () => {
+    expect(marcosRescisao(processo).map((m) => [m.curto, m.label])).toEqual([
+      ["Últ. dia", "Último dia"],
+      ["Fim", "Fim do contrato"],
+      ["Pagto", "Prazo de pagamento"],
+    ]);
+  });
 });

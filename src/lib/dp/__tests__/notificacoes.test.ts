@@ -4,6 +4,7 @@ import {
   notificacaoOrigemLabel,
   notificacaoPathGestor,
   notificacaoPathPortal,
+  notificacaoNaAudiencia,
 } from "../notificacoes";
 
 describe("notificacaoLida — leitura individual por destinatário", () => {
@@ -71,5 +72,26 @@ describe("destinos (deep links)", () => {
 describe("notificação de solicitação no portal", () => {
   it("abre o calendário direto no pedido", () => {
     expect(notificacaoPathPortal("dp_solicitacoes", "abc")).toBe("/dp/meu/calendario?solicitacao=abc");
+  });
+});
+
+describe("audiência das notificações", () => {
+  const gestor = "gestor-ficticio";
+  const colaboradora = "colaboradora-ficticia";
+  it("gestão não vê a notificação pessoal de outra pessoa", () => {
+    expect(notificacaoNaAudiencia({ user_id: colaboradora, para_admins: false }, { variant: "admin", userId: gestor })).toBe(false);
+  });
+  it("gestão vê os avisos administrativos compartilhados", () => {
+    expect(notificacaoNaAudiencia({ user_id: null, para_admins: true }, { variant: "admin", userId: gestor })).toBe(true);
+  });
+  it("gestão vê as próprias notificações pessoais", () => {
+    expect(notificacaoNaAudiencia({ user_id: gestor, para_admins: false }, { variant: "admin", userId: gestor })).toBe(true);
+  });
+  it("portal não mostra avisos administrativos", () => {
+    expect(notificacaoNaAudiencia({ user_id: null, para_admins: true }, { variant: "portal", userId: colaboradora })).toBe(false);
+  });
+  it("portal mostra só as notificações da própria pessoa", () => {
+    expect(notificacaoNaAudiencia({ user_id: colaboradora, para_admins: false }, { variant: "portal", userId: colaboradora })).toBe(true);
+    expect(notificacaoNaAudiencia({ user_id: gestor, para_admins: false }, { variant: "portal", userId: colaboradora })).toBe(false);
   });
 });

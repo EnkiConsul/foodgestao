@@ -44,6 +44,7 @@ export function RotinaDoDiaPanel({
   minhaFolga,
   trocaveis = [],
   colegasDeFolga = [],
+  trocasAbertas,
   onTrocar,
 }: {
   iso: string;
@@ -53,6 +54,8 @@ export function RotinaDoDiaPanel({
   trocaveis?: string[];
   /** Colegas que o próprio calendário mostra de folga no dia (ex.: folga semanal fixa). */
   colegasDeFolga?: { id: string; nome: string }[];
+  /** Colegas com quem já existe troca aberta neste dia: mostra a espera em vez de "Trocar". */
+  trocasAbertas?: ReadonlyMap<string, "colega" | "gestor">;
   onTrocar?: (colaboradorId: string, nome: string) => void;
 }) {
   const { data: vinculo } = useMeuVinculoPortal();
@@ -235,7 +238,12 @@ export function RotinaDoDiaPanel({
                     </span>
                     <span className="flex items-center gap-1.5">
                       <Badge variant="outline" className={cn("text-[10px] uppercase", s.tom)}>{s.texto}</Badge>
-                      {!souEu && p.situacao === "folga" && trocaveis.includes(p.id) && onTrocar && (
+                      {!souEu && trocasAbertas?.get(p.id) && (
+                        <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-700">
+                          {trocasAbertas.get(p.id) === "gestor" ? "Aguardando gestor" : "Aguardando colega"}
+                        </Badge>
+                      )}
+                      {!souEu && !trocasAbertas?.get(p.id) && p.situacao === "folga" && trocaveis.includes(p.id) && onTrocar && (
                         <Button size="sm" variant="outline" className="h-7 rounded-full px-2 text-[11px]" onClick={() => onTrocar(p.id, p.nome)}>
                           <ArrowLeftRight className="mr-1 h-3 w-3" /> Trocar
                         </Button>

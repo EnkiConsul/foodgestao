@@ -66,7 +66,7 @@ import {
 } from "@/components/ui/select";
 import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 import { resumoEscolhaFolgas, folgaDominicalAutomatica, podeTrocarFolga, domingosFolgaNoPeriodo } from "@/lib/dp/dsr-rules";
-import { folgasOfertaveis, dataEmAfastamento, type PeriodoAfastamento } from "@/lib/dp/troca-oferta";
+import { folgasOfertaveis, dataEmAfastamento, trocasAbertasComColegas, type PeriodoAfastamento } from "@/lib/dp/troca-oferta";
 import { mensagemErroTroca } from "@/lib/dp/trocas-erros";
 import { avaliarRiscoDsrTroca, avisoDsr } from "@/lib/dp/dsr-consecutivo";
 import { registrarCienciaDsr } from "@/lib/dp/dsr-ciencia";
@@ -539,6 +539,8 @@ export default function DpMeuCalendario() {
   const trocasPendentesQuery = useQuery({
     queryKey: ["dp_trocas_pend_meu_cal", companyId],
     enabled: !!companyId,
+    // A resposta do colega chega de outro aparelho: atualiza junto com a rotina da loja.
+    refetchInterval: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_trocas")
@@ -1369,8 +1371,16 @@ export default function DpMeuCalendario() {
       setTradeMotivo("");
       setCienteFaltaTroca(false);
       setSelectedDay(null);
+      // Sem isso o dia continuava oferecendo "Trocar" e o reenvio esbarrava na duplicidade.
+      qc.invalidateQueries({ queryKey: ["dp_trocas_pend_meu_cal"] });
+      qc.invalidateQueries({ queryKey: ["dp_meu_trocas"] });
+      invalidarRotinaLoja();
     },
-    onError: (e: any) => notifyError(e, { surface: "Meu calendário", action: "concluir a ação", fallback: "Erro ao solicitar troca" }),
+    onError: (e: any) => {
+      // Proposta igual já registrada: atualiza a tela para mostrar a espera.
+      if (String(e?.message ?? "").includes("troca pendente ou aprovada")) qc.invalidateQueries({ queryKey: ["dp_trocas_pend_meu_cal"] });
+      notifyError(e, { surface: "Meu calendário", action: "concluir a ação", fallback: "Erro ao solicitar troca" });
+    },
   });
 
   /** Dias do mês para onde a folga aberta no diálogo pode ser movida. */
@@ -2102,6 +2112,7 @@ export default function DpMeuCalendario() {
                   .filter((o) => o.colaboradorId !== meRef.data?.id && o.type !== "pending"
                     && !dataEmAfastamento(afastamentosQuery.data, o.colaboradorId, selectedDay.iso))
                   .map((o) => ({ id: o.colaboradorId, nome: o.colaboradorNome || "Colega" }))}
+                trocasAbertas={trocasAbertasComColegas(trocasPendentesQuery.data as any[], meRef.data?.id, selectedDay.iso)}
                 onTrocar={(id, nome) =>
                   setTradeOpen({
                     occupantId: id,
