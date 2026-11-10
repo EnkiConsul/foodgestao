@@ -4,6 +4,7 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { asaasFetch, parseAsaasEnv } from "./asaas.ts";
 import { ASAAS_MINIMO_CENTS, cortesiaIntegral, type Criados } from "./billing-v2.ts";
+import { precoExcedenteColaborador } from "./billing-excedente-preco.ts";
 
 const reais = (c: number) => Math.round(c) / 100;
 const hoje = (d = 0) => new Date(Date.now() + d * 86400000).toISOString().slice(0, 10);
@@ -69,7 +70,8 @@ export async function simularExcedentes(admin: SupabaseClient, subId: string, co
   const limite = Number((lims as any[] ?? []).find((l) => l.recurso === "colaboradores")?.limite ?? 0);
   const exc = Math.max(0, c.contados - limite);
   const { data: ad } = await admin.from("plan_addons").select("price_cents").eq("module", "pessoas").eq("code", "colaboradores").single();
-  const unit = ad?.price_cents ?? 0;
+  const { data: pl } = await admin.from("plans").select("features").eq("id", sub.plan_id).maybeSingle();
+  const unit = precoExcedenteColaborador(pl?.features, ad?.price_cents);
   const cortesia = await cortesiaIntegral(admin, sub);
   return { competencia: comp, status: sub.status, contados: c.contados, regulares: c.regulares, variaveis_contados: c.variaveis_contados,
     variaveis_fora: c.variaveis_fora, limite, excedente: exc, cortesia, ja_apurado: !!ja,
@@ -95,7 +97,8 @@ export async function apurarExcedentes(admin: SupabaseClient, subId: string, com
   const limite = Number(lim?.limite ?? 0);
   const exc = Math.max(0, c.contados - limite);
   const { data: ad } = await admin.from("plan_addons").select("price_cents").eq("module", "pessoas").eq("code", "colaboradores").single();
-  const unit = ad?.price_cents ?? 0;
+  const { data: pl } = await admin.from("plans").select("features").eq("id", sub.plan_id).maybeSingle();
+  const unit = precoExcedenteColaborador(pl?.features, ad?.price_cents);
   const cortesia = await cortesiaIntegral(admin, sub);
   const valor = cortesia ? 0 : exc * unit;
   const anual = sub.billing_cycle === "anual";

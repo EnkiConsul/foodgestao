@@ -24,6 +24,26 @@ export function formatLimit(value: number | undefined | null): string {
   return value.toLocaleString("pt-BR");
 }
 
+/**
+ * Plano cobrado por colaborador ativo (Enterprise do Pessoas): devolve o valor por
+ * colaborador e a franquia mínima da base. Planos de franquia fixa devolvem null.
+ */
+export function precoPorColaborador(features: unknown): { unitarioCents: number; minimo: number; baseCents: number } | null {
+  if (!features || typeof features !== "object") return null;
+  const f = features as Record<string, unknown>;
+  const unit = Number(f.price_per_collaborator_cents);
+  if (!Number.isFinite(unit) || unit <= 0) return null;
+  const min = Math.max(1, Math.floor(Number(f.min_collaborators) || 1));
+  return { unitarioCents: Math.round(unit), minimo: min, baseCents: Math.round(unit) * min };
+}
+
+/** Mensalidade estimada de um plano por colaborador para a quantidade de ativos (nunca abaixo da base). */
+export function mensalidadePorColaborador(features: unknown, ativos: number): number | null {
+  const p = precoPorColaborador(features);
+  if (!p) return null;
+  return Math.max(p.minimo, Math.max(0, Math.floor(ativos))) * p.unitarioCents;
+}
+
 export const SUBSCRIPTION_STATUS_LABELS: Record<string, string> = {
   trialing: "Em Trial",
   active: "Ativa",

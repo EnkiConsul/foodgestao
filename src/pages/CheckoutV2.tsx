@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { formatCents } from "@/lib/billing";
+import { formatCents, precoPorColaborador } from "@/lib/billing";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { AlertTriangle, Check, MessageCircle } from "lucide-react";
@@ -166,7 +166,9 @@ export default function CheckoutV2() {
   useEffect(() => { if (companyId) setSelGrupo((s) => (s.includes(companyId) ? s : [companyId, ...s])); }, [companyId]);
   const empresasCobertas = modo === "grupo" ? Math.max(1, selGrupo.length) : 1;
   const addons = (catalogo.data?.addons ?? []).filter((a) => a.module === modulo && a.code !== "empresas"
-    && (!a.allowed_plan_slugs || (plano && a.allowed_plan_slugs.includes(plano))));
+    && (!a.allowed_plan_slugs || (plano && a.allowed_plan_slugs.includes(plano)))
+    // plano por colaborador ativo (Enterprise) não vende adicional de colaborador
+    && !(a.code === "colaboradores" && precoPorColaborador(planoSel?.features)));
   const listaAdicionais = Object.entries(adicionais).filter(([, q]) => q > 0).map(([code, qtd]) => ({ code, qtd }));
 
   useEffect(() => { if (!permiteGrupo || !contaGrupo) setModo("empresa"); }, [permiteGrupo, contaGrupo]);
@@ -286,6 +288,11 @@ export default function CheckoutV2() {
                 <Opcao key={p.slug} testid={`plano-${p.slug}`} ativo={plano === p.slug} onClick={() => { setPlano(p.slug); setAdicionais({}); }}>
                   <p className="font-medium">{p.name}</p>
                   <p className="text-sm">{formatCents(p.price_monthly_cents)}<span className="text-xs text-muted-foreground">/mês</span></p>
+                  {precoPorColaborador(p.features) && (
+                    <p className="text-xs text-muted-foreground">
+                      Base com {precoPorColaborador(p.features)!.minimo} colaboradores · cada colaborador ativo a mais: {formatCents(precoPorColaborador(p.features)!.unitarioCents)}/mês
+                    </p>
+                  )}
                 </Opcao>
               ))}
             </div>

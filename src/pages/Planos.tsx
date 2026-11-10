@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatCents, formatLimit } from "@/lib/billing";
+import { formatCents, formatLimit, precoPorColaborador } from "@/lib/billing";
 import { useMinhasAssinaturas, type Modulo } from "@/hooks/useMinhaAssinatura";
 import { cn } from "@/lib/utils";
 import { ArrowRight, Check, MessageCircle, ShieldCheck, Sparkles } from "lucide-react";
@@ -67,6 +67,7 @@ function CartaoPlano({
 }) {
   const navigate = useNavigate();
   const f = plano.features ?? {};
+  const porColab = precoPorColaborador(f);
   const modulo = plano.module as Modulo;
   const destaque = !!plano.is_featured && !atual;
   const msg = encodeURIComponent(
@@ -95,6 +96,14 @@ function CartaoPlano({
         <div className="pt-1">
           {plano.is_enterprise ? (
             <span className="text-2xl font-bold">Sob consulta</span>
+          ) : porColab ? (
+            <>
+              <span className="text-2xl font-bold">{formatCents(porColab.unitarioCents)}</span>
+              <span className="text-sm text-muted-foreground"> por colaborador ativo/mês</span>
+              <p className="text-xs text-muted-foreground">
+                A partir de {porColab.minimo} colaboradores ({formatCents(porColab.baseCents)}/mês)
+              </p>
+            </>
           ) : (
             <>
               <span className="text-2xl font-bold">{formatCents(plano.price_cents)}</span>
