@@ -3,7 +3,7 @@ import { abrirNoApp } from "@/lib/visualizadorGlobal";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, FileText, Loader2, Upload } from "lucide-react";
+import { ArrowLeft, ArrowRight, FileText, Loader2, Send, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,17 @@ import { FichaRevisaoCard } from "@/components/dp/ficha-registro/FichaRevisaoCar
 import { FranquiaColaboradoresAviso, useEstadoFranquia } from "@/components/billing/FranquiaColaboradoresAviso";
 import { FichaHistoricoPainel } from "@/components/dp/ficha-registro/FichaHistoricoPainel";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { FichaLoteEtapas, type EtapaLote } from "@/components/dp/ficha-registro/lote/FichaLoteEtapas";
+import { FichaLoteUnidade } from "@/components/dp/ficha-registro/lote/FichaLoteUnidade";
+import { FichaLoteCargos } from "@/components/dp/ficha-registro/lote/FichaLoteCargos";
+import { FichaLoteLista } from "@/components/dp/ficha-registro/lote/FichaLoteLista";
+import { NotificarResponsavelDialog } from "@/components/dp/ficha-registro/lote/NotificarResponsavelDialog";
+import { useSuperAdmin } from "@/hooks/useSuperAdmin";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  agruparCargosLote, vinculoOrganizado, type OrganizacaoLote,
+} from "@/lib/dp/ficha-registro/organizacao-lote";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpSetores } from "@/hooks/useDpSetores";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
@@ -25,12 +36,12 @@ import { useDpTurnos } from "@/hooks/useDpTurnos";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import {
   useDpFichaImportacoes, useDpFichaItens, useEnviarFichaPdf,
-  useCancelarLeituraFicha, useTentarNovamenteFicha, MOTIVO_CANCELADA,
+  useCancelarLeituraFicha, useTentarNovamenteFicha, MOTIVO_CANCELADA, useOrganizarLoteFicha,
 } from "@/hooks/useDpFichaImportacao";
 import { notifyError } from "@/lib/notifyError";
 import { divergenciaLote } from "@/lib/dp/ficha-registro/lote-empresa";
 import { leituraTravada } from "@/lib/dp/ficha-registro/leituraTravada";
-import { digitsCnpj, formatCnpj } from "@/lib/dp/ficha-registro/unidade-match";
+import { digitsCnpj, formatCnpj, matchUnidade } from "@/lib/dp/ficha-registro/unidade-match";
 import { cn } from "@/lib/utils";
 
 /** Situação de cada envio, em linguagem de tela. */
@@ -62,7 +73,9 @@ export default function DpFichaRegistroImportar() {
   const pessoaApoioId = params.get("apoio");
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [importacaoId, setImportacaoId] = useState<string | null>(null);
+  const [verTodosEnvios, setVerTodosEnvios] = useState(false);
+  /** `?lote=` vem do aviso enviado ao responsável: abre direto aquele envio. */
+  const [importacaoId, setImportacaoId] = useState<string | null>(() => params.get("lote"));
 
   const { data: importacoes = [] } = useDpFichaImportacoes();
   const enviar = useEnviarFichaPdf();
@@ -152,6 +165,40 @@ export default function DpFichaRegistroImportar() {
   }, [companies, divergencia.cnpjs]);
   const [conferirMesmoAssim, setConferirMesmoAssim] = useState(false);
   const bloqueadoPorEmpresa = divergencia.divergente && !conferirMesmoAssim;
+
+  // ── Lote guiado: unidade → cargos e setores → conferência ficha a ficha ──
+  const { isSuperAdmin } = useSuperAdmin();
+  const isMobile = useIsMobile();
+  const organizar = useOrganizarLoteFicha();
+  const organizacao = ((atual as { organizacao?: unknown } | null)?.organizacao ?? null) as OrganizacaoLote | null;
+  const modoLote = !preadmissaoId && !pessoaApoioId && atual?.status === "ready" && itens.length > 1;
+  const cargosLista = useMemo(() => cargos.map((c) => ({ id: c.id, nome: c.nome, cbo: c.cbo })), [cargos]);
+  const grupos = useMemo(() => agruparCargosLote(itens, cargosLista), [itens, cargosLista]);
+  const [etapa, setEtapa] = useState<EtapaLote | null>(null);
+  const [unidadeLote, setUnidadeLote] = useState<string | null>(null);
+  const [sindicatoLote, setSindicatoLote] = useState<string | null | undefined>(undefined);
+  const [abertoId, setAbertoId] = useState<string | null>(null);
+  const [notificarAberto, setNotificarAberto] = useState(false);
+  useEffect(() => {
+    setEtapa(null);
+    setUnidadeLote(null);
+    setSindicatoLote(undefined);
+    setAbertoId(null);
+  }, [atual?.id]);
+  const etapaAtual: EtapaLote = etapa ?? (organizacao?.organizado_em ? 3 : 1);
+  const unidadeLida = useMemo(
+    () => (itens[0] ? matchUnidade(itens[0].dados_extraidos as Record<string, unknown>, unidadesDaEmpresa, empresaCnpj) : null),
+    [itens, unidadesDaEmpresa, empresaCnpj],
+  );
+  const unidadeLoteId =
+    unidadeLote ?? organizacao?.unidade_id ?? unidadeLida?.unidade_id ?? unidadesDaEmpresa[0]?.id ?? null;
+  const sindicatoLoteId = sindicatoLote === undefined ? organizacao?.sindicato_laboral_id ?? null : sindicatoLote;
+  const itemAberto = itens.find((i) => i.id === abertoId) ?? null;
+  const proximaPendente = (depoisDe?: string | null) => {
+    const idx = depoisDe ? itens.findIndex((i) => i.id === depoisDe) : -1;
+    const ordem = [...itens.slice(idx + 1), ...itens.slice(0, Math.max(idx, 0))];
+    return ordem.find((i) => ["pendente", "revisar", "duplicado"].includes(i.status) && i.id !== depoisDe) ?? null;
+  };
 
 
 
@@ -245,7 +292,7 @@ export default function DpFichaRegistroImportar() {
             <p className="pb-2 text-sm text-muted-foreground">
               Toque em um envio para rever as fichas dele e abrir o arquivo original.
             </p>
-            {importacoes.map((imp) => (
+            {(verTodosEnvios ? importacoes : importacoes.slice(0, 3)).map((imp) => (
               <div
                 key={imp.id}
                 className={cn(
@@ -276,6 +323,11 @@ export default function DpFichaRegistroImportar() {
                 ) : null}
               </div>
             ))}
+            {importacoes.length > 3 && (
+              <Button variant="ghost" size="sm" className="h-9 w-full" onClick={() => setVerTodosEnvios((v) => !v)}>
+                {verTodosEnvios ? "Mostrar menos" : `Ver todos os envios (${importacoes.length})`}
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
@@ -487,7 +539,132 @@ export default function DpFichaRegistroImportar() {
         </Card>
       )}
 
-      {pendentes.length > 0 && !bloqueadoPorEmpresa && (
+      {modoLote && !bloqueadoPorEmpresa && (
+        <section className="space-y-3" aria-label="Organizar o lote">
+          <FichaLoteEtapas
+            atual={etapaAtual}
+            concluidas={[...(unidadeLoteId ? [1 as EtapaLote] : []), ...(organizacao?.organizado_em ? [2 as EtapaLote] : [])]}
+            onIr={setEtapa}
+          />
+
+          {etapaAtual === 1 && (
+            <FichaLoteUnidade
+              unidades={unidadesDaEmpresa}
+              unidadeId={unidadeLoteId}
+              onUnidade={setUnidadeLote}
+              sindicatoId={sindicatoLoteId}
+              onSindicato={(v) => setSindicatoLote(v)}
+              cnpjLido={unidadeLida?.cnpj_lido ?? null}
+              empregadorLido={unidadeLida?.empregador_lido ?? null}
+              totalFichas={itens.length}
+              onContinuar={() => setEtapa(2)}
+            />
+          )}
+
+          {etapaAtual === 2 && unidadeLoteId && grupos.length > 0 && (
+            <FichaLoteCargos
+              key={`${atual?.id}-${unidadeLoteId}`}
+              grupos={grupos}
+              cargos={cargosLista}
+              setores={setoresAtivos}
+              unidadeId={unidadeLoteId}
+              organizacao={organizacao}
+              salvando={organizar.isPending}
+              onVoltar={() => setEtapa(1)}
+              onSalvar={(gs) =>
+                organizar.mutate(
+                  { importacaoId: atual!.id, unidadeId: unidadeLoteId, sindicatoLaboralId: sindicatoLoteId, grupos: gs },
+                  {
+                    onSuccess: (r) => {
+                      toast.success(
+                        `Lote organizado: ${r.cargos_criados} cargo(s) e ${r.setores_criados} setor(es) criados. Agora confira as fichas.`,
+                      );
+                      setEtapa(3);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    },
+                    onError: (e) => toast.error((e as Error).message),
+                  },
+                )
+              }
+            />
+          )}
+          {etapaAtual === 2 && grupos.length === 0 && (
+            <p className="text-sm text-muted-foreground">Todas as fichas deste lote já foram concluídas.</p>
+          )}
+          {etapaAtual === 2 && !unidadeLoteId && (
+            <p className="text-sm text-muted-foreground">Escolha a unidade na etapa 1 para organizar os cargos.</p>
+          )}
+
+          {etapaAtual === 3 && (
+            <>
+              {novasFichas > 0 && <FranquiaColaboradoresAviso estado={estadoFranquiaLote} novos={novasFichas} />}
+              {!organizacao?.organizado_em && pendentes.length > 0 && (
+                <Card className="border-warning/50 bg-warning/10">
+                  <CardContent className="flex flex-col gap-2 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+                    <p>Organize cargos e setores primeiro: as fichas já chegam preenchidas e sobra bem menos para ajustar.</p>
+                    <Button size="sm" className="h-10 shrink-0" onClick={() => setEtapa(2)}>
+                      Organizar cargos <ArrowRight className="ml-1 h-4 w-4" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+              {pendentes.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <Label className="shrink-0 text-xs text-muted-foreground">Vínculo da maioria</Label>
+                  <Select value={regimePadrao ?? "__none"} onValueChange={(v) => setRegimePadrao(v === "__none" ? null : v)}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">Conforme cada ficha</SelectItem>
+                      {REGIMES.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <FichaLoteLista
+                itens={itens}
+                organizacao={organizacao}
+                cargos={cargosLista}
+                setores={setoresAtivos}
+                onAbrir={setAbertoId}
+              />
+              <div className="sticky bottom-[calc(76px+env(safe-area-inset-bottom)+0.5rem)] z-10 flex items-center gap-2 rounded-xl border bg-card p-2 shadow-lg md:bottom-4">
+                <div className="min-w-0 flex-1 space-y-1 px-1">
+                  <p className="truncate text-sm font-medium tabular-nums">
+                    {prontos.length} de {itens.length} no cadastro
+                  </p>
+                  <Progress value={itens.length ? (prontos.length / itens.length) * 100 : 0} className="h-1.5" />
+                  {organizacao?.notificacao?.em && (
+                    <p className="truncate text-[11px] text-muted-foreground">
+                      Responsável avisado em {new Date(organizacao.notificacao.em).toLocaleDateString("pt-BR")}
+                    </p>
+                  )}
+                </div>
+                {pendentes.length > 0 && (
+                  <Button className="h-11 shrink-0" onClick={() => setAbertoId(proximaPendente()?.id ?? null)}>
+                    <span className="sm:hidden">Próxima</span>
+                    <span className="hidden sm:inline">Conferir próxima</span>
+                  </Button>
+                )}
+                {isSuperAdmin && pendentes.length > 0 && (
+                  <Button
+                    variant="outline"
+                    className="h-11 shrink-0"
+                    aria-label="Salvar e notificar responsável"
+                    onClick={() => setNotificarAberto(true)}
+                  >
+                    <Send className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Salvar e notificar</span>
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
+        </section>
+      )}
+
+      {!modoLote && pendentes.length > 0 && !bloqueadoPorEmpresa && (
         <div className="space-y-3">
           <h2 className="text-sm font-semibold">Conferir e cadastrar ({pendentes.length})</h2>
 
@@ -579,7 +756,7 @@ export default function DpFichaRegistroImportar() {
         <FichaHistoricoPainel importacaoId={atual.id} itens={itens} />
       )}
 
-      {prontos.length > 0 && (
+      {!modoLote && prontos.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-sm font-semibold">Já no cadastro ({prontos.length})</h2>
           {prontos.map((item) => (
@@ -598,6 +775,64 @@ export default function DpFichaRegistroImportar() {
             />
           ))}
         </div>
+      )}
+
+      {modoLote && (
+        <Sheet open={!!itemAberto} onOpenChange={(o) => !o && setAbertoId(null)}>
+          <SheetContent
+            side={isMobile ? "bottom" : "right"}
+            className={cn(
+              "overflow-y-auto p-0",
+              isMobile ? "max-h-[92dvh] rounded-t-2xl" : "w-full sm:max-w-2xl",
+            )}
+          >
+            <SheetHeader className="sticky top-0 z-10 border-b bg-background px-4 py-3 text-left">
+              <SheetTitle className="pr-8 text-base">
+                Ficha {itemAberto ? itens.findIndex((i) => i.id === itemAberto.id) + 1 : ""} de {itens.length}
+              </SheetTitle>
+            </SheetHeader>
+            <div className="p-2 sm:p-3">
+              {itemAberto && (
+                <FichaRevisaoCard
+                  key={itemAberto.id}
+                  avisoFranquia={false}
+                  item={itemAberto}
+                  cargos={cargosLista}
+                  turnos={turnos}
+                  unidades={unidadesDaEmpresa}
+                  setores={setoresAtivos}
+                  unidadePadraoId={unidadeLoteId}
+                  empresaCnpj={empresaCnpj}
+                  regimePadrao={regimePadrao}
+                  vinculoLote={vinculoOrganizado(itemAberto, organizacao)}
+                  onAbrirCadastro={setCadastroAbertoId}
+                  posicao={itens.findIndex((i) => i.id === itemAberto.id) + 1}
+                  total={itens.length}
+                  onConcluido={(itemId, nome) => {
+                    const prox = proximaPendente(itemId);
+                    if (prox) {
+                      toast.success(`${nome} concluído. Abrindo a próxima ficha.`);
+                      setAbertoId(prox.id);
+                    } else {
+                      toast.success("Todas as fichas deste lote foram conferidas.");
+                      setAbertoId(null);
+                    }
+                  }}
+                />
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
+
+      {modoLote && isSuperAdmin && atual && (
+        <NotificarResponsavelDialog
+          open={notificarAberto}
+          onOpenChange={setNotificarAberto}
+          importacaoId={atual.id}
+          empresaNome={empresaAtual ? (empresaAtual.trade_name || empresaAtual.name) : "a empresa"}
+          pendentes={pendentes.length}
+        />
       )}
 
       {colaboradorAberto && (

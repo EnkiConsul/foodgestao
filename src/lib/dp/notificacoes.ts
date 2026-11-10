@@ -18,6 +18,7 @@ export const NOTIFICACAO_ORIGEM_LABEL: Record<string, string> = {
   companies: "Disponibilidade",
   dp_elogios: "Reconhecimento",
   dp_desligamento_processos: "Desligamento",
+  dp_ficha_importacoes: "Fichas de registro",
 };
 
 export function notificacaoOrigemLabel(refTable: string | null | undefined): string {
@@ -39,6 +40,7 @@ export const NOTIFICACAO_PATH_GESTOR: Record<string, string> = {
   dp_ferias_gozos: "/dp/ferias",
   dp_folgas: "/dp/folgas",
   dp_desligamento_processos: "/dp/colaboradores",
+  dp_ficha_importacoes: "/dp/colaboradores/importar-ficha",
 };
 
 export function notificacaoPathGestor(refTable: string | null | undefined, refId?: string | null, colaboradorId?: string | null): string {
@@ -48,6 +50,8 @@ export function notificacaoPathGestor(refTable: string | null | undefined, refId
   if (refTable === "dp_desligamento_processos" && colaboradorId) {
     return `${base}?editar=${encodeURIComponent(colaboradorId)}&aba=desligamento`;
   }
+  // Lote de fichas: abre a conferência daquele envio.
+  if (refTable === "dp_ficha_importacoes" && refId) return `${base}?lote=${encodeURIComponent(refId)}`;
   // Troca: abre direto o detalhe da troca envolvida.
   if (refTable === "dp_trocas" && refId) return `${base}&troca_id=${encodeURIComponent(refId)}`;
   // Ocorrência: abre direto o dia/colaborador e a tratativa da ocorrência.
