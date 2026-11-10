@@ -124,3 +124,31 @@ export function pedirAoDp(raw: string): boolean {
     m.includes("FOLGA_REMARCAR_CONFLITO")
   );
 }
+
+/** Pedido de folga pendente lido no calendário do colaborador. */
+export interface PedidoFolgaPendente {
+  id: string;
+  colaborador_id: string;
+  data_alvo: string;
+  /** Na mudança de folga, o dia em que a folga está hoje. */
+  data_fim?: string | null;
+  motivo?: string | null;
+}
+
+/**
+ * Meu próprio pedido pendente para o dia aberto — é o único que o colaborador
+ * pode cancelar. Pedidos de colegas no mesmo dia nunca aparecem aqui.
+ */
+export function meuPedidoPendenteNoDia<T extends PedidoFolgaPendente>(
+  pendentes: readonly T[],
+  meuId: string | null | undefined,
+  iso: string,
+): T | null {
+  if (!meuId || !iso) return null;
+  return pendentes.find((p) => p.colaborador_id === meuId && p.data_alvo === iso) ?? null;
+}
+
+/** O pedido é uma mudança do dia da própria folga (e não uma folga extra)? */
+export function ehMudancaDeFolga(p: Pick<PedidoFolgaPendente, "motivo" | "data_fim">): boolean {
+  return (p.motivo ?? "").startsWith("MUDANCA_DE_FOLGA") && !!p.data_fim;
+}

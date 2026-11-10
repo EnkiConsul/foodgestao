@@ -78,6 +78,8 @@ import {
   trocaExigeAprovacaoGestor,
   motivoAprovacaoGestor,
   mesmaSemana,
+  meuPedidoPendenteNoDia,
+  ehMudancaDeFolga,
 } from "@/lib/dp/folga-remarcacao";
 
 
@@ -451,7 +453,7 @@ export default function DpMeuCalendario() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_solicitacoes")
-        .select("id, colaborador_id, data_alvo, tipo, status, dp_colaboradores(nome, unidade_id)")
+        .select("id, colaborador_id, data_alvo, data_fim, motivo, tipo, status, dp_colaboradores(nome, unidade_id)")
         .is("removido_em", null)
         .eq("company_id", companyId!)
         .eq("status", "pendente")
@@ -1561,31 +1563,60 @@ export default function DpMeuCalendario() {
 
 
 
+  /** O próprio colaborador desiste de um pedido de folga ainda pendente. */
+  const cancelarPedido = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("dp_solicitacao_cancelar", { p_id: id });
+      if (error) {
+        if ((error.message ?? "").includes("STATUS_INVALIDO"))
+          negarRegra("Este pedido já foi respondido pelo gestor. Atualize a tela para ver a decisão.");
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success("Pedido cancelado. O dia ficou livre de novo.");
+      setSelectedDay(null);
+      qc.invalidateQueries({ queryKey: ["dp_solic_meu_cal"] });
+      qc.invalidateQueries({ queryKey: ["dp_meus_devolvidos"] });
+      invalidarRotinaLoja();
+    },
+    onError: (e: any) =>
+      notifyError(e, {
+        surface: "Meu calendário",
+        action: "cancelar o pedido",
+        fallback: "Não foi possível cancelar o pedido. Atualize a tela e tente de novo.",
+      }),
+  });
+
   const remarcarFolga = useMutation({
     mutationFn: async () => {
       if (!remarcarOpen) throw new Error("Sem contexto");
       if (!remarcarNova) negarRegra("Escolha o novo dia da sua folga.");
-      const { error } = await supabase.rpc("dp_folga_remarcar", {
+      const { data, error } = await supabase.rpc("dp_folga_remarcar", {
         p_data_atual: remarcarOpen,
         p_data_nova: remarcarNova,
         p_motivo: remarcarMotivo.trim() || null,
       });
-      if (error) {
-        const raw = error.message ?? "";
-        const msg = mensagemErroRemarcacao(raw);
-        if (pedirAoDp(raw)) {
-          setRemarcarAviso(msg);
-          const aviso = new Error(msg);
-          (aviso as any).avisoTratado = true;
-          throw aviso;
-        }
-        throw new Error(msg);
+      if (!error) return Number((data as any)?.pedidos_cancelados ?? 0);
+      const raw = error.message ?? "";
+      const msg = mensagemErroRemarcacao(raw);
+      if (pedirAoDp(raw)) {
+        setRemarcarAviso(msg);
+        const aviso = new Error(msg);
+        (aviso as any).avisoTratado = true;
+        throw aviso;
       }
+      throw new Error(msg);
     },
-    onSuccess: () => {
+    onSuccess: (pedidosCancelados) => {
       if (riscoDsrRemarcar)
         void registrarCienciaDsr({ papel: "colaborador", tabela: "dp_folgas", data: riscoDsrRemarcar.data, dias: riscoDsrRemarcar.sequencia });
-      toast.success("Folga mudada de dia. O setor de pessoal foi avisado.");
+      toast.success(
+        pedidosCancelados > 0
+          ? "Folga mudada de dia. Seu pedido anterior ao gestor foi encerrado, porque não é mais necessário."
+          : "Folga mudada de dia. O setor de pessoal foi avisado.",
+      );
+      qc.invalidateQueries({ queryKey: ["dp_solic_meu_cal"] });
       setRemarcarOpen(null);
       setRemarcarNova("");
       setRemarcarMotivo("");
@@ -2208,6 +2239,26 @@ export default function DpMeuCalendario() {
                 )}
                 {(() => {
                   const dev = meusDevolvidos.data?.find((d) => d.data_alvo === selectedDay.iso);
+                  const meuPedido = meuPedidoPendenteNoDia(pendentes, meRef.data?.id, selectedDay.iso);
+                  const botaoCancelar = (id: string, rotulo: string) => (
+                    <ConfirmarAcaoDialog
+                      titulo="Cancelar este pedido?"
+                      descricao="O gestor deixa de ver o pedido e nada muda na sua folga. Se quiser, você pode fazer um novo pedido depois."
+                      confirmar="Cancelar pedido"
+                      cancelar="Manter pedido"
+                      onConfirm={() => cancelarPedido.mutate(id)}
+                      disabled={cancelarPedido.isPending}
+                    >
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="min-h-9 w-full sm:w-auto"
+                        disabled={cancelarPedido.isPending}
+                      >
+                        {cancelarPedido.isPending ? "Cancelando..." : rotulo}
+                      </Button>
+                    </ConfirmarAcaoDialog>
+                  );
                   if (dev) {
                     return (
                       <div className="rounded-md border border-warning/40 bg-warning/10 p-3 space-y-2">
@@ -2225,6 +2276,20 @@ export default function DpMeuCalendario() {
                         >
                           Ajustar e reenviar
                         </Button>
+                        {botaoCancelar(dev.id, "Desistir do pedido")}
+                      </div>
+                    );
+                  }
+                  if (meuPedido) {
+                    return (
+                      <div className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-3">
+                        <p className="text-sm font-medium">Seu pedido está com o gestor</p>
+                        <p className="text-xs text-muted-foreground">
+                          {ehMudancaDeFolga(meuPedido)
+                            ? `Você pediu para mudar sua folga de ${diaSemanaBR(meuPedido.data_fim!)} ${formatBR(parseYMD(meuPedido.data_fim!))} para este dia. Enquanto o gestor não responde, sua folga continua no dia original.`
+                            : "Você pediu folga neste dia. Enquanto o gestor não responde, o dia segue como de trabalho."}
+                        </p>
+                        {botaoCancelar(meuPedido.id, "Cancelar meu pedido")}
                       </div>
                     );
                   }

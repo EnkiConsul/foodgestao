@@ -1478,6 +1478,13 @@
       "when": 1794332514638,
       "tag": "0210_portal_rotina_cargo_e_folga_fixa",
       "breakpoints": true
+    },
+    {
+      "idx": 211,
+      "version": "7",
+      "when": 1794333580550,
+      "tag": "0211_folga_remarcar_baixa_pedidos",
+      "breakpoints": true
     }
   ]
 }

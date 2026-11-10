@@ -3,6 +3,8 @@ import {
   diasParaRemarcar,
   mensagemErroRemarcacao,
   pedirAoDp,
+  meuPedidoPendenteNoDia,
+  ehMudancaDeFolga,
 } from "@/lib/dp/folga-remarcacao";
 
 // Setembro/2026: sábados 5, 12, 19, 26 — domingos 6, 13, 20, 27.
@@ -55,5 +57,22 @@ describe("mensagens de erro", () => {
   it("não sugere o DP para erro de data passada", () => {
     expect(pedirAoDp("PAST_DATE_NOT_EDITABLE: ...")).toBe(false);
     expect(mensagemErroRemarcacao("PAST_DATE_NOT_EDITABLE: ...")).toContain("datas passadas");
+  });
+});
+
+describe("pedido próprio pendente no dia", () => {
+  const pendentes = [
+    { id: "a", colaborador_id: "eu", data_alvo: "2026-12-26", data_fim: "2026-12-27", motivo: "MUDANCA_DE_FOLGA" },
+    { id: "b", colaborador_id: "colega", data_alvo: "2026-12-19", data_fim: null, motivo: "Folga extra" },
+  ];
+  it("só devolve o meu pedido do dia, nunca o de um colega", () => {
+    expect(meuPedidoPendenteNoDia(pendentes, "eu", "2026-12-26")?.id).toBe("a");
+    expect(meuPedidoPendenteNoDia(pendentes, "eu", "2026-12-19")).toBeNull();
+    expect(meuPedidoPendenteNoDia(pendentes, null, "2026-12-26")).toBeNull();
+  });
+  it("reconhece a mudança de folga só com o dia de origem", () => {
+    expect(ehMudancaDeFolga(pendentes[0])).toBe(true);
+    expect(ehMudancaDeFolga(pendentes[1])).toBe(false);
+    expect(ehMudancaDeFolga({ motivo: "MUDANCA_DE_FOLGA", data_fim: null })).toBe(false);
   });
 });
