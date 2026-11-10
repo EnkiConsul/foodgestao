@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCents, precoPorColaborador } from "@/lib/billing";
+import { useEnterpriseElegibilidade } from "@/hooks/useEnterpriseElegibilidade";
 import { toast } from "sonner";
 import { notifyError } from "@/lib/notifyError";
 
@@ -406,6 +407,10 @@ function AcaoDialog({ acao, companyId, onClose, onDone }: { acao: Acao; companyI
     },
   });
 
+  const ent = useEnterpriseElegibilidade(companyId, acao.tipo === "plano" && s.module === "pessoas");
+  const entBloqueado = acao.tipo === "plano" && s.module === "pessoas"
+    && (planos.data ?? []).some((p) => p.slug !== s.plano.slug && !!precoPorColaborador(p.features)) && ent.data && !ent.data.liberado;
+
   const cot = useQuery({
     queryKey: ["cotacao", acao.tipo, s.id, code, qtd, plano, cic],
     enabled: (acao.tipo === "adicional" && !!code) || (acao.tipo === "plano" && (plano !== s.plano.slug || cic !== s.ciclo)),
@@ -480,13 +485,27 @@ function AcaoDialog({ acao, companyId, onClose, onDone }: { acao: Acao; companyI
           <div className="grid gap-2 sm:grid-cols-2">
             <Select value={plano} onValueChange={setPlano}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{(planos.data ?? []).map((p) => <SelectItem key={p.slug} value={p.slug}>{p.name}</SelectItem>)}</SelectContent>
+              <SelectContent>{(planos.data ?? []).map((p) => {
+                // Enterprise por colaborador abaixo do mínimo de ativos: sob consulta, não é troca direta.
+                const consulta = p.slug !== s.plano.slug && !!precoPorColaborador(p.features) && ent.data?.liberado !== true;
+                return (
+                  <SelectItem key={p.slug} value={p.slug} disabled={consulta}>
+                    {p.name}{consulta ? " · sob consulta" : ""}
+                  </SelectItem>
+                );
+              })}</SelectContent>
             </Select>
             <Select value={cic} onValueChange={setCic}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="mensal">Mensal</SelectItem><SelectItem value="anual">Anual</SelectItem></SelectContent>
             </Select>
           </div>
+        )}
+        {entBloqueado && (
+          <p className="text-xs text-muted-foreground" data-testid="enterprise-sob-consulta">
+            O Enterprise é contratado direto a partir de {ent.data!.minimo} colaboradores ativos. Para a sua equipe,{" "}
+            <a className="font-medium text-primary underline" href="https://wa.me/5562992365959" target="_blank" rel="noopener noreferrer">fale com nosso especialista</a>.
+          </p>
         )}
 
         {precisaCotacao && (

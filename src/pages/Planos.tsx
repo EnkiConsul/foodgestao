@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCents, formatLimit, precoPorColaborador } from "@/lib/billing";
 import { useMinhasAssinaturas, type Modulo } from "@/hooks/useMinhaAssinatura";
 import { cn } from "@/lib/utils";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useEnterpriseElegibilidade } from "@/hooks/useEnterpriseElegibilidade";
 import { ArrowRight, Check, MessageCircle, ShieldCheck, Sparkles } from "lucide-react";
 
 const MODULO_ROTULO: Record<Modulo, string> = {
@@ -60,14 +62,20 @@ function CartaoPlano({
   plano,
   atual,
   temAssinatura,
+  enterpriseLiberado,
 }: {
   plano: any;
   atual: boolean;
   temAssinatura: boolean;
+  /** Enterprise por colaborador: só mostra o preço e a contratação direta com a equipe no mínimo (servidor). */
+  enterpriseLiberado: boolean;
 }) {
   const navigate = useNavigate();
   const f = plano.features ?? {};
-  const porColab = precoPorColaborador(f);
+  const porColabCatalogo = precoPorColaborador(f);
+  // Abaixo do mínimo de colaboradores ativos o Enterprise é "sob consulta" (sem preço por colaborador).
+  const sobConsulta = !!plano.is_enterprise || (!!porColabCatalogo && !enterpriseLiberado && !atual);
+  const porColab = sobConsulta ? null : porColabCatalogo;
   const modulo = plano.module as Modulo;
   const destaque = !!plano.is_featured && !atual;
   const msg = encodeURIComponent(
@@ -94,8 +102,13 @@ function CartaoPlano({
         </div>
         <CardDescription className="min-h-[2.25rem]">{plano.description}</CardDescription>
         <div className="pt-1">
-          {plano.is_enterprise ? (
-            <span className="text-2xl font-bold">Sob consulta</span>
+          {sobConsulta ? (
+            <>
+              <span className="text-2xl font-bold">Sob consulta</span>
+              {porColabCatalogo && (
+                <p className="text-xs text-muted-foreground">Proposta sob medida para a sua rede</p>
+              )}
+            </>
           ) : porColab ? (
             <>
               <span className="text-2xl font-bold">{formatCents(porColab.unitarioCents)}</span>
@@ -111,7 +124,7 @@ function CartaoPlano({
             </>
           )}
         </div>
-        {!plano.is_enterprise && plano.trial_days > 0 && (
+        {!sobConsulta && plano.trial_days > 0 && (
           <p className="text-xs font-medium text-primary">
             {plano.trial_days} dias de teste grátis
           </p>
@@ -137,7 +150,7 @@ function CartaoPlano({
           </li>
         </ul>
 
-        {plano.is_enterprise ? (
+        {sobConsulta ? (
           <Button variant="outline" asChild className="w-full">
             <a href={`https://wa.me/${WHATSAPP}?text=${msg}`} target="_blank" rel="noopener noreferrer">
               <MessageCircle className="mr-2 h-4 w-4" /> Falar com um consultor
@@ -162,6 +175,8 @@ export default function Planos() {
   const [params] = useSearchParams();
   const { data: planos, isLoading } = usePlanosPublicos();
   const { data: assinaturas } = useMinhasAssinaturas();
+  const { selectedCompanyId } = useCompanyContext();
+  const enterprise = useEnterpriseElegibilidade(selectedCompanyId);
 
   const moduloInicial = (params.get("modulo") === "pessoas" ? "pessoas" : "financeiro") as Modulo;
   const [aba, setAba] = useState<Modulo>(moduloInicial);
@@ -236,6 +251,7 @@ export default function Planos() {
                     plano={p}
                     atual={planoAtualPorModulo[m] === p.id}
                     temAssinatura={!!planoAtualPorModulo[m]}
+                    enterpriseLiberado={enterprise.data?.liberado === true}
                   />
                 ))}
               </div>

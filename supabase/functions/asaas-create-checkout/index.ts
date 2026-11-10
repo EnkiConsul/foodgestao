@@ -168,6 +168,16 @@ Deno.serve(async (req) => {
       const autorizado = ativo && (["owner", "admin"].includes(role) || (moduloOk && nivel >= 2));
       if (!autorizado) return json({ error: "Sem permissão para contratar por esta empresa" }, 403);
     }
+    // Enterprise por colaborador ativo: contratação direta só a partir do mínimo de ativos (mesma regra do billing_v2_quote).
+    if (Number((plan.features as Record<string, unknown> | null)?.price_per_collaborator_cents ?? 0) > 0) {
+      const { data: vinc } = await admin.from("billing_account_companies").select("billing_account_id")
+        .eq("company_id", companyId).is("removed_at", null).maybeSingle();
+      const { data: bloqueio, error: bloqErr } = await admin.rpc("_billing_v2_enterprise_bloqueio", {
+        _billing_account_id: (vinc as any)?.billing_account_id ?? null, _company_id: companyId, _plan_id: plan.id,
+      });
+      if (bloqErr) return json({ error: "Não foi possível conferir a equipe para este plano. Tente novamente." }, 500);
+      if (bloqueio) return json({ error: String(bloqueio) }, 422);
+    }
     const f = {
       razao: limpa(fiscal.razaoSocial, 150).toLocaleUpperCase("pt-BR"),
       cnpj: limpa(fiscal.cnpj, 20).replace(/\D/g, ""),

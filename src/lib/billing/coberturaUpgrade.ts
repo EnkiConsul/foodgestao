@@ -21,11 +21,22 @@ export type OpcaoUpgrade =
 /**
  * Decide como oferecer a sugestão de upgrade. O catálogo é a fonte de verdade:
  * plano marcado como "sob consulta" (is_enterprise) vai para o especialista; os demais,
- * inclusive o Enterprise por colaborador ativo, são contratados direto pelo sistema.
+ * e o Enterprise por colaborador ativo só é direto quando o servidor libera (equipe a partir do mínimo).
  */
-export function resolverOpcaoUpgrade(up: SugestaoUpgrade, catalogo: PlanoCatalogo | null | undefined): OpcaoUpgrade {
+export function resolverOpcaoUpgrade(
+  up: SugestaoUpgrade,
+  catalogo: PlanoCatalogo | null | undefined,
+  enterpriseLiberado?: boolean | null,
+): OpcaoUpgrade {
   if (catalogo && !catalogo.is_enterprise) {
     const porColab = precoPorColaborador(catalogo.features);
+    if (porColab && enterpriseLiberado !== true) {
+      // Abaixo do mínimo de colaboradores ativos (ou sem a confirmação do servidor): sob consulta.
+      return {
+        tipo: "especialista",
+        texto: `Sob consulta: a contratação direta é a partir de ${porColab.minimo} colaboradores ativos. Fale com nosso especialista.`,
+      };
+    }
     if (porColab) {
       return {
         tipo: "direto",

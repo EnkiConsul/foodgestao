@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { avaliarFranquia, type PreviaFranquia } from "./franquia";
+import { avaliarFranquia, comparativoEnterprise, type PreviaFranquia } from "./franquia";
 
 // Multiempresa: R$ 189,90 até 18; adicional R$ 19,90; Enterprise R$ 10,00 a partir de 19.
 const multiCheio = (extra: Partial<PreviaFranquia> = {}): PreviaFranquia => ({
@@ -83,4 +83,18 @@ describe("franquia de colaboradores", () => {
     const e = avaliarFranquia(multiCheio({ em_teste: false }), 1);
     expect(e.tipo).toBe("excedente");
   });
+
+  it("Gestão cheio (8) com o 9º colaborador: não oferece o Enterprise (abaixo de 19)", () => {
+    const gestao = multiCheio({ atual: 8, limite: 8, plano: "pessoas-gestao" });
+    expect(comparativoEnterprise(gestao, 1)).toBeNull();
+    const e = avaliarFranquia(gestao, 1);
+    expect(e.tipo === "excedente" ? e.enterprise : "outro").toBeNull();
+  });
+
+  it("lote que leva a equipe a 19 ou mais oferece o Enterprise", () => {
+    const gestao = multiCheio({ atual: 8, limite: 8, plano: "pessoas-gestao" });
+    expect(comparativoEnterprise(gestao, 10)).toBeNull();
+    expect(comparativoEnterprise(gestao, 11)?.valorEnterpriseCents).toBe(19000);
+  });
 });
+

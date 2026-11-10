@@ -5,6 +5,8 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { Button } from "@/components/ui/button";
 import type { ModuloAcesso } from "@/hooks/useModuleAccess";
 import { resolverOpcaoUpgrade, type PlanoCatalogo, type SugestaoUpgrade } from "@/lib/billing/coberturaUpgrade";
+import { precoPorColaborador } from "@/lib/billing";
+import { useEnterpriseElegibilidade } from "@/hooks/useEnterpriseElegibilidade";
 
 type Opcoes = {
   pode_gerenciar: boolean;
@@ -47,6 +49,9 @@ export function CoberturaOpcoes({ modulo }: { modulo: ModuloAcesso }) {
     },
   });
 
+  // Enterprise por colaborador: o servidor diz se a equipe já chega ao mínimo para contratar direto.
+  const ent = useEnterpriseElegibilidade(selectedCompanyId, !!precoPorColaborador(planoUp.data?.features));
+
   if (q.isLoading) return <p className="text-sm text-muted-foreground">Carregando opções...</p>;
   const d = q.data;
   if (!d) return null;
@@ -82,7 +87,8 @@ export function CoberturaOpcoes({ modulo }: { modulo: ModuloAcesso }) {
           />
         )}
         {ops.includes("upgrade") && up && (
-          <OpcaoUpgradeCard up={up} carregando={planoUp.isLoading} catalogo={planoUp.data} to={`${base}&acao=upgrade&plano=${up.plano}`} />
+          <OpcaoUpgradeCard up={up} carregando={planoUp.isLoading || ent.isLoading} catalogo={planoUp.data}
+            enterpriseLiberado={ent.data?.liberado ?? null} to={`${base}&acao=upgrade&plano=${up.plano}`} />
         )}
         {ops.includes("conta_separada") && (
           <Opcao titulo="Contratar Separadamente" texto="Assinatura própria só para esta empresa." to={`${base}&acao=conta_separada`} />
@@ -92,9 +98,11 @@ export function CoberturaOpcoes({ modulo }: { modulo: ModuloAcesso }) {
   );
 }
 
-function OpcaoUpgradeCard({ up, catalogo, carregando, to }: { up: SugestaoUpgrade; catalogo: PlanoCatalogo | null | undefined; carregando: boolean; to: string }) {
+function OpcaoUpgradeCard({ up, catalogo, carregando, enterpriseLiberado, to }: {
+  up: SugestaoUpgrade; catalogo: PlanoCatalogo | null | undefined; carregando: boolean; enterpriseLiberado: boolean | null; to: string;
+}) {
   if (carregando) return <Opcao titulo={`Upgrade para ${up.nome}`} texto="Carregando valores..." />;
-  const r = resolverOpcaoUpgrade(up, catalogo);
+  const r = resolverOpcaoUpgrade(up, catalogo, enterpriseLiberado);
   return r.tipo === "direto"
     ? <Opcao titulo={`Upgrade para ${up.nome}`} texto={r.texto} to={to} />
     : <Opcao titulo={`Upgrade para ${up.nome}`} texto={r.texto} href="https://wa.me/5562992365959" />;

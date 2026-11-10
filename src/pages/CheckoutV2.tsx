@@ -13,7 +13,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatCents, precoPorColaborador } from "@/lib/billing";
 import { buscarLimites } from "@/lib/billing/limites";
-import { avisoPlanoAbaixoDaEquipe, sugerirPlanoPessoas, type PlanoCatalogo } from "@/lib/billing/enquadramentoPlano";
+import { avisoPlanoAbaixoDaEquipe, enquadrarPlanoPessoas, minimoEnterprise, planoPorColaborador, type EquipeEmpresa, type PlanoCatalogo } from "@/lib/billing/enquadramentoPlano";
+import { useEnterpriseElegibilidade } from "@/hooks/useEnterpriseElegibilidade";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { AlertTriangle, Check, MessageCircle } from "lucide-react";
@@ -163,15 +164,30 @@ export default function CheckoutV2() {
       return { colaboradores: Number(l.used?.colaboradores ?? 0), unidades: Number(l.used?.unidades ?? 0) };
     },
   });
-  const sugerido = modulo === "pessoas" && equipe.data ? sugerirPlanoPessoas(planos as PlanoCatalogo[], equipe.data) : null;
+  // Enterprise por colaborador: o servidor decide se a equipe (conta de cobrança) já chega ao mínimo.
+  const ent = useEnterpriseElegibilidade(companyId, modulo === "pessoas");
+  const equipeEnq: EquipeEmpresa | null = modulo === "pessoas" && equipe.data && (ent.data || ent.isError)
+    ? { ...equipe.data, colaboradores: ent.data?.colaboradores ?? equipe.data.colaboradores, enterpriseLiberado: ent.data?.liberado ?? false }
+    : null;
+  const enquadramento = equipeEnq ? enquadrarPlanoPessoas(planos as PlanoCatalogo[], equipeEnq) : null;
+  const sugerido = enquadramento?.tipo === "plano" ? enquadramento.plano : null;
+  const entLiberado = ent.data?.liberado === true;
   const autoSelecionado = useRef(false);
   useEffect(() => {
     if (autoSelecionado.current || plano || !sugerido) return;
     autoSelecionado.current = true;
     setPlano(sugerido.slug);
   }, [sugerido, plano]);
-  const avisoEquipe = planoSel && modulo === "pessoas" && equipe.data
-    ? avisoPlanoAbaixoDaEquipe(planoSel as PlanoCatalogo, equipe.data) : null;
+  // ?plano= forçando o Enterprise abaixo do mínimo: não seleciona e orienta o contato comercial.
+  const [enterpriseRecusado, setEnterpriseRecusado] = useState(false);
+  useEffect(() => {
+    if (!planoSel || !equipeEnq || !planoPorColaborador(planoSel as PlanoCatalogo) || equipeEnq.enterpriseLiberado) return;
+    autoSelecionado.current = true;
+    setEnterpriseRecusado(true);
+    setPlano(null);
+  }, [planoSel, equipeEnq]);
+  const avisoEquipe = planoSel && equipeEnq
+    ? avisoPlanoAbaixoDaEquipe(planoSel as PlanoCatalogo, equipeEnq) : null;
   const limEmpresas = catalogo.data?.limites.find((l) => l.plan_id === planoSel?.id && l.recurso === "empresas");
   const permiteGrupo = !!planoSel && ((limEmpresas?.incluido ?? 1) > 1 || !!limEmpresas?.permite_adicional);
   const gerenciaveis = useQuery({
@@ -300,9 +316,13 @@ export default function CheckoutV2() {
         {modulo && (
           <Passo n={2} titulo="Plano">
             <div className="grid gap-2 sm:grid-cols-2">
-              {planos.map((p) => p.is_enterprise ? (
-                <div key={p.slug} className="rounded-lg border p-3">
+              {planos.map((p) => p.is_enterprise || (planoPorColaborador(p as PlanoCatalogo) && !entLiberado) ? (
+                <div key={p.slug} className="rounded-lg border p-3" data-testid={`plano-consulta-${p.slug}`}>
                   <p className="font-medium">{p.name}</p>
+                  <p className="text-sm">Sob consulta</p>
+                  {planoPorColaborador(p as PlanoCatalogo) && (
+                    <p className="text-xs text-muted-foreground">Contratação direta a partir de {minimoEnterprise(p as PlanoCatalogo)} colaboradores ativos.</p>
+                  )}
                   <a className="mt-1 inline-flex items-center gap-1 text-xs text-primary underline" href="https://wa.me/5562992365959" target="_blank" rel="noopener noreferrer">
                     <MessageCircle className="h-3 w-3" /> Fale com nosso especialista
                   </a>
@@ -324,6 +344,19 @@ export default function CheckoutV2() {
                 </Opcao>
               ))}
             </div>
+            {(enquadramento?.tipo === "sob_consulta" || enterpriseRecusado) && !planoSel && (
+              <Alert data-testid="aviso-sob-consulta">
+                <MessageCircle className="h-4 w-4" />
+                <AlertDescription>
+                  {enquadramento?.tipo === "sob_consulta"
+                    ? enquadramento.motivo
+                    : `O Enterprise é contratado direto a partir de ${ent.data?.minimo ?? 19} colaboradores ativos. Para a sua equipe, fale com nosso especialista.`}{" "}
+                  <a className="font-medium text-primary underline" href="https://wa.me/5562992365959" target="_blank" rel="noopener noreferrer">
+                    Falar com um especialista
+                  </a>
+                </AlertDescription>
+              </Alert>
+            )}
             {avisoEquipe && (
               <Alert>
                 <AlertTriangle className="h-4 w-4" />

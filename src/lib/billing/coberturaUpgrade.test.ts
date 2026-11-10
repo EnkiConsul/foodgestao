@@ -7,11 +7,21 @@ const txt = (s: string) => s.replace(/\u00a0/g, " ");
 const up = { plano: "pessoas-enterprise", nome: "Pessoas 360° Enterprise", preco_mensal_cents: null, enterprise: true };
 
 describe("resolverOpcaoUpgrade", () => {
-  it("Enterprise do Pessoas é contratado direto: R$ 10 por ativo, base de 19 (R$ 190)", () => {
-    const r = resolverOpcaoUpgrade(up, {
-      slug: "pessoas-enterprise", is_enterprise: false, price_monthly_cents: 19000,
-      features: { min_collaborators: 19, price_per_collaborator_cents: 1000 },
-    });
+  const ent = {
+    slug: "pessoas-enterprise", is_enterprise: false, price_monthly_cents: 19000,
+    features: { min_collaborators: 19, price_per_collaborator_cents: 1000 },
+  };
+
+  it("Enterprise abaixo de 19 colaboradores ativos fica sob consulta, sem preço por colaborador", () => {
+    const r = resolverOpcaoUpgrade(up, ent, false);
+    expect(r.tipo).toBe("especialista");
+    expect(txt(r.texto)).not.toContain("R$ 10,00");
+    expect(txt(r.texto)).toContain("a partir de 19 colaboradores ativos");
+    expect(resolverOpcaoUpgrade(up, ent).tipo).toBe("especialista");
+  });
+
+  it("Enterprise com 19 ou mais (liberado pelo servidor) é contratado direto: R$ 10 por ativo, base de 19 (R$ 190)", () => {
+    const r = resolverOpcaoUpgrade(up, ent, true);
     expect(r.tipo).toBe("direto");
     expect(txt(r.texto)).toContain("R$ 10,00 por colaborador ativo");
     expect(txt(r.texto)).toContain("base de 19");

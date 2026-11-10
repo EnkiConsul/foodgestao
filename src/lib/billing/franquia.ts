@@ -99,6 +99,8 @@ export function comparativoEnterprise(previa: PreviaFranquia, novos = 1): Compar
   const s = previa.sugestao_upgrade;
   if (!s) return null;
   const n = Math.max(1, Math.floor(novos));
+  // Enterprise só é oferecido quando a equipe chega ao mínimo de colaboradores ativos (19).
+  if (Number(previa.atual ?? 0) + n < Math.max(1, Number(s.minimo ?? 1))) return null;
   const valorAtual = s.valor_atual_cents + (n - 1) * Number(previa.valor_unit_cents ?? 0);
   const valorEnterprise = Math.max(s.minimo, previa.atual + n) * s.unitario_cents;
   return {
