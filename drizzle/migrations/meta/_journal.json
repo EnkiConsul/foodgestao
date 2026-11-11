@@ -1611,6 +1611,20 @@
       "when": 1794425926024,
       "tag": "0229_sindicato_vincular_cargos_sem_laboral",
       "breakpoints": true
+    },
+    {
+      "idx": 230,
+      "version": "7",
+      "when": 1794429860409,
+      "tag": "0230_feriado_convocacao_sem_portal_e_12x36",
+      "breakpoints": true
+    },
+    {
+      "idx": 231,
+      "version": "7",
+      "when": 1794429974753,
+      "tag": "0231_feriados_resolver_rotinas_agendadas",
+      "breakpoints": true
     }
   ]
 }
