@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useDpModosAssinaturaEmpresa } from "@/hooks/useDpModoAssinatura";
+import { assinaEmPapelHoje } from "@/lib/dp/modo-assinatura";
 import { abrirNoApp } from "@/lib/visualizadorGlobal";
 import { Helmet } from "react-helmet-async";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -137,6 +139,11 @@ export default function DpRecibos() {
     if (avulso && canal === "portal") setCanal("whatsapp");
     if (colab) setWhats(String(colab.whatsapp || colab.telefone || ""));
   }, [avulso, colab, canal]);
+
+  // Quem assina em papel começa em "Assinar à Mão" e não recebe pelo portal; o WhatsApp segue como exceção.
+  const modosAssinatura = useDpModosAssinaturaEmpresa();
+  const colabPapel = !avulso && !!colabId && assinaEmPapelHoje(modosAssinatura.porColaborador.get(colabId));
+  useEffect(() => { if (colabPapel && canal === "portal") setCanal("fisico"); }, [colabPapel, canal]);
 
   // Alerta: colaborador sem acesso ao portal ou com acesso terminando em até 2 dias.
   const avisoPortal = useMemo(() => {
@@ -602,7 +609,7 @@ export default function DpRecibos() {
         <div className="space-y-2">
           <Label>Como Vai Assinar</Label>
           <RadioGroup value={canal} onValueChange={(v) => setCanal(v as CanalAssinatura)} className="grid gap-2 sm:grid-cols-3">
-            {CANAIS_ASSINATURA.filter((c) => !avulso || c.value !== "portal").filter((c) => !rescisao || c.value === "fisico").map((c) => (
+            {CANAIS_ASSINATURA.filter((c) => (!avulso && !colabPapel) || c.value !== "portal").filter((c) => !rescisao || c.value === "fisico").map((c) => (
               <label key={c.value} className="flex items-start gap-2 rounded-md border p-3 text-sm cursor-pointer">
                 <RadioGroupItem value={c.value} className="mt-0.5" />
                 <span><span className="font-medium">{c.label}</span><span className="block text-xs text-muted-foreground">{c.ajuda}</span></span>
@@ -611,6 +618,22 @@ export default function DpRecibos() {
           </RadioGroup>
           {rescisao && (
             <p className="text-xs text-muted-foreground">Rescisão e quitação rescisória são assinadas só à mão, em duas vias: a assinatura física tem prova de autoria mais forte em caso de discussão na Justiça do Trabalho.</p>
+          )}
+          {colabPapel && canal === "fisico" && (
+            <p className="rounded-md border border-warning/40 bg-warning/10 p-3 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">Este colaborador assina em papel.</span> Baixe o PDF, imprima, colha a assinatura e anexe a via assinada no histórico. O portal não cobra nada dele.
+            </p>
+          )}
+          {colabPapel && canal === "whatsapp" && (
+            <div role="alert" className="rounded-md border border-warning/50 bg-warning/10 p-3 text-sm">
+              <div className="font-medium">Este colaborador está configurado para assinatura em papel.</div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Envie o link só como exceção (por exemplo, para o celular de um familiar). Se ele assinar pelo link, o recibo fica assinado e não precisa de papel.
+              </p>
+              <Button type="button" size="sm" variant="outline" className="mt-2" onClick={() => setCanal("fisico")}>
+                Usar Assinatura à Mão
+              </Button>
+            </div>
           )}
           {canal === "portal" && avisoPortal && (
             <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">

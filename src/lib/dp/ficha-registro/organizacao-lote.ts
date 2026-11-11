@@ -94,6 +94,8 @@ export type EscolhasLote = {
   /** Motivo da dispensa de ponto (ex.: cargo de confiança, Art. 62 da CLT). */
   folha_ponto_justificativa?: string | null;
   turno_id?: string | null;
+  /** Assina os documentos em papel (sem celular). Só por ficha ou grupo, nunca padrão do lote. */
+  assinatura_papel?: boolean | null;
 };
 
 /** Mínimo do motivo de dispensa de ponto (mesmo do cadastro do colaborador). */
@@ -330,6 +332,8 @@ export type PendenciasFichaLote = {
   complementares: string[];
   /** Sem telefone/WhatsApp e sem e-mail: não acessa o portal até preencher. */
   semAcesso: boolean;
+  /** Marcada para assinar em papel: sem dados de acesso deixa de ser pendência. */
+  assinaPapel?: boolean;
 };
 
 /**
@@ -385,7 +389,12 @@ export function pendenciasFichaLote(
   )
     .filter((c) => !["dados_pagamento", "cargo_id", "regime"].includes(c.chave))
     .map((c) => c.label);
-  return { obrigatorias, complementares, semAcesso: semDadosAcesso(d) };
+  return { obrigatorias, complementares, semAcesso: semDadosAcesso(d), assinaPapel: assinaPapelNaFicha(item, org) };
+}
+
+/** A ficha foi marcada para assinar em papel (escolha da própria ficha ou do grupo). */
+export function assinaPapelNaFicha(item: ItemLote, org: OrganizacaoLote | null | undefined): boolean {
+  return org?.ajustes?.[item.id]?.assinatura_papel === true;
 }
 
 /** Situação de uma ficha na lista compacta. */
@@ -407,7 +416,8 @@ export type SituacaoFichaLote = "concluida" | "ignorada" | "pronta" | "atencao" 
  */
 export function situacaoPorPendencias(p: PendenciasFichaLote): SituacaoFichaLote {
   if (p.obrigatorias.length > 0) return "atencao";
-  if (p.semAcesso) return "acesso";
+  // Quem assina em papel não precisa do portal: sem contato continua pronta.
+  if (p.semAcesso && !p.assinaPapel) return "acesso";
   return "pronta";
 }
 
@@ -456,6 +466,7 @@ export function ajustesEmGrupo(
         ? (escolhas.folha_ponto_justificativa ?? "").trim() || null
         : null;
     }
+    if ("assinatura_papel" in escolhas) e.assinatura_papel = escolhas.assinatura_papel ?? null;
     if ("turno_id" in escolhas) {
       if (temHorarioLido(id)) turnoMantido += 1;
       else e.turno_id = escolhas.turno_id ?? null;

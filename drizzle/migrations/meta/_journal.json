@@ -1576,6 +1576,13 @@
       "when": 1794414804101,
       "tag": "0224_sindicatos_base_unica_catalogo",
       "breakpoints": true
+    },
+    {
+      "idx": 225,
+      "version": "7",
+      "when": 1794416960776,
+      "tag": "0225_assinatura_papel_vigencia",
+      "breakpoints": true
     }
   ]
 }

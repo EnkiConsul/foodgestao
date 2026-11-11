@@ -44,6 +44,17 @@ function mensagemRecibo(nome: string | null | undefined, empresa: string | null 
 }
 
 const FUNCAO = "dp-recibo-emitir";
+
+const MSG_PAPEL = "Este colaborador assina em papel. Use Assinatura à Mão ou, como exceção, o link pelo WhatsApp.";
+
+/** Modo de assinatura vigente hoje (Brasília); na dúvida trata como papel para não cobrar no portal. */
+// deno-lint-ignore no-explicit-any
+async function assinaEmPapel(admin: any, colaboradorId: string): Promise<boolean> {
+  const hoje = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const { data, error } = await admin.rpc("dp_colaborador_modo_assinatura_em", { p_colaborador_id: colaboradorId, p_data: hoje });
+  if (error) throw new Error("Não foi possível conferir como o colaborador assina. Tente novamente.");
+  return data === "fisica";
+}
 const BUCKET = "dp-documentos";
 const VALIDADE_LINK_DIAS = 15;
 
@@ -222,6 +233,9 @@ Deno.serve(async (req) => {
           return erro(400, "Pessoa sem cadastro não acessa o portal. Escolha WhatsApp ou Assinatura à Mão.");
         }
         const trocaCanal = canalNovo !== row.canal_assinatura;
+        if (trocaCanal && canalNovo === "portal" && row.colaborador_id && await assinaEmPapel(admin, String(row.colaborador_id))) {
+          return erro(409, MSG_PAPEL);
+        }
         const invalida = dataPagamentoInvalida(b.pago_em);
         if (invalida) return erro(400, invalida);
         const pt = partes(b.modalidade, b.valor_cents, b.valor_bancario_cents, b.valor_especie_cents);
@@ -318,6 +332,7 @@ Deno.serve(async (req) => {
       cpf = String(colab.cpf ?? "").replace(/\D+/g, "");
       whatsapp = whatsapp || String(colab.whatsapp || colab.telefone || "").replace(/\D+/g, "");
       unidadeId = colab.unidade_id ?? unidadeId;
+      if (b.canal_assinatura === "portal" && await assinaEmPapel(admin, String(colab.id))) return erro(409, MSG_PAPEL);
     } else {
       if (b.canal_assinatura === "portal") return erro(400, "Pessoa sem cadastro não acessa o portal. Use WhatsApp ou assinatura à mão.");
       if (nome.length < 3) return erro(400, "Informe o nome completo de quem recebeu.");

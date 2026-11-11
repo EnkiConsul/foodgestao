@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, ChevronDown, Clock, KeyRound, Loader2, UserPlus } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronDown, Clock, FileSignature, KeyRound, Loader2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 
 type Plano = ReturnType<typeof planejarLote>;
 type Falha = { nome: string; motivo: string };
-type Resultado = { criados: number; semPdf: number; falhas: Falha[]; interrompido: string | null };
+type Resultado = { criados: number; semPdf: number; papelPendente: string[]; falhas: Falha[]; interrompido: string | null };
 
 const SUGESTAO_JUSTIFICATIVA = "Valores atualizados conforme a folha de pagamento vigente.";
 
@@ -44,7 +44,8 @@ export function EfetivarLoteDialog({ open, onOpenChange, companyId, itens, plano
   const [resultado, setResultado] = useState<Resultado | null>(null);
 
   const total = plano.aptas.length;
-  const semAcesso = plano.aptas.filter((p) => p.semAcesso).length;
+  const papel = plano.aptas.filter((p) => p.envio.assinaturaPapel).length;
+  const semAcesso = plano.aptas.filter((p) => p.semAcesso && !p.envio.assinaturaPapel).length;
   const semPonto = plano.aptas.filter((p) => !p.envio.possuiFolhaPonto).length;
   const temDivergencia = plano.comDivergencia.length > 0;
   const podeCriar = total > 0 && !!companyId && (!temDivergencia || cienciaDivergenciaValida(justificativa, ciente));
@@ -64,7 +65,7 @@ export function EfetivarLoteDialog({ open, onOpenChange, companyId, itens, plano
     if (!companyId || !podeCriar) return;
     setRodando(true);
     setResultado(null);
-    const r: Resultado = { criados: 0, semPdf: 0, falhas: [], interrompido: null };
+    const r: Resultado = { criados: 0, semPdf: 0, papelPendente: [], falhas: [], interrompido: null };
     const porId = new Map(itens.map((i) => [i.id, i]));
     // Fotografia do que foi confirmado: a lista pode atualizar enquanto cria.
     const fila = [...plano.aptas];
@@ -97,9 +98,11 @@ export function EfetivarLoteDialog({ open, onOpenChange, companyId, itens, plano
             formaPagamento: p.envio.formaPagamento,
             possuiFolhaPonto: p.envio.possuiFolhaPonto,
             optanteAdiantamento: p.envio.optanteAdiantamento,
+            assinaturaPapel: p.envio.assinaturaPapel,
             preadmissaoId: null,
           });
           r.criados += 1;
+          if (res.assinatura === "falhou") r.papelPendente.push(p.nome);
           if (res.anexo === "falhou" || res.anexo === "sem_paginas") r.semPdf += 1;
           if (p.divergencias.length > 0) {
             try {
@@ -182,6 +185,11 @@ export function EfetivarLoteDialog({ open, onOpenChange, companyId, itens, plano
                 Em {resultado.semPdf} {resultado.semPdf === 1 ? "cadastro" : "cadastros"} o PDF da ficha não foi anexado: anexe pelos documentos do colaborador.
               </p>
             )}
+            {resultado.papelPendente.length > 0 && (
+              <p className="rounded-xl border border-warning/50 bg-warning/10 p-3 text-xs">
+                Não deu para marcar "assina em papel" em {resultado.papelPendente.join(", ")}. O cadastro foi criado: marque em "Assinatura de documentos", na ficha do colaborador.
+              </p>
+            )}
             {resultado.interrompido && (
               <div className="rounded-xl border border-warning/50 bg-warning/10 p-3 text-xs">
                 <p className="font-medium">Parou antes de terminar</p>
@@ -224,12 +232,21 @@ export function EfetivarLoteDialog({ open, onOpenChange, companyId, itens, plano
               </p>
             </div>
 
+            {papel > 0 && (
+              <div className="flex gap-2 rounded-xl border p-3">
+                <FileSignature className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                <p className="text-xs">
+                  <span className="font-medium">{papel} {papel === 1 ? "assina" : "assinam"} em papel</span> desde a admissão:
+                  os documentos não vão para o celular e pedem a via impressa assinada.
+                </p>
+              </div>
+            )}
             {semAcesso > 0 && (
               <div className="flex gap-2 rounded-xl border p-3">
                 <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
                 <p className="text-xs">
                   <span className="font-medium">{semAcesso} sem WhatsApp ou e-mail</span> entram no cadastro normalmente.
-                  Elas não acessam o portal e assinam os documentos no papel; o contato pode ser incluído depois.
+                  Sem contato não acessam o portal até alguém incluir; se não têm celular, marque "Assina em papel" na lista antes de criar.
                 </p>
               </div>
             )}

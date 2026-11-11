@@ -1,4 +1,6 @@
 import { useEffect, useRef } from "react";
+import { definirModoAssinatura } from "@/hooks/useDpModoAssinatura";
+import { hojeBrasilia } from "@/lib/dp/modo-assinatura";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -267,6 +269,8 @@ export interface AplicarFichaInput {
   formaPagamento: string;
   possuiFolhaPonto: boolean;
   optanteAdiantamento: boolean;
+  /** Assina documentos em papel: grava o modo (com histórico) logo após o cadastro. */
+  assinaturaPapel?: boolean;
   /**
    * Conferência da ficha oficial de uma Pré-Admissão: quando informado, o
    * cadastro e a conclusão da pré-admissão acontecem na MESMA transação.
@@ -282,6 +286,9 @@ export interface AplicarFichaResultado {
   anexoMotivo?: string;
   /** Só na conferência de pré-admissão: "importacao", "recontratacao" ou "idempotente". */
   modo?: string;
+  /** Assinatura em papel: gravada, não pedida ou falhou (o cadastro continua confirmado). */
+  assinatura?: "ok" | "nao_solicitado" | "falhou";
+  assinaturaMotivo?: string;
 }
 
 /**
@@ -313,6 +320,7 @@ export async function aplicarFichaNoCadastro(selectedCompanyId: string | null, i
       possuiFolhaPonto,
       optanteAdiantamento,
       preadmissaoId,
+      assinaturaPapel,
     } = input;
   if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
   const nome = txt(dados.nome);
@@ -351,11 +359,13 @@ export async function aplicarFichaNoCadastro(selectedCompanyId: string | null, i
         : null,
       p_data_admissao: (dadosCadastro.data_admissao as string | null) ?? null,
     });
+    const ass = await gravarAssinaturaPapel(pr.colaborador_id, !!assinaturaPapel, false, dadosCadastro.data_admissao);
     return {
       colaboradorId: pr.colaborador_id,
       jaAplicado: !!pr.ja_aplicado,
       anexo: "nao_solicitado" as AnexoFichaStatus,
       modo: pr.modo,
+      ...ass,
     };
   }
 
@@ -381,6 +391,8 @@ export async function aplicarFichaNoCadastro(selectedCompanyId: string | null, i
   });
 
   const colaboradorId = res.colaborador_id;
+  // Antes do anexo: o documento da ficha já nasce pedindo a via impressa.
+  const ass = await gravarAssinaturaPapel(colaboradorId, !!assinaturaPapel, atualizarExistente, dadosCadastro.data_admissao);
   let anexo: AnexoFichaStatus = "nao_solicitado";
   let anexoMotivo: string | undefined;
 
@@ -442,7 +454,36 @@ export async function aplicarFichaNoCadastro(selectedCompanyId: string | null, i
     anexoMotivo = r.motivo;
   }
 
-  return { colaboradorId, jaAplicado: res.ja_aplicado, anexo, anexoMotivo } satisfies AplicarFichaResultado;
+  return { colaboradorId, jaAplicado: res.ja_aplicado, anexo, anexoMotivo, ...ass } satisfies AplicarFichaResultado;
+}
+
+/**
+ * Grava "assina em papel" com histórico. Cadastro novo vale desde a admissão;
+ * atualização de quem já existe vale a partir de hoje (nunca reescreve o passado).
+ * Falha aqui não desfaz o cadastro: volta como aviso para ajustar na ficha.
+ */
+async function gravarAssinaturaPapel(
+  colaboradorId: string,
+  papel: boolean,
+  existente: boolean,
+  dataAdmissao: unknown,
+): Promise<Pick<AplicarFichaResultado, "assinatura" | "assinaturaMotivo">> {
+  if (!papel) return { assinatura: "nao_solicitado" };
+  const hoje = hojeBrasilia();
+  const adm = typeof dataAdmissao === "string" && /^\d{4}-\d{2}-\d{2}/.test(dataAdmissao) ? dataAdmissao.slice(0, 10) : null;
+  try {
+    await definirModoAssinatura({
+      colaboradorId,
+      modo: "fisica",
+      vigenteDesde: !existente && adm ? adm : hoje,
+      motivo: "Marcado na importação da ficha de registro",
+      converterPendentes: true,
+      origem: "importacao_ficha",
+    });
+    return { assinatura: "ok" };
+  } catch (e) {
+    return { assinatura: "falhou", assinaturaMotivo: e instanceof Error ? e.message : undefined };
+  }
 }
 
 export function useAplicarFicha() {

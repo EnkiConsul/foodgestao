@@ -221,6 +221,8 @@ export function FichaRevisaoCard({
     typeof rascunho?.adiantamento === "boolean" ? rascunho.adiantamento : null,
   );
   const optanteAdiantamento = optanteEscolhido ?? adiantamentoPadrao ?? null;
+  // Assinatura dos documentos: celular (padrão) ou papel, escolhida na ficha ou em grupo no lote.
+  const [assinaturaPapel, setAssinaturaPapel] = useState<boolean>(rascunho?.assinatura_papel === true);
   const escolhasPendentes = escolhasObrigatoriasFaltando({
     regime,
     formaPagamento,
@@ -656,10 +658,14 @@ export function FichaRevisaoCard({
         formaPagamento: decidido?.formaPagamento ?? formaPagamento,
         possuiFolhaPonto,
         optanteAdiantamento,
+        assinaturaPapel,
         preadmissaoId,
       },
       {
         onSuccess: async (res) => {
+          if ((res as { assinatura?: string } | undefined)?.assinatura === "falhou") {
+            toast.warning('Cadastro criado, mas não deu para marcar "assina em papel". Marque em "Assinatura de documentos", na ficha do colaborador.');
+          }
           setComparacao(false);
           // Familiares da ficha viram dependentes (filhos, enteados, tutelados, cônjuge).
           const colabId = (res as { colaboradorId?: string } | undefined)?.colaboradorId;
@@ -740,6 +746,7 @@ export function FichaRevisaoCard({
       aj.folha_ponto = possuiFolhaPonto;
       aj.folha_ponto_justificativa = possuiFolhaPonto === false ? justificativaPonto.trim() || null : null;
     }
+    if (assinaturaPapel || typeof rascunho?.assinatura_papel === "boolean") aj.assinatura_papel = assinaturaPapel;
     if (turnoId) aj.turno_id = turnoId;
     if (cargoTocado) aj.cargo_id = cargoId;
     if (setorEscolhido && setorEscolhido !== (vinculoLote?.setorId ?? null)) aj.setor_id = setorEscolhido;
@@ -1283,6 +1290,24 @@ export function FichaRevisaoCard({
                     {tentouCriar && optanteAdiantamento === null && (
                       <p className="text-[11px] text-destructive">Informe se recebe adiantamento.</p>
                     )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Assinatura de documentos</Label>
+                    <Select value={assinaturaPapel ? "papel" : "celular"} onValueChange={(v) => setAssinaturaPapel(v === "papel")}>
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="celular">Celular (portal)</SelectItem>
+                        <SelectItem value="papel">Papel (via impressa)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[11px] text-muted-foreground">
+                      {assinaturaPapel
+                        ? "Vale desde a admissão: os documentos não vão para o celular; imprima, colha a assinatura e anexe a via assinada."
+                        : !String(dados.whatsapp ?? dados.telefone ?? dados.email ?? "").trim()
+                          ? "Sem WhatsApp ou e-mail. Se a pessoa não tem celular, escolha Papel."
+                          : "Assina pelo portal, no celular."}
+                    </p>
                   </div>
 
 

@@ -6435,6 +6435,67 @@ export type Database = {
           },
         ]
       }
+      dp_colaborador_modo_assinatura: {
+        Row: {
+          colaborador_id: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          documentos_convertidos: number
+          id: string
+          modo: string
+          motivo: string | null
+          origem: string
+          vigente_desde: string
+        }
+        Insert: {
+          colaborador_id: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          documentos_convertidos?: number
+          id?: string
+          modo: string
+          motivo?: string | null
+          origem?: string
+          vigente_desde: string
+        }
+        Update: {
+          colaborador_id?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          documentos_convertidos?: number
+          id?: string
+          modo?: string
+          motivo?: string | null
+          origem?: string
+          vigente_desde?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dp_colaborador_modo_assinatura_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_modo_assinatura_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "dp_colaboradores_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_colaborador_modo_assinatura_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dp_colaboradores: {
         Row: {
           acesso_portal_ate: string | null
@@ -19608,6 +19669,25 @@ export type Database = {
           _vira?: boolean
         }
         Returns: boolean
+      }
+      dp_colaborador_modo_assinatura_definir: {
+        Args: {
+          p_colaborador_id: string
+          p_converter_pendentes?: boolean
+          p_modo: string
+          p_motivo?: string
+          p_origem?: string
+          p_vigente_desde: string
+        }
+        Returns: Json
+      }
+      dp_colaborador_modo_assinatura_em: {
+        Args: { p_colaborador_id: string; p_data: string }
+        Returns: string
+      }
+      dp_colaborador_modo_assinatura_pendentes: {
+        Args: { p_colaborador_id: string }
+        Returns: number
       }
       dp_colaborador_of: { Args: { _user_id: string }; Returns: string }
       dp_colaborador_perfil_atualizar: {

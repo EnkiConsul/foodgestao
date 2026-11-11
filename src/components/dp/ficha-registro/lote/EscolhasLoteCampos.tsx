@@ -173,6 +173,25 @@ export function EscolhasLoteCampos({ valor, onChange, modo, turnos, unidadeSemAd
           ) : null}
         </div>
       )}
+      {modo === "grupo" && (
+        <div className="space-y-1">
+          <Label className="text-xs">Assinatura de documentos</Label>
+          <Select
+            value={!("assinatura_papel" in valor) ? MANTER : valor.assinatura_papel ? "true" : "false"}
+            onValueChange={(v) => mudar("assinatura_papel", v === "false" ? NENHUM : v, () => true)}
+          >
+            <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={MANTER}>Manter como está</SelectItem>
+              <SelectItem value="false">Celular (portal)</SelectItem>
+              <SelectItem value="true">Papel (via impressa)</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-[11px] text-muted-foreground">
+            Em papel, os documentos não vão para o celular: imprime, colhe a assinatura e anexa a via assinada.
+          </p>
+        </div>
+      )}
       {turnos.length > 0 && (
         <div className="space-y-1">
           <Label className="text-xs">Turno</Label>
@@ -204,6 +223,7 @@ export function resumoEscolhas(e: EscolhasLote, turnos: TurnoLote[]): string[] {
   if (e.adiantamento === true) out.push("Com adiantamento");
   if (e.adiantamento === false) out.push("Sem adiantamento");
   if (e.folha_ponto === false) out.push("Não registra ponto");
+  if (e.assinatura_papel === true) out.push("Assina em papel");
   const t = turnos.find((x) => x.id === e.turno_id)?.nome;
   if (t) out.push(`Turno ${t}`);
   return out;

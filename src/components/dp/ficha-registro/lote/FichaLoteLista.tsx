@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CheckSquare, ChevronRight, KeyRound, Plus, Search, SlidersHorizontal, X } from "lucide-react";
+import { CheckSquare, ChevronRight, FileSignature, KeyRound, Plus, Search, SlidersHorizontal, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -41,6 +41,8 @@ interface Props {
   onAplicarMarcadas: (itemIds: string[], titulo: string) => void;
   /** Abre a lista rápida de dados para acesso (opcionalmente focando uma ficha). */
   onPreencherContatos: (focoId: string | null) => void;
+  /** Marca (ou desmarca) que estas fichas assinam os documentos em papel. */
+  onAssinaturaPapel?: (itemIds: string[], papel: boolean) => Promise<void> | void;
 }
 
 const lista = (xs: string[], max = 4) => {
@@ -52,7 +54,7 @@ const lista = (xs: string[], max = 4) => {
 
 /** Etapa 3: lista enxuta do lote, com atalhos por setor, ação em grupo e contato rápido. */
 export function FichaLoteLista({
-  itens, organizacao, cargos, setores, padroes, unidadeId, onAbrir, onAplicarMarcadas, onPreencherContatos,
+  itens, organizacao, cargos, setores, padroes, unidadeId, onAbrir, onAplicarMarcadas, onPreencherContatos, onAssinaturaPapel,
 }: Props) {
   const salarioCargoDe = useDpSalarioCargoResolver();
   const [filtro, setFiltro] = useState<Filtro>("todas");
@@ -88,7 +90,8 @@ export function FichaLoteLista({
           pendente: aberta && STATUS_PENDENTES.includes(item.status),
           obrigatorias: aberta ? pend.obrigatorias : [],
           complementares: aberta ? pend.complementares : [],
-          semAcesso: aberta && pend.semAcesso,
+          semAcesso: aberta && pend.semAcesso && !pend.assinaPapel,
+          papel: !concluida && !!pend.assinaPapel,
         };
       }),
     [itens, organizacao, cargos, setores, padroes, unidadeId, salarioCargoDe],
@@ -127,7 +130,8 @@ export function FichaLoteLista({
     });
   const sairSelecao = () => { setSelecionando(false); setMarcadas(new Set()); };
 
-  const semAcesso = linhas.filter((l) => l.semAcesso).length;
+  const idsSemAcesso = linhas.filter((l) => l.semAcesso).map((l) => l.item.id);
+  const semAcesso = idsSemAcesso.length;
 
   const FILTROS: Array<{ id: Filtro; label: string }> = [
     { id: "todas", label: "Todas" },
@@ -146,12 +150,21 @@ export function FichaLoteLista({
               <p className="text-sm font-medium">
                 Faltam dados de acesso para {semAcesso} {semAcesso === 1 ? "colaborador" : "colaboradores"}
               </p>
-              <p className="text-xs text-muted-foreground">Sem WhatsApp ou e-mail a pessoa não recebe o acesso ao portal.</p>
+              <p className="text-xs text-muted-foreground">
+                Sem WhatsApp ou e-mail a pessoa não recebe o acesso ao portal. Quem não tem celular pode assinar os documentos em papel.
+              </p>
             </div>
           </div>
-          <Button size="sm" className="h-10 w-full shrink-0 sm:w-auto" onClick={() => onPreencherContatos(null)}>
-            Preencher contatos
-          </Button>
+          <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">
+            {onAssinaturaPapel && (
+              <Button size="sm" variant="outline" className="h-10 w-full sm:w-auto" onClick={() => onAssinaturaPapel(idsSemAcesso, true)}>
+                <FileSignature className="mr-1 h-4 w-4" /> {semAcesso === 1 ? "Assina em papel" : "Todos assinam em papel"}
+              </Button>
+            )}
+            <Button size="sm" className="h-10 w-full sm:w-auto" onClick={() => onPreencherContatos(null)}>
+              Preencher contatos
+            </Button>
+          </div>
         </div>
       )}
 
@@ -287,6 +300,12 @@ export function FichaLoteLista({
                         Faltam dados de acesso
                       </span>
                     )}
+                    {l.papel && (
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <FileSignature className="h-3 w-3 shrink-0" aria-hidden="true" />
+                        Assina em papel
+                      </span>
+                    )}
                     {l.complementares.length > 0 && (
                       <span className="line-clamp-2 text-[11px] text-muted-foreground">
                         Não veio na ficha: {lista(l.complementares)}
@@ -298,9 +317,16 @@ export function FichaLoteLista({
               </div>
               {l.semAcesso && !selecionando && (
                 <div className="-mt-1 pb-2 pl-3 pr-3 sm:pl-12">
-                  <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => onPreencherContatos(l.item.id)}>
-                    <Plus className="mr-1 h-3.5 w-3.5" /> WhatsApp ou e-mail
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" className="h-9 text-xs" onClick={() => onPreencherContatos(l.item.id)}>
+                      <Plus className="mr-1 h-3.5 w-3.5" /> WhatsApp ou e-mail
+                    </Button>
+                    {onAssinaturaPapel && (
+                      <Button variant="outline" size="sm" className="h-9 text-xs" onClick={() => onAssinaturaPapel([l.item.id], true)}>
+                        <FileSignature className="mr-1 h-3.5 w-3.5" /> Não tem celular: assina em papel
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
             </li>

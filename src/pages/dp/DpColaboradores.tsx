@@ -16,6 +16,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { CadastroIncompletoBadge } from "@/components/dp/CadastroIncompletoBadge";
+import { AssinaturaPapelBadge } from "@/components/dp/assinatura/ModoAssinaturaCard";
+import { useDpModosAssinaturaEmpresa } from "@/hooks/useDpModoAssinatura";
+import { assinaEmPapelHoje } from "@/lib/dp/modo-assinatura";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -158,6 +161,12 @@ export default function DpColaboradores() {
   const [perfilFilter, setPerfilFilter] = useState<string>("all");
   const [setorFilter, setSetorFilter] = useState<string>("all");
   const [incompletosFilter, setIncompletosFilter] = useState(false);
+  /** Assinatura de documentos: todos, só celular ou só papel (ex.: imprimir recibos do mês). */
+  const [assinaturaFilter, setAssinaturaFilter] = useState<"all" | "celular" | "papel">("all");
+  const modosAssinatura = useDpModosAssinaturaEmpresa();
+  const assinaPapel = (id: string) => assinaEmPapelHoje(modosAssinatura.porColaborador.get(id));
+  const passaAssinatura = (id: string) =>
+    assinaturaFilter === "all" || (assinaturaFilter === "papel") === assinaPapel(id);
 
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -391,6 +400,7 @@ export default function DpColaboradores() {
         if (statusFilter === "em_aviso" && !avisos.has(c.id)) return false;
         if (statusFilter === "em_admissao" && !c.admissao) return false;
         if (statusFilter === "incompletos" && (c.admissao || !c.ativo || faltantesDe(c).length === 0)) return false;
+        if (!passaAssinatura(c.id)) return false;
         return true;
       })
       .map((c) => ({ tipo: "colaborador" as const, item: c, nome: c.nome, ativo: c.ativo }));
@@ -402,6 +412,7 @@ export default function DpColaboradores() {
         if (statusFilter === "ativos" && !p.ativo) return false;
         if (statusFilter === "desligados" && p.ativo) return false;
         if (statusFilter === "incompletos") return false;
+        if (assinaturaFilter !== "all") return false;
         return true;
       })
       .map((p) => ({ tipo: p.tipo === "folguista" ? ("folguista" as const) : ("teste" as const), item: p, nome: p.nome, ativo: p.ativo }));
@@ -410,7 +421,7 @@ export default function DpColaboradores() {
       return a.nome.localeCompare(b.nome, "pt-BR");
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [list.data, pessoasApoio.data, search, unidadeFilter, cargoFilter, statusFilter, avisos]);
+  }, [list.data, pessoasApoio.data, search, unidadeFilter, cargoFilter, statusFilter, avisos, assinaturaFilter, modosAssinatura.porColaborador]);
 
   /**
    * Atalho de outras telas (ex.: Rotina, Pendências):
@@ -508,6 +519,7 @@ export default function DpColaboradores() {
         if (incompletosFilter) {
           if (faltantesDe(c).length === 0) return false;
         }
+        if (!passaAssinatura(c.id)) return false;
         return true;
 
       })
@@ -530,7 +542,7 @@ export default function DpColaboradores() {
         return a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" });
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [list.data, search, unidadeFilter, cargoFilter, perfilFilter, setorFilter, statusFilter, incompletosFilter, mostrarSetor, avisos]);
+  }, [list.data, search, unidadeFilter, cargoFilter, perfilFilter, setorFilter, statusFilter, incompletosFilter, mostrarSetor, avisos, assinaturaFilter, modosAssinatura.porColaborador]);
 
 
 
@@ -581,6 +593,7 @@ export default function DpColaboradores() {
 )}
               {folha && <Badge variant="outline" className="h-4 px-1 text-[10px]">Ponto</Badge>}
               {adiantamento && <Badge variant="outline" className="h-4 px-1 text-[10px]">Adiantamento</Badge>}
+              {!c.admissao && assinaPapel(c.id) && <AssinaturaPapelBadge className="h-4 px-1 text-[10px]" />}
             </div>
 
           </>
@@ -833,9 +846,22 @@ export default function DpColaboradores() {
           ...(perfilFilter !== "all"
             ? [{ key: "perfil", label: PERFIL_LABEL[perfilFilter] ?? "Perfil", onRemove: () => setPerfilFilter("all") }]
             : []),
+          ...(assinaturaFilter !== "all"
+            ? [{ key: "assinatura", label: assinaturaFilter === "papel" ? "Assina em papel" : "Assina no celular", onRemove: () => setAssinaturaFilter("all") }]
+            : []),
         ]}
-        onClear={() => { setIncompletosFilter(false); setUnidadeFilter("all"); setCargoFilter("all"); setPerfilFilter("all"); setSetorFilter("all"); }}
+        onClear={() => { setIncompletosFilter(false); setUnidadeFilter("all"); setCargoFilter("all"); setPerfilFilter("all"); setSetorFilter("all"); setAssinaturaFilter("all"); }}
       >
+        <DpFilterField label="Assinatura">
+          <Select value={assinaturaFilter} onValueChange={(v) => setAssinaturaFilter(v as typeof assinaturaFilter)}>
+            <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="celular">Assina no celular</SelectItem>
+              <SelectItem value="papel">Assina em papel</SelectItem>
+            </SelectContent>
+          </Select>
+        </DpFilterField>
         <DpFilterField label="Cadastro">
           <Select
             value={incompletosFilter ? "incompletos" : "all"}
@@ -1087,6 +1113,7 @@ export default function DpColaboradores() {
                       >
                         Ponto: {folha ? "Sim" : "Não"}
                       </Badge>
+                      {!c.admissao && assinaPapel(c.id) && <AssinaturaPapelBadge className="text-[11px]" />}
                       {c.ativo && !c.admissao && (
 <CadastroIncompletoBadge faltando={faltantesDe(c)} className="text-[11px]" onCompletar={(aba) => abrirCadastro(c, aba)} />
 )}
@@ -1400,6 +1427,7 @@ export default function DpColaboradores() {
                         >
                           Ponto: {folha ? "Sim" : "Não"}
                         </Badge>
+                        {!c.admissao && assinaPapel(c.id) && <AssinaturaPapelBadge className="text-[11px]" />}
                         {c.ativo && !c.admissao && (
 <CadastroIncompletoBadge faltando={faltantesDe(c)} className="text-[11px]" onCompletar={(aba) => abrirCadastro(c, aba)} />
 )}

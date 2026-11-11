@@ -47,6 +47,8 @@ export type EnvioFichaLote = {
   optanteAdiantamento: boolean;
   jornada: JornadaSugerida | null;
   turnoId: string | null;
+  /** Assina documentos em papel a partir da admissão (marcado na ficha ou em grupo). */
+  assinaturaPapel: boolean;
 };
 
 export type PlanoFichaLote =
@@ -163,6 +165,7 @@ export function planejarFichaLote(item: ItemEfetivacao, org: OrganizacaoLote | n
       optanteAdiantamento,
       jornada: jornada.vazia ? null : jornada,
       turnoId,
+      assinaturaPapel: org?.ajustes?.[item.id]?.assinatura_papel === true,
     },
     divergencias,
     dependentes: dependentesDaFicha(d),

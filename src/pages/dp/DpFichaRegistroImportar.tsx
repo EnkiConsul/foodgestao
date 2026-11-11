@@ -829,6 +829,7 @@ export default function DpFichaRegistroImportar() {
                 onAbrir={setAbertoId}
                 onAplicarMarcadas={(ids, titulo) => setPadroesAbertura({ escopo: "grupo", ids, titulo })}
                 onPreencherContatos={(foco) => setContatosFoco({ foco })}
+                onAssinaturaPapel={(ids, papel) => aplicarGrupo(ids, { assinatura_papel: papel }).catch(() => undefined)}
               />
               <ContatosLoteDialog
                 open={!!contatosFoco}
