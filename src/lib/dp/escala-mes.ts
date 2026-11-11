@@ -12,6 +12,7 @@
 import { formatarHoras, LIMITE_SEMANAL } from "@/lib/dp/jornada-utils";
 import { cargaLiquidaHoras, turnoViraODia, type TurnoHorario } from "@/lib/dp/turno-utils";
 import { turnoDoDia, type ConfigTrabalho, type TurnoDia, type TurnoResolvido } from "@/lib/dp/config-trabalho";
+import { diaDaConfigNaData, ehEscala12x36 } from "@/lib/dp/escala-12x36";
 
 export type EscalaItemTipo = "trabalho" | "folga" | "ferias" | "afastamento" | "feriado";
 export type EscalaItemOrigem = "gerado" | "manual" | "troca" | "convocacao";
@@ -189,8 +190,7 @@ export function gerarEscalaMes(input: GerarEscalaMesInput): EscalaItem[] {
         continue;
       }
 
-      const dow = dowDaData(data);
-      const dia = colab.config.dias.find((d) => d.dow === dow);
+      const dia = diaDaConfigNaData(colab.config, data);
       if (!dia || !dia.trabalha) {
         empurrar(itemFolga(colab.id, data, feriados.has(data) ? "feriado" : "folga"));
         continue;
@@ -271,6 +271,8 @@ export function validarEscalaMes(itens: EscalaItem[], opts: ValidarEscalaOpts): 
   const nome = new Map(opts.colaboradores.map((c) => [c.id, c.nome]));
   const valida = opts.validaCarga ?? (() => true);
   const regime = new Map(opts.colaboradores.map((c) => [c.id, c.regime ?? null]));
+  // 12x36 alterna 36h e 48h por semana: a compensação é do próprio regime (Art. 59-A da CLT).
+  const plantao12x36 = new Set(opts.colaboradores.filter((c) => ehEscala12x36(c.config)).map((c) => c.id));
 
   for (const colab of opts.colaboradores) {
     if (!colab.config) {
@@ -297,6 +299,7 @@ export function validarEscalaMes(itens: EscalaItem[], opts: ValidarEscalaOpts): 
 
   for (const r of resumoPorColaborador(itens)) {
     if (!valida(regime.get(r.colaborador_id))) continue;
+    if (plantao12x36.has(r.colaborador_id)) continue;
     for (const [semana, carga] of Object.entries(r.cargaPorSemana)) {
       if (carga > LIMITE_SEMANAL) {
         alertas.push({

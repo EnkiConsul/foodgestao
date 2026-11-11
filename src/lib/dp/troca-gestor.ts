@@ -27,8 +27,12 @@ export type TrocaGestorInput = {
   notificar: boolean;
 };
 
+/** Plantão 12x36 que ficaria colado a outro plantão (D e D+1) depois da troca. */
+export type RiscoPlantao12x36 = { colaborador_id: string; nome: string; data_plantao: string; data_vizinha: string };
+
 export type TrocaGestorPrevia = {
   riscos: { colaborador_id: string; nome: string; dias: number }[];
+  riscos_12x36?: RiscoPlantao12x36[];
   em_admissao: boolean;
   participantes?: ParticipanteTermoTroca[];
 };
@@ -48,4 +52,12 @@ export function folgasPropriasTroca(dias: DiaTroca[], pessoaId: string, dataMini
   return dias.filter(dia => (!dataMinima || dia.data >= dataMinima) &&
     dia.pessoas.some(p => p.colaborador_id === pessoaId && !p.avulso_id && ["folga_padrao", "folga_extra"].includes(p.categoria))
   ).map(dia => dia.data).filter((data, index, datas) => datas.indexOf(data) === index).sort();
+}
+
+/** Motivo mínimo exigido pelo servidor quando a troca cola plantões 12x36. */
+export const MOTIVO_MIN_PLANTAO_12X36 = 10;
+
+/** Plantões seguidos de uma pessoa, agrupados para o termo e para o aviso. */
+export function plantoesSeguidosDe(riscos: RiscoPlantao12x36[] | null | undefined, colaboradorId: string): RiscoPlantao12x36[] {
+  return (riscos ?? []).filter((r) => r.colaborador_id === colaboradorId);
 }

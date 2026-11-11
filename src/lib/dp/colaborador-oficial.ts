@@ -39,6 +39,10 @@ const MENSAGENS: Record<string, string> = {
   CONFIG_FOLGA_FIXA_INVALIDA: "Escolha o dia da folga fixa.",
   CONFIG_DIAS_INVALIDOS: "Informe a configuração dos sete dias da semana.",
   CONFIG_INTERVALO_INVALIDO: "O intervalo informado está fora do aceitável.",
+  CONFIG_ESCALA_MODELO_INVALIDO: "Escolha entre escala semanal e escala 12x36.",
+  CONFIG_12X36_PRIMEIRO_PLANTAO_OBRIGATORIO: "Informe a data do primeiro plantão da escala 12x36.",
+  CONFIG_12X36_TURNO_OBRIGATORIO: "Informe o horário do plantão da escala 12x36.",
+  CONFIG_12X36_REGIME: "Contrato intermitente não usa escala 12x36: o trabalho vem das convocações.",
   FOLGA_DATA_OBRIGATORIA: "Informe a data da folga.",
   FOLGA_COLABORADOR_INVALIDO: "Colaborador indisponível para receber folga.",
   FOLGA_DUPLICADA: "Este colaborador já tem folga marcada neste dia.",
@@ -136,6 +140,8 @@ export async function salvarConfigTrabalho(input: {
     folga_fixa_dow: number | null;
     observacoes: string | null;
     dias: ConfigDiaPayload[];
+    escala_modelo?: "semanal" | "12x36";
+    data_primeiro_plantao?: string | null;
   };
 }): Promise<string> {
   const { data, error } = await (supabase.rpc as any)("dp_colaborador_config_salvar", {

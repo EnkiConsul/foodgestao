@@ -13,11 +13,12 @@
 // Funções puras — nenhuma dependência de React ou Supabase.
 // ------------------------------------------------------------------
 
-import { dowDaData, type EscalaItem, type EscalaItemTipo } from "@/lib/dp/escala-mes";
+import { type EscalaItem, type EscalaItemTipo } from "@/lib/dp/escala-mes";
 import { turnoDoDia, type ConfigTrabalho, type TurnoResolvido } from "@/lib/dp/config-trabalho";
 import { cargaLiquidaHoras, turnoViraODia } from "@/lib/dp/turno-utils";
 import { contratoPolicy, type RegimeTrabalho } from "@/lib/dp/contrato-policy";
 import { hhmm, paraMinutos } from "@/lib/dp/jornada-utils";
+import { diaDaConfigNaData } from "@/lib/dp/escala-12x36";
 
 export type FontePrevisto =
   | "convocacao"
@@ -174,7 +175,8 @@ export function resolverHorarioPrevisto(input: ResolverPrevistoInput): HorarioPr
   const config = colaborador.config;
   if (!config) return vazio(colaborador.id, data, "sem_previsao");
 
-  const dia = config.dias.find((d) => d.dow === dowDaData(data));
+  // No 12x36 o ciclo de 48h decide o plantão; na escala semanal vale o dia da semana.
+  const dia = diaDaConfigNaData(config, data);
   if (!dia || !dia.trabalha) return vazio(colaborador.id, data, "habitual", "folga");
 
   // Horário próprio do dia (variação da semana, sem turno na loja) tem prioridade

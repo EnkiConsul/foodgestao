@@ -4,6 +4,12 @@
  */
 export function mensagemErroTroca(raw: string | null | undefined): string {
   const msg = raw ?? "";
+  if (msg.includes("TROCA_12X36_GESTOR"))
+    return "Na escala 12x36 esta troca deixa plantões em dias seguidos. Peça ao gestor para registrar a troca.";
+  if (msg.includes("PLANTAO_12X36_CIENCIA_OBRIGATORIA"))
+    return "Confirme que os plantões seguidos foram pedidos pelo colaborador antes de registrar.";
+  if (msg.includes("PLANTAO_12X36_MOTIVO_OBRIGATORIO"))
+    return "Descreva o pedido do colaborador no motivo (mínimo de 10 caracteres).";
   if (msg.includes("DSR_CIENCIA_OBRIGATORIA")) return "Confira novamente o alerta de descanso e registre sua ciência antes de confirmar.";
   if (msg.includes("TROCA_PROIBIDA")) return "As trocas estão desativadas nas regras desta unidade.";
   if (msg.includes("TROCA_FORA_ROTINA")) return "Uma das datas está fora do período de trabalho de uma das pessoas.";

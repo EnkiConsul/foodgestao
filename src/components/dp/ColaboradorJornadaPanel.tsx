@@ -45,6 +45,9 @@ import {
   ORIGEM_HORARIO_REATIVADO_LABEL,
   type DiaConfig, type TurnoResolvido,
 } from "@/lib/dp/config-trabalho";
+import {
+  alertas12x36, cargaMediaSemanal12x36, simularCiclo12x36, ESCALA_MODELO_LABEL, type EscalaModelo,
+} from "@/lib/dp/escala-12x36";
 
 
 const SEM_SETOR_DIA = "__setor_habitual__";
@@ -143,6 +146,8 @@ export function ColaboradorJornadaPanel({
   rascunhoInicial, onRascunho, avisoSemCadastro, onNavegar, horarioFicha, inicioLoja,
 }: Props) {
   const policy = contratoPolicy(colaborador?.regime, colaborador?.vinculo_label);
+  /** Intermitente trabalha por convocação e sócio não tem jornada controlada: 12x36 não se aplica. */
+  const podeUsar12x36 = !policy.horasPorConvocacao && !isSocio(colaborador?.vinculo_label);
   const { selectedCompanyId } = useCompanyContext();
   const { data: unidades = [] } = useDpUnidades();
   const { configs, vigente, isLoading, salvar, encerrar, remover, saving } =
@@ -183,6 +188,10 @@ export function ColaboradorJornadaPanel({
    */
   const [horarioReferencia, setHorarioReferencia] = useState<HorarioSimples>(HORARIO_VAZIO);
   const [folgaVariavel, setFolgaVariavel] = useState(false);
+  /** Escala semanal (grade por dia) ou 12x36 (plantão dia sim, dia não). */
+  const [escalaModelo, setEscalaModelo] = useState<EscalaModelo>("semanal");
+  const [primeiroPlantao, setPrimeiroPlantao] = useState("");
+  const doze = escalaModelo === "12x36";
   const [dias, setDias] = useState<DiaConfig[]>(diasPadrao());
   const [inicio, setInicio] = useState(hoje());
   /** Houve alteração do usuário desde o carregamento — evita salvar sem motivo. */
@@ -344,12 +353,15 @@ export function ColaboradorJornadaPanel({
     }
     if (vigente) {
       setFolgaVariavel(vigente.folga_variavel);
+      setEscalaModelo(vigente.escala_modelo === "12x36" ? "12x36" : "semanal");
+      setPrimeiroPlantao(vigente.data_primeiro_plantao ?? "");
       setDias(normalizarDias(vigente.dias, vigente.folga_fixa_dow));
       setObs(vigente.observacoes ?? "");
       setInicio(vigente.vigencia_inicio ?? admissao ?? hoje());
     } else {
       setFolgaVariavel(false);
-
+      setEscalaModelo("semanal");
+      setPrimeiroPlantao("");
       setDias(diasPadrao());
       setObs("");
       setInicio(admissao ?? hoje());
@@ -406,8 +418,9 @@ export function ColaboradorJornadaPanel({
    * próprio colaborador, sem criar turno novo.
    */
   const horario = useMemo<HorarioSimples>(
-    () => horarioPadraoDaSemana(dias, horarioReferencia),
-    [dias, horarioReferencia],
+    // No 12x36 o plantão tem um único horário, digitado direto.
+    () => (doze ? horarioReferencia : horarioPadraoDaSemana(dias, horarioReferencia)),
+    [doze, dias, horarioReferencia],
   );
 
   /**
@@ -442,8 +455,10 @@ export function ColaboradorJornadaPanel({
       folga_variavel: folgaVariavel,
       folga_fixa_dow: null as number | null,
       dias,
+      escala_modelo: escalaModelo,
+      data_primeiro_plantao: doze ? primeiroPlantao || null : null,
     }),
-    [turnoPadraoTela.id, folgaVariavel, dias],
+    [turnoPadraoTela.id, folgaVariavel, dias, escalaModelo, doze, primeiroPlantao],
   );
 
   const turnosTela = useMemo(() => [turnoPadraoTela, ...turnosResolvidos], [turnoPadraoTela, turnosResolvidos]);
@@ -510,6 +525,9 @@ export function ColaboradorJornadaPanel({
    */
   const alertas: AlertaClt[] = useMemo(() => {
     const idade = idadeNaData(colaborador?.data_nascimento, inicio);
+    if (doze) {
+      return alertas12x36({ ...horario, idade }).map((a) => ({ ...a, campo: a.codigo }));
+    }
     return verificarAlertasClt({
       idade,
       regime: colaborador?.regime,
@@ -527,7 +545,7 @@ export function ColaboradorJornadaPanel({
       }),
     });
   }, [
-    dias, turnoPadraoTela.id, turnosTela, folgaVariavel,
+    dias, turnoPadraoTela.id, turnosTela, folgaVariavel, doze, horario,
     colaborador?.data_nascimento, colaborador?.regime, colaborador?.vinculo_label, inicio,
   ]);
 
@@ -738,6 +756,8 @@ export function ColaboradorJornadaPanel({
     const turnoPadraoId = await resolverTurno(horario);
 
     const diasResolvidos: DiaConfig[] = dias.map((d) => {
+      // 12x36: os sete dias usam o horário do plantão; o ciclo decide o dia trabalhado.
+      if (doze) return { ...d, trabalha: true, turno_id: null, entrada: null, saida: null, intervalo_minutos: null };
       if (!d.trabalha || !diaDivergeDoBase(d, horario)) {
         return { ...d, turno_id: null, entrada: null, saida: null, intervalo_minutos: null };
       }
@@ -756,11 +776,13 @@ export function ColaboradorJornadaPanel({
     await salvar.mutateAsync({
       unidade_id: unidadeId === "none" ? null : unidadeId,
       turno_padrao_id: turnoPadraoId,
-      folga_variavel: folgaVariavel,
-      folga_fixa_dow: folgaVariavel || folgas.length !== 1 ? null : folgas[0],
+      folga_variavel: doze ? false : folgaVariavel,
+      folga_fixa_dow: doze || folgaVariavel || folgas.length !== 1 ? null : folgas[0],
       observacoes: obs.trim() || null,
       vigencia_inicio: inicioEfetivo,
       dias: diasResolvidos,
+      escala_modelo: escalaModelo,
+      data_primeiro_plantao: doze ? primeiroPlantao : null,
     });
     if (decisao) {
       await registrarCiencia(
@@ -778,7 +800,7 @@ export function ColaboradorJornadaPanel({
           companyId: selectedCompanyId,
           ids: [colaborador.id],
           dados: {
-            folga_fixa_semana: folgaVariavel || folgas.length !== 1 ? null : folgas[0],
+            folga_fixa_semana: doze || folgaVariavel || folgas.length !== 1 ? null : folgas[0],
           },
         });
       } catch { /* o horário já foi gravado; o campo espelho não deve travar */ }
@@ -852,6 +874,7 @@ export function ColaboradorJornadaPanel({
       return;
     }
     if (!horario.entrada || !horario.saida) { toast.error("Informe a entrada e a saída."); return; }
+    if (doze && !primeiroPlantao) { toast.error("Informe a data do primeiro plantão."); return; }
     if (bloqueado) { toast.error("Corrija os pontos indicados antes de salvar."); return; }
     if (precisaDecidirVigencia() && !(await pedirDecisao())) return;
     if (temAlertaClt(alertas)) { setCienciaOpen(true); return; }
@@ -894,6 +917,10 @@ export function ColaboradorJornadaPanel({
     if (!colaborador?.id || !alterado) return "nada";
     if (!horario.entrada || !horario.saida) {
       toast.error("Informe a entrada e a saída do horário de trabalho.");
+      return "erro";
+    }
+    if (doze && !primeiroPlantao) {
+      toast.error("Informe a data do primeiro plantão da escala 12x36.");
       return "erro";
     }
     if (bloqueado) {
@@ -1053,6 +1080,52 @@ export function ColaboradorJornadaPanel({
         </div>
       </div>
 
+      {podeUsar12x36 && (
+        <div className="space-y-1.5">
+          <Label>{tituloSistema("Tipo de Escala")}</Label>
+          <RadioGroup
+            value={escalaModelo}
+            onValueChange={(v) => {
+              marcarAlterado();
+              const modelo = v as EscalaModelo;
+              setEscalaModelo(modelo);
+              if (modelo === "12x36") {
+                setFolgaVariavel(false);
+                if (!primeiroPlantao) setPrimeiroPlantao(inicio || hoje());
+              }
+            }}
+            className="grid gap-2 sm:grid-cols-2"
+          >
+            {(["semanal", "12x36"] as EscalaModelo[]).map((m) => (
+              <Label
+                key={m}
+                htmlFor={`escala-modelo-${m}`}
+                className="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-3 font-normal"
+              >
+                <RadioGroupItem value={m} id={`escala-modelo-${m}`} className="mt-0.5" />
+                <span>
+                  <span className="block text-sm font-medium text-foreground">{ESCALA_MODELO_LABEL[m]}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {m === "semanal"
+                      ? "Horário por dia da semana, com folga fixa ou variável."
+                      : "Plantão de 12h com 36h de descanso, dia sim, dia não."}
+                  </span>
+                </span>
+              </Label>
+            ))}
+          </RadioGroup>
+        </div>
+      )}
+
+      {doze ? (
+        <Plantao12x36Bloco
+          horario={horario}
+          onHorario={definirHorario}
+          primeiroPlantao={primeiroPlantao}
+          onPrimeiroPlantao={(v) => { marcarAlterado(); setPrimeiroPlantao(v); }}
+          minimo={admissao ?? undefined}
+        />
+      ) : (
       <section className="space-y-2">
         {origemSugestao === "cargo" && (
           <p className="flex items-center gap-2 rounded-md border bg-muted/30 p-2 text-xs text-muted-foreground">
@@ -1283,6 +1356,7 @@ export function ColaboradorJornadaPanel({
           </div>
         )}
       </section>
+      )}
 
       {(avisos.length > 0 || infos.length > 0) && (
         <section className="space-y-1.5">
@@ -1370,6 +1444,7 @@ export function ColaboradorJornadaPanel({
                       <p className="flex flex-wrap items-center gap-2 font-medium">
                         {fmt(c.vigencia_inicio)} → {fmt(c.vigencia_fim) ?? "sem término"}
                         {ativo && <Badge>Vigente</Badge>}
+                        {c.escala_modelo === "12x36" && <Badge variant="outline">12x36</Badge>}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {resumoConfigTexto(
@@ -1378,6 +1453,8 @@ export function ColaboradorJornadaPanel({
                             folga_variavel: c.folga_variavel,
                             folga_fixa_dow: c.folga_fixa_dow,
                             dias: c.dias,
+                            escala_modelo: c.escala_modelo,
+                            data_primeiro_plantao: c.data_primeiro_plantao,
                           },
                           turnosResolvidos,
                         )}
@@ -1565,5 +1642,100 @@ function RepetirHorarioPopover({ dow, onRepetir }: { dow: number; onRepetir: (de
         </Button>
       </PopoverContent>
     </Popover>
+  );
+}
+
+/** Plantão 12x36: horário único, data do primeiro plantão e prévia dos próximos 14 dias. */
+function Plantao12x36Bloco({
+  horario, onHorario, primeiroPlantao, onPrimeiroPlantao, minimo,
+}: {
+  horario: HorarioSimples;
+  onHorario: (patch: Partial<HorarioSimples>) => void;
+  primeiroPlantao: string;
+  onPrimeiroPlantao: (v: string) => void;
+  minimo?: string;
+}) {
+  const inicioPrevia = primeiroPlantao && primeiroPlantao > hoje() ? primeiroPlantao : hoje();
+  const previa = primeiroPlantao ? simularCiclo12x36(primeiroPlantao, inicioPrevia, 14) : [];
+  const media = cargaMediaSemanal12x36(horario);
+  const atalhos: HorarioSimples[] = [
+    { entrada: "07:00", saida: "19:00", intervalo_minutos: 60 },
+    { entrada: "19:00", saida: "07:00", intervalo_minutos: 60 },
+  ];
+  return (
+    <section className="space-y-3">
+      <h3 className="flex items-center gap-2 text-sm font-semibold">
+        <Clock className="h-4 w-4 text-primary" aria-hidden="true" />
+        {tituloSistema("Plantão 12x36")}
+      </h3>
+      <p className="rounded-md border bg-muted/30 p-2 text-[11px] text-muted-foreground">
+        A pessoa trabalha 12 horas e descansa 36 horas, dia sim, dia não. Não escolhe folga no mês
+        nem folga dominical: o próprio ciclo alterna os domingos de descanso (Art. 59-A da CLT).
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs text-muted-foreground">Horários comuns:</span>
+        {atalhos.map((h) => (
+          <Button
+            key={h.entrada}
+            type="button" size="sm" variant="secondary" className="h-7 px-2 text-xs"
+            onClick={() => onHorario(h)}
+          >
+            {h.entrada} às {h.saida}
+          </Button>
+        ))}
+      </div>
+      <div className="grid gap-2 sm:grid-cols-3">
+        <div className="space-y-1">
+          <Label className="text-[11px]" htmlFor="p12-ent">Entrada</Label>
+          <Input id="p12-ent" type="time" className="h-9" value={horario.entrada}
+            onChange={(e) => onHorario({ entrada: e.target.value })} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-[11px]" htmlFor="p12-sai">Saída</Label>
+          <Input id="p12-sai" type="time" className="h-9" value={horario.saida}
+            onChange={(e) => onHorario({ saida: e.target.value })} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-[11px]" htmlFor="p12-int">Intervalo (min)</Label>
+          <Input id="p12-int" type="number" min={0} inputMode="numeric" className="h-9"
+            value={horario.intervalo_minutos ?? 0}
+            onChange={(e) => onHorario({ intervalo_minutos: Number(e.target.value || 0) })} />
+        </div>
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="p12-primeiro">Data do primeiro plantão</Label>
+        <Input id="p12-primeiro" type="date" className="h-9 sm:max-w-xs" value={primeiroPlantao} min={minimo}
+          onChange={(e) => onPrimeiroPlantao(e.target.value)} />
+        <p className="text-[11px] text-muted-foreground">
+          A partir desta data o sistema conta dia sim (plantão), dia não (descanso).
+        </p>
+      </div>
+      {media > 0 && (
+        <p className="text-xs text-muted-foreground">
+          Média de <strong className="text-foreground">{formatarHoras(media)}</strong> por semana
+          (3,5 plantões por semana, sem o intervalo).
+        </p>
+      )}
+      {previa.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium">Próximos 14 dias</p>
+          <ul className="grid grid-cols-7 gap-1" aria-label="Prévia do ciclo 12x36">
+            {previa.map((d) => (
+              <li
+                key={d.data}
+                className={`rounded-md border p-1 text-center text-[10px] leading-tight ${
+                  d.plantao ? "border-primary/40 bg-primary/10 text-foreground" : "bg-muted/40 text-muted-foreground"
+                }`}
+                title={d.plantao ? "Plantão" : "Descanso de 36h"}
+              >
+                <span className="block font-medium">{DOW_CURTO[d.dow]}</span>
+                <span className="block tabular-nums">{d.data.slice(8, 10)}/{d.data.slice(5, 7)}</span>
+                <span className="block">{d.plantao ? "Plantão" : "Descanso"}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
   );
 }

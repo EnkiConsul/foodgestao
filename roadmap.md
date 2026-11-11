@@ -153,3 +153,5 @@
 - [x] SECHSEG laboral cadastrado e ligado à unidade RANCHO 330 (data-base em branco para confirmar).
 - [ ] Assinatura física/digital com vigência: adiada a pedido.
 - [ ] Ver o calendário do portal travado com sessão real de colaborador do Rancho 330: não usar sessão de cliente sem autorização.
+- [x] Escala 12x36: "Tipo de Escala" na jornada (semanal ou 12x36) com horário do plantão, data do primeiro plantão e prévia de 14 dias; escala do mês, horário previsto, painel da operação e rotina do portal seguem o dia sim, dia não; 12x36 fora da janela de escolha de folga e da folga dominical; troca do gestor que gera plantões seguidos pede ciência "a pedido do colaborador" e o termo sai com essa declaração; portal não registra essa troca sozinho. 22 testes novos aprovados (regras e banco isolado); tela não conferida com login real.
+- [ ] Portal do colaborador 12x36: calendário pessoal ainda não pinta os dias de descanso do ciclo (usa folga por dia da semana) — próxima etapa.

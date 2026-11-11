@@ -20,6 +20,7 @@ import {
 } from "@/lib/dp/turno-utils";
 import { paraMinutos } from "@/lib/dp/jornada-utils";
 import { turnoDoDia, type ConfigTrabalho, type TurnoResolvido } from "@/lib/dp/config-trabalho";
+import { diaDaConfigNaData } from "@/lib/dp/escala-12x36";
 import type { OcorrenciaEstado, OcorrenciaTipo } from "@/lib/dp/ocorrencias";
 import { rotuloFolga } from "@/lib/dp/folga-apresentacao";
 
@@ -648,7 +649,7 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
     }
 
     if (!colab.config) continue;
-    const diaCfg = colab.config.dias.find((d) => d.dow === dow);
+    const diaCfg = diaDaConfigNaData(colab.config, data);
     const cedeuFolga = !!colab.trabalho_excepcional?.includes(data);
     const dia =
       cedeuFolga && (!diaCfg || !diaCfg.trabalha)

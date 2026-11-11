@@ -1,3 +1,4 @@
+import { resumo12x36 } from "@/lib/dp/escala-12x36";
 import { DOCUMENTOS_PESSOAIS } from "@/lib/dp/documentos-pessoais";
 import { useDpDesligamentosAgenda } from "@/hooks/useDpDesligamentosAgenda";
 import { avisoEmAndamento } from "@/lib/dp/desligamento-apresentacao";
@@ -261,7 +262,9 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
   );
   const resumoFaixas = useMemo(
     () =>
-      configDominio
+      (configVigente as any)?.escala_modelo === "12x36" && (configVigente as any)?.data_primeiro_plantao
+        ? resumo12x36((configVigente as any).data_primeiro_plantao, turnoPadrao)
+        : configDominio
         ? resumoSemanaPorFaixas(
             configDominio.dias,
             turnoPadrao
@@ -274,7 +277,7 @@ export function ColaboradorFichaDialog({ open, onOpenChange, colaborador, onEdit
             { folgaVariavel: configDominio.folga_variavel },
           )
         : null,
-    [configDominio, turnoPadrao],
+    [configDominio, turnoPadrao, configVigente],
   );
   const diasTrabalhadosSemana = detalhesCarga.filter((d) => d.trabalha).length;
   const unidadeConfigNome = useMemo(() => {
@@ -562,7 +565,9 @@ ul{list-style:none;padding:0;margin:0}li{border-bottom:1px solid #ddd;padding:4p
             <Field
               label="Folga Semanal"
               value={
-                configDominio?.folga_variavel
+                (configVigente as any)?.escala_modelo === "12x36"
+                  ? "Descanso de 36h após cada plantão (12x36)"
+                  : configDominio?.folga_variavel
                   ? "Conforme escala"
                   : folga != null
                   ? DIAS_SEMANA[String(folga)]

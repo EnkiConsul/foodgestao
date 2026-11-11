@@ -24,6 +24,9 @@ export interface ConfigTrabalhoForm {
   observacoes: string | null;
   vigencia_inicio: string;
   dias: DiaConfig[];
+  /** "12x36" = plantão alternado; ausente = escala semanal. */
+  escala_modelo?: "semanal" | "12x36";
+  data_primeiro_plantao?: string | null;
 }
 
 const hoje = () => new Date().toISOString().slice(0, 10);
@@ -73,6 +76,8 @@ export function useDpColaboradorConfigTrabalho(colaboradorId?: string | null) {
           folga_variavel: form.folga_variavel,
           folga_fixa_dow: form.folga_variavel ? null : form.folga_fixa_dow,
           observacoes: form.observacoes,
+          escala_modelo: form.escala_modelo ?? "semanal",
+          data_primeiro_plantao: form.escala_modelo === "12x36" ? form.data_primeiro_plantao ?? null : null,
           dias: form.dias.map((d) => ({
             dow: d.dow,
             trabalha: d.trabalha,

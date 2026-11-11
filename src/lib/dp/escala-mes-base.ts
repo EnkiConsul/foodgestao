@@ -32,6 +32,8 @@ export interface ConfigTrabalhoRow {
   turno_padrao_id: string | null;
   folga_variavel: boolean;
   folga_fixa_dow: number | null;
+  escala_modelo?: string | null;
+  data_primeiro_plantao?: string | null;
   dias?: ConfigDiaRow[] | null;
 }
 
@@ -85,6 +87,8 @@ export function configParaDominio(row: ConfigTrabalhoRow): ConfigTrabalho {
     turno_padrao_id: row.turno_padrao_id,
     folga_variavel: row.folga_variavel,
     folga_fixa_dow: row.folga_fixa_dow,
+    escala_modelo: row.escala_modelo ?? "semanal",
+    data_primeiro_plantao: row.data_primeiro_plantao ?? null,
     dias: normalizarDias(
       mapearDiasConfig(row.dias),
       row.folga_variavel ? null : row.folga_fixa_dow,

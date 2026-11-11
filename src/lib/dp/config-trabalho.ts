@@ -11,6 +11,7 @@
 import { LIMITE_SEMANAL, DIAS_SEMANA, ORDEM_EXIBICAO, formatarHoras } from "@/lib/dp/jornada-utils";
 import { cargaLiquidaHoras, formatarFaixaTurno, type TurnoHorario } from "@/lib/dp/turno-utils";
 import { contratoPolicy } from "@/lib/dp/contrato-policy";
+import { resumo12x36 } from "@/lib/dp/escala-12x36";
 
 /** Turno cadastrado, resolvido para uso na tela (id sempre real). */
 export interface TurnoResolvido extends TurnoHorario {
@@ -47,6 +48,9 @@ export interface ConfigTrabalho {
   folga_variavel: boolean;
   folga_fixa_dow: number | null;
   dias: DiaConfig[];
+  /** "12x36" = plantão alternado contado a partir de `data_primeiro_plantao`. Ausente = semanal. */
+  escala_modelo?: "semanal" | "12x36" | string | null;
+  data_primeiro_plantao?: string | null;
 }
 
 export const DOW_LABEL = Object.fromEntries(DIAS_SEMANA.map((d) => [d.v, d.longo])) as Record<number, string>;
@@ -252,6 +256,22 @@ export function validarConfigTrabalho(
 ): ValidacaoConfig[] {
   const policy = contratoPolicy(opts?.regime);
   const out: ValidacaoConfig[] = [];
+
+  // 12x36: o ciclo substitui a grade semanal; carga e folga seguem o Art. 59-A.
+  if (config.escala_modelo === "12x36") {
+    if (!config.data_primeiro_plantao) {
+      out.push({ campo: "dias", nivel: "erro", mensagem: "Informe a data do primeiro plantão." });
+    }
+    const base = config.dias[0] ? turnoDoDia({ ...config.dias[0], trabalha: true }, config.turno_padrao_id, turnos) : null;
+    if (!base?.entrada || !base?.saida) {
+      out.push({ campo: "turno", nivel: "erro", mensagem: "Informe a entrada e a saída do plantão." });
+    }
+    if (opts?.vigenciaInicio && opts?.vigenciaFim && opts.vigenciaFim < opts.vigenciaInicio) {
+      out.push({ campo: "vigencia", nivel: "erro", mensagem: "O fim da vigência é anterior ao início." });
+    }
+    return out;
+  }
+
   const trabalhados = diasTrabalhados(config);
 
   if (trabalhados.length === 0) {
@@ -314,6 +334,10 @@ export function configTemErro(v: ValidacaoConfig[]): boolean {
 
 /** Texto curto para listas: "Seg–Sáb · 17:00 → 23:00 · folga: domingo". */
 export function resumoConfigTexto(config: ConfigTrabalho, turnos: TurnoResolvido[]): string {
+  if (config.escala_modelo === "12x36" && config.data_primeiro_plantao) {
+    const t = config.turno_padrao_id ? turnos.find((x) => x.id === config.turno_padrao_id) : null;
+    return resumo12x36(config.data_primeiro_plantao, t);
+  }
   const trabalhados = diasTrabalhados(config);
   if (trabalhados.length === 0) return "Nenhum dia de trabalho definido";
 

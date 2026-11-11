@@ -498,6 +498,8 @@ export function useDpOperacaoPanorama(competencia: string, unidadeId: string | n
               turno_padrao_id: vigente.turno_padrao_id,
               folga_variavel: vigente.folga_variavel,
               folga_fixa_dow: vigente.folga_fixa_dow,
+              escala_modelo: (vigente as { escala_modelo?: string | null }).escala_modelo ?? "semanal",
+              data_primeiro_plantao: (vigente as { data_primeiro_plantao?: string | null }).data_primeiro_plantao ?? null,
               dias: normalizarDias(
                 ((vigente as unknown as { dias?: DiaConfig[] }).dias ?? []).map((x) => ({
                   dow: x.dow,

@@ -29,16 +29,30 @@ export type DadosTermoGestor = {
   cnpj?: string | null; cpf?: string | null; cargo?: string | null; unidade?: string | null; matricula?: string | null;
   emitidoPor?: string | null;
   trocaEntrePessoas?: boolean;
+  /** Escala 12x36: a troca deixa plantões de 12h em dias seguidos, a pedido do(a) empregado(a). */
+  plantoesSeguidos12x36?: { data_plantao: string; data_vizinha: string }[];
 };
 
 export function termoTrocaGestorParagrafos(d: DadosTermoGestor): string[] {
-  if (d.trocaEntrePessoas) return [
-    `1. Alteração pontual. A folga de ${br(d.dataFixa)} passa a ser dia de trabalho; o descanso será concedido em ${br(d.dataNova)}, sem alteração permanente das folgas contratuais.`,
-    "2. Registro. A alteração foi autorizada pelo gestor. Esta autorização não representa assinatura ou consentimento do(a) empregado(a).",
-    "3. Descanso. Permanecem exigíveis os limites legais de jornada e descanso e as disposições coletivas aplicáveis. A assinatura não afasta essas obrigações.",
-    "4. Demais condições. Permanecem inalteradas a remuneração e as demais condições contratuais.",
-    "5. Ciência. Ao assinar, o(a) empregado(a) declara ter lido a alteração das datas de sua própria folga.",
-  ];
+  if (d.trocaEntrePessoas) {
+    const seguidos = d.plantoesSeguidos12x36 ?? [];
+    const itens = [
+      `Alteração pontual. A folga de ${br(d.dataFixa)} passa a ser dia de trabalho; o descanso será concedido em ${br(d.dataNova)}, sem alteração permanente das folgas contratuais.`,
+      "Registro. A alteração foi autorizada pelo gestor. Esta autorização não representa assinatura ou consentimento do(a) empregado(a).",
+      "Descanso. Permanecem exigíveis os limites legais de jornada e descanso e as disposições coletivas aplicáveis. A assinatura não afasta essas obrigações.",
+    ];
+    if (seguidos.length > 0) {
+      const dias = [...new Set(seguidos.flatMap((s) => [s.data_plantao, s.data_vizinha]))].sort().map(br).join(" e ");
+      itens.push(
+        `Escala 12x36 a pedido do(a) empregado(a). Esta troca resulta em plantões de 12 horas em dias seguidos (${dias}), fora do descanso de 36 horas previsto no Art. 59-A da CLT. Declaro que a troca foi pedida por mim, por livre iniciativa e no meu interesse pessoal, para concentrar meus dias de descanso. A empresa mantém o intervalo mínimo de 11 horas entre os plantões (Art. 66 da CLT) e o pagamento das horas que excederem a jornada, conforme a lei e a norma coletiva.`,
+      );
+    }
+    itens.push(
+      "Demais condições. Permanecem inalteradas a remuneração e as demais condições contratuais.",
+      "Ciência. Ao assinar, o(a) empregado(a) declara ter lido a alteração das datas de sua própria folga.",
+    );
+    return itens.map((t, i) => `${i + 1}. ${t}`);
+  }
   const tipo = d.folgaFixa ? "folga fixa semanal" : "folga";
   const base = [
     `1. Alteração. A ${tipo} prevista para ${br(d.dataFixa)} passa a ser dia normal de trabalho, e o descanso correspondente será gozado em ${br(d.dataNova)}, sem prejuízo da remuneração.`,
