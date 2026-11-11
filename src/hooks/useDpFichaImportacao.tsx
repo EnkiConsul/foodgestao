@@ -10,6 +10,7 @@ import {
   aplicarFichaRpc,
   efetivarPreadmissaoComFichaRpc,
   ignorarFichaRpc,
+  reativarFichaRpc,
 } from "@/lib/dp/ficha-registro/aplicarFichaRpc";
 import { DP_DOCUMENTOS_BUCKET } from "@/hooks/useDpDocumentos";
 import type { AjusteFichaLote, EscolhasLote, OrganizacaoLote } from "@/lib/dp/ficha-registro/organizacao-lote";
@@ -292,13 +293,11 @@ export interface AplicarFichaResultado {
  *
  * O anexo do PDF é do Storage, portanto NÃO participa dessa transação: ele
  * roda depois, é repetível sem multiplicar arquivos e uma falha aqui não
- * desfaz — nem repete — o cadastro já confirmado.
+ * desfaz — nem repete — o cadastro já confirmado. Usada pela conferência
+ * individual e pela efetivação das fichas prontas do lote.
  */
-export function useAplicarFicha() {
-  const qc = useQueryClient();
-  const { selectedCompanyId } = useCompanyContext();
-  return useMutation({
-    mutationFn: async ({
+export async function aplicarFichaNoCadastro(selectedCompanyId: string | null, input: AplicarFichaInput): Promise<AplicarFichaResultado> {
+  const {
       item,
       dados,
       cargoId,
@@ -314,137 +313,143 @@ export function useAplicarFicha() {
       possuiFolhaPonto,
       optanteAdiantamento,
       preadmissaoId,
-    }: AplicarFichaInput) => {
-      if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
-      const nome = txt(dados.nome);
-      const cpf = digits(dados.cpf);
-      if (!nome) throw new Error("Informe o nome do colaborador.");
-      if (cpf.length !== 11) throw new Error("Informe um CPF com 11 dígitos.");
+    } = input;
+  if (!selectedCompanyId) throw new Error("Selecione uma empresa.");
+  const nome = txt(dados.nome);
+  const cpf = digits(dados.cpf);
+  if (!nome) throw new Error("Informe o nome do colaborador.");
+  if (cpf.length !== 11) throw new Error("Informe um CPF com 11 dígitos.");
 
-      // O servidor tem a própria lista de campos permitidos: aqui só mapeamos a
-      // ficha para as colunas do cadastro. Empresa, conta, perfil e permissões
-      // nunca vão no payload.
-      const dadosCadastro = montarPayloadFicha(dados as Record<string, unknown>);
+  // O servidor tem a própria lista de campos permitidos: aqui só mapeamos a
+  // ficha para as colunas do cadastro. Empresa, conta, perfil e permissões
+  // nunca vão no payload.
+  const dadosCadastro = montarPayloadFicha(dados as Record<string, unknown>);
 
-      // Conferência da ficha oficial de uma Pré-Admissão: cadastro + conclusão
-      // da pré-admissão em UMA transação, com familiares e documentos já
-      // enviados pelo candidato aproveitados pela própria rotina do banco.
-      if (preadmissaoId) {
-        const pr = await efetivarPreadmissaoComFichaRpc({
-          p_preadmissao_id: preadmissaoId,
-          p_item_id: item.id,
-          p_dados: { ...dadosCadastro, nome, cpf },
-          p_campos: camposPermitidos ?? null,
-          p_cargo_id: cargoId,
-          p_unidade_id: unidadeId,
-          p_setor_id: setorId ?? null,
-          p_turno_id: turnoId ?? null,
-          p_regime: regime ?? null,
-          p_forma_pagamento: formaPagamento,
-          p_jornada: jornada && !jornada.vazia
-            ? { dias: jornada.dias as unknown as Array<Record<string, unknown>> }
-            : null,
-          p_justificativa: null,
-          // Recontratação também respeita o que o gestor decidiu na revisão:
-          // salário e data de admissão da ficha conferida, não o rascunho.
-          p_salario: Number.isFinite(Number(dadosCadastro.salario_base))
-            ? Number(dadosCadastro.salario_base)
-            : null,
-          p_data_admissao: (dadosCadastro.data_admissao as string | null) ?? null,
-        });
-        return {
-          colaboradorId: pr.colaborador_id,
-          jaAplicado: !!pr.ja_aplicado,
-          anexo: "nao_solicitado" as AnexoFichaStatus,
-          modo: pr.modo,
-        };
-      }
+  // Conferência da ficha oficial de uma Pré-Admissão: cadastro + conclusão
+  // da pré-admissão em UMA transação, com familiares e documentos já
+  // enviados pelo candidato aproveitados pela própria rotina do banco.
+  if (preadmissaoId) {
+    const pr = await efetivarPreadmissaoComFichaRpc({
+      p_preadmissao_id: preadmissaoId,
+      p_item_id: item.id,
+      p_dados: { ...dadosCadastro, nome, cpf },
+      p_campos: camposPermitidos ?? null,
+      p_cargo_id: cargoId,
+      p_unidade_id: unidadeId,
+      p_setor_id: setorId ?? null,
+      p_turno_id: turnoId ?? null,
+      p_regime: regime ?? null,
+      p_forma_pagamento: formaPagamento,
+      p_jornada: jornada && !jornada.vazia
+        ? { dias: jornada.dias as unknown as Array<Record<string, unknown>> }
+        : null,
+      p_justificativa: null,
+      // Recontratação também respeita o que o gestor decidiu na revisão:
+      // salário e data de admissão da ficha conferida, não o rascunho.
+      p_salario: Number.isFinite(Number(dadosCadastro.salario_base))
+        ? Number(dadosCadastro.salario_base)
+        : null,
+      p_data_admissao: (dadosCadastro.data_admissao as string | null) ?? null,
+    });
+    return {
+      colaboradorId: pr.colaborador_id,
+      jaAplicado: !!pr.ja_aplicado,
+      anexo: "nao_solicitado" as AnexoFichaStatus,
+      modo: pr.modo,
+    };
+  }
 
-      // Motivo da dispensa de ponto: sem ele o banco religa o ponto do vínculo de emprego.
-      const motivoPonto = possuiFolhaPonto === false ? txt(dados.folha_ponto_dispensa_justificativa) : null;
-      const res = await aplicarFichaRpc({
-        p_item_id: item.id,
-        p_dados: { ...dadosCadastro, nome, cpf, ...(motivoPonto ? { folha_ponto_dispensa_justificativa: motivoPonto } : {}) },
-        p_dados_extraidos: dados as Record<string, unknown>,
-        p_campos: atualizarExistente ? camposPermitidos ?? null : null,
-        // A decisão do usuário vai como está: quem recusa vínculo inválido é a
-        // rotina no banco (nunca transformamos "atualizar" em "criar" aqui).
-        p_atualizar_existente: atualizarExistente,
-        p_cargo_id: cargoId,
-        p_unidade_id: unidadeId,
-        p_setor_id: setorId ?? null,
-        p_turno_id: turnoId ?? null,
-        p_regime: regime ?? null,
-        p_forma_pagamento: formaPagamento,
-        p_possui_folha_ponto: possuiFolhaPonto,
-        p_optante_adiantamento: optanteAdiantamento,
-        p_jornada: jornada && !jornada.vazia ? { dias: jornada.dias as unknown as Array<Record<string, unknown>> } : null,
-      });
+  // Motivo da dispensa de ponto: sem ele o banco religa o ponto do vínculo de emprego.
+  const motivoPonto = possuiFolhaPonto === false ? txt(dados.folha_ponto_dispensa_justificativa) : null;
+  const res = await aplicarFichaRpc({
+    p_item_id: item.id,
+    p_dados: { ...dadosCadastro, nome, cpf, ...(motivoPonto ? { folha_ponto_dispensa_justificativa: motivoPonto } : {}) },
+    p_dados_extraidos: dados as Record<string, unknown>,
+    p_campos: atualizarExistente ? camposPermitidos ?? null : null,
+    // A decisão do usuário vai como está: quem recusa vínculo inválido é a
+    // rotina no banco (nunca transformamos "atualizar" em "criar" aqui).
+    p_atualizar_existente: atualizarExistente,
+    p_cargo_id: cargoId,
+    p_unidade_id: unidadeId,
+    p_setor_id: setorId ?? null,
+    p_turno_id: turnoId ?? null,
+    p_regime: regime ?? null,
+    p_forma_pagamento: formaPagamento,
+    p_possui_folha_ponto: possuiFolhaPonto,
+    p_optante_adiantamento: optanteAdiantamento,
+    p_jornada: jornada && !jornada.vazia ? { dias: jornada.dias as unknown as Array<Record<string, unknown>> } : null,
+  });
 
-      const colaboradorId = res.colaborador_id;
-      let anexo: AnexoFichaStatus = "nao_solicitado";
-      let anexoMotivo: string | undefined;
+  const colaboradorId = res.colaborador_id;
+  let anexo: AnexoFichaStatus = "nao_solicitado";
+  let anexoMotivo: string | undefined;
 
-      // Anexo em Storage: fora da transação do banco, por isso é tratado à
-      // parte — o cadastro já está confirmado e nunca é refeito por causa dele.
-      // O lote é um PDF com várias pessoas: anexamos SOMENTE o recorte das
-      // páginas deste item, jamais o arquivo completo. O caminho de origem vem
-      // do servidor, nunca do cliente, e o destino é determinístico, então
-      // repetir o anexo não multiplica arquivo nem registro.
-      if (anexarFicha) {
-        const r = await anexarFichaRecorte(
-          {
-            companyId: selectedCompanyId,
-            colaboradorId,
-            itemId: item.id,
-            arquivoPath: res.arquivo_path,
-            paginaInicio: res.pagina_inicio,
-            paginaFim: res.pagina_fim,
-          },
-          {
-            baixarLote: async (path) => {
-              const dl = await supabase.storage.from(BUCKET).download(path);
-              if (dl.error || !dl.data) throw new Error(dl.error?.message ?? "Arquivo do lote não encontrado.");
-              return await dl.data.arrayBuffer();
-            },
-            enviarRecorte: async (destino, pdf) =>
-              await supabase.storage.from(DP_DOCUMENTOS_BUCKET).upload(
-                destino,
-                new Blob([pdf as unknown as BlobPart], { type: "application/pdf" }),
-                { contentType: "application/pdf", upsert: false },
-              ),
-            documentoExistente: async (destino) => {
-              const q = await supabase
-                .from("dp_documentos")
-                .select("id")
-                .eq("company_id", selectedCompanyId)
-                .eq("colaborador_id", colaboradorId)
-                .eq("file_path", destino)
-                .maybeSingle();
-              if (q.error) throw q.error;
-              return !!q.data?.id;
-            },
-            registrarDocumento: async ({ destino, descricao }) => {
-              await registrarDocumentoOficial({
-                company_id: selectedCompanyId,
-                colaborador_id: colaboradorId,
-                file_path: destino,
-                file_name: "ficha-registro.pdf",
-                mime_type: "application/pdf",
-                tipo: "admissao",
-                titulo: "Ficha de registro importada",
-                descricao,
-              });
-              return { error: null };
-            },
-          },
-        );
-        anexo = r.status;
-        anexoMotivo = r.motivo;
-      }
+  // Anexo em Storage: fora da transação do banco, por isso é tratado à
+  // parte — o cadastro já está confirmado e nunca é refeito por causa dele.
+  // O lote é um PDF com várias pessoas: anexamos SOMENTE o recorte das
+  // páginas deste item, jamais o arquivo completo. O caminho de origem vem
+  // do servidor, nunca do cliente, e o destino é determinístico, então
+  // repetir o anexo não multiplica arquivo nem registro.
+  if (anexarFicha) {
+    const r = await anexarFichaRecorte(
+      {
+        companyId: selectedCompanyId,
+        colaboradorId,
+        itemId: item.id,
+        arquivoPath: res.arquivo_path,
+        paginaInicio: res.pagina_inicio,
+        paginaFim: res.pagina_fim,
+      },
+      {
+        baixarLote: async (path) => {
+          const dl = await supabase.storage.from(BUCKET).download(path);
+          if (dl.error || !dl.data) throw new Error(dl.error?.message ?? "Arquivo do lote não encontrado.");
+          return await dl.data.arrayBuffer();
+        },
+        enviarRecorte: async (destino, pdf) =>
+          await supabase.storage.from(DP_DOCUMENTOS_BUCKET).upload(
+            destino,
+            new Blob([pdf as unknown as BlobPart], { type: "application/pdf" }),
+            { contentType: "application/pdf", upsert: false },
+          ),
+        documentoExistente: async (destino) => {
+          const q = await supabase
+            .from("dp_documentos")
+            .select("id")
+            .eq("company_id", selectedCompanyId)
+            .eq("colaborador_id", colaboradorId)
+            .eq("file_path", destino)
+            .maybeSingle();
+          if (q.error) throw q.error;
+          return !!q.data?.id;
+        },
+        registrarDocumento: async ({ destino, descricao }) => {
+          await registrarDocumentoOficial({
+            company_id: selectedCompanyId,
+            colaborador_id: colaboradorId,
+            file_path: destino,
+            file_name: "ficha-registro.pdf",
+            mime_type: "application/pdf",
+            tipo: "admissao",
+            titulo: "Ficha de registro importada",
+            descricao,
+          });
+          return { error: null };
+        },
+      },
+    );
+    anexo = r.status;
+    anexoMotivo = r.motivo;
+  }
 
-      return { colaboradorId, jaAplicado: res.ja_aplicado, anexo, anexoMotivo } satisfies AplicarFichaResultado;
-    },
+  return { colaboradorId, jaAplicado: res.ja_aplicado, anexo, anexoMotivo } satisfies AplicarFichaResultado;
+}
+
+export function useAplicarFicha() {
+  const qc = useQueryClient();
+  const { selectedCompanyId } = useCompanyContext();
+  return useMutation({
+    mutationFn: (input: AplicarFichaInput) => aplicarFichaNoCadastro(selectedCompanyId, input),
     onSuccess: (res) => {
       // O cadastro está confirmado: nada aqui pede para criar outro. O erro do
       // anexo é mostrado sem ser silenciado e o anexo pode ser repetido depois.
@@ -459,20 +464,25 @@ export function useAplicarFicha() {
           "Recontratação registrada: o cadastro anterior foi reativado com um novo vínculo e os dados conferidos.",
         );
       }
-      qc.invalidateQueries({ queryKey: ["dp_preadmissoes"] });
-      qc.invalidateQueries({ queryKey: ["dp_ficha_itens"] });
-      qc.invalidateQueries({ queryKey: ["dp_ficha_importacoes"] });
-      qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
-      qc.invalidateQueries({ queryKey: ["franquia-colaboradores"] });
-      // Chaves REAIS dos hooks de jornada/escala (a rotina grava configuração e dias).
-      qc.invalidateQueries({ queryKey: ["dp_colab_config_trabalho"] });
-      qc.invalidateQueries({ queryKey: ["dp_escala_base_mes"] });
-      qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
-      qc.invalidateQueries({ queryKey: ["dp_cargo_padrao"] });
-      qc.invalidateQueries({ queryKey: ["dp_modelos_horario"] });
-      qc.invalidateQueries({ queryKey: ["dp_documentos"] });
+      invalidarAposAplicarFicha(qc);
     },
   });
+}
+
+/** O que muda na tela depois que uma ficha vira cadastro. */
+export function invalidarAposAplicarFicha(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: ["dp_preadmissoes"] });
+  qc.invalidateQueries({ queryKey: ["dp_ficha_itens"] });
+  qc.invalidateQueries({ queryKey: ["dp_ficha_importacoes"] });
+  qc.invalidateQueries({ queryKey: ["dp_colaboradores"] });
+  qc.invalidateQueries({ queryKey: ["franquia-colaboradores"] });
+  // Chaves REAIS dos hooks de jornada/escala (a rotina grava configuração e dias).
+  qc.invalidateQueries({ queryKey: ["dp_colab_config_trabalho"] });
+  qc.invalidateQueries({ queryKey: ["dp_escala_base_mes"] });
+  qc.invalidateQueries({ queryKey: ["dp_panorama_base"] });
+  qc.invalidateQueries({ queryKey: ["dp_cargo_padrao"] });
+  qc.invalidateQueries({ queryKey: ["dp_modelos_horario"] });
+  qc.invalidateQueries({ queryKey: ["dp_documentos"] });
 }
 
 /**
@@ -486,6 +496,18 @@ export function useIgnorarFicha() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (item: FichaItem) => ignorarFichaRpc(item.id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dp_ficha_itens"] });
+      qc.invalidateQueries({ queryKey: ["dp_ficha_importacoes"] });
+    },
+  });
+}
+
+/** Desfaz o "ignorar": a ficha volta a ficar aberta para conferência (nada é criado). */
+export function useReativarFicha() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (itemId: string) => reativarFichaRpc(itemId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dp_ficha_itens"] });
       qc.invalidateQueries({ queryKey: ["dp_ficha_importacoes"] });

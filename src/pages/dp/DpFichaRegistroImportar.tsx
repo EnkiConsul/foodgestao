@@ -3,7 +3,7 @@ import { abrirNoApp } from "@/lib/visualizadorGlobal";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, ChevronUp, FileText, Loader2, Send, Upload } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronUp, FileText, Loader2, Send, Upload, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,9 @@ import { FichaLoteUnidade } from "@/components/dp/ficha-registro/lote/FichaLoteU
 import { FichaLoteCargos } from "@/components/dp/ficha-registro/lote/FichaLoteCargos";
 import { FichaLoteLista } from "@/components/dp/ficha-registro/lote/FichaLoteLista";
 import { NotificarResponsavelDialog } from "@/components/dp/ficha-registro/lote/NotificarResponsavelDialog";
+import { EfetivarLoteDialog } from "@/components/dp/ficha-registro/lote/EfetivarLoteDialog";
+import { planejarLote } from "@/lib/dp/ficha-registro/efetivacao-lote";
+import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
 import {
   FichaLotePadroesCard, type AberturaPadroes,
 } from "@/components/dp/ficha-registro/lote/FichaLotePadroesCard";
@@ -342,6 +345,22 @@ export default function DpFichaRegistroImportar() {
   const turnosDoLote = useMemo(
     () => turnos.filter((t) => t.ativo !== false && (!t.unidade_id || t.unidade_id === unidadeLoteId)),
     [turnos, unidadeLoteId],
+  );
+  /** Fichas que já podem virar cadastro de uma vez (mesmas regras da ficha individual). */
+  const salarioCargoDe = useDpSalarioCargoResolver();
+  const [efetivarAberto, setEfetivarAberto] = useState(false);
+  const planoEfetivacao = useMemo(
+    () => planejarLote(itens, organizacao, {
+      unidadeId: unidadeLoteId,
+      unidades: unidadesDaEmpresa,
+      empresaCnpj,
+      cargos: cargosLista,
+      turnos,
+      padroes: padroesLote,
+      exigirSetor: setoresAtivos.length > 0,
+      salarioCargo: (cargoId) => salarioCargoDe(cargoId, unidadeLoteId),
+    }),
+    [itens, organizacao, unidadeLoteId, unidadesDaEmpresa, empresaCnpj, cargosLista, turnos, padroesLote, setoresAtivos.length, salarioCargoDe],
   );
   const proximaPendente = (depoisDe?: string | null) => {
     const idx = depoisDe ? itens.findIndex((i) => i.id === depoisDe) : -1;
@@ -832,9 +851,26 @@ export default function DpFichaRegistroImportar() {
                   )}
                 </div>
                 {pendentes.length > 0 && (
-                  <Button className="h-11 shrink-0" onClick={() => setAbertoId(proximaPendente()?.id ?? null)}>
+                  <Button
+                    variant={planoEfetivacao.aptas.length > 0 ? "outline" : "default"}
+                    className="h-11 shrink-0"
+                    onClick={() => setAbertoId(proximaPendente()?.id ?? null)}
+                  >
                     <span className="sm:hidden">Próxima</span>
                     <span className="hidden sm:inline">Conferir próxima</span>
+                  </Button>
+                )}
+                {planoEfetivacao.aptas.length > 0 && (
+                  <Button
+                    className="h-11 shrink-0"
+                    aria-label={`Finalizar implantação: criar ${planoEfetivacao.aptas.length} cadastros`}
+                    onClick={() => setEfetivarAberto(true)}
+                  >
+                    <UserPlus className="h-4 w-4 sm:mr-2" />
+                    <span className="ml-1 sm:ml-0">
+                      <span className="hidden sm:inline">Finalizar implantação </span>
+                      <span className="tabular-nums">({planoEfetivacao.aptas.length})</span>
+                    </span>
                   </Button>
                 )}
                 {isSuperAdmin && pendentes.length > 0 && (
@@ -1030,6 +1066,16 @@ export default function DpFichaRegistroImportar() {
             </div>
           </SheetContent>
         </Sheet>
+      )}
+
+      {modoLote && (
+        <EfetivarLoteDialog
+          open={efetivarAberto}
+          onOpenChange={setEfetivarAberto}
+          companyId={selectedCompanyId}
+          itens={itens}
+          plano={planoEfetivacao}
+        />
       )}
 
       {modoLote && isSuperAdmin && atual && (

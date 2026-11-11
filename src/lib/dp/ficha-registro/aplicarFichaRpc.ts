@@ -55,6 +55,7 @@ type RpcResposta<T> = { data: T | null; error: { message: string } | null };
 type RpcTipada = {
   rpc(fn: "dp_ficha_aplicar", args: AplicarFichaRpcArgs): PromiseLike<RpcResposta<AplicarFichaRpcResultado>>;
   rpc(fn: "dp_ficha_ignorar", args: { p_item_id: string }): PromiseLike<RpcResposta<IgnorarFichaRpcResultado>>;
+  rpc(fn: "dp_ficha_reativar", args: { p_item_id: string }): PromiseLike<RpcResposta<{ status: string; pendentes: number }>>;
 };
 
 /**
@@ -80,6 +81,13 @@ export async function ignorarFichaRpc(itemId: string): Promise<IgnorarFichaRpcRe
   const { data, error } = await clienteTipado().rpc("dp_ficha_ignorar", { p_item_id: itemId });
   if (error) throw new Error(error.message);
   if (!data) throw new Error("A ficha não pôde ser ignorada.");
+  return data;
+}
+
+export async function reativarFichaRpc(itemId: string): Promise<{ status: string; pendentes: number }> {
+  const { data, error } = await clienteTipado().rpc("dp_ficha_reativar", { p_item_id: itemId });
+  if (error) throw new Error(/permiss/i.test(error.message) ? "Sem permissão para reativar esta ficha." : error.message);
+  if (!data) throw new Error("A ficha não pôde ser reativada.");
   return data;
 }
 

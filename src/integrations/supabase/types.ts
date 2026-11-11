@@ -20785,6 +20785,7 @@ export type Database = {
           whatsapp: string
         }[]
       }
+      dp_ficha_reativar: { Args: { p_item_id: string }; Returns: Json }
       dp_folga_admin_cancelar: {
         Args: {
           p_colaborador: string

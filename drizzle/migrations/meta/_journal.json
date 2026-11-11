@@ -1555,6 +1555,13 @@
       "when": 1794403741270,
       "tag": "0221_ficha_lote_ponto_persistido",
       "breakpoints": true
+    },
+    {
+      "idx": 222,
+      "version": "7",
+      "when": 1794404884009,
+      "tag": "0222_ficha_reativar_ignorada",
+      "breakpoints": true
     }
   ]
 }

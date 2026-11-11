@@ -45,7 +45,7 @@ import { TURNO_FORM_DEFAULT, useDpTurnos } from "@/hooks/useDpTurnos";
 import { FichaComparacaoDialog } from "./FichaComparacaoDialog";
 import { FichaHistoricoLido } from "./FichaHistoricoLido";
 import {
-  jornadaDaFicha, useAplicarFicha, useIgnorarFicha, type FichaItem,
+  jornadaDaFicha, useAplicarFicha, useIgnorarFicha, useReativarFicha, type FichaItem,
 } from "@/hooks/useDpFichaImportacao";
 import {
   normalizeHora, type JornadaDia, type JornadaSugerida,
@@ -423,6 +423,7 @@ export function FichaRevisaoCard({
 
   const aplicar = useAplicarFicha();
   const ignorar = useIgnorarFicha();
+  const reativar = useReativarFicha();
 
   const aplicado = item.status === "criado" || item.status === "atualizado";
   const ignorado = item.status === "ignorado";
@@ -792,10 +793,26 @@ export function FichaRevisaoCard({
 
   if (ignorado) {
     return (
-      <Card className="opacity-60">
+      <Card className="border-dashed">
         <CardContent className="flex items-center justify-between gap-3 p-4">
-          <span className="text-sm">{item.nome_extraido ?? "Ficha sem nome"}</span>
-          <Badge variant="outline">Ignorada</Badge>
+          <div className="min-w-0 space-y-1">
+            <span className="block truncate text-sm text-muted-foreground">{item.nome_extraido ?? "Ficha sem nome"}</span>
+            <Badge variant="outline">Ignorada</Badge>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-10 shrink-0"
+            disabled={reativar.isPending}
+            onClick={() =>
+              reativar.mutate(item.id, {
+                onSuccess: () => toast.success("Ficha reativada: ela volta para a lista do lote."),
+                onError: (e: Error) => notifyError(e, { surface: "Pessoas 360°", action: "reativar a ficha" }),
+              })
+            }
+          >
+            Reativar ficha
+          </Button>
         </CardContent>
       </Card>
     );
