@@ -3,10 +3,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { startOfMonth, endOfMonth } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { formatCnpj } from "@/lib/dp/ficha-registro/unidade-match";
+import { cn } from "@/lib/utils";
 
 
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { useModoSuporte } from "@/hooks/useModoSuporte";
 import {
   dashboardAccountsKey,
   dashboardCategoriesKey,
@@ -20,6 +22,7 @@ export function ContextSelector() {
   const { selectedCompanyId, companies, setContext, syncing } = useCompanyContext();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { ativo: modoSuporte } = useModoSuporte();
 
   const currentValue = `pj|${selectedCompanyId}`;
   const empresaAtual = companies.find((c) => c.id === selectedCompanyId);
@@ -67,15 +70,22 @@ export function ContextSelector() {
       <SelectTrigger
         aria-label="Selecionar empresa"
         aria-busy={syncing}
-        className="h-9 w-auto min-w-0 max-w-[42vw] shrink text-xs gap-1.5 border-dashed md:h-8 md:w-[180px] md:max-w-none"
+        className={cn("h-9 w-auto min-w-0 max-w-[42vw] shrink text-xs gap-1.5 border-dashed md:h-8 md:w-[180px] md:max-w-none",
+          modoSuporte && "border-solid border-warning",
+        )}
       >
         {syncing ? (
           <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />
         ) : (
           <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         )}
-        <span className="flex min-w-0 flex-1 flex-col text-left leading-tight">
+        <span className="flex min-w-0 flex-1 items-center gap-1 text-left leading-tight">
           <span className="truncate">{currentLabel || "Selecione a empresa"}</span>
+          {modoSuporte && (
+            <span className="shrink-0 rounded-full bg-warning px-1.5 py-px text-[10px] font-semibold text-warning-foreground">
+              Suporte
+            </span>
+          )}
         </span>
       </SelectTrigger>
 

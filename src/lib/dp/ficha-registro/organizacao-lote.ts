@@ -45,6 +45,27 @@ export type OrganizacaoLote = {
   itens?: Record<string, { cargo_id: string | null; setor_id: string | null }>;
   organizado_em?: string | null;
   notificacao?: { user_id: string; em: string; fichas: number } | null;
+  /** Padrões da maioria salvos no lote (chave presente com null = "conforme cada ficha"). */
+  padroes?: EscolhasLote;
+  /** Ajustes e rascunho de cada ficha, salvos sem criar o colaborador. */
+  ajustes?: Record<string, AjusteFichaLote>;
+};
+
+/** Escolhas que valem para o lote todo ou para um grupo de fichas. */
+export type EscolhasLote = {
+  regime?: string | null;
+  forma_pagamento?: string | null;
+  adiantamento?: boolean | null;
+  turno_id?: string | null;
+};
+
+/** O que já foi decidido numa ficha: vence os padrões do lote. */
+export type AjusteFichaLote = EscolhasLote & {
+  cargo_id?: string | null;
+  setor_id?: string | null;
+  /** Campos da ficha corrigidos ou completados (telefone, e-mail, endereço…). */
+  dados?: Record<string, unknown>;
+  em?: string;
 };
 
 export const STATUS_PENDENTES = ["pendente", "revisar", "duplicado"];
@@ -180,11 +201,58 @@ export function vinculoOrganizado(
   org: OrganizacaoLote | null | undefined,
 ): { cargoId: string | null; setorId: string | null } | null {
   if (!org) return null;
+  const aj = org.ajustes?.[item.id];
+  const base = vinculoOrganizadoBase(item, org);
+  if (aj && ("cargo_id" in aj || "setor_id" in aj)) {
+    return {
+      cargoId: "cargo_id" in aj ? aj.cargo_id ?? null : base?.cargoId ?? null,
+      setorId: "setor_id" in aj ? aj.setor_id ?? null : base?.setorId ?? null,
+    };
+  }
+  return base;
+}
+
+function vinculoOrganizadoBase(
+  item: ItemLote,
+  org: OrganizacaoLote,
+): { cargoId: string | null; setorId: string | null } | null {
   const porItem = org.itens?.[item.id];
   if (porItem) return { cargoId: porItem.cargo_id ?? null, setorId: porItem.setor_id ?? null };
   const porGrupo = org.grupos?.[chaveCargoItem(item)];
   if (porGrupo) return { cargoId: porGrupo.cargo_id ?? null, setorId: porGrupo.setor_id ?? null };
   return null;
+}
+
+/** Dados lidos do PDF com o que já foi completado no rascunho da ficha. */
+export function dadosDaFichaLote(item: ItemLote, org: OrganizacaoLote | null | undefined): Record<string, unknown> {
+  const extra = org?.ajustes?.[item.id]?.dados;
+  return extra ? { ...dadosDe(item), ...extra } : dadosDe(item);
+}
+
+/**
+ * Escolha que vale para a ficha: a da própria ficha (rascunho ou ação em grupo)
+ * vence o padrão do lote; chave ausente segue o padrão, `undefined` = sem escolha.
+ */
+export function escolhaDaFicha<K extends keyof EscolhasLote>(
+  item: ItemLote,
+  org: OrganizacaoLote | null | undefined,
+  chave: K,
+): EscolhasLote[K] | undefined {
+  const aj = org?.ajustes?.[item.id];
+  if (aj && chave in aj) return aj[chave];
+  const pad = org?.padroes;
+  if (pad && chave in pad) return pad[chave];
+  return undefined;
+}
+
+const temTexto = (v: unknown) => typeof v === "string" ? v.replace(/\s/g, "").length > 0 : v !== null && v !== undefined && v !== "";
+
+/**
+ * Dados para acesso ao portal: telefone/WhatsApp ou e-mail. Sem nenhum deles a
+ * pessoa é cadastrada, mas não recebe o convite do portal até alguém preencher.
+ */
+export function semDadosAcesso(dados: Record<string, unknown>): boolean {
+  return !temTexto(dados.telefone) && !temTexto(dados.whatsapp) && !temTexto(dados.email) && !temTexto(dados.email_contato);
 }
 
 /** Padrões escolhidos para a maioria do lote (valem onde a ficha não tem escolha própria). */
@@ -211,6 +279,8 @@ export type PendenciasFichaLote = {
   obrigatorias: string[];
   /** Não impedem o cadastro, mas não vieram na ficha: aparecem sem esconder. */
   complementares: string[];
+  /** Sem telefone/WhatsApp e sem e-mail: não acessa o portal até preencher. */
+  semAcesso: boolean;
 };
 
 /**
@@ -222,22 +292,27 @@ export function pendenciasFichaLote(
   org: OrganizacaoLote | null | undefined,
   ctx: ContextoFichaLote = {},
 ): PendenciasFichaLote {
-  const d = dadosDe(item);
+  const d = dadosDaFichaLote(item, org);
   const v = vinculoOrganizado(item, org);
   const padroes = ctx.padroes ?? {};
+  const regimeFicha = escolhaDaFicha(item, org, "regime");
+  const adiantFicha = org?.ajustes?.[item.id] && "adiantamento" in org.ajustes[item.id]
+    ? org.ajustes[item.id].adiantamento
+    : undefined;
+  const formaFicha = escolhaDaFicha(item, org, "forma_pagamento");
   const obrigatorias: string[] = [];
   if (item.status === "duplicado") obrigatorias.push("conferir cadastro existente");
   if (item.status === "revisar") obrigatorias.push("revisar leitura");
   const cpf = String(d.cpf ?? item.cpf_extraido ?? "").replace(/\D/g, "");
   if (cpf.length !== 11) obrigatorias.push("CPF");
   if (!v?.cargoId) obrigatorias.push("cargo");
-  const regime = padroes.regime ?? inferirRegime(d);
+  const regime = regimeFicha ?? padroes.regime ?? inferirRegime(d);
   obrigatorias.push(
     ...escolhasObrigatoriasFaltando({
       regime,
-      formaPagamento: ctx.formaPagamento ?? null,
+      formaPagamento: formaFicha ?? ctx.formaPagamento ?? null,
       possuiFolhaPonto: padroes.unidadeTemPonto ? null : false,
-      optanteAdiantamento: padroes.adiantamento ?? null,
+      optanteAdiantamento: adiantFicha !== undefined && adiantFicha !== null ? adiantFicha : padroes.adiantamento ?? null,
     }),
   );
   const complementares = camposFaltando(
@@ -246,7 +321,7 @@ export function pendenciasFichaLote(
   )
     .filter((c) => !["dados_pagamento", "cargo_id", "regime"].includes(c.chave))
     .map((c) => c.label);
-  return { obrigatorias, complementares };
+  return { obrigatorias, complementares, semAcesso: semDadosAcesso(d) };
 }
 
 /** Situação de uma ficha na lista compacta. */
@@ -254,10 +329,69 @@ export function situacaoFichaLote(
   item: ItemLote,
   org: OrganizacaoLote | null | undefined,
   ctx: ContextoFichaLote = {},
-): "concluida" | "ignorada" | "pronta" | "atencao" {
+): SituacaoFichaLote {
   if (item.status === "criado" || item.status === "atualizado") return "concluida";
   if (item.status === "ignorado") return "ignorada";
-  return pendenciasFichaLote(item, org, ctx).obrigatorias.length > 0 ? "atencao" : "pronta";
+  return situacaoPorPendencias(pendenciasFichaLote(item, org, ctx));
+}
+
+export type SituacaoFichaLote = "concluida" | "ignorada" | "pronta" | "atencao" | "acesso";
+
+/**
+ * "Pronta" só quando salva sem parada E a pessoa terá como entrar no portal.
+ * Sem dados de acesso a ficha pode ser criada, mas não aparece como pronta.
+ */
+export function situacaoPorPendencias(p: PendenciasFichaLote): SituacaoFichaLote {
+  if (p.obrigatorias.length > 0) return "atencao";
+  if (p.semAcesso) return "acesso";
+  return "pronta";
+}
+
+/** Contagem de fichas por setor (setor do lote), para os atalhos de grupo. */
+export function setoresDoLote(
+  itens: ItemLote[],
+  org: OrganizacaoLote | null | undefined,
+  setores: Array<{ id: string; nome: string }>,
+): Array<{ id: string | null; nome: string; itemIds: string[] }> {
+  const mapa = new Map<string, { id: string | null; nome: string; itemIds: string[] }>();
+  for (const item of itens) {
+    if (!STATUS_PENDENTES.includes(item.status)) continue;
+    const setorId = vinculoOrganizado(item, org)?.setorId ?? null;
+    const nome = setores.find((s) => s.id === setorId)?.nome ?? "Sem setor";
+    const chave = setorId ?? "__sem";
+    const g = mapa.get(chave) ?? { id: setorId, nome, itemIds: [] };
+    g.itemIds.push(item.id);
+    mapa.set(chave, g);
+  }
+  return [...mapa.values()].sort((a, b) => {
+    if ((a.id === null) !== (b.id === null)) return a.id === null ? 1 : -1;
+    return b.itemIds.length - a.itemIds.length || a.nome.localeCompare(b.nome);
+  });
+}
+
+/**
+ * Ajuste em grupo: só o que foi escolhido entra. O turno nunca substitui um
+ * horário lido no PDF — essas fichas ficam de fora e são contadas à parte.
+ */
+export function ajustesEmGrupo(
+  itemIds: string[],
+  escolhas: EscolhasLote,
+  temHorarioLido: (itemId: string) => boolean,
+): { itens: Record<string, EscolhasLote>; turnoMantido: number } {
+  const itens: Record<string, EscolhasLote> = {};
+  let turnoMantido = 0;
+  for (const id of itemIds) {
+    const e: EscolhasLote = {};
+    if ("regime" in escolhas) e.regime = escolhas.regime ?? null;
+    if ("adiantamento" in escolhas) e.adiantamento = escolhas.adiantamento ?? null;
+    if ("forma_pagamento" in escolhas) e.forma_pagamento = escolhas.forma_pagamento ?? null;
+    if ("turno_id" in escolhas) {
+      if (temHorarioLido(id)) turnoMantido += 1;
+      else e.turno_id = escolhas.turno_id ?? null;
+    }
+    if (Object.keys(e).length > 0) itens[id] = e;
+  }
+  return { itens, turnoMantido };
 }
 
 /**
@@ -271,4 +405,14 @@ export function turnoPadraoDoLote(
 ): string | null {
   if (!jornadaVazia || !turnoPadraoId) return null;
   return turnos.some((t) => t.id === turnoPadraoId) ? turnoPadraoId : null;
+}
+
+/** Confere o contato rápido da lista: precisa de WhatsApp com DDD ou e-mail válido. */
+export function contatoValido(c: { whatsapp: string; email: string }): string | null {
+  const tel = c.whatsapp.replace(/\D/g, "");
+  const mail = c.email.trim();
+  if (!tel && !mail) return "Informe o WhatsApp ou o e-mail.";
+  if (tel && (tel.length < 10 || tel.length > 13)) return "WhatsApp com DDD: 10 ou 11 dígitos.";
+  if (mail && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail)) return "E-mail inválido.";
+  return null;
 }

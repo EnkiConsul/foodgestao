@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database, Json } from "@/integrations/supabase/types";
 import { montarJornadaSugerida, type JornadaSugerida } from "@/lib/dp/ficha-registro/jornada-parse";
 import { digits, montarPayloadFicha, txt } from "@/lib/dp/ficha-registro/payload";
 import {
@@ -12,6 +12,7 @@ import {
   ignorarFichaRpc,
 } from "@/lib/dp/ficha-registro/aplicarFichaRpc";
 import { DP_DOCUMENTOS_BUCKET } from "@/hooks/useDpDocumentos";
+import type { AjusteFichaLote, EscolhasLote, OrganizacaoLote } from "@/lib/dp/ficha-registro/organizacao-lote";
 import { registrarDocumento as registrarDocumentoOficial } from "@/lib/dp/documentos-oficial";
 import {
   anexarFichaRecorte,
@@ -537,6 +538,45 @@ export function useOrganizarLoteFicha() {
       qc.invalidateQueries({ queryKey: ["dp_setores"] });
       qc.invalidateQueries({ queryKey: ["dp_sindicatos"] });
       qc.invalidateQueries({ queryKey: ["dp_laboral_por_cargo"] });
+    },
+  });
+}
+
+function mensagemAjuste(e: { message?: string } | null): string {
+  const m = e?.message ?? "";
+  if (/SEM_PERMISSAO/.test(m)) return "Apenas o dono ou um administrador da empresa ajusta o lote.";
+  if (/FICHA_INVALIDA/.test(m)) return "Essa ficha já foi concluída. Atualize a tela.";
+  if (/AJUSTE_INVALIDO/.test(m)) return "Uma das escolhas não vale para esta empresa. Confira e tente de novo.";
+  return "Não foi possível salvar. Nada foi alterado; tente novamente.";
+}
+
+/**
+ * Salva padrões do lote e/ou ajustes por ficha (rascunho). Nunca cria
+ * colaborador: só deixa a conferência preenchida para quem continuar.
+ */
+export function useAjustarLoteFicha() {
+  const qc = useQueryClient();
+  const { selectedCompanyId } = useCompanyContext();
+  return useMutation({
+    mutationFn: async (input: {
+      importacaoId: string;
+      padroes?: EscolhasLote;
+      itens?: Record<string, AjusteFichaLote>;
+    }) => {
+      const { data, error } = await supabase.rpc("dp_ficha_lote_ajustar", {
+        p_importacao_id: input.importacaoId,
+        p_padroes: input.padroes ? (input.padroes as unknown as Json) : undefined,
+        p_itens: input.itens ? (input.itens as unknown as Json) : undefined,
+      });
+      if (error) throw new Error(mensagemAjuste(error));
+      return data as unknown as OrganizacaoLote;
+    },
+    onSuccess: (org, input) => {
+      // Mostra na hora o que foi salvo, sem esperar a nova leitura.
+      qc.setQueryData<FichaImportacao[]>(["dp_ficha_importacoes", selectedCompanyId], (rows) =>
+        rows?.map((r) => (r.id === input.importacaoId ? ({ ...r, organizacao: org } as FichaImportacao) : r)),
+      );
+      qc.invalidateQueries({ queryKey: ["dp_ficha_importacoes"] });
     },
   });
 }

@@ -24,10 +24,12 @@ import { FichaLoteUnidade } from "@/components/dp/ficha-registro/lote/FichaLoteU
 import { FichaLoteCargos } from "@/components/dp/ficha-registro/lote/FichaLoteCargos";
 import { FichaLoteLista } from "@/components/dp/ficha-registro/lote/FichaLoteLista";
 import { NotificarResponsavelDialog } from "@/components/dp/ficha-registro/lote/NotificarResponsavelDialog";
+import { FichaLotePadroesCard } from "@/components/dp/ficha-registro/lote/FichaLotePadroesCard";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
-  agruparCargosLote, vinculoOrganizado, type OrganizacaoLote,
+  agruparCargosLote, ajustesEmGrupo, escolhaDaFicha, vinculoOrganizado,
+  type EscolhasLote, type OrganizacaoLote,
 } from "@/lib/dp/ficha-registro/organizacao-lote";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpSetores } from "@/hooks/useDpSetores";
@@ -37,6 +39,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import {
   useDpFichaImportacoes, useDpFichaItens, useEnviarFichaPdf,
   useCancelarLeituraFicha, useTentarNovamenteFicha, MOTIVO_CANCELADA, useOrganizarLoteFicha,
+  useAjustarLoteFicha, jornadaDaFicha,
 } from "@/hooks/useDpFichaImportacao";
 import { notifyError } from "@/lib/notifyError";
 import { divergenciaLote } from "@/lib/dp/ficha-registro/lote-empresa";
@@ -153,10 +156,6 @@ export default function DpFichaRegistroImportar() {
   // Setor e vínculo aplicados a todas as fichas (cargo, unidade e horário seguem ficha por ficha).
   const [setorPadraoId, setSetorPadraoId] = useState<string | null>(null);
   const [regimePadrao, setRegimePadrao] = useState<string | null>(null);
-  /** Turno da maioria do lote: vale só para fichas sem horário reconhecido no PDF. */
-  const [turnoPadraoId, setTurnoPadraoId] = useState<string | null>(null);
-  /** Adiantamento da maioria: `undefined` segue a unidade (sem adiantamento → não optante). */
-  const [adiantamentoEscolhido, setAdiantamentoEscolhido] = useState<boolean | null | undefined>(undefined);
   /** No lote, o envio de arquivo e o histórico ficam recolhidos para a esteira subir. */
   const [envioAberto, setEnvioAberto] = useState(false);
 
@@ -218,8 +217,6 @@ export default function DpFichaRegistroImportar() {
     setUnidadeLote(null);
     setSindicatoLote(undefined);
     setAbertoId(null);
-    setTurnoPadraoId(null);
-    setAdiantamentoEscolhido(undefined);
   }, [atual?.id]);
   const etapaAtual: EtapaLote = etapa ?? (organizacao?.organizado_em ? 3 : 1);
   const unidadeLida = useMemo(
@@ -232,12 +229,72 @@ export default function DpFichaRegistroImportar() {
     | { tem_adiantamento?: boolean | null; possui_relogio_ponto?: boolean | null }
     | undefined;
   const unidadeSemAdiantamento = unidadeDoLote?.tem_adiantamento === false;
+  /**
+   * Padrões salvos no lote. Adiantamento nunca escolhido segue a unidade:
+   * unidade sem adiantamento → não optante; com adiantamento → decide na ficha.
+   */
+  const padroesSalvos = organizacao?.padroes ?? {};
   const adiantamentoPadrao: boolean | null =
-    adiantamentoEscolhido !== undefined ? adiantamentoEscolhido : unidadeSemAdiantamento ? false : null;
+    "adiantamento" in padroesSalvos ? padroesSalvos.adiantamento ?? null : unidadeSemAdiantamento ? false : null;
+  const padroesEmVigor: EscolhasLote = {
+    regime: padroesSalvos.regime ?? null,
+    forma_pagamento: padroesSalvos.forma_pagamento ?? null,
+    adiantamento: adiantamentoPadrao,
+    turno_id: padroesSalvos.turno_id ?? null,
+  };
   const padroesLote = useMemo(
-    () => ({ regime: regimePadrao, adiantamento: adiantamentoPadrao, unidadeTemPonto: !!unidadeDoLote?.possui_relogio_ponto }),
-    [regimePadrao, adiantamentoPadrao, unidadeDoLote?.possui_relogio_ponto],
+    () => ({ regime: padroesSalvos.regime ?? null, adiantamento: adiantamentoPadrao, unidadeTemPonto: !!unidadeDoLote?.possui_relogio_ponto }),
+    [padroesSalvos.regime, adiantamentoPadrao, unidadeDoLote?.possui_relogio_ponto],
   );
+  const ajustar = useAjustarLoteFicha();
+  const salvarPadroes = async (p: EscolhasLote) => {
+    try {
+      await ajustar.mutateAsync({ importacaoId: atual!.id, padroes: p });
+      toast.success("Padrões do lote salvos.");
+    } catch (e) {
+      toast.error((e as Error).message);
+      throw e;
+    }
+  };
+  const aplicarGrupo = async (ids: string[], escolhas: EscolhasLote) => {
+    const temHorario = (id: string) => {
+      const it = itens.find((i) => i.id === id);
+      return !!it && !jornadaDaFicha((it.dados_extraidos ?? {}) as Record<string, unknown>).vazia;
+    };
+    const { itens: porItem, turnoMantido } = ajustesEmGrupo(ids, escolhas, temHorario);
+    const n = Object.keys(porItem).length;
+    if (n === 0) {
+      toast.info("Nada mudou: essas fichas já têm o horário lido no PDF.");
+      return;
+    }
+    try {
+      await ajustar.mutateAsync({ importacaoId: atual!.id, itens: porItem });
+      toast.success(
+        `Aplicado a ${n} ficha(s).${turnoMantido ? ` ${turnoMantido} mantiveram o horário lido na ficha.` : ""}`,
+      );
+    } catch (e) {
+      toast.error((e as Error).message);
+      throw e;
+    }
+  };
+  const salvarContato = async (itemId: string, c: { whatsapp: string; email: string }) => {
+    const anterior = organizacao?.ajustes?.[itemId]?.dados ?? {};
+    const it = itens.find((i) => i.id === itemId);
+    const lidos = (it?.dados_extraidos ?? {}) as Record<string, unknown>;
+    const dados: Record<string, unknown> = { ...anterior };
+    if (c.whatsapp) {
+      dados.whatsapp = c.whatsapp;
+      if (!lidos.telefone && !anterior.telefone) dados.telefone = c.whatsapp;
+    }
+    if (c.email) dados.email = c.email;
+    try {
+      await ajustar.mutateAsync({ importacaoId: atual!.id, itens: { [itemId]: { dados } } });
+      toast.success("Contato salvo na ficha.");
+    } catch (e) {
+      toast.error((e as Error).message);
+      throw e;
+    }
+  };
   const sindicatoLoteId = sindicatoLote === undefined ? organizacao?.sindicato_laboral_id ?? null : sindicatoLote;
   const itemAberto = itens.find((i) => i.id === abertoId) ?? null;
   const compacto = modoLote && !envioAberto;
@@ -689,54 +746,15 @@ export default function DpFichaRegistroImportar() {
                 </Card>
               )}
               {pendentes.length > 0 && (
-                <div className="grid gap-2 rounded-xl border bg-muted/20 p-3 sm:grid-cols-2">
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Vínculo da maioria</Label>
-                    <Select value={regimePadrao ?? "__none"} onValueChange={(v) => setRegimePadrao(v === "__none" ? null : v)}>
-                      <SelectTrigger className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none">Conforme cada ficha</SelectItem>
-                        {REGIMES.map((r) => (
-                          <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {turnosDoLote.length > 0 && (
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Turno da maioria</Label>
-                      <Select value={turnoPadraoId ?? "__none"} onValueChange={(v) => setTurnoPadraoId(v === "__none" ? null : v)}>
-                        <SelectTrigger className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none">Conforme cada ficha</SelectItem>
-                          {turnosDoLote.map((t) => (
-                            <SelectItem key={t.id} value={t.id}>{t.nome} · {t.entrada}–{t.saida}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Adiantamento da maioria</Label>
-                    <Select
-                      value={adiantamentoPadrao === null ? "__none" : String(adiantamentoPadrao)}
-                      onValueChange={(v) => setAdiantamentoEscolhido(v === "__none" ? null : v === "true")}
-                    >
-                      <SelectTrigger className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none">Conforme cada ficha</SelectItem>
-                        <SelectItem value="false">Não optante</SelectItem>
-                        <SelectItem value="true">Optante</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {unidadeSemAdiantamento && adiantamentoEscolhido === undefined && (
-                      <p className="text-[11px] text-muted-foreground">A unidade não paga adiantamento.</p>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-muted-foreground sm:col-span-2">
-                    Vale para as fichas em que você não escolher outro. O turno só entra nas fichas sem horário lido no PDF.
-                  </p>
-                </div>
+                <FichaLotePadroesCard
+                  key={atual?.id}
+                  padroes={padroesEmVigor}
+                  turnos={turnosDoLote}
+                  unidadeSemAdiantamento={unidadeSemAdiantamento}
+                  unidadeTemPonto={!!unidadeDoLote?.possui_relogio_ponto}
+                  salvando={ajustar.isPending}
+                  onSalvar={salvarPadroes}
+                />
               )}
               <FichaLoteLista
                 itens={itens}
@@ -745,7 +763,11 @@ export default function DpFichaRegistroImportar() {
                 setores={setoresAtivos}
                 padroes={padroesLote}
                 unidadeId={unidadeLoteId}
+                turnos={turnosDoLote}
+                salvando={ajustar.isPending}
                 onAbrir={setAbertoId}
+                onAplicarGrupo={aplicarGrupo}
+                onSalvarContato={salvarContato}
               />
               <div className="sticky bottom-[calc(76px+env(safe-area-inset-bottom)+0.5rem)] z-10 flex items-center gap-2 rounded-xl border bg-card p-2 shadow-lg md:bottom-4">
                 <div className="min-w-0 flex-1 space-y-1 px-1">
@@ -921,9 +943,20 @@ export default function DpFichaRegistroImportar() {
                   setores={setoresAtivos}
                   unidadePadraoId={unidadeLoteId}
                   empresaCnpj={empresaCnpj}
-                  regimePadrao={regimePadrao}
-                  adiantamentoPadrao={adiantamentoPadrao}
-                  turnoPadraoId={turnoPadraoId}
+                  regimePadrao={escolhaDaFicha(itemAberto, organizacao, "regime") ?? null}
+                  formaPagamentoPadrao={escolhaDaFicha(itemAberto, organizacao, "forma_pagamento") ?? null}
+                  adiantamentoPadrao={(() => {
+                    const aj = organizacao?.ajustes?.[itemAberto.id];
+                    return aj && typeof aj.adiantamento === "boolean" ? aj.adiantamento : adiantamentoPadrao;
+                  })()}
+                  turnoPadraoId={escolhaDaFicha(itemAberto, organizacao, "turno_id") ?? null}
+                  rascunho={organizacao?.ajustes?.[itemAberto.id] ?? null}
+                  onSalvarRascunho={async (aj) => {
+                    await ajustar.mutateAsync({ importacaoId: atual!.id, itens: { [itemAberto.id]: aj } });
+                    const prox = proximaPendente(itemAberto.id);
+                    toast.success(prox ? "Ficha salva. Abrindo a próxima." : "Ficha salva.");
+                    setAbertoId(prox?.id ?? null);
+                  }}
                   destacarPendencias
                   rodapeFixo
                   vinculoLote={vinculoOrganizado(itemAberto, organizacao)}

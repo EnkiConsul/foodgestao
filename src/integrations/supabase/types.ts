@@ -20750,6 +20750,10 @@ export type Database = {
         Returns: Json
       }
       dp_ficha_ignorar: { Args: { p_item_id: string }; Returns: Json }
+      dp_ficha_lote_ajustar: {
+        Args: { p_importacao_id: string; p_itens?: Json; p_padroes?: Json }
+        Returns: Json
+      }
       dp_ficha_lote_notificar: {
         Args: { p_importacao_id: string; p_user_id: string }
         Returns: Json

@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  agruparCargosLote, cargoGenerico, chaveCargoItem, pendenciasFichaLote, SETORES_FOOD, setorSugeridoParaCargo, situacaoFichaLote, turnoPadraoDoLote, vinculoOrganizado,
+  agruparCargosLote, ajustesEmGrupo, cargoGenerico, chaveCargoItem, contatoValido, escolhaDaFicha, pendenciasFichaLote,
+  SETORES_FOOD, setoresDoLote, setorSugeridoParaCargo, situacaoFichaLote, turnoPadraoDoLote, vinculoOrganizado,
 } from "../organizacao-lote";
 
 const item = (id: string, cargo: string, cbo: string, extra: Record<string, unknown> = {}, status = "pendente") => ({
   id, status, nome_extraido: `Pessoa ${id}`, cpf_extraido: "12345678909",
-  dados_extraidos: { nome: `Pessoa ${id}`, cpf: "12345678909", cargo_nome: cargo, cbo, ...extra },
+  dados_extraidos: { nome: `Pessoa ${id}`, cpf: "12345678909", telefone: "64999990000", cargo_nome: cargo, cbo, ...extra },
 });
 
 describe("organização do lote de fichas", () => {
@@ -111,7 +112,7 @@ describe("organização do lote de fichas", () => {
   });
 
   it("lista o que não veio na ficha sem travar a situação", () => {
-    const a = item("1", "ATENDENTE", "513435", { pis_nit: "123", salario: 1500 });
+    const a = item("1", "ATENDENTE", "513435", { pis_nit: "123", salario: 1500, telefone: "" });
     const org = { grupos: { [chaveCargoItem(a)]: { cargo_id: "g", setor_id: "s" } } };
     const p = pendenciasFichaLote(a, org, { padroes: { adiantamento: false }, formaPagamento: "mensalista" });
     expect(p.obrigatorias).toEqual([]);
@@ -130,5 +131,70 @@ describe("turno da maioria do lote", () => {
   });
   it("ignora turno que não existe mais", () => {
     expect(turnoPadraoDoLote(true, "removido", turnos)).toBeNull();
+  });
+});
+
+describe("dados de acesso, padrões salvos e ajustes em grupo", () => {
+  const a = item("1", "ATENDENTE", "513435", { pis_nit: "123", telefone: "" });
+  const grupo = { [chaveCargoItem(a)]: { cargo_id: "g", setor_id: "s" } };
+  const ctx = { padroes: { adiantamento: false }, formaPagamento: "mensalista" };
+
+  it("sem telefone, WhatsApp e e-mail a ficha não aparece como pronta", () => {
+    expect(situacaoFichaLote(a, { grupos: grupo }, ctx)).toBe("acesso");
+    expect(pendenciasFichaLote(a, { grupos: grupo }, ctx).semAcesso).toBe(true);
+  });
+
+  it("contato salvo no lote libera a ficha sem mexer no que veio do PDF", () => {
+    const org = { grupos: grupo, ajustes: { "1": { dados: { whatsapp: "64988887777" } } } };
+    expect(situacaoFichaLote(a, org, ctx)).toBe("pronta");
+    expect((a.dados_extraidos as Record<string, unknown>).whatsapp).toBeUndefined();
+  });
+
+  it("e-mail sozinho também conta como dado de acesso", () => {
+    const org = { grupos: grupo, ajustes: { "1": { dados: { email: "ana@exemplo.com" } } } };
+    expect(situacaoFichaLote(a, org, ctx)).toBe("pronta");
+  });
+
+  it("escolha da ficha vence o padrão do lote; padrão vale onde a ficha não escolheu", () => {
+    const org = { padroes: { regime: "clt" }, ajustes: { "1": { regime: "intermitente" } } };
+    expect(escolhaDaFicha(a, org, "regime")).toBe("intermitente");
+    expect(escolhaDaFicha(item("2", "X", ""), org, "regime")).toBe("clt");
+    expect(escolhaDaFicha(item("2", "X", ""), {}, "regime")).toBeUndefined();
+  });
+
+  it("adiantamento escolhido para a ficha conta na situação", () => {
+    const b = item("1", "ATENDENTE", "513435", { pis_nit: "123" });
+    const sem = { formaPagamento: "mensalista" };
+    expect(situacaoFichaLote(b, { grupos: grupo }, sem)).toBe("atencao");
+    expect(situacaoFichaLote(b, { grupos: grupo, ajustes: { "1": { adiantamento: true } } }, sem)).toBe("pronta");
+  });
+
+  it("cargo e setor ajustados na ficha vencem os do grupo", () => {
+    const org = { grupos: grupo, ajustes: { "1": { setor_id: "outro" } } };
+    expect(vinculoOrganizado(a, org)).toEqual({ cargoId: "g", setorId: "outro" });
+  });
+
+  it("ação em grupo aplica só o escolhido e nunca troca o horário lido no PDF", () => {
+    const r = ajustesEmGrupo(["1", "2"], { turno_id: "t1", adiantamento: false }, (id) => id === "2");
+    expect(r.itens).toEqual({ "1": { turno_id: "t1", adiantamento: false }, "2": { adiantamento: false } });
+    expect(r.turnoMantido).toBe(1);
+  });
+
+  it("atalhos por setor contam só fichas pendentes, sem setor por último", () => {
+    const x = item("1", "GARÇOM", "");
+    const y = item("2", "GARÇOM", "");
+    const z = item("3", "AUX", "");
+    const w = item("4", "AUX", "", {}, "criado");
+    const org = { itens: { "1": { cargo_id: "c", setor_id: "salao" }, "2": { cargo_id: "c", setor_id: "salao" } } };
+    const g = setoresDoLote([x, y, z, w], org, [{ id: "salao", nome: "Salão" }]);
+    expect(g.map((s) => [s.nome, s.itemIds.length])).toEqual([["Salão", 2], ["Sem setor", 1]]);
+  });
+
+  it("contato rápido exige WhatsApp com DDD ou e-mail válido", () => {
+    expect(contatoValido({ whatsapp: "", email: "" })).not.toBeNull();
+    expect(contatoValido({ whatsapp: "9999-0000", email: "" })).not.toBeNull();
+    expect(contatoValido({ whatsapp: "(64) 99999-0000", email: "" })).toBeNull();
+    expect(contatoValido({ whatsapp: "", email: "ana@" })).not.toBeNull();
+    expect(contatoValido({ whatsapp: "", email: "ana@exemplo.com" })).toBeNull();
   });
 });

@@ -1527,6 +1527,13 @@
       "when": 1794363987435,
       "tag": "0217_feriados_nacionais_categoria_setores_palavra_unica",
       "breakpoints": true
+    },
+    {
+      "idx": 218,
+      "version": "7",
+      "when": 1794365334807,
+      "tag": "0218_ficha_lote_padroes_rascunhos",
+      "breakpoints": true
     }
   ]
 }

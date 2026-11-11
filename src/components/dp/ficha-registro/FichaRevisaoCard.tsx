@@ -15,7 +15,7 @@ import {
 } from "@/lib/dp/ficha-registro/inferencia";
 import { Link } from "react-router-dom";
 import {
-  AlertTriangle, Check, ChevronDown, ChevronUp, FileText, Loader2, Plus, UserCheck, UserCog, X,
+  AlertTriangle, Check, ChevronDown, ChevronUp, FileText, KeyRound, Loader2, Plus, Save, UserCheck, UserCog, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +28,7 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { matchCargo } from "@/lib/dp/ficha-registro/cargo-match";
 import { matchTurno, type TurnoCadastrado } from "@/lib/dp/ficha-registro/turno-match";
-import { turnoPadraoDoLote } from "@/lib/dp/ficha-registro/organizacao-lote";
+import { semDadosAcesso, turnoPadraoDoLote, type AjusteFichaLote } from "@/lib/dp/ficha-registro/organizacao-lote";
 import { formatCnpj, matchUnidade } from "@/lib/dp/ficha-registro/unidade-match";
 import { CONFIANCA_LABEL, nivelDoCampo, trechoDoTexto, type NivelConfianca } from "@/lib/dp/ficha-registro/confianca";
 import { montarPayloadFicha } from "@/lib/dp/ficha-registro/payload";
@@ -139,6 +139,12 @@ interface Props {
   destacarPendencias?: boolean;
   /** Botões fixos no rodapé da janela, acima da área segura do celular. */
   rodapeFixo?: boolean;
+  /** Rascunho salvo no lote para esta ficha (dados completados e escolhas). */
+  rascunho?: AjusteFichaLote | null;
+  /** Forma de pagamento escolhida para o lote/grupo (a escolha na ficha prevalece). */
+  formaPagamentoPadrao?: string | null;
+  /** Lote: salva o que foi preenchido sem criar o cadastro e segue para a próxima ficha. */
+  onSalvarRascunho?: (ajuste: AjusteFichaLote) => Promise<void>;
 }
 
 export function FichaRevisaoCard({
@@ -146,11 +152,12 @@ export function FichaRevisaoCard({
   setorPadraoId = null, regimePadrao = null, adiantamentoPadrao = null, onAbrirCadastro, preadmissaoId = null,
   pessoaApoioId = null, posicao, total, emFoco = false, onConcluido, avisoFranquia = true, vinculoLote = null,
   turnoPadraoId = null, destacarPendencias = false, rodapeFixo = false,
+  rascunho = null, formaPagamentoPadrao = null, onSalvarRascunho,
 }: Props) {
   const extraidos = (item.dados_extraidos ?? {}) as Record<string, unknown>;
   const confianca = (item.confianca_campos ?? {}) as Record<string, string>;
 
-  const [dados, setDados] = useState<Record<string, unknown>>(() => ({ ...extraidos }));
+  const [dados, setDados] = useState<Record<string, unknown>>(() => ({ ...extraidos, ...(rascunho?.dados ?? {}) }));
   const cargoSugerido = useMemo(
     () => matchCargo({ cargo_nome: (dados.cargo_nome as string) ?? null, cbo: (dados.cbo as string) ?? null }, cargos),
     [dados.cargo_nome, dados.cbo, cargos],
@@ -181,8 +188,8 @@ export function FichaRevisaoCard({
     unidadeSugerida.unidade_id ?? unidadePadraoId ?? unidades[0]?.id ?? null,
   );
   const [setorEscolhido, setSetorEscolhido] = useState<string | null>(vinculoLote?.setorId ?? null);
-  const [regimeEscolhido, setRegimeEscolhido] = useState<string | null>(null);
-  const [regimeEscolhidoManual, setRegimeEscolhidoManual] = useState(false);
+  const [regimeEscolhido, setRegimeEscolhido] = useState<string | null>(rascunho?.regime ?? null);
+  const [regimeEscolhidoManual, setRegimeEscolhidoManual] = useState(!!rascunho?.regime);
   const setorId = setorEscolhido ?? setorPadraoId ?? null;
   const regime = regimeEscolhido ?? regimePadrao ?? null;
   // Na conferência do lote nada fica escondido: o bloco já nasce aberto.
@@ -190,9 +197,13 @@ export function FichaRevisaoCard({
   const [usarJornada, setUsarJornada] = useState(true);
   const [atualizar, setAtualizar] = useState(!!item.colaborador_existente_id);
   const [anexarFicha, setAnexarFicha] = useState(true);
-  const [formaPagamento, setFormaPagamento] = useState<string | null>(null);
+  const [formaPagamento, setFormaPagamento] = useState<string | null>(
+    rascunho?.forma_pagamento ?? formaPagamentoPadrao ?? null,
+  );
   const [possuiFolhaPonto, setPossuiFolhaPonto] = useState<boolean | null>(null);
-  const [optanteEscolhido, setOptanteAdiantamento] = useState<boolean | null>(null);
+  const [optanteEscolhido, setOptanteAdiantamento] = useState<boolean | null>(
+    typeof rascunho?.adiantamento === "boolean" ? rascunho.adiantamento : null,
+  );
   const optanteAdiantamento = optanteEscolhido ?? adiantamentoPadrao ?? null;
   const escolhasPendentes = escolhasObrigatoriasFaltando({
     regime,
@@ -212,7 +223,10 @@ export function FichaRevisaoCard({
   const [setorDialog, setSetorDialog] = useState(false);
   const [comparacao, setComparacao] = useState(false);
   const [confirmouEmpresa, setConfirmouEmpresa] = useState(false);
-  const [whatsappEditado, setWhatsappEditado] = useState(false);
+  const [whatsappEditado, setWhatsappEditado] = useState(
+    !!rascunho?.dados && "whatsapp" in rascunho.dados && rascunho.dados.whatsapp !== rascunho.dados.telefone,
+  );
+  const [salvandoRascunho, setSalvandoRascunho] = useState(false);
   const empresaDivergente = unidadeSugerida.empresaConfere === "nao";
   const bloqueadoPorEmpresa = empresaDivergente && !confirmouEmpresa;
   // Franquia: avisa antes de preencher; quem não pode autorizar o excedente não conclui.
@@ -247,7 +261,7 @@ export function FichaRevisaoCard({
   const [editandoJornada, setEditandoJornada] = useState(false);
   const jornada = jornadaEditada ?? jornadaLida;
   const turnoSugerido = useMemo(() => matchTurno(jornada, turnos, unidadeId), [jornada, turnos, unidadeId]);
-  const [turnoId, setTurnoId] = useState<string | null>(null);
+  const [turnoId, setTurnoId] = useState<string | null>(rascunho?.turno_id ?? null);
   const turnoDoLote = turnoPadraoDoLote(jornada.vazia, turnoPadraoId, turnos);
   const turnoEscolhido = turnoId ?? turnoSugerido.turno_id ?? turnoDoLote;
   const [turnoDialog, setTurnoDialog] = useState(false);
@@ -664,6 +678,22 @@ export function FichaRevisaoCard({
     );
   };
 
+  /** O que foi completado ou escolhido nesta ficha, para continuar depois (não cria cadastro). */
+  const montarRascunho = (): AjusteFichaLote => {
+    const alterados: Record<string, unknown> = {};
+    for (const k of Object.keys(dados)) {
+      if (JSON.stringify(dados[k] ?? null) !== JSON.stringify(extraidos[k] ?? null)) alterados[k] = dados[k];
+    }
+    const aj: AjusteFichaLote = { dados: alterados };
+    if (regimeEscolhido) aj.regime = regimeEscolhido;
+    if (formaPagamento) aj.forma_pagamento = formaPagamento;
+    if (optanteEscolhido !== null) aj.adiantamento = optanteEscolhido;
+    if (turnoId) aj.turno_id = turnoId;
+    if (cargoTocado) aj.cargo_id = cargoId;
+    if (setorEscolhido && setorEscolhido !== (vinculoLote?.setorId ?? null)) aj.setor_id = setorEscolhido;
+    return aj;
+  };
+
   const set = (campo: string, valor: string) =>
     setDados((d) => {
       // O WhatsApp acompanha o telefone até alguém digitar um número diferente.
@@ -783,6 +813,24 @@ export function FichaRevisaoCard({
             );
           };
           const naoVeio = faltando.map((c) => c.label);
+          const blocoAcesso = semDadosAcesso(dados) && (
+            <div className="flex flex-wrap items-center gap-2 rounded-md border border-warning/40 bg-background/60 p-2 text-xs">
+              <KeyRound className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
+              <span className="min-w-0 flex-1">
+                <span className="font-medium">Faltam dados de acesso:</span> sem telefone/WhatsApp e sem e-mail. O cadastro
+                pode ser criado, mas a pessoa só acessa o portal depois de preencher.
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 bg-background"
+                onClick={() => document.getElementById(`ficha-telefone-${item.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" })}
+              >
+                Preencher
+              </Button>
+            </div>
+          );
           const blocoNaoVeio = naoVeio.length > 0 && (
             <p className="text-xs text-muted-foreground">
               <span className="font-medium text-foreground">Não veio na ficha:</span> {naoVeio.join(", ")}.
@@ -795,6 +843,7 @@ export function FichaRevisaoCard({
                 <Check className="h-4 w-4 shrink-0 text-success" />
                 <span>Tudo o que é obrigatório está definido. Confira os dados lidos e crie o cadastro.</span>
               </div>
+              {blocoAcesso}
               {blocoNaoVeio}
             </div>
           ) : (
@@ -815,6 +864,7 @@ export function FichaRevisaoCard({
                 ))}
               </div>
               <p className="text-xs text-muted-foreground">Toque para ir direto ao campo.</p>
+              {blocoAcesso}
               {blocoNaoVeio}
             </div>
           );
@@ -827,7 +877,7 @@ export function FichaRevisaoCard({
           {campo("Nascimento", "data_nascimento", "date")}
           {campo("Admissão", "data_admissao", "date")}
           {campo("Salário", "salario")}
-          {campo("Telefone", "telefone")}
+          <div id={`ficha-telefone-${item.id}`} className="scroll-mt-24">{campo("Telefone", "telefone")}</div>
           <div className="space-y-1">
             <div className="flex items-center justify-between gap-2">
               <Label className="text-xs">WhatsApp</Label>
@@ -1532,6 +1582,27 @@ export function FichaRevisaoCard({
                   ? <Loader2 className="mr-1 h-4 w-4 animate-spin" />
                   : <FileText className="mr-1 h-4 w-4" />}
                 Somente anexar a ficha
+              </Button>
+            )}
+            {onSalvarRascunho && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={salvandoRascunho || aplicar.isPending}
+                title="Guarda o que foi preenchido nesta ficha sem criar o cadastro"
+                onClick={async () => {
+                  setSalvandoRascunho(true);
+                  try {
+                    await onSalvarRascunho(montarRascunho());
+                  } catch (e) {
+                    toast.error((e as Error).message);
+                  } finally {
+                    setSalvandoRascunho(false);
+                  }
+                }}
+              >
+                {salvandoRascunho ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Save className="mr-1 h-4 w-4" />}
+                Salvar e próxima
               </Button>
             )}
             <Button
