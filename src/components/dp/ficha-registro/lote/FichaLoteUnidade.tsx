@@ -9,6 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { UnidadeFormDialog, type UnidadeAba, type UnidadeEdicao } from "@/components/dp/UnidadeFormDialog";
 import { SindicatoLaboralRapidoDialog } from "./SindicatoLaboralRapidoDialog";
 import { useDpPatronalPorUnidade, useDpSindicatos, useDpUnidades } from "@/hooks/useDpCadastros";
+import { useAdotarSindicatoCatalogo, useSugestoesSindicato } from "@/hooks/useDpSindicatosCatalogo";
+import { SindicatoCatalogoSelectGroup, SindicatoCatalogoSugestaoCard } from "@/components/dp/sindicatos/SindicatoCatalogoOpcoes";
+import { valorCatalogo } from "@/lib/dp/sindicatos-catalogo";
+import { notifyError } from "@/lib/notifyError";
 import { formatCnpj } from "@/lib/dp/ficha-registro/unidade-match";
 import { useDpFeriados } from "@/hooks/useDpFeriados";
 import { pendenciasUnidade } from "@/lib/dp/unidade-completude";
@@ -56,6 +60,16 @@ export function FichaLoteUnidade({
     [unidadesCompletas, unidadeId],
   );
   const local = unidade ? [unidade.cidade, unidade.uf].filter(Boolean).join(" - ") : "";
+  const sugestoesLaboral = useSugestoesSindicato("laboral", [{ cidade: unidade?.cidade ?? null, uf: unidade?.uf ?? null }]);
+  const adotar = useAdotarSindicatoCatalogo();
+  const escolherSindicato = async (valor: string) => {
+    if (valor === "__none") { onSindicato(null); return; }
+    try {
+      onSindicato(await adotar.resolver(valor));
+    } catch (e) {
+      notifyError(e as Error, { surface: "Importar ficha de registro", action: "usar o sindicato da base" });
+    }
+  };
   const { feriados, isLoading: carregandoFeriados } = useDpFeriados(unidade?.id ?? null);
   const feriadosAtivos = feriados.filter((f) => f.ativo);
   const nacionais = feriadosAtivos.filter((f) => f.categoria === "nacional").length;
@@ -186,8 +200,15 @@ export function FichaLoteUnidade({
         {/* Sindicato */}
         <div className="space-y-2">
           <Label className="flex items-center gap-1.5 text-sm"><Scale className="h-4 w-4" /> Sindicato da categoria</Label>
-          {laborais.length > 0 ? (
-            <Select value={sindicatoId ?? "__none"} onValueChange={(v) => onSindicato(v === "__none" ? null : v)}>
+          {!sindicatoId && sugestoesLaboral[0]?.recomendado && (
+            <SindicatoCatalogoSugestaoCard
+              sugestao={sugestoesLaboral[0]}
+              carregando={adotar.isPending}
+              onUsar={() => escolherSindicato(valorCatalogo(sugestoesLaboral[0].item.id))}
+            />
+          )}
+          {laborais.length > 0 || sugestoesLaboral.length > 0 ? (
+            <Select value={sindicatoId ?? "__none"} onValueChange={escolherSindicato} disabled={adotar.isPending}>
               <SelectTrigger className="h-11"><SelectValue placeholder="Escolha o sindicato" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none">Definir depois</SelectItem>
@@ -196,6 +217,7 @@ export function FichaLoteUnidade({
                     {s.nome}{dataBaseBr(s.data_base) ? ` · data-base ${dataBaseBr(s.data_base)}` : ""}
                   </SelectItem>
                 ))}
+                <SindicatoCatalogoSelectGroup sugestoes={sugestoesLaboral} />
               </SelectContent>
             </Select>
           ) : (
@@ -232,7 +254,7 @@ export function FichaLoteUnidade({
               Data-base {dataBaseBr(sindicato.data_base) ?? "não informada"}.{" "}
               <Link to="/dp/cadastros/cargos?aba=sindicatos" className="underline underline-offset-2">Alterar no cadastro</Link>
             </p>
-          ) : laborais.length > 0 ? (
+          ) : laborais.length > 0 || sugestoesLaboral.length > 0 ? (
             <Button type="button" variant="link" size="sm" className="h-auto px-0" onClick={() => setNovoSindicato(true)}>
               <Plus className="mr-1 h-3.5 w-3.5" /> Cadastrar outro sindicato
             </Button>

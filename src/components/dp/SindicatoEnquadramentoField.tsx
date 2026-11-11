@@ -12,6 +12,9 @@ import { useDpSindicatos, useDpUnidades } from "@/hooks/useDpCadastros";
 import { useSindicatoDoCargo, type NegociacaoResumo, type SindicatoResumo } from "@/hooks/useSindicatoDoCargo";
 import { SindicatoQuickFormDialog } from "@/components/dp/SindicatoQuickFormDialog";
 import { maskCnpj } from "@/lib/cnpj";
+import { useAdotarSindicatoCatalogo, useSugestoesSindicato } from "@/hooks/useDpSindicatosCatalogo";
+import { SindicatoCatalogoSelectGroup } from "@/components/dp/sindicatos/SindicatoCatalogoOpcoes";
+import { valorCatalogo } from "@/lib/dp/sindicatos-catalogo";
 
 interface Props {
   cargoId: string;
@@ -85,17 +88,32 @@ export function SindicatoEnquadramentoField({
   // Enquanto a consulta não responde, não afirmamos que falta vínculo.
   const carregando = enquadramento.isPending || enquadramento.isLoading;
 
-  const unidadeNome = useMemo(
-    () => (unidades.data ?? []).find((u) => u.id === unidadeId)?.nome ?? null,
+  const unidadeAtual = useMemo(
+    () => (unidades.data ?? []).find((u) => u.id === unidadeId) ?? null,
     [unidades.data, unidadeId],
   );
+  const unidadeNome = unidadeAtual?.nome ?? null;
+  const local = [{
+    cidade: (unidadeAtual as { cidade?: string | null } | null)?.cidade ?? null,
+    uf: (unidadeAtual as { uf?: string | null } | null)?.uf ?? null,
+  }];
+  const sugestoesLaboral = useSugestoesSindicato("laboral", local);
+  const sugestoesPatronal = useSugestoesSindicato("patronal", local);
+  const adotar = useAdotarSindicatoCatalogo();
 
   const porTipo = (tipo: "laboral" | "patronal") =>
     (sindicatos.data ?? []).filter((s) => (s as any).tipo === tipo && s.ativo !== false);
   const laborais = useMemo(() => porTipo("laboral"), [sindicatos.data]);
   const patronais = useMemo(() => porTipo("patronal"), [sindicatos.data]);
-  /** Único patronal da empresa: sugerimos o vínculo com um clique. */
-  const patronalSugerido = patronais.length === 1 ? patronais[0] : null;
+  /**
+   * Sugestão de patronal com um clique: o único da empresa ou, se a empresa
+   * ainda não tem nenhum, o da base que já atende a cidade da unidade.
+   */
+  const patronalSugerido = patronais.length === 1
+    ? { id: patronais[0].id, nome: patronais[0].nome }
+    : patronais.length === 0 && sugestoesPatronal[0]?.recomendado
+      ? { id: valorCatalogo(sugestoesPatronal[0].item.id), nome: sugestoesPatronal[0].item.nome }
+      : null;
 
   // O cargo é a fonte do enquadramento: mantém o colaborador alinhado ao vínculo.
   useEffect(() => {
@@ -112,7 +130,7 @@ export function SindicatoEnquadramentoField({
     }
   };
 
-  const vincularExistente = async (sindicatoId: string, tipo: "laboral" | "patronal") => {
+  const vincularExistente = async (valor: string, tipo: "laboral" | "patronal") => {
     if (tipo === "laboral" && !cargoId) {
       toast.error("Selecione o cargo antes de vincular o sindicato"); return;
     }
@@ -121,6 +139,8 @@ export function SindicatoEnquadramentoField({
     }
     setVinculando(true);
     try {
+      // Opção da base única: cria (ou reaproveita) o sindicato da empresa antes do vínculo.
+      const sindicatoId = await adotar.resolver(valor);
       const { error } = tipo === "laboral"
         ? await supabase.from("dp_sindicato_cargos")
             .insert({ sindicato_id: sindicatoId, cargo_id: cargoId })
@@ -190,7 +210,7 @@ export function SindicatoEnquadramentoField({
               >
                 <SelectTrigger><SelectValue placeholder="Vincular existente" /></SelectTrigger>
                 <SelectContent>
-                  {laborais.length === 0 ? (
+                  {laborais.length === 0 && sugestoesLaboral.length === 0 ? (
                     <div className="px-2 py-1.5 text-xs text-muted-foreground">
                       Nenhum sindicato laboral cadastrado
                     </div>
@@ -199,6 +219,7 @@ export function SindicatoEnquadramentoField({
                       <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
                     ))
                   )}
+                  <SindicatoCatalogoSelectGroup sugestoes={sugestoesLaboral} separador={laborais.length > 0} />
                 </SelectContent>
               </Select>
             </div>
@@ -252,7 +273,7 @@ export function SindicatoEnquadramentoField({
                 >
                   <SelectTrigger><SelectValue placeholder="Vincular existente" /></SelectTrigger>
                   <SelectContent>
-                    {patronais.length === 0 ? (
+                    {patronais.length === 0 && sugestoesPatronal.length === 0 ? (
                       <div className="px-2 py-1.5 text-xs text-muted-foreground">
                         Nenhum sindicato patronal cadastrado
                       </div>
@@ -261,6 +282,7 @@ export function SindicatoEnquadramentoField({
                         <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
                       ))
                     )}
+                    <SindicatoCatalogoSelectGroup sugestoes={sugestoesPatronal} separador={patronais.length > 0} />
                   </SelectContent>
                 </Select>
               )}

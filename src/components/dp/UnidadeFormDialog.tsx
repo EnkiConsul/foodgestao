@@ -794,7 +794,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
 
 
         <TabsContent value="sindicato" className="mt-0 min-h-0 min-w-0 w-full flex-1 space-y-6 overflow-y-auto overflow-x-hidden overscroll-contain p-4 [&_input]:min-w-0 [&_input]:max-w-full [&_input]:min-h-11 [&_input]:text-base [&_textarea]:text-base [&_button[role=combobox]]:min-h-11 [&_button[role=combobox]]:min-w-0 [&_button[role=combobox]>span]:truncate">
-          <UnidadeSindicatoPanel unidadeId={unidadeId} unidadeNome={form.nome} />
+          <UnidadeSindicatoPanel unidadeId={unidadeId} unidadeNome={form.nome} cidade={form.cidade} uf={form.uf} />
           <div className="border-t pt-4">
             <UnidadeNegociacoesPanel unidadeId={unidadeId} unidadeNome={form.nome} />
           </div>

@@ -13657,6 +13657,7 @@ export type Database = {
       dp_sindicatos: {
         Row: {
           ativo: boolean
+          catalogo_id: string | null
           cnpj: string | null
           company_id: string
           contato_email: string | null
@@ -13671,6 +13672,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          catalogo_id?: string | null
           cnpj?: string | null
           company_id: string
           contato_email?: string | null
@@ -13685,6 +13687,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          catalogo_id?: string | null
           cnpj?: string | null
           company_id?: string
           contato_email?: string | null
@@ -13699,6 +13702,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "dp_sindicatos_catalogo_id_fkey"
+            columns: ["catalogo_id"]
+            isOneToOne: false
+            referencedRelation: "dp_sindicatos_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "dp_sindicatos_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -13706,6 +13716,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      dp_sindicatos_catalogo: {
+        Row: {
+          ativo: boolean
+          cnpj: string | null
+          contato_email: string | null
+          contato_telefone: string | null
+          created_at: string
+          data_base_mes: number | null
+          id: string
+          municipios: string[]
+          nome: string
+          origem: string
+          tipo: Database["public"]["Enums"]["dp_sindicato_tipo"]
+          uf: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cnpj?: string | null
+          contato_email?: string | null
+          contato_telefone?: string | null
+          created_at?: string
+          data_base_mes?: number | null
+          id?: string
+          municipios?: string[]
+          nome: string
+          origem?: string
+          tipo: Database["public"]["Enums"]["dp_sindicato_tipo"]
+          uf?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cnpj?: string | null
+          contato_email?: string | null
+          contato_telefone?: string | null
+          created_at?: string
+          data_base_mes?: number | null
+          id?: string
+          municipios?: string[]
+          nome?: string
+          origem?: string
+          tipo?: Database["public"]["Enums"]["dp_sindicato_tipo"]
+          uf?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       dp_solicitacoes: {
         Row: {
@@ -21995,6 +22053,10 @@ export type Database = {
           status: string
           unidade_id: string
         }[]
+      }
+      dp_sindicato_adotar: {
+        Args: { p_catalogo_id: string; p_company_id: string }
+        Returns: string
       }
       dp_sindicato_conflitos: {
         Args: {

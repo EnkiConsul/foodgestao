@@ -12,6 +12,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { maskCnpj } from "@/lib/cnpj";
 import { maskPhone } from "@/lib/phone";
 import { somenteDigitos as onlyDigits } from "@/lib/dp/formato";
+import { useAdotarSindicatoCatalogo, useSugestoesSindicato } from "@/hooks/useDpSindicatosCatalogo";
+import { SindicatoCatalogoSelectGroup, SindicatoCatalogoSugestaoCard } from "@/components/dp/sindicatos/SindicatoCatalogoOpcoes";
+import { valorCatalogo } from "@/lib/dp/sindicatos-catalogo";
 
 const SEM_VINCULO = "__sem__";
 
@@ -27,17 +30,23 @@ interface Props {
   /** Unidade em edição. Quando ausente, a unidade ainda não foi salva. */
   unidadeId?: string | null;
   unidadeNome?: string;
+  /** Cidade/UF da unidade: priorizam os sindicatos da base que já atendem a cidade. */
+  cidade?: string | null;
+  uf?: string | null;
 }
 
 /**
  * Sindicato patronal da unidade: o admin escolhe entre os sindicatos já
  * cadastrados da empresa (um mesmo sindicato pode representar várias unidades),
- * cria um novo na hora ou edita os dados do que está vinculado.
+ * usa um da base única com um toque (sugerido pela cidade), cria um novo na hora
+ * ou edita os dados do que está vinculado.
  */
-export function UnidadeSindicatoPanel({ unidadeId, unidadeNome }: Props) {
+export function UnidadeSindicatoPanel({ unidadeId, unidadeNome, cidade, uf }: Props) {
   const qc = useQueryClient();
   const list = useDpSindicatos();
   const upsert = useUpsertDpSindicato();
+  const adotar = useAdotarSindicatoCatalogo();
+  const sugestoes = useSugestoesSindicato("patronal", [{ cidade, uf }]);
 
   const patronais = useMemo(
     () => (list.data ?? []).filter((s) => ((s as any).tipo ?? "patronal") === "patronal"),
@@ -85,10 +94,12 @@ export function UnidadeSindicatoPanel({ unidadeId, unidadeNome }: Props) {
   };
 
   /** Troca o sindicato patronal da unidade (um por unidade). */
-  const vincular = async (sindicatoId: string | null) => {
+  const vincular = async (valor: string | null) => {
     if (!unidadeId) return;
     setSalvando(true);
     try {
+      // Opção da base única: cria (ou reaproveita) o sindicato da empresa antes do vínculo.
+      const sindicatoId = valor ? await adotar.resolver(valor) : null;
       const atuais = patronais.map((s) => s.id);
       if (atuais.length) {
         await supabase
@@ -239,6 +250,15 @@ export function UnidadeSindicatoPanel({ unidadeId, unidadeNome }: Props) {
         </p>
       </div>
 
+      {!vinculo.isLoading && !vinculado && sugestoes[0]?.recomendado && (
+        <SindicatoCatalogoSugestaoCard
+          sugestao={sugestoes[0]}
+          carregando={salvando}
+          acao="Usar este sindicato nesta unidade"
+          onUsar={() => vincular(valorCatalogo(sugestoes[0].item.id))}
+        />
+      )}
+
       <div className="space-y-2">
         <Label>Sindicato vinculado</Label>
         <Select
@@ -257,6 +277,7 @@ export function UnidadeSindicatoPanel({ unidadeId, unidadeNome }: Props) {
                 {s.cnpj ? ` — ${maskCnpj(s.cnpj)}` : ""}
               </SelectItem>
             ))}
+            <SindicatoCatalogoSelectGroup sugestoes={sugestoes} />
           </SelectContent>
         </Select>
       </div>

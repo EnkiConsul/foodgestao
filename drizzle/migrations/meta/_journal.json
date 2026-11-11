@@ -1569,6 +1569,13 @@
       "when": 1794413529294,
       "tag": "0223_folga_marcacao_portal_trava",
       "breakpoints": true
+    },
+    {
+      "idx": 224,
+      "version": "7",
+      "when": 1794414804101,
+      "tag": "0224_sindicatos_base_unica_catalogo",
+      "breakpoints": true
     }
   ]
 }

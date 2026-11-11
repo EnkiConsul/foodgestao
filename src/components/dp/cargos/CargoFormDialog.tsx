@@ -11,8 +11,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   useUpsertDpCargo, useDpSindicatos, useDpLaboralPorCargo, useSetDpSindicatoLaboralCargo,
-  usePropagarRiscosCargo, type DpCargo,
+  usePropagarRiscosCargo, useDpUnidades, type DpCargo,
 } from "@/hooks/useDpCadastros";
+import { useAdotarSindicatoCatalogo, useSugestoesSindicato } from "@/hooks/useDpSindicatosCatalogo";
+import { SindicatoCatalogoSelectGroup } from "@/components/dp/sindicatos/SindicatoCatalogoOpcoes";
+import { notifyError } from "@/lib/notifyError";
 import { numeroBR } from "@/components/dp/RemuneracaoFields";
 import { CargoRiscosFields } from "@/components/dp/cargos/CargoRiscosFields";
 import { CargoSalariosUnidadePanel } from "@/components/dp/CargoSalariosUnidadePanel";
@@ -71,6 +74,26 @@ export function CargoFormDialog({ open, onOpenChange, cargo, colaboradoresCount 
   const laboralPorCargo = useDpLaboralPorCargo();
   const setLaboral = useSetDpSindicatoLaboralCargo();
   const propagar = usePropagarRiscosCargo();
+  const unidades = useDpUnidades();
+  const locaisEmpresa = useMemo(
+    () => (unidades.data ?? []).map((u) => ({
+      cidade: (u as { cidade?: string | null }).cidade ?? null,
+      uf: (u as { uf?: string | null }).uf ?? null,
+    })),
+    [unidades.data],
+  );
+  const sugestoesLaboral = useSugestoesSindicato("laboral", locaisEmpresa);
+  const adotar = useAdotarSindicatoCatalogo();
+
+  /** Opção da base única vira sindicato da empresa na hora; o vínculo com o cargo sai ao salvar. */
+  const escolherLaboral = async (valor: string) => {
+    try {
+      const id = await adotar.resolver(valor);
+      setForm((f) => ({ ...f, sindicato_laboral_id: id }));
+    } catch (e) {
+      notifyError(e as Error, { surface: "Cadastro de cargo", action: "usar o sindicato da base" });
+    }
+  };
 
   const [aba, setAba] = useState("dados");
   const [form, setForm] = useState<FormState>(blank);
@@ -206,7 +229,8 @@ export function CargoFormDialog({ open, onOpenChange, cargo, colaboradoresCount 
                   <Label>Sindicato laboral</Label>
                   <Select
                     value={form.sindicato_laboral_id}
-                    onValueChange={(v) => set({ sindicato_laboral_id: v })}
+                    onValueChange={escolherLaboral}
+                    disabled={adotar.isPending}
                   >
                     <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
                     <SelectContent>
@@ -214,6 +238,7 @@ export function CargoFormDialog({ open, onOpenChange, cargo, colaboradoresCount 
                       {laborais.map((s) => (
                         <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
                       ))}
+                      <SindicatoCatalogoSelectGroup sugestoes={sugestoesLaboral} />
                     </SelectContent>
                   </Select>
                   <p className="text-[11px] text-muted-foreground">
