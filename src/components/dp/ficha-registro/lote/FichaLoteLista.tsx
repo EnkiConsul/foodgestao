@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CheckSquare, ChevronRight, KeyRound, Plus, Search, X } from "lucide-react";
+import { CheckSquare, ChevronRight, KeyRound, Plus, Search, SlidersHorizontal, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -8,7 +8,7 @@ import { jornadaDaFicha, type FichaItem } from "@/hooks/useDpFichaImportacao";
 import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
 import { inferirFormaPagamento } from "@/lib/dp/ficha-registro/inferencia";
 import {
-  dadosDaFichaLote, pendenciasFichaLote, setoresDoLote, situacaoPorPendencias, vinculoOrganizado,
+  dadosDaFichaLote, pendenciasFichaLote, rotuloSetor, setoresDoLote, situacaoPorPendencias, vinculoOrganizado,
   type OrganizacaoLote, type PadroesLote, type SituacaoFichaLote, STATUS_PENDENTES,
 } from "@/lib/dp/ficha-registro/organizacao-lote";
 import { cn } from "@/lib/utils";
@@ -37,8 +37,8 @@ interface Props {
   padroes: PadroesLote;
   unidadeId: string | null;
   onAbrir: (itemId: string) => void;
-  /** Abre "Padrões do lote" já no modo de pessoas escolhidas, com estas fichas marcadas. */
-  onAplicarMarcadas: (itemIds: string[]) => void;
+  /** Abre os campos para aplicar só a estas fichas (setor inteiro ou marcadas na lista). */
+  onAplicarMarcadas: (itemIds: string[], titulo: string) => void;
   /** Abre a lista rápida de dados para acesso (opcionalmente focando uma ficha). */
   onPreencherContatos: (focoId: string | null) => void;
 }
@@ -82,7 +82,7 @@ export function FichaLoteLista({
           cargo: cargos.find((c) => c.id === v?.cargoId)?.nome ?? (d.cargo_nome ? String(d.cargo_nome) : null),
           cargoDecidido: !!v?.cargoId,
           setorChave: v?.setorId ?? "__sem",
-          setor: setores.find((s) => s.id === v?.setorId)?.nome ?? null,
+          setor: rotuloSetor(setores.find((s) => s.id === v?.setorId)?.nome) || null,
           salario: brl(d.salario),
           situacao,
           pendente: aberta && STATUS_PENDENTES.includes(item.status),
@@ -117,6 +117,7 @@ export function FichaLoteLista({
   );
   const visiveisPendentes = visiveis.filter((l) => l.pendente);
   const setorAtual = gruposSetor.find((g) => (g.id ?? "__sem") === setorFiltro) ?? null;
+  const tituloSetor = setorAtual ? (setorAtual.id ? `Aplicar ao setor ${rotuloSetor(setorAtual.nome)}` : "Aplicar às fichas sem setor") : null;
 
   const alternar = (id: string) =>
     setMarcadas((m) => {
@@ -148,8 +149,8 @@ export function FichaLoteLista({
               <p className="text-xs text-muted-foreground">Sem WhatsApp ou e-mail a pessoa não recebe o acesso ao portal.</p>
             </div>
           </div>
-          <Button size="sm" className="h-10 shrink-0" onClick={() => onPreencherContatos(null)}>
-            Preencher em lista rápida
+          <Button size="sm" className="h-10 w-full shrink-0 sm:w-auto" onClick={() => onPreencherContatos(null)}>
+            Preencher contatos
           </Button>
         </div>
       )}
@@ -174,9 +175,9 @@ export function FichaLoteLista({
       </div>
 
       {gruposSetor.length > 1 && (
-        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1" aria-label="Filtrar por setor">
+        <div className="scrollbar-none -mx-1 flex gap-1.5 overflow-x-auto px-1" aria-label="Filtrar por setor">
           {[{ chave: "todos", nome: "Todos", n: gruposSetor.reduce((a, g) => a + g.itemIds.length, 0) },
-            ...gruposSetor.map((g) => ({ chave: g.id ?? "__sem", nome: g.nome, n: g.itemIds.length }))].map((g) => (
+            ...gruposSetor.map((g) => ({ chave: g.id ?? "__sem", nome: rotuloSetor(g.nome), n: g.itemIds.length }))].map((g) => (
             <button
               key={g.chave}
               type="button"
@@ -204,50 +205,44 @@ export function FichaLoteLista({
       </div>
 
       {visiveisPendentes.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-dashed bg-muted/20 p-2">
+        <div className="flex items-center gap-2">
           {selecionando ? (
             <>
-              <span className="px-1 text-sm font-medium tabular-nums">{marcadas.size} marcada(s)</span>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="h-9"
+                className="h-10 bg-background"
                 onClick={() => setMarcadas(new Set(visiveisPendentes.map((l) => l.item.id)))}
               >
                 Marcar todas ({visiveisPendentes.length})
               </Button>
-              <div className="ml-auto flex gap-1">
-                <Button variant="ghost" size="sm" className="h-9" onClick={sairSelecao} aria-label="Cancelar seleção">
-                  <X className="h-4 w-4" />
-                </Button>
-                <Button
-                  size="sm"
-                  className="h-9"
-                  disabled={marcadas.size === 0}
-                  onClick={() => {
-                    onAplicarMarcadas([...marcadas]);
-                    sairSelecao();
-                  }}
-                >
-                  Aplicar às marcadas
-                </Button>
-              </div>
+              <Button variant="ghost" size="sm" className="ml-auto h-10" onClick={sairSelecao}>
+                <X className="mr-1 h-4 w-4" /> Cancelar
+              </Button>
             </>
           ) : (
             <>
-              <Button variant="outline" size="sm" className="h-9 bg-background" onClick={() => setSelecionando(true)}>
-                <CheckSquare className="mr-1.5 h-4 w-4" /> Escolher fichas
-              </Button>
-              {setorAtual && (
+              {tituloSetor && (
                 <Button
-                  variant="ghost"
                   size="sm"
-                  className="h-9"
-                  onClick={() => onAplicarMarcadas(visiveisPendentes.map((l) => l.item.id))}
+                  className="h-10 min-w-0 flex-1 sm:flex-none"
+                  onClick={() => onAplicarMarcadas(visiveisPendentes.map((l) => l.item.id), tituloSetor)}
                 >
-                  Aplicar a todo o {setorAtual.nome} ({visiveisPendentes.length})
+                  <SlidersHorizontal className="mr-1.5 h-4 w-4 shrink-0" />
+                  <span className="truncate">{setorAtual?.id ? "Aplicar ao setor" : "Aplicar às sem setor"}</span>
+                  <span className="ml-1 tabular-nums">({visiveisPendentes.length})</span>
                 </Button>
               )}
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn("h-10 bg-background", tituloSetor ? "shrink-0" : "w-full sm:w-auto")}
+                onClick={() => setSelecionando(true)}
+              >
+                <CheckSquare className="mr-1.5 h-4 w-4" />
+                <span className={cn(tituloSetor && "sm:hidden")}>{tituloSetor ? "Escolher" : "Escolher fichas"}</span>
+                {tituloSetor && <span className="hidden sm:inline">Escolher fichas</span>}
+              </Button>
             </>
           )}
         </div>
@@ -261,46 +256,48 @@ export function FichaLoteLista({
             <li key={l.item.id} className={cn(marcada && "bg-primary/5")}>
               <div className="flex items-center">
                 {selecionando && l.pendente && (
-                  <label className="flex min-h-12 shrink-0 items-center pl-3" aria-label={`Marcar ${l.nome}`}>
+                  <label className="flex min-h-12 shrink-0 items-center self-stretch pl-3" aria-label={`Marcar ${l.nome}`}>
                     <Checkbox checked={marcada} onCheckedChange={() => alternar(l.item.id)} />
                   </label>
                 )}
                 <button
                   type="button"
                   onClick={() => (selecionando && l.pendente ? alternar(l.item.id) : onAbrir(l.item.id))}
-                  className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5 text-left hover:bg-muted/50"
+                  className="flex min-w-0 flex-1 items-start gap-2 px-3 py-2.5 text-left hover:bg-muted/50 sm:gap-3"
                 >
-                  <span className="w-6 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{l.posicao}</span>
+                  <span className="mt-0.5 hidden w-6 shrink-0 text-right text-xs tabular-nums text-muted-foreground sm:block">{l.posicao}</span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">{l.nome}</span>
+                    <span className="flex items-center gap-2">
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium">{l.nome}</span>
+                      <Badge variant="outline" className={cn("shrink-0 px-1.5 py-0 text-[11px]", r.classe)}>{r.texto}</Badge>
+                    </span>
                     <span className="block truncate text-xs text-muted-foreground">
                       {[l.cargoDecidido ? l.cargo : l.cargo ? `${l.cargo} (sem cargo definido)` : "Sem cargo", l.setor, l.salario]
                         .filter(Boolean)
                         .join(" · ")}
                     </span>
                     {l.obrigatorias.length > 0 && (
-                      <span className="block truncate text-xs font-medium text-warning-foreground">
+                      <span className="line-clamp-2 text-xs font-medium text-warning-foreground">
                         Falta definir: {lista(l.obrigatorias)}
                       </span>
                     )}
                     {l.semAcesso && (
-                      <span className="flex items-center gap-1 truncate text-xs font-medium text-warning-foreground">
+                      <span className="flex items-center gap-1 text-xs font-medium text-warning-foreground">
                         <KeyRound className="h-3 w-3 shrink-0 text-warning" aria-hidden="true" />
-                        Faltam dados de acesso: sem WhatsApp ou e-mail
+                        Faltam dados de acesso
                       </span>
                     )}
                     {l.complementares.length > 0 && (
-                      <span className="block truncate text-[11px] text-muted-foreground">
+                      <span className="line-clamp-2 text-[11px] text-muted-foreground">
                         Não veio na ficha: {lista(l.complementares)}
                       </span>
                     )}
                   </span>
-                  <Badge variant="outline" className={cn("shrink-0 text-[11px]", r.classe)}>{r.texto}</Badge>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                 </button>
               </div>
               {l.semAcesso && !selecionando && (
-                <div className="-mt-1 pb-2 pl-12 pr-3">
+                <div className="-mt-1 pb-2 pl-3 pr-3 sm:pl-12">
                   <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => onPreencherContatos(l.item.id)}>
                     <Plus className="mr-1 h-3.5 w-3.5" /> WhatsApp ou e-mail
                   </Button>
@@ -314,6 +311,23 @@ export function FichaLoteLista({
         )}
       </ul>
 
+      {selecionando && (
+        <div className="sticky bottom-[calc(76px+env(safe-area-inset-bottom)+0.5rem+4.5rem)] z-20 flex items-center gap-2 rounded-xl border border-primary/40 bg-card p-2 shadow-lg md:bottom-24">
+          <p className="min-w-0 flex-1 px-1 text-sm font-medium tabular-nums">
+            {marcadas.size === 0 ? "Toque nas fichas para marcar" : `${marcadas.size} ${marcadas.size === 1 ? "marcada" : "marcadas"}`}
+          </p>
+          <Button
+            className="h-11 shrink-0"
+            disabled={marcadas.size === 0}
+            onClick={() => {
+              onAplicarMarcadas([...marcadas], "Aplicar às fichas marcadas");
+              sairSelecao();
+            }}
+          >
+            <SlidersHorizontal className="mr-1.5 h-4 w-4" /> Aplicar dados
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

@@ -474,3 +474,20 @@ export function montarContatosLote(
   }
   return { itens, invalidos };
 }
+
+const MINUSCULAS_SETOR = new Set(["e", "de", "da", "do", "das", "dos", "a", "o"]);
+
+/**
+ * Nome do setor para exibir: o cadastro guarda em caixa alta ("COZINHA"),
+ * a tela mostra em caixa normal ("Cozinha"). Nomes já escritos com
+ * minúsculas ficam como estão. Só muda a apresentação, nunca o valor salvo.
+ */
+export function rotuloSetor(nome: string | null | undefined): string {
+  const s = String(nome ?? "").trim();
+  if (!s || s !== s.toLocaleUpperCase("pt-BR") || !/\p{L}/u.test(s)) return s;
+  return s
+    .toLocaleLowerCase("pt-BR")
+    .split(/(\s+)/)
+    .map((p, i) => (/^\s+$/.test(p) || (i > 0 && MINUSCULAS_SETOR.has(p)) ? p : p.charAt(0).toLocaleUpperCase("pt-BR") + p.slice(1)))
+    .join("");
+}

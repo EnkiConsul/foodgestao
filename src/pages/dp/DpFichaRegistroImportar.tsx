@@ -25,13 +25,13 @@ import { FichaLoteCargos } from "@/components/dp/ficha-registro/lote/FichaLoteCa
 import { FichaLoteLista } from "@/components/dp/ficha-registro/lote/FichaLoteLista";
 import { NotificarResponsavelDialog } from "@/components/dp/ficha-registro/lote/NotificarResponsavelDialog";
 import {
-  FichaLotePadroesCard, type AberturaPadroes, type FichaParaGrupo,
+  FichaLotePadroesCard, type AberturaPadroes,
 } from "@/components/dp/ficha-registro/lote/FichaLotePadroesCard";
 import { ContatosLoteDialog, type LinhaContatoLote } from "@/components/dp/ficha-registro/lote/ContatosLoteDialog";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
-  agruparCargosLote, ajustesEmGrupo, dadosDaFichaLote, escolhaDaFicha, montarContatosLote, semDadosAcesso,
+  agruparCargosLote, ajustesEmGrupo, dadosDaFichaLote, escolhaDaFicha, montarContatosLote, rotuloSetor, semDadosAcesso,
   vinculoOrganizado, type ContatoEditado, type EscolhasLote, type OrganizacaoLote,
 } from "@/lib/dp/ficha-registro/organizacao-lote";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
@@ -324,7 +324,6 @@ export default function DpFichaRegistroImportar() {
         }),
     [itens, organizacao, setoresAtivos, cargosLista],
   );
-  const fichasParaGrupo: FichaParaGrupo[] = fichasPendentesLote;
   const linhasContato: LinhaContatoLote[] = useMemo(
     () =>
       fichasPendentesLote
@@ -332,7 +331,7 @@ export default function DpFichaRegistroImportar() {
         .map((f) => ({
           id: f.id,
           nome: f.nome,
-          detalhe: [f.cargo, f.setorId ? f.setorNome : null].filter(Boolean).join(" · ") || null,
+          detalhe: [f.cargo, f.setorId ? rotuloSetor(f.setorNome) : null].filter(Boolean).join(" · ") || null,
           whatsapp: "",
           email: "",
         })),
@@ -795,7 +794,6 @@ export default function DpFichaRegistroImportar() {
                   turnos={turnosDoLote}
                   unidadeSemAdiantamento={unidadeSemAdiantamento}
                   unidadeTemPonto={!!unidadeDoLote?.possui_relogio_ponto}
-                  fichas={fichasParaGrupo}
                   abertura={padroesAbertura}
                   onAbertura={setPadroesAbertura}
                   salvando={ajustar.isPending}
@@ -811,7 +809,7 @@ export default function DpFichaRegistroImportar() {
                 padroes={padroesLote}
                 unidadeId={unidadeLoteId}
                 onAbrir={setAbertoId}
-                onAplicarMarcadas={(ids) => setPadroesAbertura({ escopo: "grupo", ids })}
+                onAplicarMarcadas={(ids, titulo) => setPadroesAbertura({ escopo: "grupo", ids, titulo })}
                 onPreencherContatos={(foco) => setContatosFoco({ foco })}
               />
               <ContatosLoteDialog

@@ -183,6 +183,14 @@
 }
 
 @layer utilities {
+  /* Rolagem lateral por toque, sem a barra cinza do navegador. */
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
   .font-display {
     font-family: 'Poppins', 'Inter', sans-serif;
     letter-spacing: -0.01em;

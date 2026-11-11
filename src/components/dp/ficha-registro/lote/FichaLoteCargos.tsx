@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { GrupoOrganizacaoInput } from "@/hooks/useDpFichaImportacao";
 import { normalizeCargoNome } from "@/lib/dp/ficha-registro/cargo-match";
 import {
-  SETORES_FOOD, cargoGenerico, separarGruposCargo, setorExistenteNaUnidade, type GrupoCargoLote, type OrganizacaoLote, type SetorCadastrado,
+  SETORES_FOOD, cargoGenerico, rotuloSetor, separarGruposCargo, setorExistenteNaUnidade, type GrupoCargoLote, type OrganizacaoLote, type SetorCadastrado,
 } from "@/lib/dp/ficha-registro/organizacao-lote";
 
 const NOVO = "__novo";
@@ -187,10 +187,10 @@ export function FichaLoteCargos({ grupos, cargos, setores, unidadeId, organizaca
         </SelectTrigger>
         <SelectContent>
           {setoresUnidade.map((s) => (
-            <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+            <SelectItem key={s.id} value={s.id}>{rotuloSetor(s.nome)}</SelectItem>
           ))}
           {setoresNovos.map((n) => (
-            <SelectItem key={`s-${n}`} value={`novo:${n}`}>{n.toUpperCase()}</SelectItem>
+            <SelectItem key={`s-${n}`} value={`novo:${n}`}>{rotuloSetor(n)}</SelectItem>
           ))}
           <SelectItem value={OUTRO_SETOR}>Outro setor…</SelectItem>
           <SelectItem value={SEM_SETOR}>Sem setor</SelectItem>
