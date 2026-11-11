@@ -1541,6 +1541,13 @@
       "when": 1794369510983,
       "tag": "0219_ficha_lote_notificar_whatsapp_email",
       "breakpoints": true
+    },
+    {
+      "idx": 220,
+      "version": "7",
+      "when": 1794401185709,
+      "tag": "0220_onboarding_preserva_whatsapp_pessoal",
+      "breakpoints": true
     }
   ]
 }

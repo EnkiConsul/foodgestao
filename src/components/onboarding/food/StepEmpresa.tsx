@@ -20,6 +20,8 @@ interface Props {
   setCnpjPending: (v: boolean) => void;
   cnpjInactive: boolean;
   setCnpjInactive: (v: boolean) => void;
+  /** WhatsApp pessoal confirmado no cadastro (só dígitos), para reaproveitar como contato da empresa. */
+  meuWhatsapp?: string;
 }
 
 function maskCep(v: string) {
@@ -27,7 +29,8 @@ function maskCep(v: string) {
   return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
 }
 
-export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive, setCnpjInactive }: Props) {
+export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive, setCnpjInactive, meuWhatsapp = "" }: Props) {
+  const usandoMeuWhatsapp = Boolean(meuWhatsapp) && data.whatsappEmpresa.replace(/\D/g, "") === meuWhatsapp;
   const [preenchidoPelaReceita, setPreenchidoPelaReceita] = useState(false);
   const [editando, setEditando] = useState(false);
   const camposResumo: (keyof EmpresaFormData)[] = ["razaoSocial", "nomeFantasia", "cep", "logradouro", "numero", "bairro", "cidade", "uf"];
@@ -213,7 +216,7 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
           Contato
         </legend>
         <div className="grid gap-4 md:grid-cols-2">
-          <Field id="onb-telefone" label="Telefone" error={errors.telefoneEmpresa}>
+          <Field id="onb-telefone" label="Telefone da empresa" error={errors.telefoneEmpresa}>
             <Input
               id="onb-telefone"
               value={data.telefoneEmpresa}
@@ -226,7 +229,7 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
               aria-describedby={errors.telefoneEmpresa ? "onb-telefone-erro" : undefined}
             />
           </Field>
-          <Field id="onb-whatsapp" label="WhatsApp" required error={errors.whatsappEmpresa}>
+          <Field id="onb-whatsapp" label="WhatsApp da empresa" required error={errors.whatsappEmpresa}>
             <Input
               id="onb-whatsapp"
               value={data.whatsappEmpresa}
@@ -238,8 +241,21 @@ export function StepEmpresa({ data, update, errors, setCnpjPending, cnpjInactive
               aria-invalid={errors.whatsappEmpresa ? true : undefined}
               aria-describedby={errors.whatsappEmpresa ? "onb-whatsapp-erro" : undefined}
             />
+            {meuWhatsapp && (
+              <label htmlFor="onb-usar-meu-whatsapp" className="flex min-h-9 cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+                <Checkbox
+                  id="onb-usar-meu-whatsapp"
+                  checked={usandoMeuWhatsapp}
+                  onCheckedChange={(v) => update({ whatsappEmpresa: v === true ? maskPhone(meuWhatsapp) : "" })}
+                />
+                Usar o meu WhatsApp ({maskPhone(meuWhatsapp)})
+              </label>
+            )}
           </Field>
         </div>
+        <p className="text-xs text-muted-foreground">
+          Telefones de contato da loja. Seu acesso e seus avisos continuam no WhatsApp que você confirmou no cadastro.
+        </p>
         <Field id="onb-email" label="E-mail" required error={errors.emailEmpresa}>
           <Input
             id="onb-email"

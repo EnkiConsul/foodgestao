@@ -139,6 +139,8 @@ export default function Onboarding() {
     } catch { /* sem armazenamento */ }
   }, [user, rascunhoLido, empresa, modulos, criarUnidade, step]);
 
+  const meuWhatsapp = String(user?.user_metadata?.whatsapp ?? "").replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, "");
+
   const updateEmpresa = (patch: Partial<EmpresaFormData>) => {
     setEmpresa((d) => ({ ...d, ...patch }));
     setErrors((e) => {
@@ -211,8 +213,9 @@ export default function Onboarding() {
       const res = await submit.mutateAsync({
         nomeCompleto: empresa.nomeCompleto,
         emailCliente: empresa.emailEmpresa,
-        telefoneCliente: empresa.telefoneEmpresa,
-        whatsappCliente: empresa.whatsappEmpresa,
+        // Contato pessoal de quem cadastra = o WhatsApp confirmado no cadastro, nunca os telefones da empresa.
+        telefoneCliente: "",
+        whatsappCliente: meuWhatsapp,
         cnpj: empresa.cnpj,
         razaoSocial: empresa.razaoSocial,
         nomeFantasia: empresa.nomeFantasia,
@@ -300,6 +303,7 @@ export default function Onboarding() {
               setCnpjPending={setCnpjPending}
               cnpjInactive={cnpjInactive}
               setCnpjInactive={setCnpjInactive}
+              meuWhatsapp={meuWhatsapp}
             />
             <div className="mt-6 md:mt-8 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3">
               <Button type="button" variant="ghost" onClick={requestExit} className="w-full sm:w-auto min-h-10">

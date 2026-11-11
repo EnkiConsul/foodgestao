@@ -809,7 +809,7 @@ export default function Auth() {
 
             {isSignup && (
               <div className="space-y-1">
-                <Label htmlFor="whatsapp">WhatsApp</Label>
+                <Label htmlFor="whatsapp">Seu WhatsApp pessoal</Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -830,7 +830,7 @@ export default function Auth() {
                 {errors.whatsapp ? (
                   <p id="erro-whatsapp" role="alert" className="text-xs text-destructive">{errors.whatsapp}</p>
                 ) : (
-                  <p id="dica-whatsapp" className="text-xs text-muted-foreground">Enviaremos um código para confirmar sua conta.</p>
+                  <p id="dica-whatsapp" className="text-xs text-muted-foreground">O celular que está com você: o código de confirmação chega nele agora. O telefone da empresa você informa depois.</p>
                 )}
               </div>
             )}
