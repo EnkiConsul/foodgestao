@@ -26,6 +26,7 @@ import { MODALIDADES, MODELOS_ATA, ESTRUTURA_PADRAO_ATA, enviarAta, enviarLinkAv
 import { Switch } from "@/components/ui/switch";
 import { abrirArquivoDp } from "@/lib/dp/abrirDocumento";
 import { cn } from "@/lib/utils";
+import { ViaAssinadaBotao } from "@/components/dp/documentos/ViaAssinadaBotao";
 
 type Ata = {
   id: string; company_id: string; unidade_id: string | null; titulo: string; data_reuniao: string; local: string | null;
@@ -63,10 +64,17 @@ export default function DpAtas() {
         ? await supabase.from("dp_ata_participantes" as never).select("ata_id, modalidade, documento_id").in("ata_id", ids)
         : { data: [] };
       const docIds = ((parts ?? []) as any[]).map((p) => p.documento_id).filter(Boolean);
-      const { data: aceites } = docIds.length
-        ? await supabase.from("dp_documento_aceites").select("documento_id").in("documento_id", docIds)
-        : { data: [] };
-      const assinados = new Set(((aceites ?? []) as any[]).map((a) => a.documento_id));
+      const [{ data: aceites }, { data: vias }] = docIds.length
+        ? await Promise.all([
+            supabase.from("dp_documento_aceites").select("documento_id").in("documento_id", docIds),
+            // Quem assina em papel conta como assinado quando a via assinada é anexada.
+            supabase.from("dp_documentos").select("id").in("id", docIds).not("via_assinada_path", "is", null),
+          ])
+        : [{ data: [] }, { data: [] }];
+      const assinados = new Set([
+        ...((aceites ?? []) as any[]).map((a) => a.documento_id),
+        ...((vias ?? []) as any[]).map((d) => d.id),
+      ]);
       return lista.map((a) => {
         const ps = ((parts ?? []) as any[]).filter((p) => p.ata_id === a.id);
         const exige = ps.filter((p) => p.modalidade !== "consulta");
@@ -243,6 +251,16 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
       return new Map(((data ?? []) as any[]).map((a) => [a.documento_id, a.aceito_em as string]));
     },
   });
+  // Participantes que assinam em papel: o documento pede a via impressa assinada.
+  const vias = useQuery({
+    queryKey: ["dp_ata_vias", docIds.join(",")],
+    enabled: enviada && docIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from("dp_documentos").select("id, assinatura_fisica, via_assinada_path, via_assinada_em").in("id", docIds);
+      return new Map(((data ?? []) as any[]).map((d) => [d.id as string, d as { assinatura_fisica: boolean; via_assinada_path: string | null; via_assinada_em: string | null }]));
+    },
+  });
+  const assinouNoPapel = (docId?: string | null) => !!docId && !!vias.data?.get(docId)?.via_assinada_path;
 
   const nomeDe = (p: Part) => p.nome ?? (colabs.data ?? []).find((c: any) => c.id === p.colaborador_id)?.nome ?? "Participante";
 
@@ -502,7 +520,7 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
             </div>
             {parts.length > 0 && <p className="text-xs text-muted-foreground">{contagem.presente} presente(s) • {contagem.ciencia} ciência • {contagem.consulta} apenas consulta</p>}
             {enviada && carregouParts && ata?.origem !== "importada_assinada" && (() => {
-              const pend = parts.filter((p) => p.modalidade !== "consulta" && !(p.colaborador_id ? (p.documento_id && aceites.data?.get(p.documento_id)) : p.assinado_em));
+              const pend = parts.filter((p) => p.modalidade !== "consulta" && !(p.colaborador_id ? (p.documento_id && (aceites.data?.get(p.documento_id) || assinouNoPapel(p.documento_id))) : p.assinado_em));
               const avulsosLink = pend.filter((p) => !p.colaborador_id && p.avulso_cpf && p.avulso_whatsapp);
               if (!pend.length) return <p className="rounded-md border border-primary/30 bg-primary/5 p-2 text-xs text-primary"><CheckCircle2 className="mr-1 inline h-3.5 w-3.5" />Todos que precisavam assinar já assinaram.</p>;
               return (
@@ -550,6 +568,17 @@ function AtaDialog({ companyId, ata, onClose }: { companyId: string; ata: Ata | 
                               </> : <Badge variant="secondary">Assina no Papel</Badge>)
                               : p.modalidade === "consulta" ? <Badge variant="secondary"><Eye className="mr-1 h-3 w-3" />Disponível</Badge>
                               : assinado ? <Badge className="bg-primary/15 text-primary hover:bg-primary/15"><CheckCircle2 className="mr-1 h-3 w-3" />Assinado {new Date(assinado).toLocaleDateString("pt-BR")}</Badge>
+                              : assinouNoPapel(p.documento_id) ? <Badge className="bg-primary/15 text-primary hover:bg-primary/15"><CheckCircle2 className="mr-1 h-3 w-3" />Via assinada anexada</Badge>
+                              : p.documento_id && vias.data?.get(p.documento_id)?.assinatura_fisica ? <>
+                                <Badge variant="secondary">Assina no Papel</Badge>
+                                <ViaAssinadaBotao
+                                  documentoId={p.documento_id}
+                                  companyId={companyId}
+                                  colaboradorId={p.colaborador_id}
+                                  temVia={false}
+                                  onDone={() => { vias.refetch(); qc.invalidateQueries({ queryKey: ["dp_atas"] }); }}
+                                />
+                              </>
                               : <Badge variant="secondary"><Clock className="mr-1 h-3 w-3" />Pendente</Badge>}
                             {p.documento_id && (
                               <Button size="icon" variant="ghost" className="h-8 w-8" title="Ver PDF da Ata" aria-label="Ver PDF da Ata"

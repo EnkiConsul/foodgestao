@@ -51,7 +51,7 @@ export function ModoAssinaturaCard({
   const [converter, setConverter] = useState(true);
   const [verHistorico, setVerHistorico] = useState(false);
 
-  const minimo = dataAdmissao && dataAdmissao.slice(0, 10) <= hoje ? dataAdmissao.slice(0, 10) : undefined;
+  const minimo = dataAdmissao ? dataAdmissao.slice(0, 10) : undefined;
   const papelJa = modo === "fisica" && !!desde && desde <= hoje;
   const pendentes = useDpDocsAguardandoCelular(colaboradorId, editando && papelJa);
 
@@ -59,8 +59,9 @@ export function ModoAssinaturaCard({
     if (!editando) return;
     const proximo: ModoAssinatura = situacao.atual === "fisica" ? "digital" : "fisica";
     setModo(proximo);
-    // Primeira definição em papel: vale desde a admissão; nas demais, a partir de hoje.
-    setDesde(proximo === "fisica" && !situacao.desde && minimo ? minimo : hoje);
+    // Vale a partir de hoje (ou da admissão, se ela ainda não chegou).
+    const adm = dataAdmissao?.slice(0, 10) ?? null;
+    setDesde(adm && adm > hoje ? adm : hoje);
     setMotivo(proximo === "fisica" && semAcesso ? "Não tem celular para assinar pelo portal" : "");
     setConverter(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps

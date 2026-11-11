@@ -852,16 +852,6 @@ export default function DpColaboradores() {
         ]}
         onClear={() => { setIncompletosFilter(false); setUnidadeFilter("all"); setCargoFilter("all"); setPerfilFilter("all"); setSetorFilter("all"); setAssinaturaFilter("all"); }}
       >
-        <DpFilterField label="Assinatura">
-          <Select value={assinaturaFilter} onValueChange={(v) => setAssinaturaFilter(v as typeof assinaturaFilter)}>
-            <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="celular">Assina no celular</SelectItem>
-              <SelectItem value="papel">Assina em papel</SelectItem>
-            </SelectContent>
-          </Select>
-        </DpFilterField>
         <DpFilterField label="Cadastro">
           <Select
             value={incompletosFilter ? "incompletos" : "all"}
@@ -931,6 +921,16 @@ export default function DpColaboradores() {
               <SelectItem value="colaborador">Colaborador</SelectItem>
               <SelectItem value="gestor">Gestor</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
+            </SelectContent>
+          </Select>
+        </DpFilterField>
+        <DpFilterField label="Assinatura">
+          <Select value={assinaturaFilter} onValueChange={(v) => setAssinaturaFilter(v as typeof assinaturaFilter)}>
+            <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="celular">Assina no celular</SelectItem>
+              <SelectItem value="papel">Assina em papel</SelectItem>
             </SelectContent>
           </Select>
         </DpFilterField>
