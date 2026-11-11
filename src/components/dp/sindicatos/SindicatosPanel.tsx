@@ -608,6 +608,28 @@ export function SindicatosPanel({ tipo }: { tipo: SindicatoTipo }) {
               sindicato continuam como estão. Dá para ajustar cargo por cargo depois.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {semLaboral.length > 0 ? (
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground">
+                Cargos que entram agora ({semLaboral.length})
+              </p>
+              <ul
+                className="max-h-56 space-y-0.5 overflow-y-auto overscroll-contain rounded-lg border border-border bg-muted/40 p-1.5"
+                aria-label="Cargos que serão vinculados ao sindicato"
+              >
+                {semLaboral.map((c) => (
+                  <li key={c.id} className="flex items-start gap-2 rounded-md px-2 py-1.5 text-sm">
+                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
+                    <span className="min-w-0 break-words">{c.nome}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+              Nenhum cargo aguardando enquadramento neste momento.
+            </p>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={vincularLote.isPending}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
