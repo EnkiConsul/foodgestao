@@ -1583,6 +1583,13 @@
       "when": 1794416960776,
       "tag": "0225_assinatura_papel_vigencia",
       "breakpoints": true
+    },
+    {
+      "idx": 226,
+      "version": "7",
+      "when": 1794420237841,
+      "tag": "0226_escala_12x36_plantao_alternado",
+      "breakpoints": true
     }
   ]
 }

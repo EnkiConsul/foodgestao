@@ -5908,6 +5908,8 @@ export type Database = {
           company_id: string
           compoe_equipe_habitual: boolean
           created_at: string
+          data_primeiro_plantao: string | null
+          escala_modelo: string
           folga_fixa_dow: number | null
           folga_variavel: boolean
           id: string
@@ -5924,6 +5926,8 @@ export type Database = {
           company_id: string
           compoe_equipe_habitual?: boolean
           created_at?: string
+          data_primeiro_plantao?: string | null
+          escala_modelo?: string
           folga_fixa_dow?: number | null
           folga_variavel?: boolean
           id?: string
@@ -5940,6 +5944,8 @@ export type Database = {
           company_id?: string
           compoe_equipe_habitual?: boolean
           created_at?: string
+          data_primeiro_plantao?: string | null
+          escala_modelo?: string
           folga_fixa_dow?: number | null
           folga_variavel?: boolean
           id?: string
@@ -13966,6 +13972,7 @@ export type Database = {
           motivo: string
           notificar_portal: boolean
           origem_registro: string
+          riscos_12x36: Json
           solicitante_assinado_em: string | null
           solicitante_assinatura: string | null
           solicitante_id: string
@@ -13996,6 +14003,7 @@ export type Database = {
           motivo: string
           notificar_portal?: boolean
           origem_registro?: string
+          riscos_12x36?: Json
           solicitante_assinado_em?: string | null
           solicitante_assinatura?: string | null
           solicitante_id: string
@@ -14026,6 +14034,7 @@ export type Database = {
           motivo?: string
           notificar_portal?: boolean
           origem_registro?: string
+          riscos_12x36?: Json
           solicitante_assinado_em?: string | null
           solicitante_assinatura?: string | null
           solicitante_id?: string
