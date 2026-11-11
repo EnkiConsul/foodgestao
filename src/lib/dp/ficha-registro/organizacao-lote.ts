@@ -8,7 +8,7 @@
  */
 import { matchCargo, normalizeCargoNome, normalizeCbo, type CargoCadastrado } from "./cargo-match";
 import { inferirRegime } from "./inferencia";
-import { alertaCargaSemanal, jornadaDosDadosDaFicha, problemasJornada } from "./jornada-parse";
+import { inconformidadesJornada, jornadaDosDadosDaFicha, problemasJornada, type CodigoInconformidadeJornada } from "./jornada-parse";
 import { montarPayloadFicha } from "./payload";
 import { escolhasObrigatoriasFaltando } from "./validacao";
 import { camposFaltando } from "@/lib/dp/cadastro-completude";
@@ -344,6 +344,20 @@ export type PendenciasFichaLote = {
 export const PENDENCIA_HORARIO = "horário de trabalho";
 /** Jornada acima de 44h semanais: conferir na revisão da ficha antes de criar. */
 export const PENDENCIA_CARGA_SEMANAL = "horário acima de 44h";
+/** Intervalo abaixo do mínimo ou acima de 2h (CLT art. 71). */
+export const PENDENCIA_INTERVALO = "intervalo fora da CLT";
+/** Sete dias trabalhados sem descanso (CLT art. 67). */
+export const PENDENCIA_DESCANSO = "semana sem descanso";
+
+/**
+ * Jornada fora da CLT não entra pelo "Finalizar implantação": só na conferência
+ * individual, corrigindo o horário ou registrando a ciência com justificativa.
+ */
+export const PENDENCIA_POR_INCONFORMIDADE: Record<CodigoInconformidadeJornada, string> = {
+  carga_semanal: PENDENCIA_CARGA_SEMANAL,
+  intervalo: PENDENCIA_INTERVALO,
+  descanso_semanal: PENDENCIA_DESCANSO,
+};
 
 export function pendenciasFichaLote(
   item: ItemLote,
@@ -381,7 +395,7 @@ export function pendenciasFichaLote(
   // Horário com intervalo ilegível ou impossível: sinaliza para conferir, nunca grava às cegas.
   const jornada = jornadaDosDadosDaFicha(d);
   if (problemasJornada(jornada).length > 0) obrigatorias.push(PENDENCIA_HORARIO);
-  else if (alertaCargaSemanal(jornada)) obrigatorias.push(PENDENCIA_CARGA_SEMANAL);
+  else obrigatorias.push(...inconformidadesJornada(jornada).map((i) => PENDENCIA_POR_INCONFORMIDADE[i.codigo]));
   const complementares = camposFaltando(
     { ...montarPayloadFicha(d), setor_id: v?.setorId ?? null, regime },
     { exigirSetor: ctx.exigirSetor ?? true, salarioCargo: ctx.salarioCargo ?? null },

@@ -30,6 +30,11 @@ export type JornadaSugerida = {
   vazia: boolean;
   /** A ficha declara um intervalo que não deu para ler com segurança: conferir. */
   intervalo_incerto?: boolean;
+  /**
+   * A tabela da ficha lista os sete dias como trabalhados, sem nenhum descanso.
+   * Diferente da linha única sem dia de descanso (aí a folga é definida na escala).
+   */
+  semana_sem_descanso?: boolean;
 };
 
 const HHMM = /([0-2]?\d)[:h]([0-5]\d)/g;
@@ -294,6 +299,7 @@ export function montarJornadaSugerida(input: {
     dias,
     vazia: trabalhados.length === 0 && !base.entrada,
     intervalo_incerto: incertoNaTabela || (base.intervalo_incerto && trabalhados.some((d) => !porDow.has(d.dow))),
+    semana_sem_descanso: folgaDow === null && porDow.size === 7 && [...porDow.values()].every((d) => d.trabalha),
   };
 }
 
@@ -392,3 +398,112 @@ export function alertaCargaSemanal(j: JornadaSugerida | null | undefined): strin
   return `Carga semanal de ${formatarHoras(r.minutos)}, acima das 44h da CLT.` +
     (semIntervalo ? " A ficha não informa intervalo: se houver, informe-o em minutos." : "");
 }
+
+export type CodigoInconformidadeJornada = "carga_semanal" | "intervalo" | "descanso_semanal";
+
+export type InconformidadeJornada = {
+  codigo: CodigoInconformidadeJornada;
+  titulo: string;
+  detalhe: string;
+  fundamento: string;
+};
+
+/** Intervalo mínimo exigido pelo Art. 71 da CLT para o tempo trabalhado no dia (null = não exige). */
+export function intervaloMinimoClt(minutosTrabalhados: number): number | null {
+  if (minutosTrabalhados > 6 * 60) return 60;
+  if (minutosTrabalhados > 4 * 60) return 15;
+  return null;
+}
+
+/** Acima disso o intervalo só vale com acordo escrito ou convenção (Art. 71, caput). */
+export const INTERVALO_MAX_CLT_MINUTOS = 120;
+
+const DIA_CURTO = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const ordemSemana = (dow: number) => (dow + 6) % 7;
+const listaDias = (dows: number[]) =>
+  dows.length === 7 ? "todos os dias" : [...dows].sort((a, b) => ordemSemana(a) - ordemSemana(b)).map((d) => DIA_CURTO[d]).join(", ");
+
+/** Dias trabalhados cujo intervalo fica abaixo do mínimo ou acima de 2h. */
+function diasComIntervaloForaDaClt(j: JornadaSugerida) {
+  const curtos: number[] = [];
+  const longos: number[] = [];
+  for (const d of j.dias) {
+    if (!d.trabalha || !d.entrada || !d.saida) continue;
+    const intervalo = d.intervalo_minutos ?? 0;
+    const trabalhado = Math.max(0, minutosEntre(d.entrada, d.saida) - intervalo);
+    const minimo = intervaloMinimoClt(trabalhado);
+    if (minimo !== null && intervalo < minimo) curtos.push(d.dow);
+    else if (intervalo > INTERVALO_MAX_CLT_MINUTOS) longos.push(d.dow);
+  }
+  return { curtos, longos };
+}
+
+/**
+ * Jornada fora do padrão da CLT: carga acima de 44h (CF art. 7º, XIII; CLT art. 58),
+ * intervalo abaixo do mínimo ou acima de 2h (CLT art. 71) e semana sem descanso
+ * (CLT art. 67). Não impede o cadastro sozinha: quem confere corrige o horário ou
+ * registra a ciência com justificativa. Horário ilegível fica em `problemasJornada`.
+ */
+export function inconformidadesJornada(j: JornadaSugerida | null | undefined): InconformidadeJornada[] {
+  if (!j || j.vazia) return [];
+  const out: InconformidadeJornada[] = [];
+  const r = resumoSemanal(j);
+  if (r && r.minutos > CARGA_SEMANAL_MAX_MINUTOS) {
+    out.push({
+      codigo: "carga_semanal",
+      titulo: "Carga acima de 44h por semana",
+      detalhe: `${formatarHoras(r.minutos)} em ${r.diasTrabalho} ${r.diasTrabalho === 1 ? "dia" : "dias"}. O que passa de 44h é hora extra, não jornada contratual.`,
+      fundamento: "CF, art. 7º, XIII; CLT, art. 58",
+    });
+  }
+  const { curtos, longos } = diasComIntervaloForaDaClt(j);
+  if (curtos.length > 0 || longos.length > 0) {
+    const partes: string[] = [];
+    if (curtos.length > 0) {
+      partes.push(`${listaDias(curtos)}: intervalo abaixo do mínimo (1h para mais de 6h trabalhadas; 15 min de 4h a 6h).`);
+    }
+    if (longos.length > 0) {
+      partes.push(`${listaDias(longos)}: intervalo acima de 2h, só com acordo escrito ou convenção.`);
+    }
+    out.push({
+      codigo: "intervalo",
+      titulo: "Intervalo para refeição fora da CLT",
+      detalhe: partes.join(" "),
+      fundamento: "CLT, art. 71",
+    });
+  }
+  if (j.semana_sem_descanso && j.dias.length === 7 && j.dias.every((d) => d.trabalha)) {
+    out.push({
+      codigo: "descanso_semanal",
+      titulo: "Semana sem descanso",
+      detalhe: "A ficha lista os sete dias como trabalhados. Todo empregado tem direito a 24h seguidas de descanso por semana.",
+      fundamento: "CLT, art. 67",
+    });
+  }
+  return out;
+}
+
+/**
+ * Correção em um toque do intervalo: completa o mínimo do Art. 71 nos dias que
+ * estão abaixo dele. Não mexe em quem já tem intervalo suficiente, nem em dias
+ * acima de 2h (isso depende de acordo, não de suposição).
+ */
+export function aplicarIntervaloMinimo(j: JornadaSugerida): JornadaSugerida {
+  const dias = j.dias.map((d) => {
+    if (!d.trabalha || !d.entrada || !d.saida) return d;
+    const atual = d.intervalo_minutos ?? 0;
+    const span = minutosEntre(d.entrada, d.saida);
+    const minimo = intervaloMinimoClt(span - atual);
+    if (minimo === null || atual >= minimo) return d;
+    // O intervalo fica dentro do horário: o menor que cumpre o mínimo do tempo que sobra.
+    const novo = [15, 60].find((b) => b > atual && (intervaloMinimoClt(span - b) ?? 0) <= b);
+    if (novo === undefined || !intervaloCoerente(d.entrada, d.saida, novo)) return d;
+    return { ...d, intervalo_minutos: novo };
+  });
+  const primeiro = dias.find((d) => d.trabalha && d.entrada && d.saida) ?? null;
+  return { ...j, dias, intervalo_minutos: primeiro?.intervalo_minutos ?? j.intervalo_minutos, intervalo_incerto: false };
+}
+
+/** Resumo de uma linha para o registro de ciência. */
+export const resumoInconformidades = (lista: InconformidadeJornada[]) =>
+  lista.map((i) => `${i.titulo} (${i.fundamento}): ${i.detalhe}`).join(" | ");
