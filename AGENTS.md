@@ -65,6 +65,5 @@
 - Reconciliation may settle an existing pending entry (same type, exact open amount, no date limit) via `pluggy_conciliacao_baixar`, which revalidates server-side to avoid duplicates.
 - Signature pendencies of terminated employees close only after the portal access window (data_desligamento + 30 days) via the daily server job `private.dp_encerrar_pendencias_desligados` (marks `assinatura_dispensada_em`, never deletes/archives); rescission/physical-signature types are excluded to keep legal evidence.
 - Onboarding reconciles the signup trial with the selected modules via `fn_onboarding_sincronizar_trial` (converts an unchosen signup trial instead of burning it, covers every chosen module) so v2 access matches what the client picked.
-- Concierge onboarding: super admin is temporary owner; `concierge_ativar` (server-only) transfers ownership and starts trial on manager activation.
-
-- Onboarding keeps the signup-confirmed personal WhatsApp in `profiles.phone` (fills only when empty) and stores company phones only in `companies`, so notifications reach the person who signed up.
+- Concierge: super admin is temporary owner; server-only `concierge_ativar` transfers ownership and starts trial on activation.
+- Onboarding never copies company phones into `profiles.phone`, so notices reach the signer.
