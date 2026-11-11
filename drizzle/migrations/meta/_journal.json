@@ -1625,6 +1625,13 @@
       "when": 1794429974753,
       "tag": "0231_feriados_resolver_rotinas_agendadas",
       "breakpoints": true
+    },
+    {
+      "idx": 232,
+      "version": "7",
+      "when": 1794431788851,
+      "tag": "0232_troca_folga_independente_da_marcacao",
+      "breakpoints": true
     }
   ]
 }

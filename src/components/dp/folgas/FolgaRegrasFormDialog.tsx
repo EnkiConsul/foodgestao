@@ -8,6 +8,9 @@ import {
   Trash2,
   Landmark,
   ChevronLeft,
+  Smartphone,
+  ShieldCheck,
+  type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +19,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Select,
@@ -67,6 +71,7 @@ import {
   type TrocaFolgaModo,
   type TrocaFolgaEscopo,
 } from "@/lib/dp/dsr-rules";
+import { erroPeriodoEscolha, resumoAutonomia, resumoDomingos, resumoTravas } from "@/lib/dp/folga-regras-blocos";
 
 /** Opções da base única da regra de folgas exibida na tela. */
 type BaseRegraOpcao = "clt" | "cct" | "propria";
@@ -88,6 +93,31 @@ function SubSection({
       </div>
       {children}
     </section>
+  );
+}
+
+/** Cabeçalho de um bloco da sanfona: ícone colorido, título e resumo do que está configurado. */
+function BlocoCabecalho({
+  icone: Icone,
+  corIcone,
+  titulo,
+  resumo,
+}: {
+  icone: LucideIcon;
+  corIcone: string;
+  titulo: string;
+  resumo: string;
+}) {
+  return (
+    <span className="flex min-w-0 flex-1 items-center gap-3">
+      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${corIcone}`}>
+        <Icone className="h-5 w-5" aria-hidden="true" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold">{titulo}</span>
+        <span className="block text-xs font-normal text-muted-foreground">{resumo}</span>
+      </span>
+    </span>
   );
 }
 
@@ -150,6 +180,7 @@ export function FolgaRegrasFormDialog({
   const hookLimitesOrigem = useDpFolgaLimites(copiarDeSelecionado);
 
   const [regrasRascunho, setRegrasRascunho] = useState<RegraLimiteInput[]>([]);
+  const [blocosAbertos, setBlocosAbertos] = useState<string[]>(["autonomia"]);
   const rascunhoCarregadoRef = useRef<string | null>(null);
 
   // Reseta o estado quando o diálogo abre.
@@ -161,6 +192,7 @@ export function FolgaRegrasFormDialog({
     setForm(configInicial);
     setAlertas([]);
     setRegrasRascunho([]);
+    setBlocosAbertos(["autonomia"]);
     rascunhoCarregadoRef.current = null;
   }, [open, modo, unidadeIdProp, configInicial, copiarDe]);
 
@@ -305,11 +337,14 @@ export function FolgaRegrasFormDialog({
       return false;
     }
     if (porAcordo && (form.dias_descanso_negociados ?? []).length === 0) {
+      setBlocosAbertos((b) => (b.includes("domingos") ? b : [...b, "domingos"]));
       toast.error("Selecione ao menos um dia de descanso negociado.");
       return false;
     }
-    if (form.folga_janela_fecha_dia < form.folga_janela_abre_dia) {
-      toast.error("O dia de encerramento precisa ser igual ou depois do dia de abertura.");
+    const erroPeriodo = erroPeriodoEscolha(form);
+    if (erroPeriodo) {
+      setBlocosAbertos((b) => (b.includes("autonomia") ? b : [...b, "autonomia"]));
+      toast.error(erroPeriodo);
       return false;
     }
     // Trava anti-duplicidade: duas regras ativas com o mesmo escopo somariam as cotas.
@@ -486,16 +521,19 @@ export function FolgaRegrasFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col gap-0 overflow-hidden">
-        <DialogHeader className="shrink-0 border-b pb-4 pr-8">
+      <DialogContent
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        className="flex max-h-[calc(var(--vvh,100dvh)-1rem)] max-w-3xl flex-col gap-0 overflow-hidden p-0 sm:max-h-[90vh] sm:p-0"
+      >
+        <DialogHeader className="shrink-0 space-y-1 border-b px-4 pb-3 pr-12 pt-4 text-left sm:px-6">
           <div className="flex items-center gap-2">
             {modo === "criar" && (
-              <Button aria-label="Voltar" variant="ghost" size="icon" onClick={() => setEtapa("unidade")}>
+              <Button aria-label="Voltar" variant="ghost" size="icon" className="h-11 w-11 shrink-0 sm:h-9 sm:w-9" onClick={() => setEtapa("unidade")}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
             )}
-            <DialogTitle className="flex items-center gap-2">
-              <Scale className="h-5 w-5" aria-hidden="true" />
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Scale className="h-5 w-5 shrink-0" aria-hidden="true" />
               {modo === "criar" ? "Nova Regra de Folgas" : "Editar Regras de Folgas"}
             </DialogTitle>
           </div>
@@ -506,7 +544,233 @@ export function FolgaRegrasFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 sm:px-6 sm:py-4">
+          <Accordion
+            type="multiple"
+            value={blocosAbertos}
+            onValueChange={setBlocosAbertos}
+            className="space-y-3"
+          >
+            <AccordionItem value="autonomia" className="overflow-hidden rounded-xl border border-l-4 border-l-primary bg-card">
+              <AccordionTrigger className="min-h-14 gap-3 px-3 py-3 text-left hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-4">
+                <BlocoCabecalho
+                  icone={Smartphone}
+                  corIcone="bg-primary/10 text-primary"
+                  titulo="Autonomia no aplicativo"
+                  resumo={resumoAutonomia(form)}
+                />
+              </AccordionTrigger>
+              <AccordionContent className="space-y-5 px-3 pb-4 sm:px-4">
+                <SubSection
+                  title="Escolha de folgas no mês"
+                  description="Decide se o colaborador escolhe as próprias folgas pelo app ou se a gerência monta a escala."
+                >
+                  <div className="flex items-start justify-between gap-4 rounded-lg border bg-background p-3">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="marcacao-portal" className="text-sm font-medium">
+                        Colaboradores escolhem folgas no app
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Vale para marcar, mudar e pedir folga pelo celular.
+                      </p>
+                    </div>
+                    <Switch
+                      id="marcacao-portal"
+                      checked={form.folga_marcacao_portal}
+                      onCheckedChange={(v) => set("folga_marcacao_portal", v)}
+                    />
+                  </div>
+
+                  {!form.folga_marcacao_portal ? (
+                    <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs">
+                      <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                      <p>
+                        <strong>Escala definida pela gerência.</strong> O colaborador vê as folgas no
+                        calendário, mas não escolhe, não muda e não pede folga pelo app. Período de
+                        escolha, lembretes e distribuição automática ficam parados.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4 rounded-lg border bg-background p-3">
+                      <div className="space-y-0.5">
+                        <p className="text-sm font-medium">Período mensal para escolha</p>
+                        <p className="text-xs text-muted-foreground">
+                          Dias do mês em que o colaborador escolhe as folgas do mês seguinte. Fora desse
+                          período ele só consegue pedir exceção.
+                        </p>
+                      </div>
+              <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+                <div className="space-y-0.5">
+                  <Label htmlFor="janela-ativa">Usar período mensal de escolha</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Desligado: o colaborador escolhe as folgas a qualquer momento do mês.
+                  </p>
+                </div>
+                <Switch
+                  id="janela-ativa"
+                  checked={form.folga_janela_ativa}
+                  onCheckedChange={(v) => set("folga_janela_ativa", v)}
+                />
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="janela-abre">Abre no dia</Label>
+                  <Input
+                    className="h-11 text-base sm:h-10 sm:text-sm"
+                    id="janela-abre"
+                    type="number"
+                    min={1}
+                    max={28}
+                    disabled={!form.folga_janela_ativa}
+                    value={form.folga_janela_abre_dia}
+                    onChange={(e) =>
+                      set("folga_janela_abre_dia", Math.min(28, Math.max(1, num(e.target.value, 10))))
+                    }
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="janela-fecha">Encerra no dia</Label>
+                  <Input
+                    className="h-11 text-base sm:h-10 sm:text-sm"
+                    id="janela-fecha"
+                    type="number"
+                    min={1}
+                    max={28}
+                    disabled={!form.folga_janela_ativa}
+                    value={form.folga_janela_fecha_dia}
+                    onChange={(e) =>
+                      set("folga_janela_fecha_dia", Math.min(28, Math.max(1, num(e.target.value, 20))))
+                    }
+                  />
+                  {form.folga_janela_fecha_dia < form.folga_janela_abre_dia && (
+                    <p className="text-xs text-destructive">
+                      O dia de encerramento precisa ser igual ou depois do dia de abertura.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {(valeRegras?.va_ativo || valeRegras?.vt_ativo) && (
+                <div className="rounded-md bg-muted/50 p-3 text-xs">
+                  <p className="font-medium">Datas de corte dos vales</p>
+                  <ul className="mt-1 space-y-0.5 text-muted-foreground">
+                    {valeRegras?.va_ativo && (
+                      <li>
+                        Vale-alimentação: paga no dia {valeRegras.va_dia_pagamento ?? "—"}
+                        {valeRegras.va_dias_corte != null
+                          ? `, com contagem fechada ${valeRegras.va_dias_corte} dia(s) antes`
+                          : ""}
+                        .
+                      </li>
+                    )}
+                    {valeRegras?.vt_ativo && (
+                      <li>
+                        Vale-transporte: paga no dia {valeRegras.vt_dia_pagamento ?? "—"}
+                        {valeRegras.vt_dias_corte != null
+                          ? `, com contagem fechada ${valeRegras.vt_dias_corte} dia(s) antes`
+                          : ""}
+                        .
+                      </li>
+                    )}
+                  </ul>
+                  <p className="mt-1 text-muted-foreground">
+                    Encerrar a escolha das folgas até essa data ajuda a fechar os vales já com as folgas
+                    definidas.
+                  </p>
+                </div>
+              )}
+
+              <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+                <div className="space-y-0.5">
+                  <Label htmlFor="janela-auto">Definir automaticamente quem não escolher</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Depois do encerramento, quem não marcou recebe folga de fim de semana começando pelos
+                    dias mais vazios. Se não houver mais vaga, o sistema avisa você.
+                  </p>
+                </div>
+                <Switch
+                  id="janela-auto"
+                  disabled={!form.folga_janela_ativa}
+                  checked={form.folga_autoatribuir}
+                  onCheckedChange={(v) => set("folga_autoatribuir", v)}
+                />
+              </div>
+                    </div>
+                  )}
+                </SubSection>
+
+                <Separator />
+
+                <SubSection
+                  title="Troca de folga entre colegas"
+                  description="Independe da escolha acima: mesmo com a escala definida pela gerência, os colegas podem combinar trocas se você permitir."
+                >
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="troca-modo">Troca de folga</Label>
+                <Select
+                  value={form.troca_folga_modo}
+                  onValueChange={(v) =>
+                    set("troca_folga_modo", v as DpConfigDpForm["troca_folga_modo"])
+                  }
+                >
+                  <SelectTrigger className="h-11 sm:h-10" id="troca-modo">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(TROCA_FOLGA_MODO_LABEL) as TrocaFolgaModo[]).map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {TROCA_FOLGA_MODO_LABEL[m]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Na troca direta, o aceite do colega já efetiva a troca no calendário.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="troca-escopo">Troca permitida sobre</Label>
+                <Select
+                  disabled={form.troca_folga_modo === "proibida"}
+                  value={form.troca_folga_escopo}
+                  onValueChange={(v) =>
+                    set("troca_folga_escopo", v as DpConfigDpForm["troca_folga_escopo"])
+                  }
+                >
+                  <SelectTrigger className="h-11 sm:h-10" id="troca-escopo">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(TROCA_FOLGA_ESCOPO_LABEL) as TrocaFolgaEscopo[]).map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {TROCA_FOLGA_ESCOPO_LABEL[m]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Folgas fora do escopo permitido são recusadas pelo sistema, com o motivo informado ao
+                  colaborador.
+                </p>
+              </div>
+            </div>
+                </SubSection>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="domingos" className="overflow-hidden rounded-xl border border-l-4 border-l-info bg-card">
+              <AccordionTrigger className="min-h-14 gap-3 px-3 py-3 text-left hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-4">
+                <BlocoCabecalho
+                  icone={Landmark}
+                  corIcone="bg-info/10 text-info"
+                  titulo="Domingos e base legal"
+                  resumo={resumoDomingos(baseRegra, semanas)}
+                />
+              </AccordionTrigger>
+              <AccordionContent className="space-y-5 px-3 pb-4 sm:px-4">
           {unidadeEfetiva && (
             <div className="rounded-md border bg-muted/40 p-3 text-xs">
               <p className="flex items-center gap-2 font-medium text-foreground">
@@ -537,7 +801,7 @@ export function FolgaRegrasFormDialog({
               <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor="base-regra">Base da regra de folgas</Label>
                 <Select value={baseRegra} onValueChange={(v) => setBaseRegra(v as BaseRegraOpcao)}>
-                  <SelectTrigger id="base-regra">
+                  <SelectTrigger className="h-11 sm:h-10" id="base-regra">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -606,7 +870,7 @@ export function FolgaRegrasFormDialog({
             </div>
           </SubSection>
 
-          <Separator />
+                <Separator />
 
           <SubSection
             title={rotulos.titulo}
@@ -644,7 +908,7 @@ export function FolgaRegrasFormDialog({
                   value={form.modo_frequencia_domingo}
                   onValueChange={(v) => set("modo_frequencia_domingo", v as ModoFrequencia)}
                 >
-                  <SelectTrigger id="modo-freq">
+                  <SelectTrigger className="h-11 sm:h-10" id="modo-freq">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -662,6 +926,7 @@ export function FolgaRegrasFormDialog({
                 <div className="space-y-1.5">
                   <Label htmlFor="per-domingo">{rotulos.semanas} — homens</Label>
                   <Input
+                    className="h-11 text-base sm:h-10 sm:text-sm"
                     id="per-domingo"
                     type="number"
                     min={0}
@@ -688,7 +953,7 @@ export function FolgaRegrasFormDialog({
                     value={String(form.domingos_por_mes)}
                     onValueChange={(v) => set("domingos_por_mes", Number(v))}
                   >
-                    <SelectTrigger id="dom-mes">
+                    <SelectTrigger className="h-11 sm:h-10" id="dom-mes">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -720,7 +985,7 @@ export function FolgaRegrasFormDialog({
                   value={form.modo_frequencia_domingo_mulher}
                   onValueChange={(v) => set("modo_frequencia_domingo_mulher", v as ModoFrequencia)}
                 >
-                  <SelectTrigger id="modo-freq-mulher">
+                  <SelectTrigger className="h-11 sm:h-10" id="modo-freq-mulher">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -741,6 +1006,7 @@ export function FolgaRegrasFormDialog({
                     <span className="text-muted-foreground">(Art. 386)</span>
                   </Label>
                   <Input
+                    className="h-11 text-base sm:h-10 sm:text-sm"
                     id="per-domingo-mulher"
                     type="number"
                     min={0}
@@ -774,7 +1040,7 @@ export function FolgaRegrasFormDialog({
                     value={String(form.domingos_por_mes_mulher)}
                     onValueChange={(v) => set("domingos_por_mes_mulher", Number(v))}
                   >
-                    <SelectTrigger id="dom-mes-mulher">
+                    <SelectTrigger className="h-11 sm:h-10" id="dom-mes-mulher">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -801,7 +1067,7 @@ export function FolgaRegrasFormDialog({
             </div>
           </SubSection>
 
-          <Separator />
+                <Separator />
 
           <FolgasDiferenciadasPanel
             unidadeId={unidadeEfetiva ?? null}
@@ -809,9 +1075,19 @@ export function FolgaRegrasFormDialog({
             semanasMulheres={semanas.mulher}
             diasConsiderados={nomesDiasDeFolga}
           />
+              </AccordionContent>
+            </AccordionItem>
 
-          <Separator />
-
+            <AccordionItem value="travas" className="overflow-hidden rounded-xl border border-l-4 border-l-warning bg-card">
+              <AccordionTrigger className="min-h-14 gap-3 px-3 py-3 text-left hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-4">
+                <BlocoCabecalho
+                  icone={ShieldCheck}
+                  corIcone="bg-warning/15 text-warning-foreground dark:text-warning"
+                  titulo="Travas da escala"
+                  resumo={resumoTravas(regrasRascunho)}
+                />
+              </AccordionTrigger>
+              <AccordionContent className="px-3 pb-4 sm:px-4">
           <FolgaRegrasPanel
             unidadeId={unidadeEfetiva ?? null}
             diasPermitidos={diasDeFolga}
@@ -819,200 +1095,16 @@ export function FolgaRegrasFormDialog({
             regrasRascunho={regrasRascunho}
             onChangeRascunho={setRegrasRascunho}
           />
-
-          <Separator />
-
-          <SubSection
-            title="Marcação de Folgas pelo Colaborador"
-            description="Define se os colaboradores escolhem, mudam, pedem e trocam folgas pelo portal."
-          >
-            <div className="flex items-start justify-between gap-4 rounded-md border p-3">
-              <div className="space-y-0.5">
-                <Label htmlFor="marcacao-portal">Colaboradores marcam folgas pelo portal</Label>
-                <p className="text-xs text-muted-foreground">
-                  {form.folga_marcacao_portal
-                    ? "Ligado: o colaborador marca, muda, pede e troca folgas pelo celular, conforme as regras abaixo."
-                    : "Desligado: a escala de folgas é definida só pela administração. O colaborador vê as folgas no calendário, mas não marca, não muda, não pede e não troca. Período de escolha, lembretes e distribuição automática ficam parados."}
-                </p>
-              </div>
-              <Switch
-                id="marcacao-portal"
-                checked={form.folga_marcacao_portal}
-                onCheckedChange={(v) => set("folga_marcacao_portal", v)}
-              />
-            </div>
-          </SubSection>
-
-          <Separator />
-
-          <SubSection
-            title="Troca de Folga entre Colaboradores"
-            description="Define se os colaboradores podem trocar folgas entre si e sobre quais folgas a troca vale."
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="troca-modo">Troca de folga</Label>
-                <Select
-                  value={form.troca_folga_modo}
-                  onValueChange={(v) =>
-                    set("troca_folga_modo", v as DpConfigDpForm["troca_folga_modo"])
-                  }
-                >
-                  <SelectTrigger id="troca-modo">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(Object.keys(TROCA_FOLGA_MODO_LABEL) as TrocaFolgaModo[]).map((m) => (
-                      <SelectItem key={m} value={m}>
-                        {TROCA_FOLGA_MODO_LABEL[m]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Na troca direta, o aceite do colega já efetiva a troca no calendário.
-                </p>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="troca-escopo">Troca permitida sobre</Label>
-                <Select
-                  disabled={form.troca_folga_modo === "proibida"}
-                  value={form.troca_folga_escopo}
-                  onValueChange={(v) =>
-                    set("troca_folga_escopo", v as DpConfigDpForm["troca_folga_escopo"])
-                  }
-                >
-                  <SelectTrigger id="troca-escopo">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(Object.keys(TROCA_FOLGA_ESCOPO_LABEL) as TrocaFolgaEscopo[]).map((m) => (
-                      <SelectItem key={m} value={m}>
-                        {TROCA_FOLGA_ESCOPO_LABEL[m]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Folgas fora do escopo permitido são recusadas pelo sistema, com o motivo informado ao
-                  colaborador.
-                </p>
-              </div>
-            </div>
-          </SubSection>
-
-          <Separator />
-
-          <SubSection
-            title="Período Mensal para Escolha das Folgas"
-            description="Define os dias do mês em que os colaboradores podem escolher as folgas do mês seguinte. Fora desse período eles só conseguem solicitar exceção."
-          >
-            <div className="space-y-4">
-              <div className="flex items-start justify-between gap-4 rounded-md border p-3">
-                <div className="space-y-0.5">
-                  <Label htmlFor="janela-ativa">Usar período mensal de escolha</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Quando desligado, a marcação segue liberada como hoje.
-                  </p>
-                </div>
-                <Switch
-                  id="janela-ativa"
-                  checked={form.folga_janela_ativa}
-                  onCheckedChange={(v) => set("folga_janela_ativa", v)}
-                />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="janela-abre">Abre no dia</Label>
-                  <Input
-                    id="janela-abre"
-                    type="number"
-                    min={1}
-                    max={28}
-                    disabled={!form.folga_janela_ativa}
-                    value={form.folga_janela_abre_dia}
-                    onChange={(e) =>
-                      set("folga_janela_abre_dia", Math.min(28, Math.max(1, num(e.target.value, 10))))
-                    }
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="janela-fecha">Encerra no dia</Label>
-                  <Input
-                    id="janela-fecha"
-                    type="number"
-                    min={1}
-                    max={28}
-                    disabled={!form.folga_janela_ativa}
-                    value={form.folga_janela_fecha_dia}
-                    onChange={(e) =>
-                      set("folga_janela_fecha_dia", Math.min(28, Math.max(1, num(e.target.value, 20))))
-                    }
-                  />
-                  {form.folga_janela_fecha_dia < form.folga_janela_abre_dia && (
-                    <p className="text-xs text-destructive">
-                      O dia de encerramento precisa ser igual ou depois do dia de abertura.
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {(valeRegras?.va_ativo || valeRegras?.vt_ativo) && (
-                <div className="rounded-md bg-muted/50 p-3 text-xs">
-                  <p className="font-medium">Datas de corte dos vales</p>
-                  <ul className="mt-1 space-y-0.5 text-muted-foreground">
-                    {valeRegras?.va_ativo && (
-                      <li>
-                        Vale-alimentação: paga no dia {valeRegras.va_dia_pagamento ?? "—"}
-                        {valeRegras.va_dias_corte != null
-                          ? `, com contagem fechada ${valeRegras.va_dias_corte} dia(s) antes`
-                          : ""}
-                        .
-                      </li>
-                    )}
-                    {valeRegras?.vt_ativo && (
-                      <li>
-                        Vale-transporte: paga no dia {valeRegras.vt_dia_pagamento ?? "—"}
-                        {valeRegras.vt_dias_corte != null
-                          ? `, com contagem fechada ${valeRegras.vt_dias_corte} dia(s) antes`
-                          : ""}
-                        .
-                      </li>
-                    )}
-                  </ul>
-                  <p className="mt-1 text-muted-foreground">
-                    Encerrar a escolha das folgas até essa data ajuda a fechar os vales já com as folgas
-                    definidas.
-                  </p>
-                </div>
-              )}
-
-              <div className="flex items-start justify-between gap-4 rounded-md border p-3">
-                <div className="space-y-0.5">
-                  <Label htmlFor="janela-auto">Definir automaticamente quem não escolher</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Depois do encerramento, quem não marcou recebe folga de fim de semana começando pelos
-                    dias mais vazios. Se não houver mais vaga, o sistema avisa você.
-                  </p>
-                </div>
-                <Switch
-                  id="janela-auto"
-                  disabled={!form.folga_janela_ativa}
-                  checked={form.folga_autoatribuir}
-                  onCheckedChange={(v) => set("folga_autoatribuir", v)}
-                />
-              </div>
-            </div>
-          </SubSection>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </div>
 
-        <DialogFooter className="shrink-0 border-t pt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+        <DialogFooter className="shrink-0 flex-row gap-2 border-t px-4 py-3 [padding-bottom:max(0.75rem,env(safe-area-inset-bottom))] sm:px-6">
+          <Button variant="outline" className="h-11 flex-1 sm:h-10 sm:flex-none" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancelar
           </Button>
-          <Button onClick={() => void handleSalvar()} disabled={saving} className="gap-2">
+          <Button onClick={() => void handleSalvar()} disabled={saving} className="h-11 flex-1 gap-2 sm:h-10 sm:flex-none">
             <Save className="h-4 w-4" aria-hidden="true" />
             {saving ? "Salvando..." : "Salvar regras"}
           </Button>

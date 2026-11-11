@@ -39,6 +39,10 @@
     --warning: 38 92% 52%;
     --warning-foreground: 38 90% 15%;
 
+    /* Azul informativo — blocos de base legal/referência. */
+    --info: 205 85% 36%;
+    --info-foreground: 0 0% 100%;
+
     --border: 150 12% 88%;
     --input: 150 12% 88%;
     --ring: 141 98% 34%;
@@ -130,6 +134,9 @@
 
     --warning: 38 82% 50%;
     --warning-foreground: 38 90% 96%;
+
+    --info: 205 80% 62%;
+    --info-foreground: 205 60% 10%;
 
     --border: 155 16% 19%;
     --input: 155 16% 19%;

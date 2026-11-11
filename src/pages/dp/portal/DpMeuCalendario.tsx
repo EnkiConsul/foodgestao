@@ -68,6 +68,7 @@ import {
 } from "@/components/ui/select";
 import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 import { resumoEscolhaFolgas, folgaDominicalAutomatica, podeTrocarFolga, domingosFolgaNoPeriodo } from "@/lib/dp/dsr-rules";
+import { trocaLiberadaNoPortal } from "@/lib/dp/folga-regras-blocos";
 import { folgasOfertaveis, dataEmAfastamento, trocasAbertasComColegas, type PeriodoAfastamento } from "@/lib/dp/troca-oferta";
 import { mensagemErroTroca } from "@/lib/dp/trocas-erros";
 import { avaliarRiscoDsrTroca, avisoDsr } from "@/lib/dp/dsr-consecutivo";
@@ -396,7 +397,11 @@ export default function DpMeuCalendario() {
    * recusa de qualquer forma).
    */
   const portalLivre = janelaQuery.isPending ? false : marcacaoPortalLiberada(janelaQuery.data);
-  const TEXTO_ESCALA_ADMIN = "A escala de folgas desta loja é definida pela administração. Se precisar mudar alguma folga, fale com o seu gestor.";
+  // Troca entre colegas segue só a regra de troca da unidade, independente da escolha de folgas.
+  const trocaLivre = trocaLiberadaNoPortal(regrasConfig);
+  const TEXTO_ESCALA_ADMIN = trocaLivre
+    ? "A escala de folgas desta loja é definida pela administração. Você ainda pode combinar troca de folga com um colega tocando no dia em que ele está de folga."
+    : "A escala de folgas desta loja é definida pela administração. Se precisar mudar alguma folga, fale com o seu gestor.";
 
 
 
@@ -2172,7 +2177,7 @@ export default function DpMeuCalendario() {
                     : null
                 }
                 trocaveis={
-                  portalLivre && dayInfo.canTrade && !["blocked", "past", "mine", "fixed"].includes(selectedDay.status)
+                  trocaLivre && dayInfo.canTrade && !["blocked", "past", "mine", "fixed"].includes(selectedDay.status)
                     ? dayInfo.occupants
                         .filter((o) => o.colaboradorId !== meRef.data?.id
                           // Folga do colega coberta por atestado, licença, suspensão ou férias não é negociável.
