@@ -258,7 +258,7 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
 
                     {c.status === "fixed" && !isAdmin && (
                       <Badge variant="outline" className="h-5 border-blue-500/30 bg-blue-500/10 px-1.5 py-0 text-[9px] text-blue-600">
-                        Semanal
+                        {c.label ?? "Semanal"}
                       </Badge>
                     )}
                     {hasMine && !isAdmin && (
@@ -379,7 +379,7 @@ export function FolgaCalendarShared(props: FolgaCalendarSharedProps) {
                   )}
                   {!isAdmin && c.status === "fixed" && (
                     <span className="rounded-md border border-blue-500/30 bg-blue-500/10 px-1.5 py-0.5 text-[9px] font-black text-blue-600">
-                      Semanal
+                      {c.label ?? "Semanal"}
                     </span>
                   )}
                   {!isAdmin && hasMine && (

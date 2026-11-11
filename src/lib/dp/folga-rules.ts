@@ -1,5 +1,6 @@
 // Regras de negócio para folgas do Aveto 360.
 import { rotuloFolga } from "@/lib/dp/folga-apresentacao";
+import { ROTULO_DESCANSO_12X36, ehDiaDePlantao12x36 } from "@/lib/dp/escala-12x36";
 
 export type DateStatusKind =
   | "available"
@@ -43,8 +44,25 @@ export interface ColaboradorRecord {
    * no campo único `folga_fixa_semana`.
    */
   folgas_fixas_dow?: number[] | null;
+  /**
+   * Data do primeiro plantão quando a configuração vigente é 12x36. O
+   * descanso segue o dia sim, dia não (Art. 59-A), nunca o dia da semana.
+   */
+  plantao_12x36?: string | null;
   ativo?: boolean | null;
   unidade_id?: string | null;
+}
+
+/**
+ * A data é descanso fixo da pessoa? No 12x36 vale a paridade do ciclo;
+ * nos demais, o(s) dia(s) da semana de folga fixa.
+ */
+export function folgaFixaNaData(
+  c: { folga_fixa_semana?: number | null; folgas_fixas_dow?: number[] | null; plantao_12x36?: string | null },
+  d: Date,
+): boolean {
+  if (c.plantao_12x36) return !ehDiaDePlantao12x36(ymd(d), c.plantao_12x36);
+  return diasFixosDeFolga(c).includes(d.getDay());
 }
 
 /** Todos os dias fixos de descanso da pessoa, sem repetição. */
@@ -186,10 +204,9 @@ export function buildOccupantsByDate(params: {
   if (filterType === "all" || filterType === "fixed") {
     for (const d of days) {
       const iso = ymd(d);
-      const wd = d.getDay();
       for (const c of colaboradores) {
         if (c.ativo === false) continue;
-        if (!diasFixosDeFolga(c).includes(wd)) continue;
+        if (!folgaFixaNaData(c, d)) continue;
         if (filterUser !== "all" && c.id !== filterUser) continue;
         // Folga semanal cedida numa troca: nesse dia a pessoa trabalha.
         if (trabalhoExcepcional?.has(`${c.id}|${iso}`)) continue;
@@ -198,7 +215,8 @@ export function buildOccupantsByDate(params: {
           colaboradorId: c.id,
           colaboradorNome: c.nome ?? "—",
           type: "fixed",
-          origin: "Folga Semanal",
+          origin: c.plantao_12x36 ? ROTULO_DESCANSO_12X36 : "Folga Semanal",
+          ...(c.plantao_12x36 ? { rotulo: ROTULO_DESCANSO_12X36 } : {}),
         });
       }
     }
@@ -322,8 +340,13 @@ export function calculateDateStatus(params: {
   const myProfile = allColaboradores.find((p) => p.id === myColaboradorId);
   const isCanceled =
     myColaboradorId && canceledFolgas.some((c) => c.colaborador_id === myColaboradorId && c.data === iso);
-  const myFixed = myProfile ? diasFixosDeFolga(myProfile) : [];
-  const isMyFixed = !isAdmin && myFixed.includes(date.getDay()) && !isCanceled;
+  const meu12x36 = !isAdmin && !!myProfile?.plantao_12x36;
+  const isMyFixed = !isAdmin && !!myProfile && folgaFixaNaData(myProfile, date) && !isCanceled;
+
+  // 12x36: o descanso é do ciclo de 48h, sem deslocamento semanal (Art. 59-A).
+  if (meu12x36 && isMyFixed) {
+    return { status: "fixed", label: "Descanso", reason: ROTULO_DESCANSO_12X36 };
+  }
 
   if (isMyFixed) {
     // Só a folga fixa deslocada para outro dia substitui a semanal;
@@ -344,6 +367,9 @@ export function calculateDateStatus(params: {
   const hasMyPending =
     !isAdmin && pendingRequests.some((r) => r.data === iso && r.colaborador_id === myColaboradorId);
   if (!isAdmin && hasMyPending) return { status: "pending", label: "Pendente", reason: "Aguardando aprovação" };
+
+  // 12x36 não escolhe folga no mês: dia de plantão nunca fica "Disponível" para marcar.
+  if (meu12x36) return { status: "weekday", label: "Plantão", reason: "Dia de plantão 12x36" };
 
   if (!isAdmin && locked && isWknd) {
     return { status: "blocked", reason: `Folgas ainda não liberadas (Abre em ${locked.unlockDateBR})` };

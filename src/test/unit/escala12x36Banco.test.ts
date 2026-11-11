@@ -27,6 +27,8 @@ beforeAll(async () => {
     SET check_function_bodies = off;
   `);
   await db.exec(readFileSync("drizzle/migrations/0226_escala_12x36_plantao_alternado.sql", "utf8"));
+  await db.exec(`ALTER TABLE dp_folgas ADD COLUMN direito_origem text;`);
+  await db.exec(readFileSync("drizzle/migrations/0228_escala_12x36_calendario_descanso.sql", "utf8"));
   // Ana: 12x36 com primeiro plantão em 10/11/2026 (gravado pela tela oficial).
   await db.exec(`
     SELECT set_config('app.dp_config_escala_explicita','on',false);
@@ -78,5 +80,23 @@ describe("banco: ciclo 12x36", () => {
   it("12x36 sem data do primeiro plantão é recusado", async () => {
     await expect(db.query(`SELECT set_config('app.dp_config_escala_explicita','on',false); `).then(() =>
       db.query(`INSERT INTO dp_colaborador_config_trabalho(colaborador_id, vigencia_inicio, escala_modelo) VALUES ('${bia}','2027-01-01','12x36')`))).rejects.toThrow(/12x36_primeiro/);
+  });
+});
+
+describe("banco: 12x36 sem compensatória de feriado (Art. 59-A, parágrafo único)", () => {
+  it("recusa folga compensatória de feriado para quem está em 12x36", async () => {
+    await expect(
+      db.query(`INSERT INTO dp_folgas(colaborador_id, data, direito_origem) VALUES ('${ana}','2026-11-15','compensacao_feriado')`),
+    ).rejects.toThrow(/COMPENSACAO_INELEGIVEL/);
+  });
+  it("aceita a compensatória de quem está na escala semanal", async () => {
+    await db.query(`INSERT INTO dp_folgas(colaborador_id, data, direito_origem) VALUES ('${bia}','2026-11-15','compensacao_feriado')`);
+    const r = await q<{ n: number }>(`SELECT count(*)::int n FROM dp_folgas WHERE colaborador_id='${bia}' AND direito_origem='compensacao_feriado'`);
+    expect(r.n).toBe(1);
+  });
+  it("folga comum de quem está em 12x36 continua permitida", async () => {
+    await db.query(`INSERT INTO dp_folgas(colaborador_id, data) VALUES ('${ana}','2026-11-16')`);
+    const r = await q<{ n: number }>(`SELECT count(*)::int n FROM dp_folgas WHERE colaborador_id='${ana}' AND data='2026-11-16'`);
+    expect(r.n).toBe(1);
   });
 });

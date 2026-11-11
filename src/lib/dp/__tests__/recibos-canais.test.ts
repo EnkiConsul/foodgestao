@@ -14,6 +14,6 @@ describe("canais e sincronização dos recibos", () => {
 
   it("pessoa sem cadastro continua sem portal", () => {
     expect(emissor).toContain("Pessoa sem cadastro não acessa o portal.");
-    expect(tela).toContain('CANAIS_ASSINATURA.filter((c) => !avulso || c.value !== "portal")');
+    expect(tela).toContain('CANAIS_ASSINATURA.filter((c) => (!avulso && !colabPapel) || c.value !== "portal")');
   });
 });

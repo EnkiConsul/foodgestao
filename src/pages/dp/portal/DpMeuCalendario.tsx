@@ -9,6 +9,7 @@ import { AssinaturaConfirmarDialog } from "@/components/dp/portal/AssinaturaConf
 import { assinarTroca } from "@/lib/dp/troca-assinatura";
 import { CienciaFaltaTrocaBox, TEXTO_CIENCIA_FALTA_TROCA } from "@/components/dp/CienciaFaltaTrocaBox";
 import { PedirDispensaFeriado } from "@/components/dp/portal/PedirDispensaFeriado";
+import { ROTULO_DESCANSO_12X36 } from "@/lib/dp/escala-12x36";
 import { AvisoConvocacaoFeriado, SeloConvocado, useMinhasConvocacoesFeriado } from "@/components/dp/portal/ConvocacaoFeriadoPortal";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Helmet } from "react-helmet-async";
@@ -90,6 +91,7 @@ import {
   dayType,
   getMonthDays,
   diasFixosDeFolga,
+  folgaFixaNaData,
   formatBR,
   monthKey,
   normalizeWeekday,
@@ -414,6 +416,7 @@ export default function DpMeuCalendario() {
         nome: c.nome_social || c.nome,
         folga_fixa_semana: c.folga_fixa_semana ?? null,
         folgas_fixas_dow: Array.isArray(c.folgas_fixas_dow) ? c.folgas_fixas_dow.map(Number) : null,
+        plantao_12x36: c.plantao_12x36 ?? null,
         ativo: c.ativo,
         unidade_id: c.unidade_id,
       })) as ColaboradorRecord[];
@@ -647,14 +650,51 @@ export default function DpMeuCalendario() {
     },
   });
 
+  /**
+   * Escala 12x36 vigente: devolve a data do primeiro plantão. O descanso segue
+   * o dia sim, dia não (Art. 59-A), nunca o dia da semana.
+   */
+  const hojeCiclo = ymd(new Date());
+  const meuCiclo12x36Query = useQuery({
+    queryKey: ["dp_meu_ciclo_12x36", meRef.data?.id, hojeCiclo],
+    enabled: !!meRef.data?.id,
+    queryFn: async (): Promise<string | null> => {
+      const { data, error } = await supabase
+        .from("dp_colaborador_config_trabalho")
+        .select("escala_modelo, data_primeiro_plantao")
+        .eq("colaborador_id", meRef.data!.id)
+        .lte("vigencia_inicio", hojeCiclo)
+        .or(`vigencia_fim.is.null,vigencia_fim.gte.${hojeCiclo}`)
+        .order("vigencia_inicio", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data?.escala_modelo === "12x36" ? (data.data_primeiro_plantao as string | null) ?? null : null;
+    },
+  });
+  const meuPlantao12x36 = meuCiclo12x36Query.data ?? null;
+  const meu12x36 = !!meuPlantao12x36;
+  /** Meu descanso fixo numa data: ciclo 12x36 ou dia(s) da semana da folga fixa. */
+  const ehMinhaFolgaFixa = (d: Date) =>
+    folgaFixaNaData(
+      {
+        folga_fixa_semana: meRef.data?.folga_fixa_semana ?? null,
+        folgas_fixas_dow: meusDiasFixosQuery.data ?? [],
+        plantao_12x36: meuPlantao12x36,
+      },
+      d,
+    );
+
   const colaboradoresAll = useMemo(() => {
     const lista = colaboradoresQuery.data ?? [];
     const fixos = meusDiasFixosQuery.data ?? [];
-    if (!fixos.length || !meRef.data?.id) return lista;
+    if ((!fixos.length && !meuPlantao12x36) || !meRef.data?.id) return lista;
     return lista.map((c) =>
-      c.id === meRef.data!.id ? { ...c, folgas_fixas_dow: fixos } : c,
+      c.id === meRef.data!.id
+        ? { ...c, folgas_fixas_dow: fixos.length ? fixos : c.folgas_fixas_dow, plantao_12x36: meuPlantao12x36 ?? c.plantao_12x36 ?? null }
+        : c,
     );
-  }, [colaboradoresQuery.data, meusDiasFixosQuery.data, meRef.data?.id]);
+  }, [colaboradoresQuery.data, meusDiasFixosQuery.data, meRef.data?.id, meuPlantao12x36]);
   // Filtra colaboradores da minha unidade (se eu tiver)
   const colaboradores = useMemo(
     () => (myUnidade ? colaboradoresAll.filter((c) => c.unidade_id === myUnidade) : colaboradoresAll),
@@ -691,6 +731,8 @@ export default function DpMeuCalendario() {
     const avisoFerias = temFerias
       ? " Neste mês você tem férias: sua folga fica restrita aos dias em que você trabalha, com prioridade para os dias mais próximos da saída e do retorno."
       : "";
+    if (meu12x36)
+      return "Sua escala é 12x36: você descansa dia sim, dia não, e os domingos de descanso já vêm do próprio ciclo. Não há folga para escolher no mês.";
     if (previstas <= 0)
       return `Neste mês a regra da sua loja não prevê folga ${rotulo}.` + avisoFerias;
     const minhas = folgas.filter(
@@ -727,6 +769,7 @@ export default function DpMeuCalendario() {
     domingosMesEfetivo,
     folgas,
     folgaCltAutomatica,
+    meu12x36,
     meRef.data,
     meusDiasFixosQuery.data,
     range.endDate,
@@ -947,7 +990,7 @@ export default function DpMeuCalendario() {
       folga_fixa_semana: meRef.data?.folga_fixa_semana ?? null,
       folgas_fixas_dow: meusDiasFixosQuery.data ?? [],
     });
-    if (!fixos.length || !meRef.data?.id) return [] as { id: string; data: string; fixa: true }[];
+    if ((!fixos.length && !meuPlantao12x36) || !meRef.data?.id) return [] as { id: string; data: string; fixa: true }[];
     const comRegistro = new Set(
       folgas.filter((f) => f.colaborador_id === meRef.data!.id && f.status !== "cancelada").map((f) => f.data as string),
     );
@@ -955,7 +998,7 @@ export default function DpMeuCalendario() {
     const hojeD = parseYMD(hojeIso);
     const fimProximoMes = new Date(hojeD.getFullYear(), hojeD.getMonth() + 2, 0);
     return eachDayOfInterval({ start: hojeD, end: fimProximoMes })
-      .filter((d) => fixos.includes(d.getDay()))
+      .filter((d) => ehMinhaFolgaFixa(d))
       .map((d) => ymd(d))
       .filter((iso) => iso >= hojeIso && !comRegistro.has(iso))
       // Folga fixa já cedida numa troca: nesse dia agora trabalha, não pode ser oferecida de novo.
@@ -965,7 +1008,7 @@ export default function DpMeuCalendario() {
       // Folga coberta por atestado, licença, suspensão ou férias não é negociável.
       .filter((iso) => !dataEmAfastamento(afastamentosQuery.data, meRef.data!.id, iso))
       .map((iso) => ({ id: `fixa-${iso}`, data: iso, fixa: true as const }));
-  }, [meRef.data, meusDiasFixosQuery.data, folgas, range.startDate, range.endDate, hojeIso, trabalhoExcepcionalQuery.data, diasEmTrocaPendente, afastamentosQuery.data]);
+  }, [meRef.data, meusDiasFixosQuery.data, meuPlantao12x36, folgas, range.startDate, range.endDate, hojeIso, trabalhoExcepcionalQuery.data, diasEmTrocaPendente, afastamentosQuery.data]);
 
   /** Folgas ofertáveis para o dia aberto no diálogo (sem o próprio dia pedido). */
   const folgasParaOferecer = useMemo(() => {
@@ -1010,12 +1053,13 @@ export default function DpMeuCalendario() {
   }, [temCompensacao, excecaoModo, regraUnidade.isLoading]);
   const [excecaoDiaTrabalho, setExcecaoDiaTrabalho] = useState("");
   const fixasParaExcecao = useMemo(() => {
-    if (!selectedDay) return [];
+    // 12x36 não tem folga semanal: mudar o descanso do ciclo é decisão do gestor.
+    if (!selectedDay || meu12x36) return [];
     const alvo = parseYMD(selectedDay.iso).getTime();
     return minhasFixasFuturas
       .filter((f) => f.data !== selectedDay.iso)
       .sort((a, b) => Math.abs(parseYMD(a.data).getTime() - alvo) - Math.abs(parseYMD(b.data).getTime() - alvo));
-  }, [minhasFixasFuturas, selectedDay]);
+  }, [minhasFixasFuturas, selectedDay, meu12x36]);
 
 
   // -------- Mutations --------
@@ -1063,6 +1107,9 @@ export default function DpMeuCalendario() {
         folga_fixa_semana: meRef.data.folga_fixa_semana,
         folgas_fixas_dow: meusDiasFixosQuery.data ?? [],
       });
+      if (meu12x36) {
+        negarRegra("Sua escala é 12x36: o descanso segue o ciclo dia sim, dia não. Para mudar, fale com o seu gestor.");
+      }
       if (fixos.includes(wd)) {
         negarRegra('Este é seu dia de folga fixa. Use "Solicitar exceção" ou uma troca.');
       }
@@ -1462,7 +1509,7 @@ export default function DpMeuCalendario() {
       folga_fixa_semana: meRef.data?.folga_fixa_semana ?? null,
       folgas_fixas_dow: meusDiasFixosQuery.data ?? [],
     });
-    if (fixos.length) {
+    if (fixos.length || meuPlantao12x36) {
       // A folga fixa vale em qualquer semana: cobre também as semanas vizinhas
       // ao mês aberto, senão a contagem de dias seguidos "vaza" para fora do mês.
       for (const d of eachDayOfInterval({
@@ -1470,7 +1517,7 @@ export default function DpMeuCalendario() {
         end: addDays(range.endDate, 21),
       })) {
         const iso = ymd(d);
-        if (!fixos.includes(d.getDay())) continue;
+        if (!ehMinhaFolgaFixa(d)) continue;
         if (trabalhoExcepcionalQuery.data?.has(`${meuId}|${iso}`)) continue;
         s.add(iso);
       }
@@ -1480,6 +1527,7 @@ export default function DpMeuCalendario() {
     folgas,
     meRef.data,
     meusDiasFixosQuery.data,
+    meuPlantao12x36,
     range.startDate,
     range.endDate,
     trabalhoExcepcionalQuery.data,
@@ -1744,6 +1792,9 @@ export default function DpMeuCalendario() {
   const convocacoesFeriado = useMinhasConvocacoesFeriado(meRef.data?.id);
   const convocadoNoDia = !!selectedDay && (convocacoesFeriado.data ?? []).some((c) => c.data === selectedDay.iso);
 
+  /** Rótulo do status do dia; no 12x36 a folga fixa é o descanso do ciclo. */
+  const rotuloStatus = (st: DateStatusKind) => (st === "fixed" && meu12x36 ? ROTULO_DESCANSO_12X36 : STATUS_LABEL[st]);
+
   const showExceptionBtn =
     selectedDay && !["past", "mine", "fixed", "pending", "swapped"].includes(selectedDay.status);
 
@@ -1978,7 +2029,7 @@ export default function DpMeuCalendario() {
             if (!blocked && status === "fixed") {
               chips.push(
                 <span key="sem" className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[11px] font-semibold text-blue-600">
-                  Semanal
+                  {meu12x36 ? "Descanso" : "Semanal"}
                 </span>,
               );
             }
@@ -2108,7 +2159,7 @@ export default function DpMeuCalendario() {
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border bg-muted/50 p-4 text-sm min-w-0">
                 <span className="font-bold">Status</span>
                 <Badge variant="outline" className={cn("text-xs whitespace-normal text-right break-words max-w-full", STATUS_BADGE[selectedDay.status])}>
-                  {STATUS_LABEL[selectedDay.status]}
+                  {rotuloStatus(selectedDay.status)}
                 </Badge>
               </div>
 
@@ -2117,7 +2168,7 @@ export default function DpMeuCalendario() {
                 minhaFolga={
                   ["mine", "fixed", "swapped"].includes(selectedDay.status)
                   || dayInfo.occupants.some((o) => o.colaboradorId === meRef.data?.id)
-                    ? STATUS_LABEL[selectedDay.status === "fixed" ? "fixed" : selectedDay.status === "swapped" ? "swapped" : "mine"]
+                    ? rotuloStatus(selectedDay.status === "fixed" ? "fixed" : selectedDay.status === "swapped" ? "swapped" : "mine")
                     : null
                 }
                 trocaveis={
@@ -2150,6 +2201,7 @@ export default function DpMeuCalendario() {
                     unidadeId={meRef.data.unidade_id ?? null}
                     iso={selectedDay.iso}
                     diaDeTrabalho={!["past", "mine", "fixed", "pending", "swapped"].includes(selectedDay.status)}
+                    escala12x36={meu12x36}
                   />
                 )}
                 {!portalLivre && selectedDay.status !== "past" && (

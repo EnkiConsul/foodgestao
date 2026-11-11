@@ -342,16 +342,33 @@ export default function DpAdminCalendario() {
     return colaboradores.filter((c: any) => c.unidade_id === filterUnidade);
   }, [colaboradores, filterUnidade]);
 
+  /** Ciclos 12x36 vigentes: o descanso segue o dia sim, dia não, nunca o dia da semana. */
+  const ciclos12x36Q = useQuery({
+    queryKey: ["dp_ciclos_12x36", selectedCompanyId],
+    enabled: !!selectedCompanyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_colaborador_config_trabalho")
+        .select("colaborador_id, data_primeiro_plantao")
+        .eq("company_id", selectedCompanyId!)
+        .eq("escala_modelo", "12x36")
+        .is("vigencia_fim", null);
+      if (error) throw error;
+      return new Map((data ?? []).filter((r) => r.data_primeiro_plantao).map((r) => [r.colaborador_id as string, r.data_primeiro_plantao as string]));
+    },
+  });
+
   const colabsForOccupants: ColaboradorRecord[] = useMemo(
     () =>
       filteredColabs.map((c: any) => ({
         id: c.id,
         nome: c.nome,
         folga_fixa_semana: c.folga_fixa_semana,
+        plantao_12x36: ciclos12x36Q.data?.get(c.id) ?? null,
         ativo: c.ativo,
         unidade_id: c.unidade_id,
       })),
-    [filteredColabs],
+    [filteredColabs, ciclos12x36Q.data],
   );
 
   // realtime

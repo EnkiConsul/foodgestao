@@ -6,13 +6,16 @@
  * e a folga semanal fixa da configuração de trabalho (ex.: toda quarta-feira).
  */
 
+import { proximoDescanso12x36 } from "@/lib/dp/escala-12x36";
+
 export type MotivoFolga =
   | "lancada"
   | "extra"
   | "escala"
   | "semanal"
   | "ferias"
-  | "feriado";
+  | "feriado"
+  | "descanso_12x36";
 
 export type ProximaFolga = {
   data: string;
@@ -27,6 +30,7 @@ export const MOTIVO_FOLGA_LABEL: Record<MotivoFolga, string> = {
   semanal: "Folga semanal",
   ferias: "Férias",
   feriado: "Feriado",
+  descanso_12x36: "Descanso 12x36",
 };
 
 export type FolgaLancada = {
@@ -69,8 +73,10 @@ export function proximaFolga(input: {
   configDias?: ConfigDia[];
   /** Quantos dias à frente considerar a folga semanal fixa. */
   horizonteDias?: number;
+  /** Data do primeiro plantão quando a pessoa está em 12x36: o descanso segue o ciclo, não o dia da semana. */
+  plantao12x36?: string | null;
 }): ProximaFolga | null {
-  const { hoje, folgas = [], escala = [], configDias = [], horizonteDias = 21 } = input;
+  const { hoje, folgas = [], escala = [], configDias = [], horizonteDias = 21, plantao12x36 = null } = input;
   const candidatos: ProximaFolga[] = [];
 
   for (const f of folgas) {
@@ -89,7 +95,12 @@ export function proximaFolga(input: {
     candidatos.push({ data: item.data, motivo, label: MOTIVO_FOLGA_LABEL[motivo] });
   }
 
-  const dowsFolga = new Set(configDias.filter((c) => !c.trabalha).map((c) => c.dow));
+  if (plantao12x36) {
+    const data = proximoDescanso12x36(hoje, plantao12x36);
+    candidatos.push({ data, motivo: "descanso_12x36", label: MOTIVO_FOLGA_LABEL.descanso_12x36 });
+  }
+
+  const dowsFolga = plantao12x36 ? new Set<number>() : new Set(configDias.filter((c) => !c.trabalha).map((c) => c.dow));
   if (dowsFolga.size > 0) {
     const base = fromISO(hoje);
     for (let i = 0; i <= horizonteDias; i++) {
@@ -111,6 +122,7 @@ export function proximaFolga(input: {
     escala: 2,
     feriado: 2,
     semanal: 3,
+    descanso_12x36: 3,
   };
   candidatos.sort((a, b) =>
     a.data === b.data ? prioridade[a.motivo] - prioridade[b.motivo] : a.data < b.data ? -1 : 1,

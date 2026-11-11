@@ -21637,6 +21637,7 @@ export type Database = {
           id: string
           nome: string
           nome_social: string
+          plantao_12x36: string
           unidade_id: string
         }[]
       }

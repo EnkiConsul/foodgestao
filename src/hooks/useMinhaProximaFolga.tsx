@@ -39,7 +39,7 @@ export function useMinhaProximaFolga(colaboradorId: string | null | undefined) {
           .order("data"),
         supabase
           .from("dp_colaborador_config_trabalho")
-          .select("id, folga_fixa_dow, dias:dp_colaborador_config_dias(dow, trabalha)")
+          .select("id, folga_fixa_dow, escala_modelo, data_primeiro_plantao, dias:dp_colaborador_config_dias(dow, trabalha)")
           .eq("colaborador_id", colaboradorId!)
           .order("vigencia_inicio", { ascending: false })
           .limit(1),
@@ -48,7 +48,7 @@ export function useMinhaProximaFolga(colaboradorId: string | null | undefined) {
       const folgas = (folgasRes.data ?? []) as FolgaLancada[];
       const escala = (escalaRes.data ?? []) as ItemEscalaFolga[];
       const cfg = configRes.data?.[0] as
-        | { folga_fixa_dow: number | null; dias?: ConfigDia[] }
+        | { folga_fixa_dow: number | null; escala_modelo?: string | null; data_primeiro_plantao?: string | null; dias?: ConfigDia[] }
         | undefined;
       const configDias: ConfigDia[] = cfg?.dias?.length
         ? cfg.dias
@@ -56,7 +56,8 @@ export function useMinhaProximaFolga(colaboradorId: string | null | undefined) {
           ? [{ dow: cfg.folga_fixa_dow, trabalha: false }]
           : [];
 
-      return calcularProximaFolga({ hoje, folgas, escala, configDias });
+      const plantao12x36 = cfg?.escala_modelo === "12x36" ? cfg.data_primeiro_plantao ?? null : null;
+      return calcularProximaFolga({ hoje, folgas, escala, configDias, plantao12x36 });
     },
   });
 

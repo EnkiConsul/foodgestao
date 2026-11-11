@@ -38,6 +38,12 @@ export function ehDiaDePlantao12x36(data: string, primeiroPlantao: string): bool
   return ((dif % 2) + 2) % 2 === 0;
 }
 
+/** Rótulo do dia de descanso do ciclo, igual no portal, no calendário e no painel do gestor. */
+export const ROTULO_DESCANSO_12X36 = "Descanso 12x36";
+/** Texto do Art. 59-A, parágrafo único: domingo e feriado são dias comuns no 12x36. */
+export const TEXTO_FERIADO_12X36 =
+  "Na escala 12x36 domingos e feriados são dias comuns: o descanso de 36 horas já os compensa (Art. 59-A, parágrafo único, da CLT).";
+
 export function ehEscala12x36(config: Pick<ConfigTrabalho, "escala_modelo" | "data_primeiro_plantao"> | null | undefined): boolean {
   return config?.escala_modelo === "12x36" && !!config.data_primeiro_plantao;
 }
@@ -64,6 +70,11 @@ function somarDias(data: string, n: number): string {
   const [a, m, d] = data.slice(0, 10).split("-").map(Number);
   const dt = new Date(Date.UTC(a, m - 1, d + n));
   return dt.toISOString().slice(0, 10);
+}
+
+/** Próximo dia de descanso a partir de `hoje` (inclusive): hoje, se for descanso; senão amanhã. */
+export function proximoDescanso12x36(hoje: string, primeiroPlantao: string): string {
+  return ehDiaDePlantao12x36(hoje, primeiroPlantao) ? somarDias(hoje, 1) : hoje.slice(0, 10);
 }
 
 export interface DiaSimulado12x36 {

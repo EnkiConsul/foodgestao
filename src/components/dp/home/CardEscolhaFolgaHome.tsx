@@ -37,7 +37,16 @@ export function CardEscolhaFolgaHome() {
         .select("id, company_id, unidade_id, regime, forma_pagamento, vinculo_label")
         .eq("id", colabId as string)
         .maybeSingle();
-      if (!c || !podeEscolherFolgaFds(c.regime, c.forma_pagamento, c.vinculo_label)) return null;
+      if (!c) return null;
+      const { data: cfg } = await supabase
+        .from("dp_colaborador_config_trabalho")
+        .select("escala_modelo")
+        .eq("colaborador_id", c.id)
+        .is("vigencia_fim", null)
+        .order("vigencia_inicio", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!podeEscolherFolgaFds(c.regime, c.forma_pagamento, c.vinculo_label, cfg?.escala_modelo ?? null)) return null;
 
       const { data: j, error } = await supabase.rpc("dp_folgas_janela_efetiva", {
         _company: c.company_id,

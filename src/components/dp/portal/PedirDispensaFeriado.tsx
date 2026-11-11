@@ -19,11 +19,13 @@ interface Props {
   iso: string;
   /** false quando o dia já é folga/passado: não há convocação para dispensar. */
   diaDeTrabalho: boolean;
+  /** 12x36: feriado no plantão é dia comum, sem dispensa a pedir (Art. 59-A, parágrafo único). */
+  escala12x36?: boolean;
 }
 
 const legivel = (iso: string) => iso.split("-").reverse().join("/");
 
-export function PedirDispensaFeriado({ colaboradorId, unidadeId, iso, diaDeTrabalho }: Props) {
+export function PedirDispensaFeriado({ colaboradorId, unidadeId, iso, diaDeTrabalho, escala12x36 = false }: Props) {
   const qc = useQueryClient();
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
@@ -33,7 +35,7 @@ export function PedirDispensaFeriado({ colaboradorId, unidadeId, iso, diaDeTraba
 
   const feriado = useQuery({
     queryKey: ["dp_feriado_dia_unidade", unidadeId, iso],
-    enabled: !!unidadeId && diaDeTrabalho,
+    enabled: !!unidadeId && diaDeTrabalho && !escala12x36,
     queryFn: async () => {
       const { data } = await supabase.rpc("dp_feriados_resolver_v2", { _unidade_id: unidadeId!, _inicio: iso, _fim: iso });
       return ((data ?? []) as { nome: string }[])[0]?.nome ?? null;

@@ -163,7 +163,7 @@ export function AtribuirFolgaTriagemDialog({
 
   /** Este vínculo não participa da atribuição de folgas. Registre ausência ou indisponibilidade no calendário. */
   const regimeQuery = useQuery({
-    queryKey: ["dp_triagem_regime", colaboradorId],
+    queryKey: ["dp_triagem_regime", colaboradorId, dataIso],
     enabled: open && !!colaboradorId,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -183,7 +183,20 @@ export function AtribuirFolgaTriagemDialog({
       }
       const { data: ex, error: ee } = await supabase.from("dp_colaborador_compensacao").select("usa_compensa_feriados").eq("company_id", companyId).eq("colaborador_id", colaboradorId).maybeSingle();
       if (ee) throw ee;
-      return { pessoa: row, compensa, individual: ex?.usa_compensa_feriados };
+      // Configuração vigente na data: 12x36 não recebe compensatória de feriado.
+      const refData = dataIso || new Date().toISOString().slice(0, 10);
+      const { data: cfg, error: ce } = await supabase
+        .from("dp_colaborador_config_trabalho")
+        .select("escala_modelo")
+        .eq("company_id", companyId)
+        .eq("colaborador_id", colaboradorId)
+        .lte("vigencia_inicio", refData)
+        .or(`vigencia_fim.is.null,vigencia_fim.gte.${refData}`)
+        .order("vigencia_inicio", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (ce) throw ce;
+      return { pessoa: { ...row, escala_modelo: cfg?.escala_modelo ?? null }, compensa, individual: ex?.usa_compensa_feriados };
     },
   });
   const elegivel = !!regimeQuery.data && podeReceberFolga(regimeQuery.data.pessoa);

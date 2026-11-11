@@ -1597,6 +1597,13 @@
       "when": 1794420293723,
       "tag": "0227_escala_12x36_revoga_rotinas_internas",
       "breakpoints": true
+    },
+    {
+      "idx": 228,
+      "version": "7",
+      "when": 1794421673355,
+      "tag": "0228_escala_12x36_calendario_descanso",
+      "breakpoints": true
     }
   ]
 }

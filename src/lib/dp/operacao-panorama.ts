@@ -20,7 +20,7 @@ import {
 } from "@/lib/dp/turno-utils";
 import { paraMinutos } from "@/lib/dp/jornada-utils";
 import { turnoDoDia, type ConfigTrabalho, type TurnoResolvido } from "@/lib/dp/config-trabalho";
-import { diaDaConfigNaData } from "@/lib/dp/escala-12x36";
+import { ROTULO_DESCANSO_12X36, diaDaConfigNaData, ehEscala12x36 } from "@/lib/dp/escala-12x36";
 import type { OcorrenciaEstado, OcorrenciaTipo } from "@/lib/dp/ocorrencias";
 import { rotuloFolga } from "@/lib/dp/folga-apresentacao";
 
@@ -644,7 +644,11 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
         });
       } else if (item.tipo === "ferias") registrar(colab, "ferias");
       else if (item.tipo === "afastamento") registrar(colab, "atestado");
-      else registrar(colab, "folga_padrao");
+      else {
+        if (colab.config && ehEscala12x36(colab.config) && !diaDaConfigNaData(colab.config, data)?.trabalha) rotuloAusenciaAtual = ROTULO_DESCANSO_12X36;
+        registrar(colab, "folga_padrao");
+        rotuloAusenciaAtual = undefined;
+      }
       continue;
     }
 
@@ -656,7 +660,10 @@ export function contarDia(input: ContarDiaInput): ResultadoDia {
         ? { ...(diaCfg ?? { dow, turno_id: null, setor_id: null }), trabalha: true }
         : diaCfg;
     if (!dia || !dia.trabalha) {
+      // 12x36: o gestor distingue o descanso do ciclo de uma folga concedida.
+      if (ehEscala12x36(colab.config)) rotuloAusenciaAtual = ROTULO_DESCANSO_12X36;
       registrar(colab, "folga_padrao");
+      rotuloAusenciaAtual = undefined;
       continue;
     }
     const turno = turnoDoDia(dia, colab.config.turno_padrao_id, turnos);
