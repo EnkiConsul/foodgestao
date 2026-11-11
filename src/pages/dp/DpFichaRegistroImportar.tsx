@@ -24,12 +24,15 @@ import { FichaLoteUnidade } from "@/components/dp/ficha-registro/lote/FichaLoteU
 import { FichaLoteCargos } from "@/components/dp/ficha-registro/lote/FichaLoteCargos";
 import { FichaLoteLista } from "@/components/dp/ficha-registro/lote/FichaLoteLista";
 import { NotificarResponsavelDialog } from "@/components/dp/ficha-registro/lote/NotificarResponsavelDialog";
-import { FichaLotePadroesCard } from "@/components/dp/ficha-registro/lote/FichaLotePadroesCard";
+import {
+  FichaLotePadroesCard, type AberturaPadroes, type FichaParaGrupo,
+} from "@/components/dp/ficha-registro/lote/FichaLotePadroesCard";
+import { ContatosLoteDialog, type LinhaContatoLote } from "@/components/dp/ficha-registro/lote/ContatosLoteDialog";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
-  agruparCargosLote, ajustesEmGrupo, escolhaDaFicha, vinculoOrganizado,
-  type EscolhasLote, type OrganizacaoLote,
+  agruparCargosLote, ajustesEmGrupo, dadosDaFichaLote, escolhaDaFicha, montarContatosLote, semDadosAcesso,
+  vinculoOrganizado, type ContatoEditado, type EscolhasLote, type OrganizacaoLote,
 } from "@/lib/dp/ficha-registro/organizacao-lote";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
 import { useDpSetores } from "@/hooks/useDpSetores";
@@ -277,24 +280,64 @@ export default function DpFichaRegistroImportar() {
       throw e;
     }
   };
-  const salvarContato = async (itemId: string, c: { whatsapp: string; email: string }) => {
-    const anterior = organizacao?.ajustes?.[itemId]?.dados ?? {};
-    const it = itens.find((i) => i.id === itemId);
-    const lidos = (it?.dados_extraidos ?? {}) as Record<string, unknown>;
-    const dados: Record<string, unknown> = { ...anterior };
-    if (c.whatsapp) {
-      dados.whatsapp = c.whatsapp;
-      if (!lidos.telefone && !anterior.telefone) dados.telefone = c.whatsapp;
+  const salvarContatos = async (edicoes: Record<string, ContatoEditado>) => {
+    const { itens: porItem, invalidos } = montarContatosLote(edicoes, (id) => ({
+      anterior: organizacao?.ajustes?.[id]?.dados ?? {},
+      lidos: (itens.find((i) => i.id === id)?.dados_extraidos ?? {}) as Record<string, unknown>,
+    }));
+    const n = Object.keys(porItem).length;
+    if (invalidos.length > 0) {
+      toast.error("Corrija os números ou e-mails destacados antes de salvar.");
+      throw new Error("contato inválido");
     }
-    if (c.email) dados.email = c.email;
+    if (n === 0) {
+      toast.info("Preencha o WhatsApp ou o e-mail de pelo menos uma pessoa.");
+      throw new Error("nada a salvar");
+    }
     try {
-      await ajustar.mutateAsync({ importacaoId: atual!.id, itens: { [itemId]: { dados } } });
-      toast.success("Contato salvo na ficha.");
+      await ajustar.mutateAsync({ importacaoId: atual!.id, itens: porItem });
+      toast.success(`${n} ${n === 1 ? "contato salvo" : "contatos salvos"} nas fichas.`);
     } catch (e) {
       toast.error((e as Error).message);
       throw e;
     }
   };
+  const [padroesAbertura, setPadroesAbertura] = useState<AberturaPadroes | null>(null);
+  const [contatosFoco, setContatosFoco] = useState<{ foco: string | null } | null>(null);
+  /** Fichas pendentes com nome, cargo e setor do lote (para escolher pessoas e preencher contatos). */
+  const fichasPendentesLote = useMemo(
+    () =>
+      itens
+        .filter((i) => ["pendente", "revisar", "duplicado"].includes(i.status))
+        .map((i) => {
+          const d = dadosDaFichaLote(i, organizacao);
+          const v = vinculoOrganizado(i, organizacao);
+          const setor = setoresAtivos.find((s) => s.id === v?.setorId) ?? null;
+          return {
+            id: i.id,
+            nome: String(d.nome ?? i.nome_extraido ?? "Ficha sem nome"),
+            cargo: cargosLista.find((c) => c.id === v?.cargoId)?.nome ?? (d.cargo_nome ? String(d.cargo_nome) : null),
+            setorId: setor?.id ?? null,
+            setorNome: setor?.nome ?? "Sem setor",
+            dados: d,
+          };
+        }),
+    [itens, organizacao, setoresAtivos, cargosLista],
+  );
+  const fichasParaGrupo: FichaParaGrupo[] = fichasPendentesLote;
+  const linhasContato: LinhaContatoLote[] = useMemo(
+    () =>
+      fichasPendentesLote
+        .filter((f) => semDadosAcesso(f.dados))
+        .map((f) => ({
+          id: f.id,
+          nome: f.nome,
+          detalhe: [f.cargo, f.setorId ? f.setorNome : null].filter(Boolean).join(" · ") || null,
+          whatsapp: "",
+          email: "",
+        })),
+    [fichasPendentesLote],
+  );
   const sindicatoLoteId = sindicatoLote === undefined ? organizacao?.sindicato_laboral_id ?? null : sindicatoLote;
   const itemAberto = itens.find((i) => i.id === abertoId) ?? null;
   const compacto = modoLote && !envioAberto;
@@ -752,8 +795,12 @@ export default function DpFichaRegistroImportar() {
                   turnos={turnosDoLote}
                   unidadeSemAdiantamento={unidadeSemAdiantamento}
                   unidadeTemPonto={!!unidadeDoLote?.possui_relogio_ponto}
+                  fichas={fichasParaGrupo}
+                  abertura={padroesAbertura}
+                  onAbertura={setPadroesAbertura}
                   salvando={ajustar.isPending}
                   onSalvar={salvarPadroes}
+                  onAplicarGrupo={aplicarGrupo}
                 />
               )}
               <FichaLoteLista
@@ -763,11 +810,17 @@ export default function DpFichaRegistroImportar() {
                 setores={setoresAtivos}
                 padroes={padroesLote}
                 unidadeId={unidadeLoteId}
-                turnos={turnosDoLote}
-                salvando={ajustar.isPending}
                 onAbrir={setAbertoId}
-                onAplicarGrupo={aplicarGrupo}
-                onSalvarContato={salvarContato}
+                onAplicarMarcadas={(ids) => setPadroesAbertura({ escopo: "grupo", ids })}
+                onPreencherContatos={(foco) => setContatosFoco({ foco })}
+              />
+              <ContatosLoteDialog
+                open={!!contatosFoco}
+                onOpenChange={(o) => !o && setContatosFoco(null)}
+                linhas={linhasContato}
+                focoId={contatosFoco?.foco ?? null}
+                salvando={ajustar.isPending}
+                onSalvar={salvarContatos}
               />
               <div className="sticky bottom-[calc(76px+env(safe-area-inset-bottom)+0.5rem)] z-10 flex items-center gap-2 rounded-xl border bg-card p-2 shadow-lg md:bottom-4">
                 <div className="min-w-0 flex-1 space-y-1 px-1">

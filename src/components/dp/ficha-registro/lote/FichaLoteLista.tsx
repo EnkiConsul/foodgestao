@@ -9,12 +9,9 @@ import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
 import { inferirFormaPagamento } from "@/lib/dp/ficha-registro/inferencia";
 import {
   dadosDaFichaLote, pendenciasFichaLote, setoresDoLote, situacaoPorPendencias, vinculoOrganizado,
-  type EscolhasLote, type OrganizacaoLote, type PadroesLote, type SituacaoFichaLote, STATUS_PENDENTES,
+  type OrganizacaoLote, type PadroesLote, type SituacaoFichaLote, STATUS_PENDENTES,
 } from "@/lib/dp/ficha-registro/organizacao-lote";
 import { cn } from "@/lib/utils";
-import { AplicarGrupoDialog } from "./AplicarGrupoDialog";
-import { ContatoRapidoDialog } from "./ContatoRapidoDialog";
-import type { TurnoLote } from "./EscolhasLoteCampos";
 
 type Filtro = "todas" | "pronta" | "atencao" | "concluida";
 
@@ -39,12 +36,11 @@ interface Props {
   /** Padrões da maioria (vínculo, adiantamento, ponto da unidade) usados na situação de cada ficha. */
   padroes: PadroesLote;
   unidadeId: string | null;
-  turnos: TurnoLote[];
-  salvando: boolean;
   onAbrir: (itemId: string) => void;
-  /** Ação em grupo (setor inteiro ou fichas marcadas). Devolve quantas mantiveram o horário da ficha. */
-  onAplicarGrupo: (itemIds: string[], escolhas: EscolhasLote) => Promise<void>;
-  onSalvarContato: (itemId: string, contato: { whatsapp: string; email: string }) => Promise<void>;
+  /** Abre "Padrões do lote" já no modo de pessoas escolhidas, com estas fichas marcadas. */
+  onAplicarMarcadas: (itemIds: string[]) => void;
+  /** Abre a lista rápida de dados para acesso (opcionalmente focando uma ficha). */
+  onPreencherContatos: (focoId: string | null) => void;
 }
 
 const lista = (xs: string[], max = 4) => {
@@ -56,7 +52,7 @@ const lista = (xs: string[], max = 4) => {
 
 /** Etapa 3: lista enxuta do lote, com atalhos por setor, ação em grupo e contato rápido. */
 export function FichaLoteLista({
-  itens, organizacao, cargos, setores, padroes, unidadeId, turnos, salvando, onAbrir, onAplicarGrupo, onSalvarContato,
+  itens, organizacao, cargos, setores, padroes, unidadeId, onAbrir, onAplicarMarcadas, onPreencherContatos,
 }: Props) {
   const salarioCargoDe = useDpSalarioCargoResolver();
   const [filtro, setFiltro] = useState<Filtro>("todas");
@@ -64,8 +60,6 @@ export function FichaLoteLista({
   const [busca, setBusca] = useState("");
   const [selecionando, setSelecionando] = useState(false);
   const [marcadas, setMarcadas] = useState<Set<string>>(new Set());
-  const [grupoAberto, setGrupoAberto] = useState(false);
-  const [contatoId, setContatoId] = useState<string | null>(null);
 
   const linhas = useMemo(
     () =>
@@ -95,10 +89,6 @@ export function FichaLoteLista({
           obrigatorias: aberta ? pend.obrigatorias : [],
           complementares: aberta ? pend.complementares : [],
           semAcesso: aberta && pend.semAcesso,
-          contato: {
-            whatsapp: String(d.whatsapp ?? d.telefone ?? ""),
-            email: String(d.email ?? d.email_contato ?? ""),
-          },
         };
       }),
     [itens, organizacao, cargos, setores, padroes, unidadeId, salarioCargoDe],
@@ -127,12 +117,6 @@ export function FichaLoteLista({
   );
   const visiveisPendentes = visiveis.filter((l) => l.pendente);
   const setorAtual = gruposSetor.find((g) => (g.id ?? "__sem") === setorFiltro) ?? null;
-  const alvo = selecionando ? [...marcadas] : visiveisPendentes.map((l) => l.item.id);
-  const origem = selecionando
-    ? "Fichas marcadas"
-    : setorAtual
-      ? `Todas as pendentes do setor ${setorAtual.nome}`
-      : "Todas as pendentes desta lista";
 
   const alternar = (id: string) =>
     setMarcadas((m) => {
@@ -142,12 +126,7 @@ export function FichaLoteLista({
     });
   const sairSelecao = () => { setSelecionando(false); setMarcadas(new Set()); };
 
-  const semAcessoIds = linhas.filter((l) => l.semAcesso).map((l) => l.item.id);
-  const contatoLinha = linhas.find((l) => l.item.id === contatoId) ?? null;
-  const proximaSemAcesso = (depoisDe: string) => {
-    const i = semAcessoIds.indexOf(depoisDe);
-    return [...semAcessoIds.slice(i + 1), ...semAcessoIds.slice(0, Math.max(i, 0))].find((id) => id !== depoisDe) ?? null;
-  };
+  const semAcesso = linhas.filter((l) => l.semAcesso).length;
 
   const FILTROS: Array<{ id: Filtro; label: string }> = [
     { id: "todas", label: "Todas" },
@@ -158,6 +137,23 @@ export function FichaLoteLista({
 
   return (
     <div className="space-y-3">
+      {semAcesso > 0 && (
+        <div className="flex flex-col gap-2 rounded-xl border border-warning/50 bg-warning/10 p-3 sm:flex-row sm:items-center">
+          <div className="flex min-w-0 flex-1 gap-2">
+            <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
+            <div className="min-w-0">
+              <p className="text-sm font-medium">
+                Faltam dados de acesso para {semAcesso} {semAcesso === 1 ? "colaborador" : "colaboradores"}
+              </p>
+              <p className="text-xs text-muted-foreground">Sem WhatsApp ou e-mail a pessoa não recebe o acesso ao portal.</p>
+            </div>
+          </div>
+          <Button size="sm" className="h-10 shrink-0" onClick={() => onPreencherContatos(null)}>
+            Preencher em lista rápida
+          </Button>
+        </div>
+      )}
+
       <div className="grid grid-cols-4 gap-1 rounded-xl border bg-card p-1" role="tablist" aria-label="Filtrar fichas">
         {FILTROS.map((f) => (
           <button
@@ -224,7 +220,15 @@ export function FichaLoteLista({
                 <Button variant="ghost" size="sm" className="h-9" onClick={sairSelecao} aria-label="Cancelar seleção">
                   <X className="h-4 w-4" />
                 </Button>
-                <Button size="sm" className="h-9" disabled={marcadas.size === 0} onClick={() => setGrupoAberto(true)}>
+                <Button
+                  size="sm"
+                  className="h-9"
+                  disabled={marcadas.size === 0}
+                  onClick={() => {
+                    onAplicarMarcadas([...marcadas]);
+                    sairSelecao();
+                  }}
+                >
                   Aplicar às marcadas
                 </Button>
               </div>
@@ -234,9 +238,16 @@ export function FichaLoteLista({
               <Button variant="outline" size="sm" className="h-9 bg-background" onClick={() => setSelecionando(true)}>
                 <CheckSquare className="mr-1.5 h-4 w-4" /> Escolher fichas
               </Button>
-              <Button variant="ghost" size="sm" className="h-9" onClick={() => setGrupoAberto(true)}>
-                Aplicar a {setorAtual ? `todo o ${setorAtual.nome}` : "todas"} ({visiveisPendentes.length})
-              </Button>
+              {setorAtual && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9"
+                  onClick={() => onAplicarMarcadas(visiveisPendentes.map((l) => l.item.id))}
+                >
+                  Aplicar a todo o {setorAtual.nome} ({visiveisPendentes.length})
+                </Button>
+              )}
             </>
           )}
         </div>
@@ -290,7 +301,7 @@ export function FichaLoteLista({
               </div>
               {l.semAcesso && !selecionando && (
                 <div className="-mt-1 pb-2 pl-12 pr-3">
-                  <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setContatoId(l.item.id)}>
+                  <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => onPreencherContatos(l.item.id)}>
                     <Plus className="mr-1 h-3.5 w-3.5" /> WhatsApp ou e-mail
                   </Button>
                 </div>
@@ -303,35 +314,6 @@ export function FichaLoteLista({
         )}
       </ul>
 
-      <AplicarGrupoDialog
-        open={grupoAberto}
-        onOpenChange={setGrupoAberto}
-        quantidade={alvo.length}
-        origem={origem}
-        turnos={turnos}
-        salvando={salvando}
-        onAplicar={async (e) => {
-          await onAplicarGrupo(alvo, e);
-          sairSelecao();
-        }}
-      />
-
-      {contatoLinha && (
-        <ContatoRapidoDialog
-          open={!!contatoLinha}
-          onOpenChange={(o) => !o && setContatoId(null)}
-          nome={contatoLinha.nome}
-          inicial={contatoLinha.contato}
-          temProxima={!!proximaSemAcesso(contatoLinha.item.id)}
-          salvando={salvando}
-          onSalvar={async (c, seguir) => {
-            const atual = contatoLinha.item.id;
-            const prox = seguir ? proximaSemAcesso(atual) : null;
-            await onSalvarContato(atual, c);
-            setContatoId(prox);
-          }}
-        />
-      )}
     </div>
   );
 }

@@ -416,3 +416,61 @@ export function contatoValido(c: { whatsapp: string; email: string }): string | 
   if (mail && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail)) return "E-mail inválido.";
   return null;
 }
+
+/**
+ * Etapa 2: o que pede decisão vem primeiro — fichas sem cargo real (rótulo
+ * genérico) e, logo depois, cargos que ficaram sem setor. O resto já está certo.
+ */
+export function separarGruposCargo<T extends { generico: boolean }>(
+  grupos: T[],
+  semSetor: (g: T) => boolean,
+): { atencao: T[]; identificados: T[] } {
+  const genericos = grupos.filter((g) => g.generico);
+  const orfaos = grupos.filter((g) => !g.generico && semSetor(g));
+  const identificados = grupos.filter((g) => !g.generico && !semSetor(g));
+  return { atencao: [...genericos, ...orfaos], identificados };
+}
+
+/** Atalho de setor na escolha de pessoas: marca o grupo inteiro ou, se já estava todo marcado, desmarca. */
+export function alternarGrupo(selecionados: ReadonlySet<string>, ids: string[]): Set<string> {
+  const prox = new Set(selecionados);
+  const todos = ids.length > 0 && ids.every((id) => prox.has(id));
+  for (const id of ids) {
+    if (todos) prox.delete(id);
+    else prox.add(id);
+  }
+  return prox;
+}
+
+export type ContatoEditado = { whatsapp: string; email: string };
+
+/**
+ * Contatos preenchidos na lista rápida → rascunho das fichas. Linhas vazias são
+ * ignoradas; o que já estava no rascunho é mantido (o banco troca `dados` inteiro).
+ * O WhatsApp também vira telefone quando a ficha não trouxe nenhum.
+ */
+export function montarContatosLote(
+  edicoes: Record<string, ContatoEditado>,
+  base: (itemId: string) => { anterior: Record<string, unknown>; lidos: Record<string, unknown> },
+): { itens: Record<string, { dados: Record<string, unknown> }>; invalidos: string[] } {
+  const itens: Record<string, { dados: Record<string, unknown> }> = {};
+  const invalidos: string[] = [];
+  for (const [id, c] of Object.entries(edicoes)) {
+    const whatsapp = c.whatsapp.replace(/\D/g, "");
+    const email = c.email.trim().toLowerCase();
+    if (!whatsapp && !email) continue;
+    if (contatoValido({ whatsapp, email })) {
+      invalidos.push(id);
+      continue;
+    }
+    const { anterior, lidos } = base(id);
+    const dados: Record<string, unknown> = { ...anterior };
+    if (whatsapp) {
+      dados.whatsapp = whatsapp;
+      if (!temTexto(lidos.telefone) && !temTexto(anterior.telefone)) dados.telefone = whatsapp;
+    }
+    if (email) dados.email = email;
+    itens[id] = { dados };
+  }
+  return { itens, invalidos };
+}

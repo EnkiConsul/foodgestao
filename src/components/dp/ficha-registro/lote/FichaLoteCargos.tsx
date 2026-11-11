@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ArrowLeft, Loader2, Pencil, Save } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CheckCircle2, ChevronDown, Loader2, Pencil, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { GrupoOrganizacaoInput } from "@/hooks/useDpFichaImportacao";
 import { normalizeCargoNome } from "@/lib/dp/ficha-registro/cargo-match";
 import {
-  SETORES_FOOD, cargoGenerico, setorExistenteNaUnidade, type GrupoCargoLote, type OrganizacaoLote, type SetorCadastrado,
+  SETORES_FOOD, cargoGenerico, separarGruposCargo, setorExistenteNaUnidade, type GrupoCargoLote, type OrganizacaoLote, type SetorCadastrado,
 } from "@/lib/dp/ficha-registro/organizacao-lote";
 
 const NOVO = "__novo";
@@ -85,6 +85,17 @@ export function FichaLoteCargos({ grupos, cargos, setores, unidadeId, organizaca
 
   const genericos = grupos.filter((g) => g.generico);
   const comCargo = grupos.filter((g) => !g.generico);
+  /**
+   * Pendências primeiro: fichas sem cargo real e cargos que chegaram sem setor.
+   * A separação usa a sugestão inicial, para a linha não pular de bloco enquanto é editada.
+   */
+  const { atencao, identificados } = useMemo(
+    () => separarGruposCargo(grupos, (g) => inicial(g).setor === SEM_SETOR),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [grupos, organizacao, cargos.length, setoresUnidade.length],
+  );
+  const orfaos = atencao.filter((g) => !g.generico);
+  const [verIdentificados, setVerIdentificados] = useState(atencao.length === 0);
   /** Fichas sem cargo que ficam para a conferência individual (não travam o salvamento). */
   const paraDepois = genericos.filter((g) => !escolhas[g.chave]?.cargo).length;
   const semNome = grupos.filter((g) => escolhas[g.chave]?.cargo === NOVO && !escolhas[g.chave]?.cargoNome.trim()).length;
@@ -206,60 +217,24 @@ export function FichaLoteCargos({ grupos, cargos, setores, unidadeId, organizaca
     <div className="space-y-3">
       <p className="px-1 text-sm text-muted-foreground">
         <span className="font-medium text-foreground">{comCargo.length} cargos</span> em {fichasComCargo} fichas.
-        Confira o setor de cada um e salve.
+        {atencao.length > 0 ? " Resolva primeiro o que está em destaque." : " Confira o setor de cada um e salve."}
       </p>
 
-      {comCargo.length > 0 && (
-        <Card>
-          <CardContent className="divide-y p-0">
-            {comCargo.map((g) => {
-              const e = escolhas[g.chave];
-              if (!e) return null;
-              const faixa = faixaSalario(g);
-              const aberto = ajustando === g.chave;
-              const novo = e.cargo === NOVO || e.cargo.startsWith("nome:");
-              return (
-                <div key={g.chave} className="space-y-2 px-3 py-2.5">
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className="min-w-0 flex-1 text-left"
-                      onClick={() => setAjustando(aberto ? null : g.chave)}
-                      aria-expanded={aberto}
-                    >
-                      <p className="flex items-center gap-1.5 text-sm font-medium">
-                        <span className="truncate">{nomeDoCargo(g, e) || "Cargo sem nome"}</span>
-                        <Pencil className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden="true" />
-                      </p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {[
-                          `${g.itemIds.length} ${g.itemIds.length === 1 ? "pessoa" : "pessoas"}`,
-                          faixa,
-                          novo ? "novo" : "já cadastrado",
-                        ].filter(Boolean).join(" · ")}
-                      </p>
-                    </button>
-                    <div className="w-[9.5rem] shrink-0 sm:w-48">{seletorSetor(g, e)}</div>
-                  </div>
-                  {aberto && <div className="pb-1">{seletorCargo(g, e)}</div>}
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      )}
-
-      {genericos.length > 0 && (
+      {atencao.length > 0 && (
         <Card className="border-warning/50">
           <CardContent className="space-y-3 p-3">
             <div className="flex gap-2">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
               <div className="min-w-0">
-                <p className="text-sm font-medium">
-                  {genericos.length} {genericos.length === 1 ? "ficha sem cargo" : "fichas sem cargo"}
-                </p>
+                <p className="text-sm font-semibold">Requer atenção</p>
                 <p className="text-xs text-muted-foreground">
-                  Se não souber agora, deixe para a conferência: quem concluir o cadastro escolhe o cargo.
+                  {[
+                    genericos.length > 0 &&
+                      `${genericos.length} ${genericos.length === 1 ? "ficha sem cargo" : "fichas sem cargo"}`,
+                    orfaos.length > 0 &&
+                      `${orfaos.length} ${orfaos.length === 1 ? "cargo sem setor" : "cargos sem setor"}`,
+                  ].filter(Boolean).join(" · ")}
+                  {genericos.length > 0 && ". Se não souber o cargo agora, deixe para a conferência."}
                 </p>
               </div>
             </div>
@@ -269,6 +244,9 @@ export function FichaLoteCargos({ grupos, cargos, setores, unidadeId, organizaca
               return (
                 <div key={g.chave} className="space-y-1.5 rounded-lg bg-muted/30 p-2">
                   <p className="truncate text-sm font-medium">{g.nomes[0]}</p>
+                  <p className="truncate text-[11px] text-muted-foreground">
+                    Na ficha: {g.cargoNome || "sem cargo"}
+                  </p>
                   <div className="grid gap-2 sm:grid-cols-[1fr_12rem]">
                     {seletorCargo(g, e)}
                     {e.cargo ? seletorSetor(g, e) : null}
@@ -276,7 +254,85 @@ export function FichaLoteCargos({ grupos, cargos, setores, unidadeId, organizaca
                 </div>
               );
             })}
+            {orfaos.map((g) => {
+              const e = escolhas[g.chave];
+              if (!e) return null;
+              const faixa = faixaSalario(g);
+              return (
+                <div key={g.chave} className="space-y-1.5 rounded-lg bg-muted/30 p-2">
+                  <div className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{nomeDoCargo(g, e) || "Cargo sem nome"}</p>
+                      <p className="truncate text-[11px] text-muted-foreground">
+                        {[`${g.itemIds.length} ${g.itemIds.length === 1 ? "pessoa" : "pessoas"}`, faixa, "sem setor sugerido"]
+                          .filter(Boolean).join(" · ")}
+                      </p>
+                    </div>
+                    <div className="w-[9.5rem] shrink-0 sm:w-48">{seletorSetor(g, e)}</div>
+                  </div>
+                </div>
+              );
+            })}
           </CardContent>
+        </Card>
+      )}
+
+      {identificados.length > 0 && (
+        <Card>
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 px-3 py-3 text-left"
+            onClick={() => setVerIdentificados((v) => !v)}
+            aria-expanded={verIdentificados}
+          >
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold">
+                Cargos e setores identificados ({identificados.length})
+              </span>
+              <span className="block truncate text-[11px] text-muted-foreground">
+                {verIdentificados ? "Toque no cargo para trocar; o setor muda ao lado." : "Já vinculados pelo nome do cargo. Toque para conferir."}
+              </span>
+            </span>
+            <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${verIdentificados ? "rotate-180" : ""}`} />
+          </button>
+          {verIdentificados && (
+            <CardContent className="divide-y border-t p-0">
+              {identificados.map((g) => {
+                const e = escolhas[g.chave];
+                if (!e) return null;
+                const faixa = faixaSalario(g);
+                const aberto = ajustando === g.chave;
+                const novo = e.cargo === NOVO || e.cargo.startsWith("nome:");
+                return (
+                  <div key={g.chave} className="space-y-2 px-3 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="min-w-0 flex-1 text-left"
+                        onClick={() => setAjustando(aberto ? null : g.chave)}
+                        aria-expanded={aberto}
+                      >
+                        <p className="flex items-center gap-1.5 text-sm font-medium">
+                          <span className="truncate">{nomeDoCargo(g, e) || "Cargo sem nome"}</span>
+                          <Pencil className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {[
+                            `${g.itemIds.length} ${g.itemIds.length === 1 ? "pessoa" : "pessoas"}`,
+                            faixa,
+                            novo ? "novo" : "já cadastrado",
+                          ].filter(Boolean).join(" · ")}
+                        </p>
+                      </button>
+                      <div className="w-[9.5rem] shrink-0 sm:w-48">{seletorSetor(g, e)}</div>
+                    </div>
+                    {aberto && <div className="pb-1">{seletorCargo(g, e)}</div>}
+                  </div>
+                );
+              })}
+            </CardContent>
+          )}
         </Card>
       )}
 
