@@ -136,6 +136,20 @@ export function parseJornadaCompacta(texto: string | null | undefined): {
   intervalo_minutos: number | null;
   intervalo_incerto: boolean;
 } {
+  const lido = lerLinhaJornada(texto);
+  // "das 00:00 as 00:00": campo de horário em branco no modelo da ficha, não jornada de 0h.
+  if (lido.entrada && lido.entrada === lido.saida) {
+    return { entrada: null, saida: null, intervalo_minutos: null, intervalo_incerto: false };
+  }
+  return lido;
+}
+
+function lerLinhaJornada(texto: string | null | undefined): {
+  entrada: string | null;
+  saida: string | null;
+  intervalo_minutos: number | null;
+  intervalo_incerto: boolean;
+} {
   const vazio = { entrada: null, saida: null, intervalo_minutos: null, intervalo_incerto: false };
   if (!texto) return vazio;
 
@@ -213,8 +227,11 @@ export function montarJornadaSugerida(input: {
   jornada_texto?: string | null;
   jornada_dias?: DiaLidoDaFicha[] | null;
   folga_dow?: number | null;
+  /** Descanso semanal escrito na ficha ("Dom", "segunda"...); "Variavel" ou vazio = definido na escala. */
+  dsr_dia?: string | null;
 }): JornadaSugerida {
   const base = parseJornadaCompacta(input.jornada_texto);
+  const folgaDow = typeof input.folga_dow === "number" ? input.folga_dow : parseDow(input.dsr_dia);
 
   const porDow = new Map<number, JornadaDia>();
   let incertoNaTabela = false;
@@ -254,7 +271,7 @@ export function montarJornadaSugerida(input: {
       dias.push(lido);
       continue;
     }
-    const folga = input.folga_dow === dow;
+    const folga = folgaDow === dow;
     const trabalha = !folga && !!base.entrada && !!base.saida;
     dias.push({
       dow,
@@ -297,4 +314,81 @@ export function problemasJornada(j: JornadaSugerida | null | undefined): string[
     problemas.push("Dia trabalhado sem entrada ou saída.");
   }
   return problemas;
+}
+
+/** Jornada sugerida a partir dos dados lidos (e revisados) da ficha — mesma leitura em todas as telas. */
+export function jornadaDosDadosDaFicha(dados: Record<string, unknown> | null | undefined): JornadaSugerida {
+  const d = (dados ?? {}) as Record<string, unknown>;
+  return montarJornadaSugerida({
+    jornada_texto: typeof d.jornada_texto === "string" ? d.jornada_texto : null,
+    jornada_dias: Array.isArray(d.jornada_dias) ? (d.jornada_dias as DiaLidoDaFicha[]) : [],
+    dsr_dia: typeof d.dsr_dia === "string" ? d.dsr_dia : null,
+  });
+}
+
+/** Limite da duração normal do trabalho: 44 horas semanais (CF, art. 7º, XIII; CLT, art. 58). */
+export const CARGA_SEMANAL_MAX_MINUTOS = 44 * 60;
+
+export type ResumoSemanal = {
+  /** Minutos líquidos (sem intervalo) trabalhados numa semana. */
+  minutos: number;
+  /** Dias de trabalho numa semana. */
+  diasTrabalho: number;
+  /** Dias fixos de descanso (0 = domingo … 6 = sábado). */
+  folgasFixas: number[];
+  /**
+   * Nenhum dia fixo de descanso: a folga semanal é escolhida na escala (6x1 com
+   * revezamento). É assim que o cadastro grava ("folga variável"), então a
+   * semana conta seis dias, descontando o dia mais curto — a conta mais alta possível.
+   */
+  folgaVariavel: boolean;
+};
+
+function minutosLiquidos(d: JornadaDia): number {
+  if (!d.trabalha || !d.entrada || !d.saida) return 0;
+  return Math.max(0, minutosEntre(d.entrada, d.saida) - (d.intervalo_minutos ?? 0));
+}
+
+/** Carga semanal e descanso da jornada (null quando não há horário lido). */
+export function resumoSemanal(j: JornadaSugerida | null | undefined): ResumoSemanal | null {
+  if (!j || j.vazia) return null;
+  const folgasFixas = j.dias.filter((d) => !d.trabalha).map((d) => d.dow);
+  const trabalhados = j.dias.filter((d) => d.trabalha);
+  const porDia = trabalhados.map(minutosLiquidos);
+  const total = porDia.reduce((a, b) => a + b, 0);
+  const folgaVariavel = folgasFixas.length === 0 && trabalhados.length >= 7;
+  return {
+    minutos: folgaVariavel ? total - Math.min(...porDia) : total,
+    diasTrabalho: folgaVariavel ? trabalhados.length - 1 : trabalhados.length,
+    folgasFixas,
+    folgaVariavel,
+  };
+}
+
+/** 2640 → "44h"; 3080 → "51h20". */
+export function formatarHoras(minutos: number): string {
+  const h = Math.floor(minutos / 60);
+  const m = minutos % 60;
+  return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, "0")}`;
+}
+
+const NOME_DIA = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+
+/** "Domingo", "Sábado e Domingo" ou "1 por semana, definida na escala". */
+export function rotuloFolgaSemanal(r: ResumoSemanal): string {
+  if (r.folgaVariavel) return "1 por semana, definida na escala";
+  const nomes = [...r.folgasFixas].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map((d) => NOME_DIA[d]);
+  return nomes.length <= 1 ? nomes[0] ?? "" : `${nomes.slice(0, -1).join(", ")} e ${nomes[nomes.length - 1]}`;
+}
+
+/**
+ * Carga acima das 44 horas semanais: a ficha não fica pronta sem alguém olhar
+ * (o excedente não é jornada contratual, é hora extra).
+ */
+export function alertaCargaSemanal(j: JornadaSugerida | null | undefined): string | null {
+  const r = resumoSemanal(j);
+  if (!r || r.minutos <= CARGA_SEMANAL_MAX_MINUTOS) return null;
+  const semIntervalo = j!.dias.some((d) => d.trabalha && (d.intervalo_minutos ?? 0) === 0);
+  return `Carga semanal de ${formatarHoras(r.minutos)}, acima das 44h da CLT.` +
+    (semIntervalo ? " A ficha não informa intervalo: se houver, informe-o em minutos." : "");
 }

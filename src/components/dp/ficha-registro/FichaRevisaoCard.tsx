@@ -48,7 +48,8 @@ import {
   jornadaDaFicha, useAplicarFicha, useIgnorarFicha, useReativarFicha, type FichaItem,
 } from "@/hooks/useDpFichaImportacao";
 import {
-  normalizeHora, problemasJornada, type JornadaDia, type JornadaSugerida,
+  alertaCargaSemanal, formatarHoras, normalizeHora, problemasJornada, resumoSemanal, rotuloFolgaSemanal,
+  type JornadaDia, type JornadaSugerida,
 } from "@/lib/dp/ficha-registro/jornada-parse";
 import { notifyError } from "@/lib/notifyError";
 import { mensagemOrigemApoio, vincularOrigemApoio } from "@/lib/dp/apoio-origem";
@@ -378,6 +379,9 @@ export function FichaRevisaoCard({
     unidadeTemPonto && possuiFolhaPonto === false && (pontoObrigatorio || (!preadmissaoId && dispensaPontoExigeMotivo(regime)));
   /** Horário com intervalo ilegível/impossível: sinalizado para corrigir, nunca enviado às cegas. */
   const problemasHorario = usarJornada ? problemasJornada(jornada) : [];
+  /** Carga semanal e descanso: recalculados a cada ajuste do horário. */
+  const semana = useMemo(() => resumoSemanal(jornada), [jornada]);
+  const alertaCarga = usarJornada ? alertaCargaSemanal(jornada) : null;
   const faltaMotivoPonto = exigeMotivoPonto && justificativaPonto.trim().length < JUSTIFICATIVA_PONTO_MIN;
 
   const salarioFicha = useMemo(() => salarioDaFicha(dados), [dados]);
@@ -767,6 +771,29 @@ export function FichaRevisaoCard({
     typeof endereco[parte] === "string" ? String(endereco[parte]) : "";
 
 
+  /** Salário/cargo vindos da última alteração da ficha, com o da admissão para conferência. */
+  const notaVigencia = (tipo: "salario" | "cargo") => {
+    const vigencia = dados[`${tipo}_vigencia`];
+    if (typeof vigencia !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(vigencia)) return null;
+    const [a, m, d] = vigencia.split("-");
+    const admissao = dados[`${tipo}_admissao`];
+    const admissaoTxt =
+      tipo === "salario"
+        ? typeof admissao === "number" || typeof admissao === "string"
+          ? `R$ ${Number(admissao).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+          : null
+        : typeof admissao === "string" && admissao.trim() ? admissao : null;
+    return (
+      <p className="text-[11px] leading-snug text-muted-foreground">
+        <Badge variant="outline" className="mr-1 h-4 border-primary/40 px-1 text-[10px] font-normal text-primary">
+          Última alteração
+        </Badge>
+        vigente desde {d}/{m}/{a}
+        {admissaoTxt ? ` · na admissão: ${admissaoTxt}` : ""}
+      </p>
+    );
+  };
+
   const campo = (label: string, nome: string, tipo: "text" | "date" = "text") => {
     const valor = dados[nome];
     const nivel = nivelDoCampo(valor, confianca, nome);
@@ -880,6 +907,7 @@ export function FichaRevisaoCard({
           if (!cargoId) pend.push({ rotulo: "cargo", alvo: `ficha-cargo-${item.id}` });
           for (const r of escolhasPendentes) pend.push({ rotulo: r, alvo: `ficha-completar-${item.id}`, abrir: true });
           if (usarJornada && !turnoEscolhido && jornada.vazia) pend.push({ rotulo: "horário", alvo: `ficha-turno-${item.id}` });
+          if (alertaCarga) pend.push({ rotulo: "horário acima de 44h", alvo: `ficha-horario-${item.id}` });
           const ir = (p: (typeof pend)[number]) => {
             if (p.abrir) setCompletarAberto(true);
             window.setTimeout(
@@ -951,7 +979,10 @@ export function FichaRevisaoCard({
           {campo("Matrícula", "matricula")}
           {campo("Nascimento", "data_nascimento", "date")}
           {campo("Admissão", "data_admissao", "date")}
-          {campo("Salário", "salario")}
+          <div className="space-y-1">
+            {campo("Salário", "salario")}
+            {notaVigencia("salario")}
+          </div>
           <div id={`ficha-telefone-${item.id}`} className="scroll-mt-24">{campo("Telefone", "telefone")}</div>
           <div className="space-y-1">
             <div className="flex items-center justify-between gap-2">
@@ -977,7 +1008,10 @@ export function FichaRevisaoCard({
           {campo("RG", "rg_numero")}
           {campo("CTPS", "ctps_numero")}
           {campo("PIS", "pis_nit")}
-          {campo("Cargo na ficha", "cargo_nome")}
+          <div className="space-y-1">
+            {campo("Cargo na ficha", "cargo_nome")}
+            {notaVigencia("cargo")}
+          </div>
         </div>
 
         {!aplicado && (
@@ -1390,6 +1424,19 @@ export function FichaRevisaoCard({
                 </div>
               )}
             </div>
+            {semana && usarJornada && (
+              <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                <span>
+                  <span className="text-muted-foreground">Carga semanal:</span>{" "}
+                  <strong className={cn(alertaCarga && "text-warning-foreground")}>{formatarHoras(semana.minutos)}</strong>
+                  <span className="text-muted-foreground"> em {semana.diasTrabalho} {semana.diasTrabalho === 1 ? "dia" : "dias"}</span>
+                </span>
+                <span>
+                  <span className="text-muted-foreground">Folga semanal:</span>{" "}
+                  <strong>{rotuloFolgaSemanal(semana)}</strong>
+                </span>
+              </p>
+            )}
             {jornada.vazia ? (
               <p className="mt-2 text-[11px] text-muted-foreground">
                 Nenhum horário foi lido nesta ficha. Você pode informar os horários à mão.
@@ -1470,6 +1517,13 @@ export function FichaRevisaoCard({
                 <strong>Revisar horário.</strong> {problemasHorario.join(" ")}
                 {typeof dados.jornada_texto === "string" && dados.jornada_texto ? ` A ficha diz: "${dados.jornada_texto}".` : ""}
                 {" "}Toque em "Editar horários" e informe o intervalo em minutos.
+              </div>
+            )}
+            {!aplicado && alertaCarga && (
+              <div role="alert" className="mt-2 rounded-md border border-warning/40 bg-warning/10 p-2 text-[11px] leading-relaxed text-warning-foreground">
+                <strong>Carga acima do limite.</strong> {alertaCarga} O que passa de 44h por semana é hora extra, não
+                jornada contratual. Confira com a contabilidade ou toque em "Editar horários"
+                {semana?.folgaVariavel ? " e desligue o dia de folga fixa, se houver." : "."}
               </div>
             )}
             {jornadaEditada && !jornadaLida.vazia && (

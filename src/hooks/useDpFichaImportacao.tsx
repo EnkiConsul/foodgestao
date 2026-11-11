@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import type { Database, Json } from "@/integrations/supabase/types";
-import { montarJornadaSugerida, type JornadaSugerida } from "@/lib/dp/ficha-registro/jornada-parse";
+import { jornadaDosDadosDaFicha, type JornadaSugerida } from "@/lib/dp/ficha-registro/jornada-parse";
 import { digits, montarPayloadFicha, txt } from "@/lib/dp/ficha-registro/payload";
 import {
   aplicarFichaRpc,
@@ -47,12 +47,7 @@ export interface FichaDadosEditaveis {
 
 /** Jornada sugerida pela ficha, pronta para a tela de revisão. */
 export function jornadaDaFicha(dados: Record<string, unknown> | null): JornadaSugerida {
-  const d = (dados ?? {}) as Record<string, unknown>;
-  return montarJornadaSugerida({
-    jornada_texto: (d.jornada_texto as string | null) ?? null,
-    // deno-lint-ignore no-explicit-any
-    jornada_dias: (d.jornada_dias as any[]) ?? [],
-  });
+  return jornadaDosDadosDaFicha(dados);
 }
 
 

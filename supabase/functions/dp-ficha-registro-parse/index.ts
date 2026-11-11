@@ -10,6 +10,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { requireCompanyAccess, requireUser } from "../_shared/authz.ts";
 import { PDFDocument } from "npm:pdf-lib@1.17.1";
 import { z } from "npm:zod@3";
+import { aplicarAlteracoesVigentes } from "../_shared/ficha-vigentes.ts";
 
 const BUCKET = "dp-bulk-import";
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -232,7 +233,7 @@ export function agruparFichas(paginas: PaginaLida[]): Ficha[] {
     atual.texto = `${atual.texto}\n${p.texto ?? ""}`;
     const novos = limpar(p.dados);
     for (const [k, v] of Object.entries(novos)) {
-      if ((k.startsWith("historico_") || k === "familiares") && Array.isArray(v)) {
+      if ((k.startsWith("historico_") || k.startsWith("alteracoes_") || k === "familiares") && Array.isArray(v)) {
         const atualArr = Array.isArray(atual.dados[k]) ? atual.dados[k] : [];
         atual.dados[k] = [...atualArr, ...v];
         continue;
@@ -247,6 +248,9 @@ export function agruparFichas(paginas: PaginaLida[]): Ficha[] {
     }
   }
 
+  // Salário e cargo vigentes: a alteração mais recente vale sobre a admissão,
+  // mesmo quando ela aparece numa página seguinte da mesma ficha.
+  for (const f of fichas) f.dados = aplicarAlteracoesVigentes(f.dados);
   return fichas;
 }
 
@@ -273,6 +277,7 @@ Regras absolutas:
 - NUNCA invente informação. Campo que não aparece na página deve ser null.
 - Não confunda dados do EMPREGADOR com dados do EMPREGADO: nome/CNPJ/endereço da empresa vão APENAS em "empregador_nome" e "empregador_cnpj"; todos os outros campos são do empregado.
 - Datas no formato AAAA-MM-DD. Horas no formato HH:MM. Valores numéricos com ponto decimal (1750.00).
+- Fichas costumam ter o salário e o cargo da contratação e, em outro quadro ("Alterações Salariais", "Reajustes", "Alterações de Cargo/Função"), as mudanças posteriores: liste TODAS as linhas desses quadros com a data de cada uma, sem escolher nenhuma.
 
 Formato:
 {
@@ -293,10 +298,18 @@ Formato:
   "fgts_optante": null,                // true se a ficha indica opção pelo FGTS (ou a data da opção)
   "pis_nit": null, "cnh_numero": null, "cnh_categoria": null, "cnh_validade": null,
   "endereco": { "logradouro": null, "numero": null, "bairro": null, "cidade": null, "uf": null, "cep": null, "texto": null },
-  "cargo_nome": null, "cbo": null, "data_admissao": null,
-  "salario": null, "salario_periodo": null,   // "Mensal", "Hora", etc.
+  "cargo_nome": null, "cbo": null,     // cargo/função da ADMISSÃO (as mudanças vão em "alteracoes_cargo")
+  "data_admissao": null,
+  "salario": null, "salario_periodo": null,   // salário da ADMISSÃO (os reajustes vão em "alteracoes_salario"); período "Mensal", "Hora", etc.
+  "alteracoes_salario": [              // quadro de ALTERAÇÕES/REAJUSTES SALARIAIS, uma linha por alteração (pode ser [])
+    { "data": null, "salario": null, "motivo": null }
+  ],
+  "alteracoes_cargo": [                // quadro de ALTERAÇÕES DE CARGO/FUNÇÃO, uma linha por alteração (pode ser [])
+    { "data": null, "cargo": null, "cbo": null }
+  ],
   "sindicato": null,
   "jornada_texto": null,               // linha da escala/horário como está escrita, ex "08:00/12:00-14:00/18:00 44:00" ou "das 17:00 as 00:35"
+  "dsr_dia": null,                     // dia do descanso semanal SÓ se a ficha disser expressamente ("DSR: Domingo", "folga às segundas"): "Dom|Seg|Ter|Qua|Qui|Sex|Sab"; "Variavel" se disser revezamento/escala; nunca deduza
   "jornada_dias": [                    // apenas se a página tiver tabela por dia da semana
     { "dia": "Dom", "tipo": "Trabalhado|Folga", "entrada": null, "intervalo_inicio": null, "intervalo_fim": null, "saida": null }
   ],

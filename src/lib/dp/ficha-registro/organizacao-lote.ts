@@ -8,7 +8,7 @@
  */
 import { matchCargo, normalizeCargoNome, normalizeCbo, type CargoCadastrado } from "./cargo-match";
 import { inferirRegime } from "./inferencia";
-import { montarJornadaSugerida, problemasJornada } from "./jornada-parse";
+import { alertaCargaSemanal, jornadaDosDadosDaFicha, problemasJornada } from "./jornada-parse";
 import { montarPayloadFicha } from "./payload";
 import { escolhasObrigatoriasFaltando } from "./validacao";
 import { camposFaltando } from "@/lib/dp/cadastro-completude";
@@ -342,6 +342,8 @@ export type PendenciasFichaLote = {
  */
 /** Pendência de horário: aparece como "Falta definir: horário de trabalho". */
 export const PENDENCIA_HORARIO = "horário de trabalho";
+/** Jornada acima de 44h semanais: conferir na revisão da ficha antes de criar. */
+export const PENDENCIA_CARGA_SEMANAL = "horário acima de 44h";
 
 export function pendenciasFichaLote(
   item: ItemLote,
@@ -377,12 +379,9 @@ export function pendenciasFichaLote(
     if (motivo.length < JUSTIFICATIVA_PONTO_MIN) obrigatorias.push("motivo de não registrar ponto");
   }
   // Horário com intervalo ilegível ou impossível: sinaliza para conferir, nunca grava às cegas.
-  const jornada = montarJornadaSugerida({
-    jornada_texto: (d.jornada_texto as string | null) ?? null,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    jornada_dias: (d.jornada_dias as any[]) ?? [],
-  });
+  const jornada = jornadaDosDadosDaFicha(d);
   if (problemasJornada(jornada).length > 0) obrigatorias.push(PENDENCIA_HORARIO);
+  else if (alertaCargaSemanal(jornada)) obrigatorias.push(PENDENCIA_CARGA_SEMANAL);
   const complementares = camposFaltando(
     { ...montarPayloadFicha(d), setor_id: v?.setorId ?? null, regime },
     { exigirSetor: ctx.exigirSetor ?? true, salarioCargo: ctx.salarioCargo ?? null },

@@ -8,7 +8,7 @@
  */
 import { divergenciasComFicha, type DivergenciaFicha } from "./divergencia";
 import { dependentesDaFicha, inferirFormaPagamento, inferirRegime } from "./inferencia";
-import { montarJornadaSugerida, type JornadaSugerida } from "./jornada-parse";
+import { jornadaDosDadosDaFicha, type JornadaSugerida } from "./jornada-parse";
 import { matchTurno, type TurnoCadastrado } from "./turno-match";
 import { matchUnidade, type UnidadeCadastrada } from "./unidade-match";
 import {
@@ -74,12 +74,7 @@ export type ContextoEfetivacao = {
   salarioCargo?: (cargoId: string | null) => number | null;
 };
 
-const jornadaDe = (d: Record<string, unknown>): JornadaSugerida =>
-  montarJornadaSugerida({
-    jornada_texto: (d.jornada_texto as string | null) ?? null,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    jornada_dias: (d.jornada_dias as any[]) ?? [],
-  });
+const jornadaDe = (d: Record<string, unknown>): JornadaSugerida => jornadaDosDadosDaFicha(d);
 
 /** O que a ficha enviaria ao cadastro, ou por que ela precisa ser conferida à parte. */
 export function planejarFichaLote(item: ItemEfetivacao, org: OrganizacaoLote | null | undefined, ctx: ContextoEfetivacao): PlanoFichaLote {
