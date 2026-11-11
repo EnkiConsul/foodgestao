@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, ChevronDown, KeyRound, Loader2, UserPlus } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronDown, Clock, KeyRound, Loader2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -45,6 +45,7 @@ export function EfetivarLoteDialog({ open, onOpenChange, companyId, itens, plano
 
   const total = plano.aptas.length;
   const semAcesso = plano.aptas.filter((p) => p.semAcesso).length;
+  const semPonto = plano.aptas.filter((p) => !p.envio.possuiFolhaPonto).length;
   const temDivergencia = plano.comDivergencia.length > 0;
   const podeCriar = total > 0 && !!companyId && (!temDivergencia || cienciaDivergenciaValida(justificativa, ciente));
 
@@ -212,6 +213,15 @@ export function EfetivarLoteDialog({ open, onOpenChange, companyId, itens, plano
                   Com cargo, setor, salário, vínculo, ponto e contatos que já foram salvos. O PDF de cada ficha é anexado nos documentos.
                 </p>
               </div>
+            </div>
+
+            <div className="flex gap-2 rounded-xl border p-3">
+              <Clock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+              <p className="text-xs">
+                <span className="font-medium">Registro de ponto:</span> {total - semPonto} {total - semPonto === 1 ? "registra" : "registram"}
+                {semPonto > 0 ? ` · ${semPonto} não ${semPonto === 1 ? "registra" : "registram"}` : " · ninguém marcado como \"não registra\""}.
+                {" "}Se alguém não bate ponto, cancele, marque em "Escolher fichas" → "Aplicar dados" e volte aqui.
+              </p>
             </div>
 
             {semAcesso > 0 && (

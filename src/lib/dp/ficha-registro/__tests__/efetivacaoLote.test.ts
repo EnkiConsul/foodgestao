@@ -68,7 +68,7 @@ describe("finalizar implantação do lote", () => {
   it("ficha sem cargo definido fica para conferir com o motivo", () => {
     const p = planejarFichaLote(ficha("a", { cargo_nome: "Importação eSocial" }), org(), ctx);
     expect(p.apta).toBe(false);
-    if (!p.apta) expect(p.motivos).toContain("cargo");
+    if (p.apta === false) expect(p.motivos).toContain("cargo");
   });
 
   it("CPF que já tem cadastro nunca é criado em lote", () => {
