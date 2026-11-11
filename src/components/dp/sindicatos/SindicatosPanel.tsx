@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Check, MessageCircle, Search, Users, Briefcase } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, MessageCircle, Search, Users, Briefcase, AlertCircle, Link2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,8 +23,19 @@ import {
   useDeleteDpSindicato,
   useDpUnidades,
   useDpCargos,
+  useDpPatronalPorUnidade,
   type DpSindicatoWithCounts as DpSindicato,
 } from "@/hooks/useDpCadastros";
+import {
+  useAdotarSindicatoCatalogo,
+  useDpVinculosCargosLaborais,
+  useSugestoesSindicato,
+  useVincularCargosSemLaboral,
+} from "@/hooks/useDpSindicatosCatalogo";
+import { useCompanyContext } from "@/hooks/useCompanyContext";
+import { SindicatoCatalogoSugestaoCard } from "@/components/dp/sindicatos/SindicatoCatalogoOpcoes";
+import { cargosSemLaboral, chaveMunicipio, type SugestaoSindicato } from "@/lib/dp/sindicatos-catalogo";
+import { notifyError } from "@/lib/notifyError";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { maskCnpj } from "@/lib/cnpj";
@@ -49,6 +60,24 @@ export function SindicatosPanel({ tipo }: { tipo: SindicatoTipo }) {
   const cargos = useDpCargos();
 
   const isPatronal = tipo === "patronal";
+  const { selectedCompanyId } = useCompanyContext();
+  const { data: patronais = {} } = useDpPatronalPorUnidade();
+  const unidadesEmpresa = useMemo(
+    () => (unidades.data ?? []).filter((u) => !selectedCompanyId || u.company_id === selectedCompanyId),
+    [unidades.data, selectedCompanyId],
+  );
+  const locais = useMemo(
+    () => unidadesEmpresa.map((u) => ({ cidade: u.cidade ?? null, uf: u.uf ?? null })),
+    [unidadesEmpresa],
+  );
+  const sugestoes = useSugestoesSindicato(tipo, locais);
+  const adotar = useAdotarSindicatoCatalogo();
+  const [adotandoId, setAdotandoId] = useState<string | null>(null);
+  const vinculosLaborais = useDpVinculosCargosLaborais();
+  const vincularLote = useVincularCargosSemLaboral();
+  const [confirmarLote, setConfirmarLote] = useState<DpSindicato | null>(null);
+  /** Pré-seleção usada quando o sindicato acabou de ser adotado e ainda não tem vínculos. */
+  const [preSelecao, setPreSelecao] = useState<{ unidades: string[]; cargos: string[] } | null>(null);
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<DpSindicato | null>(null);
@@ -82,30 +111,99 @@ export function SindicatosPanel({ tipo }: { tipo: SindicatoTipo }) {
 
   useEffect(() => {
     if (!vinculos.data) return;
-    setUnidadesSel(vinculos.data.unidades);
-    setCargosSel(vinculos.data.cargos);
-  }, [vinculos.data]);
+    setUnidadesSel(vinculos.data.unidades.length ? vinculos.data.unidades : preSelecao?.unidades ?? []);
+    setCargosSel(vinculos.data.cargos.length ? vinculos.data.cargos : preSelecao?.cargos ?? []);
+  }, [vinculos.data, preSelecao]);
+
+  const doTipo = useMemo(
+    () => (list.data ?? []).filter((s) => ((s as any).tipo ?? "patronal") === tipo),
+    [list.data, tipo],
+  );
+  const laboraisAtivos = useMemo(
+    () => (isPatronal ? [] : doTipo.filter((s) => s.ativo !== false)),
+    [doTipo, isPatronal],
+  );
+  const semLaboral = useMemo(
+    () =>
+      isPatronal || !vinculosLaborais.isSuccess || !cargos.isSuccess
+        ? []
+        : cargosSemLaboral(cargos.data ?? [], vinculosLaborais.data ?? [], vinculosLaborais.laboralIds),
+    [isPatronal, vinculosLaborais.isSuccess, vinculosLaborais.data, vinculosLaborais.laboralIds, cargos.isSuccess, cargos.data],
+  );
+  // Com cidade atendida pela base, mostramos só as recomendadas; sem nenhuma
+  // cadastrada do tipo, mostramos as da UF para não cair num formulário em branco.
+  const sugestoesVisiveis = useMemo(() => {
+    const recomendadas = sugestoes.filter((s) => s.recomendado);
+    if (recomendadas.length > 0) return recomendadas;
+    return doTipo.length === 0 ? sugestoes.slice(0, 3) : [];
+  }, [sugestoes, doTipo.length]);
+
+  const adotarDaBase = async (sugestao: SugestaoSindicato) => {
+    setAdotandoId(sugestao.item.id);
+    try {
+      const sindicatoId = await adotar.mutateAsync(sugestao.item.id);
+      if (isPatronal) {
+        // Patronal: o usuário confirma as unidades (pode haver dois patronais na mesma cidade).
+        const chaves = new Set(sugestao.item.municipios.map(chaveMunicipio));
+        const sugeridas = unidadesEmpresa
+          .filter((u) => !patronais[u.id] && chaves.has(chaveMunicipio(u.cidade)))
+          .map((u) => u.id);
+        const { data } = await list.refetch();
+        const adotado = (data ?? []).find((s) => s.id === sindicatoId);
+        toast.success(`${sugestao.item.nome} adotado na empresa`, {
+          description: "Confirme as unidades que ele representa.",
+        });
+        if (adotado) abrirEdicao(adotado, { unidades: sugeridas, cargos: [] });
+      } else {
+        toast.success(`${sugestao.item.nome} adotado na empresa`, {
+          description: "Agora vincule os cargos que ele representa.",
+        });
+      }
+    } catch (e) {
+      notifyError(e as Error, { surface: "Sindicatos", action: "adotar o sindicato da base" });
+    } finally {
+      setAdotandoId(null);
+    }
+  };
+
+  const vincularTodos = async () => {
+    if (!confirmarLote) return;
+    const alvo = confirmarLote;
+    try {
+      const total = await vincularLote.mutateAsync(alvo.id);
+      toast.success(
+        total === 0
+          ? "Todos os cargos já estavam com sindicato"
+          : `${total} cargo${total === 1 ? "" : "s"} vinculado${total === 1 ? "" : "s"} ao ${alvo.nome}`,
+      );
+    } catch (e) {
+      notifyError(e as Error, { surface: "Sindicatos", action: "vincular cargos ao sindicato" });
+    } finally {
+      setConfirmarLote(null);
+    }
+  };
 
   const rows = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    return (list.data ?? [])
-      .filter((s) => ((s as any).tipo ?? "patronal") === tipo)
+    return doTipo
       .filter((s) => {
         if (!q) return true;
         return s.nome.toLowerCase().includes(q) || (s.cnpj ?? "").includes(onlyDigits(q));
       });
-  }, [list.data, busca, tipo]);
+  }, [doTipo, busca]);
 
   const abrirNovo = () => {
     setEditing(null);
+    setPreSelecao(null);
     setForm({ nome: "", cnpj: "", contato_whatsapp: "", data_base: "", contato_nome: "", contato_email: "" });
     setUnidadesSel([]);
     setCargosSel([]);
     setOpen(true);
   };
 
-  const abrirEdicao = (s: DpSindicato) => {
+  const abrirEdicao = (s: DpSindicato, pre: { unidades: string[]; cargos: string[] } | null = null) => {
     setEditing(s);
+    setPreSelecao(pre);
     setForm({
       nome: s.nome,
       cnpj: s.cnpj ? maskCnpj(s.cnpj) : "",
@@ -181,6 +279,7 @@ export function SindicatosPanel({ tipo }: { tipo: SindicatoTipo }) {
       qc.invalidateQueries({ queryKey: ["dp_sindicatos"] });
       qc.invalidateQueries({ queryKey: ["dp_sindicato_vinculos"] });
       qc.invalidateQueries({ queryKey: ["dp_unidades"] });
+      qc.invalidateQueries({ queryKey: ["dp_patronal_por_unidade"] });
       qc.invalidateQueries({ queryKey: ["dp_cargos"] });
       toast.success(editing ? "Sindicato atualizado" : "Sindicato cadastrado");
       setOpen(false);
@@ -222,6 +321,63 @@ export function SindicatosPanel({ tipo }: { tipo: SindicatoTipo }) {
           ? "O sindicato patronal representa a empresa em cada unidade e define o piso salarial usado nos cargos. Um mesmo sindicato pode representar várias unidades."
           : "O sindicato laboral representa a categoria dos colaboradores e é vinculado aos cargos. Um mesmo sindicato pode representar vários cargos."}
       </p>
+
+      {!busca && sugestoesVisiveis.length > 0 && (
+        <section className="space-y-2" aria-label="Sindicatos sugeridos da base Aveto 360">
+          <p className="text-sm font-semibold">Sugeridos para as suas unidades</p>
+          <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+            {sugestoesVisiveis.map((s) => (
+              <SindicatoCatalogoSugestaoCard
+                key={s.item.id}
+                sugestao={s}
+                acao="Adotar na empresa"
+                carregando={adotandoId === s.item.id}
+                onUsar={() => adotarDaBase(s)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {!isPatronal && semLaboral.length > 0 && (
+        <section
+          className="space-y-3 rounded-xl border border-warning/50 bg-warning/10 p-3"
+          aria-label="Cargos sem sindicato laboral"
+        >
+          <div className="flex items-start gap-2">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
+            <div className="min-w-0 space-y-0.5">
+              <p className="text-sm font-semibold">
+                {semLaboral.length} cargo{semLaboral.length === 1 ? "" : "s"} sem sindicato laboral
+              </p>
+              <p className="text-xs text-muted-foreground break-words">
+                {semLaboral.slice(0, 4).map((c) => c.nome).join(", ")}
+                {semLaboral.length > 4 ? ` e mais ${semLaboral.length - 4}` : ""}
+              </p>
+            </div>
+          </div>
+          {laboraisAtivos.length > 0 ? (
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+              {laboraisAtivos.map((s) => (
+                <Button
+                  key={s.id}
+                  type="button"
+                  className="min-h-11 w-full whitespace-normal sm:w-auto"
+                  onClick={() => setConfirmarLote(s)}
+                  disabled={vincularLote.isPending}
+                >
+                  <Link2 className="mr-2 h-4 w-4 shrink-0" aria-hidden="true" />
+                  Vincular todos ao {s.nome}
+                </Button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Adote ou cadastre o sindicato laboral da categoria para enquadrar esses cargos de uma vez.
+            </p>
+          )}
+        </section>
+      )}
 
       {list.isLoading ? (
         <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
@@ -366,7 +522,7 @@ export function SindicatosPanel({ tipo }: { tipo: SindicatoTipo }) {
               <div className="space-y-3">
                 <Label className="text-base font-semibold">Unidades Representadas *</Label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto border border-border rounded-lg p-3">
-                  {(unidades.data ?? []).map((un) => (
+                  {unidadesEmpresa.map((un) => (
                     <div key={un.id} className="flex items-center gap-2">
                       <button
                         type="button"
@@ -385,7 +541,7 @@ export function SindicatosPanel({ tipo }: { tipo: SindicatoTipo }) {
                       </Label>
                     </div>
                   ))}
-                  {(unidades.data ?? []).length === 0 && (
+                  {unidadesEmpresa.length === 0 && (
                     <p className="sm:col-span-2 text-xs text-muted-foreground">Cadastre unidades primeiro.</p>
                   )}
                 </div>
@@ -440,6 +596,30 @@ export function SindicatosPanel({ tipo }: { tipo: SindicatoTipo }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!confirmarLote} onOpenChange={(o) => !o && !vincularLote.isPending && setConfirmarLote(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Vincular {semLaboral.length} cargo{semLaboral.length === 1 ? "" : "s"} ao {confirmarLote?.nome}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Só entram os cargos ativos que ainda não têm sindicato laboral. Cargos já vinculados a outro
+              sindicato continuam como estão. Dá para ajustar cargo por cargo depois.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={vincularLote.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); void vincularTodos(); }}
+              disabled={vincularLote.isPending}
+            >
+              {vincularLote.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Vincular todos
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
         <AlertDialogContent>

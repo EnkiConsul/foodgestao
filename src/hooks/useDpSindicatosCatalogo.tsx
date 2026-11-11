@@ -5,7 +5,7 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { useDpSindicatos } from "@/hooks/useDpCadastros";
 import {
   catalogoIdDoValor, sugerirSindicatos,
-  type LocalSindicato, type SindicatoCatalogo, type TipoSindicato,
+  type LocalSindicato, type SindicatoCatalogo, type TipoSindicato, type VinculoCargoSindicato,
 } from "@/lib/dp/sindicatos-catalogo";
 
 /** Base única de sindicatos (compartilhada entre empresas, só leitura). */
@@ -74,4 +74,46 @@ export function useAdotarSindicatoCatalogo() {
     return catalogoId ? mutation.mutateAsync(catalogoId) : valor;
   };
   return { ...mutation, resolver };
+}
+
+/** Vínculos cargo × sindicato laboral da empresa (para achar cargos sem enquadramento). */
+export function useDpVinculosCargosLaborais() {
+  const sindicatos = useDpSindicatos();
+  const laboralIds = useMemo(
+    () => (sindicatos.data ?? []).filter((s) => s.tipo === "laboral").map((s) => s.id).sort(),
+    [sindicatos.data],
+  );
+  const query = useQuery({
+    queryKey: ["dp_sindicato_vinculos", "cargos_laborais", laboralIds],
+    enabled: sindicatos.isSuccess,
+    queryFn: async (): Promise<VinculoCargoSindicato[]> => {
+      if (laboralIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("dp_sindicato_cargos")
+        .select("cargo_id, sindicato_id")
+        .in("sindicato_id", laboralIds);
+      if (error) throw error;
+      return (data ?? []) as VinculoCargoSindicato[];
+    },
+  });
+  return { ...query, laboralIds };
+}
+
+/** Enquadra no sindicato laboral todos os cargos ativos que ainda não têm laboral. */
+export function useVincularCargosSemLaboral() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (sindicatoId: string): Promise<number> => {
+      const { data, error } = await supabase.rpc("dp_sindicato_vincular_cargos_sem_laboral", {
+        p_sindicato_id: sindicatoId,
+      });
+      if (error) throw error;
+      return Number(data ?? 0);
+    },
+    onSuccess: () => {
+      for (const key of ["dp_sindicatos", "dp_sindicato_vinculos", "dp_sindicato_do_cargo", "dp_cargos", "dp_sindicatos_catalogo"]) {
+        void qc.invalidateQueries({ queryKey: [key] });
+      }
+    },
+  });
 }

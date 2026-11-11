@@ -37,7 +37,9 @@ import {
   agruparCargosLote, ajustesEmGrupo, dadosDaFichaLote, escolhaDaFicha, montarContatosLote, resumoRepasse, rotuloSetor, semDadosAcesso,
   vinculoOrganizado, type ContatoEditado, type EscolhasLote, type OrganizacaoLote,
 } from "@/lib/dp/ficha-registro/organizacao-lote";
-import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
+import { useDpCargos, useDpSindicatos, useDpUnidades } from "@/hooks/useDpCadastros";
+import { useDpSindicatosCatalogo } from "@/hooks/useDpSindicatosCatalogo";
+import { laboralPadraoDaUnidade } from "@/lib/dp/sindicatos-catalogo";
 import { useDpSetores } from "@/hooks/useDpSetores";
 import { useDpColaboradores } from "@/hooks/useDpColaboradores";
 import { useDpTurnos } from "@/hooks/useDpTurnos";
@@ -339,7 +341,23 @@ export default function DpFichaRegistroImportar() {
         })),
     [fichasPendentesLote],
   );
-  const sindicatoLoteId = sindicatoLote === undefined ? organizacao?.sindicato_laboral_id ?? null : sindicatoLote;
+  const { data: sindicatosEmpresa = [] } = useDpSindicatos();
+  const { data: catalogoSindicatos = [] } = useDpSindicatosCatalogo();
+  // Lote ainda não organizado: o laboral da empresa que atende a cidade da
+  // unidade já vem marcado, para os cargos nascerem enquadrados. "Definir
+  // depois" continua valendo como escolha explícita.
+  const laboralSugeridoLote = useMemo(() => {
+    if (organizacao?.organizado_em || !unidadeLoteId) return null;
+    const u = unidades.find((x) => x.id === unidadeLoteId);
+    return laboralPadraoDaUnidade({
+      sindicatos: sindicatosEmpresa,
+      catalogo: catalogoSindicatos,
+      local: { cidade: u?.cidade ?? null, uf: u?.uf ?? null },
+    });
+  }, [organizacao?.organizado_em, unidadeLoteId, unidades, sindicatosEmpresa, catalogoSindicatos]);
+  const sindicatoLoteId = sindicatoLote === undefined
+    ? organizacao?.sindicato_laboral_id ?? laboralSugeridoLote
+    : sindicatoLote;
   const itemAberto = itens.find((i) => i.id === abertoId) ?? null;
   const compacto = modoLote && !envioAberto;
   const turnosDoLote = useMemo(

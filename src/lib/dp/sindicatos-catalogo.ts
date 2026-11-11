@@ -114,3 +114,68 @@ export function sugerirSindicatos(params: {
     })
     .sort((a, b) => Number(b.recomendado) - Number(a.recomendado) || a.item.nome.localeCompare(b.item.nome, "pt-BR"));
 }
+
+export interface CargoEnquadravel {
+  id: string;
+  nome: string;
+  ativo?: boolean | null;
+}
+
+export interface VinculoCargoSindicato {
+  cargo_id: string;
+  sindicato_id: string;
+}
+
+/**
+ * Cargos ativos sem nenhum sindicato laboral (mesma regra de
+ * `dp_sindicato_vincular_cargos_sem_laboral`): qualquer vínculo laboral, mesmo
+ * de sindicato inativo, conta como enquadrado — nunca trocamos vínculo existente.
+ */
+export function cargosSemLaboral(
+  cargos: CargoEnquadravel[],
+  vinculos: VinculoCargoSindicato[],
+  laboralIds: Iterable<string>,
+): CargoEnquadravel[] {
+  const laborais = new Set(laboralIds);
+  const enquadrados = new Set(vinculos.filter((v) => laborais.has(v.sindicato_id)).map((v) => v.cargo_id));
+  return cargos.filter((c) => c.ativo !== false && !enquadrados.has(c.id));
+}
+
+export interface SindicatoDaEmpresa {
+  id: string;
+  tipo?: string | null;
+  ativo?: boolean | null;
+  catalogo_id?: string | null;
+}
+
+/**
+ * Laboral que já vem marcado no lote de fichas: o único sindicato laboral da
+ * empresa que atende a cidade da unidade pela base; sem cidade conhecida ou sem
+ * atendimento pela base, o único laboral ativo da empresa. Com dois ou mais
+ * candidatos, nada é escolhido sozinho.
+ */
+export function laboralPadraoDaUnidade(params: {
+  sindicatos: SindicatoDaEmpresa[];
+  catalogo: Pick<SindicatoCatalogo, "id" | "uf" | "municipios">[];
+  local: LocalSindicato;
+  /** Mesmo critério para o patronal da unidade; padrão: laboral. */
+  tipo?: TipoSindicato;
+}): string | null {
+  const tipo = params.tipo ?? "laboral";
+  const laborais = params.sindicatos.filter((s) => s.tipo === tipo && s.ativo !== false);
+  if (laborais.length === 0) return null;
+  const cidade = chaveMunicipio(params.local.cidade);
+  const uf = (params.local.uf ?? "").trim().toUpperCase();
+  if (cidade) {
+    const porId = new Map(params.catalogo.map((c) => [c.id, c]));
+    const atendem = laborais.filter((s) => {
+      const c = s.catalogo_id ? porId.get(s.catalogo_id) : undefined;
+      if (!c) return false;
+      if (c.uf && uf && c.uf !== uf) return false;
+      return c.municipios.some((m) => chaveMunicipio(m) === cidade);
+    });
+    if (atendem.length === 1) return atendem[0].id;
+    if (atendem.length > 1) return null;
+  }
+  return laborais.length === 1 ? laborais[0].id : null;
+}

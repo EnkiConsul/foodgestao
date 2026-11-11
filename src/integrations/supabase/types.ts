@@ -22160,6 +22160,10 @@ export type Database = {
           sindicato_nome: string
         }[]
       }
+      dp_sindicato_vincular_cargos_sem_laboral: {
+        Args: { p_sindicato_id: string }
+        Returns: number
+      }
       dp_solicitacao_anexar_gestor: {
         Args: { p_arquivo_path: string; p_id: string }
         Returns: undefined

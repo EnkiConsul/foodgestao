@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  catalogoIdDoValor, formatarMunicipio, resumoAbrangencia, sugerirSindicatos, valorCatalogo,
+  cargosSemLaboral, catalogoIdDoValor, formatarMunicipio, laboralPadraoDaUnidade, resumoAbrangencia, sugerirSindicatos, valorCatalogo,
   type SindicatoCatalogo,
 } from "@/lib/dp/sindicatos-catalogo";
 
@@ -67,5 +67,73 @@ describe("apresentação da abrangência", () => {
   it("valor de opção da base é reconhecido", () => {
     expect(catalogoIdDoValor(valorCatalogo("abc"))).toBe("abc");
     expect(catalogoIdDoValor("abc")).toBeNull();
+  });
+});
+
+describe("cargos sem sindicato laboral", () => {
+  const cargos = [
+    { id: "garcom", nome: "GARÇOM", ativo: true },
+    { id: "cozinheiro", nome: "COZINHEIRO", ativo: true },
+    { id: "antigo", nome: "ANTIGO", ativo: false },
+  ];
+
+  it("lista só cargos ativos sem nenhum vínculo laboral", () => {
+    const r = cargosSemLaboral(cargos, [{ cargo_id: "garcom", sindicato_id: "sechseg" }], ["sechseg"]);
+    expect(r.map((c) => c.id)).toEqual(["cozinheiro"]);
+  });
+
+  it("vínculo com sindicato patronal não conta como enquadramento laboral", () => {
+    const r = cargosSemLaboral(cargos, [{ cargo_id: "garcom", sindicato_id: "sindtur" }], ["sechseg"]);
+    expect(r.map((c) => c.id)).toEqual(["garcom", "cozinheiro"]);
+  });
+});
+
+describe("laboral já marcado no lote de fichas", () => {
+  const catalogo = [
+    { id: "cat-sechseg", uf: "GO", municipios: ["PIRES DO RIO", "GOIANIA"] },
+    { id: "cat-outro", uf: "GO", municipios: ["ANÁPOLIS"] },
+  ];
+
+  it("escolhe o laboral da empresa que atende a cidade da unidade", () => {
+    const id = laboralPadraoDaUnidade({
+      sindicatos: [
+        { id: "sechseg", tipo: "laboral", ativo: true, catalogo_id: "cat-sechseg" },
+        { id: "outro", tipo: "laboral", ativo: true, catalogo_id: "cat-outro" },
+        { id: "sindtur", tipo: "patronal", ativo: true, catalogo_id: null },
+      ],
+      catalogo,
+      local: { cidade: "Pires do Rio", uf: "GO" },
+    });
+    expect(id).toBe("sechseg");
+  });
+
+  it("com um único laboral ativo na empresa, usa esse mesmo sem a cidade na base", () => {
+    const id = laboralPadraoDaUnidade({
+      sindicatos: [{ id: "proprio", tipo: "laboral", ativo: true, catalogo_id: null }],
+      catalogo,
+      local: { cidade: "Catalão", uf: "GO" },
+    });
+    expect(id).toBe("proprio");
+  });
+
+  it("com dois laborais e nenhum atendendo a cidade, não escolhe sozinho", () => {
+    const id = laboralPadraoDaUnidade({
+      sindicatos: [
+        { id: "a", tipo: "laboral", ativo: true, catalogo_id: null },
+        { id: "b", tipo: "laboral", ativo: true, catalogo_id: null },
+      ],
+      catalogo,
+      local: { cidade: "Catalão", uf: "GO" },
+    });
+    expect(id).toBeNull();
+  });
+
+  it("laboral inativo nunca é escolhido", () => {
+    const id = laboralPadraoDaUnidade({
+      sindicatos: [{ id: "sechseg", tipo: "laboral", ativo: false, catalogo_id: "cat-sechseg" }],
+      catalogo,
+      local: { cidade: "Pires do Rio", uf: "GO" },
+    });
+    expect(id).toBeNull();
   });
 });

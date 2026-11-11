@@ -1604,6 +1604,13 @@
       "when": 1794421673355,
       "tag": "0228_escala_12x36_calendario_descanso",
       "breakpoints": true
+    },
+    {
+      "idx": 229,
+      "version": "7",
+      "when": 1794425926024,
+      "tag": "0229_sindicato_vincular_cargos_sem_laboral",
+      "breakpoints": true
     }
   ]
 }
