@@ -25,6 +25,9 @@ export function erroAplicacaoFicha(mensagem: string): Error {
   if (franquia) return new RegraNegada(franquia);
   const segura = MENSAGENS_SEGURAS.find((item) => texto.includes(item));
   if (segura) return new RegraNegada(segura);
+  if (texto.includes("Intervalo inválido na jornada da ficha.")) {
+    return new RegraNegada("Horário precisa de ajuste: abra a ficha e confira o intervalo antes de criar o cadastro.");
+  }
 
   if (/permission denied|row-level security|forbidden/i.test(texto)) {
     return new RegraNegada(

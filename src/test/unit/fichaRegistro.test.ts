@@ -9,7 +9,7 @@ import { nivelDoCampo, situacaoDaFicha } from "@/lib/dp/ficha-registro/confianca
 describe("jornada da ficha de registro", () => {
   it("lê o formato compacto com intervalo", () => {
     expect(parseJornadaCompacta("08:00/12:00-14:00/18:00 44:00")).toEqual({
-      entrada: "08:00", saida: "18:00", intervalo_minutos: 120,
+      entrada: "08:00", saida: "18:00", intervalo_minutos: 120, intervalo_incerto: false,
     });
   });
 

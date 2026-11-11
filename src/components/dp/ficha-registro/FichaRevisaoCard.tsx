@@ -48,7 +48,7 @@ import {
   jornadaDaFicha, useAplicarFicha, useIgnorarFicha, useReativarFicha, type FichaItem,
 } from "@/hooks/useDpFichaImportacao";
 import {
-  normalizeHora, type JornadaDia, type JornadaSugerida,
+  normalizeHora, problemasJornada, type JornadaDia, type JornadaSugerida,
 } from "@/lib/dp/ficha-registro/jornada-parse";
 import { notifyError } from "@/lib/notifyError";
 import { mensagemOrigemApoio, vincularOrigemApoio } from "@/lib/dp/apoio-origem";
@@ -374,6 +374,8 @@ export function FichaRevisaoCard({
    */
   const exigeMotivoPonto =
     unidadeTemPonto && possuiFolhaPonto === false && (pontoObrigatorio || (!preadmissaoId && dispensaPontoExigeMotivo(regime)));
+  /** Horário com intervalo ilegível/impossível: sinalizado para corrigir, nunca enviado às cegas. */
+  const problemasHorario = usarJornada ? problemasJornada(jornada) : [];
   const faltaMotivoPonto = exigeMotivoPonto && justificativaPonto.trim().length < JUSTIFICATIVA_PONTO_MIN;
 
   const salarioFicha = useMemo(() => salarioDaFicha(dados), [dados]);
@@ -410,6 +412,8 @@ export function FichaRevisaoCard({
       const primeiro = dias.find((d) => d.trabalha && d.entrada && d.saida) ?? null;
       return {
         ...base,
+        // Quem digitou o intervalo conferiu: a dúvida da leitura do PDF deixa de valer.
+        intervalo_incerto: "intervalo_minutos" in patch ? false : base.intervalo_incerto,
         dias,
         entrada: primeiro?.entrada ?? null,
         saida: primeiro?.saida ?? null,
@@ -536,6 +540,13 @@ export function FichaRevisaoCard({
       setCompletarAberto(true);
       setTentouCriar(true);
       toast.error("Escolha a unidade antes de aprovar. Se ela ainda não existe, use \"Cadastrar Unidade da Ficha\".");
+      return;
+    }
+    if (problemasHorario.length > 0) {
+      setJornadaEditada((j) => j ?? jornadaEditavel(jornadaLida));
+      setEditandoJornada(true);
+      toast.error("Confira o horário de trabalho: informe o intervalo em minutos de cada dia antes de criar o cadastro.");
+      document.getElementById(`ficha-horario-${item.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
     if (escolhasPendentes.length > 0) {
@@ -1328,7 +1339,7 @@ export function FichaRevisaoCard({
 
 
         {(!jornada.vazia || !aplicado) && (
-          <div className="rounded-lg border bg-muted/30 p-3">
+          <div id={`ficha-horario-${item.id}`} className="scroll-mt-20 rounded-lg border bg-muted/30 p-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm font-medium">
                 {jornadaEditada ? "Horário ajustado nesta conferência" : "Horário da ficha"}
@@ -1428,6 +1439,13 @@ export function FichaRevisaoCard({
             )}
             {jornada.vira_meia_noite && (
               <p className="mt-2 text-[11px] text-muted-foreground">A saída acontece no dia seguinte.</p>
+            )}
+            {!aplicado && problemasHorario.length > 0 && (
+              <div role="alert" className="mt-2 rounded-md border border-warning/40 bg-warning/10 p-2 text-[11px] leading-relaxed text-warning-foreground">
+                <strong>Revisar horário.</strong> {problemasHorario.join(" ")}
+                {typeof dados.jornada_texto === "string" && dados.jornada_texto ? ` A ficha diz: "${dados.jornada_texto}".` : ""}
+                {" "}Toque em "Editar horários" e informe o intervalo em minutos.
+              </div>
             )}
             {jornadaEditada && !jornadaLida.vazia && (
               <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-[11px] leading-relaxed text-amber-800 dark:text-amber-300">
