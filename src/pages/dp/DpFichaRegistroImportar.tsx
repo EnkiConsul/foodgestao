@@ -233,12 +233,11 @@ export default function DpFichaRegistroImportar() {
     | undefined;
   const unidadeSemAdiantamento = unidadeDoLote?.tem_adiantamento === false;
   /**
-   * Padrões salvos no lote. Adiantamento nunca escolhido segue a unidade:
-   * unidade sem adiantamento → não optante; com adiantamento → decide na ficha.
+   * Padrões salvos no lote. Adiantamento sem escolha entra como não optante (o
+   * mesmo que o servidor grava) e pode ser mudado depois no cadastro.
    */
   const padroesSalvos = organizacao?.padroes ?? {};
-  const adiantamentoPadrao: boolean | null =
-    "adiantamento" in padroesSalvos ? padroesSalvos.adiantamento ?? null : unidadeSemAdiantamento ? false : null;
+  const adiantamentoPadrao: boolean = padroesSalvos.adiantamento ?? false;
   const padroesEmVigor: EscolhasLote = {
     regime: padroesSalvos.regime ?? null,
     forma_pagamento: padroesSalvos.forma_pagamento ?? null,
@@ -1001,6 +1000,8 @@ export default function DpFichaRegistroImportar() {
                     return aj && typeof aj.adiantamento === "boolean" ? aj.adiantamento : adiantamentoPadrao;
                   })()}
                   turnoPadraoId={escolhaDaFicha(itemAberto, organizacao, "turno_id") ?? null}
+                  folhaPontoPadrao={escolhaDaFicha(itemAberto, organizacao, "folha_ponto") ?? null}
+                  justificativaPontoPadrao={escolhaDaFicha(itemAberto, organizacao, "folha_ponto_justificativa") ?? null}
                   rascunho={organizacao?.ajustes?.[itemAberto.id] ?? null}
                   onSalvarRascunho={async (aj) => {
                     await ajustar.mutateAsync({ importacaoId: atual!.id, itens: { [itemAberto.id]: aj } });

@@ -1548,6 +1548,13 @@
       "when": 1794401185709,
       "tag": "0220_onboarding_preserva_whatsapp_pessoal",
       "breakpoints": true
+    },
+    {
+      "idx": 221,
+      "version": "7",
+      "when": 1794403741270,
+      "tag": "0221_ficha_lote_ponto_persistido",
+      "breakpoints": true
     }
   ]
 }

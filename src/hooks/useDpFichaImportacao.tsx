@@ -360,9 +360,11 @@ export function useAplicarFicha() {
         };
       }
 
+      // Motivo da dispensa de ponto: sem ele o banco religa o ponto do vínculo de emprego.
+      const motivoPonto = possuiFolhaPonto === false ? txt(dados.folha_ponto_dispensa_justificativa) : null;
       const res = await aplicarFichaRpc({
         p_item_id: item.id,
-        p_dados: { ...dadosCadastro, nome, cpf },
+        p_dados: { ...dadosCadastro, nome, cpf, ...(motivoPonto ? { folha_ponto_dispensa_justificativa: motivoPonto } : {}) },
         p_dados_extraidos: dados as Record<string, unknown>,
         p_campos: atualizarExistente ? camposPermitidos ?? null : null,
         // A decisão do usuário vai como está: quem recusa vínculo inválido é a

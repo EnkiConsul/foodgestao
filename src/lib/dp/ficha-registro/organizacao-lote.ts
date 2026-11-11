@@ -88,8 +88,24 @@ export type EscolhasLote = {
   regime?: string | null;
   forma_pagamento?: string | null;
   adiantamento?: boolean | null;
+  /** Registra ponto (true) ou não (false); só vale em unidade com relógio. */
+  folha_ponto?: boolean | null;
+  /** Motivo da dispensa de ponto (ex.: cargo de confiança, Art. 62 da CLT). */
+  folha_ponto_justificativa?: string | null;
   turno_id?: string | null;
 };
+
+/** Mínimo do motivo de dispensa de ponto (mesmo do cadastro do colaborador). */
+export const JUSTIFICATIVA_PONTO_MIN = 10;
+
+/**
+ * Vínculos em que o banco religa o ponto em unidade com relógio quando não há
+ * motivo de dispensa (gatilho `dp_colab_ponto_clt_padrao`): sem o motivo, a
+ * escolha "não registra ponto" se perderia ao criar o cadastro.
+ */
+export function dispensaPontoExigeMotivo(regime: string | null | undefined): boolean {
+  return regime === "clt" || regime === "intermitente";
+}
 
 /** O que já foi decidido numa ficha: vence os padrões do lote. */
 export type AjusteFichaLote = EscolhasLote & {
@@ -292,7 +308,7 @@ export type PadroesLote = {
   regime?: string | null;
   /** true = optante, false = não optante, null = decidir ficha a ficha. */
   adiantamento?: boolean | null;
-  /** A unidade usa registro de ponto: a folha de ponto é decidida na ficha. */
+  /** A unidade usa registro de ponto: todos registram, salvo quem for marcado como dispensado. */
   unidadeTemPonto?: boolean;
 };
 
@@ -332,6 +348,7 @@ export function pendenciasFichaLote(
     ? org.ajustes[item.id].adiantamento
     : undefined;
   const formaFicha = escolhaDaFicha(item, org, "forma_pagamento");
+  const pontoFicha = escolhaDaFicha(item, org, "folha_ponto");
   const obrigatorias: string[] = [];
   if (item.status === "duplicado") obrigatorias.push("conferir cadastro existente");
   if (item.status === "revisar") obrigatorias.push("revisar leitura");
@@ -343,10 +360,14 @@ export function pendenciasFichaLote(
     ...escolhasObrigatoriasFaltando({
       regime,
       formaPagamento: formaFicha ?? ctx.formaPagamento ?? null,
-      possuiFolhaPonto: padroes.unidadeTemPonto ? null : false,
+      possuiFolhaPonto: padroes.unidadeTemPonto ? pontoFicha ?? true : false,
       optanteAdiantamento: adiantFicha !== undefined && adiantFicha !== null ? adiantFicha : padroes.adiantamento ?? null,
     }),
   );
+  if (padroes.unidadeTemPonto && pontoFicha === false && dispensaPontoExigeMotivo(regime)) {
+    const motivo = String(escolhaDaFicha(item, org, "folha_ponto_justificativa") ?? "").trim();
+    if (motivo.length < JUSTIFICATIVA_PONTO_MIN) obrigatorias.push("motivo de não registrar ponto");
+  }
   const complementares = camposFaltando(
     { ...montarPayloadFicha(d), setor_id: v?.setorId ?? null, regime },
     { exigirSetor: ctx.exigirSetor ?? true, salarioCargo: ctx.salarioCargo ?? null },
@@ -417,6 +438,13 @@ export function ajustesEmGrupo(
     if ("regime" in escolhas) e.regime = escolhas.regime ?? null;
     if ("adiantamento" in escolhas) e.adiantamento = escolhas.adiantamento ?? null;
     if ("forma_pagamento" in escolhas) e.forma_pagamento = escolhas.forma_pagamento ?? null;
+    if ("folha_ponto" in escolhas) {
+      e.folha_ponto = escolhas.folha_ponto ?? null;
+      // Registrar ponto apaga o motivo antigo; dispensar leva o motivo informado.
+      e.folha_ponto_justificativa = escolhas.folha_ponto === false
+        ? (escolhas.folha_ponto_justificativa ?? "").trim() || null
+        : null;
+    }
     if ("turno_id" in escolhas) {
       if (temHorarioLido(id)) turnoMantido += 1;
       else e.turno_id = escolhas.turno_id ?? null;

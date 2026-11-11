@@ -3,7 +3,7 @@ import { Loader2, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import type { EscolhasLote } from "@/lib/dp/ficha-registro/organizacao-lote";
-import { EscolhasLoteCampos, resumoEscolhas, type TurnoLote } from "./EscolhasLoteCampos";
+import { EscolhasLoteCampos, motivoPontoPendente, resumoEscolhas, type TurnoLote } from "./EscolhasLoteCampos";
 
 /**
  * Como o diálogo abre: padrão da maioria (lote todo) ou um grupo já escolhido
@@ -37,7 +37,7 @@ export function FichaLotePadroesCard({
   const [escolhasGrupo, setEscolhasGrupo] = useState<EscolhasLote>({});
 
   const pilulas = resumoEscolhas(padroes, turnos);
-  pilulas.push(unidadeTemPonto ? "Folha de ponto: decidir na ficha" : "Sem folha de ponto (unidade)");
+  pilulas.push(unidadeTemPonto ? "Registram ponto (salvo quem for marcado)" : "Sem folha de ponto (unidade)");
 
   const aberto = !!abertura;
   useEffect(() => {
@@ -45,7 +45,7 @@ export function FichaLotePadroesCard({
     setRascunho({
       regime: padroes.regime ?? null,
       forma_pagamento: padroes.forma_pagamento ?? null,
-      adiantamento: padroes.adiantamento ?? null,
+      adiantamento: padroes.adiantamento ?? false,
       turno_id: padroes.turno_id ?? null,
     });
     setEscolhasGrupo({});
@@ -55,6 +55,7 @@ export function FichaLotePadroesCard({
 
   const grupo = abertura?.escopo === "grupo" ? abertura : null;
   const nadaEscolhido = Object.keys(escolhasGrupo).length === 0;
+  const faltaMotivoPonto = !!grupo && motivoPontoPendente(escolhasGrupo);
   const fechar = () => onAbertura(null);
 
   const confirmar = async () => {
@@ -99,7 +100,7 @@ export function FichaLotePadroesCard({
         footer={
           <div className="flex w-full gap-2 sm:justify-end">
             <Button variant="outline" className="h-11 flex-1 sm:flex-none" onClick={fechar}>Cancelar</Button>
-            <Button className="h-11 flex-1 sm:flex-none" disabled={salvando || (!!grupo && nadaEscolhido)} onClick={confirmar}>
+            <Button className="h-11 flex-1 sm:flex-none" disabled={salvando || (!!grupo && nadaEscolhido) || faltaMotivoPonto} onClick={confirmar}>
               {salvando && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
               {grupo ? `Aplicar a ${pessoas(grupo.ids.length)}` : "Salvar padrões"}
             </Button>
@@ -107,7 +108,13 @@ export function FichaLotePadroesCard({
         }
       >
         {grupo ? (
-          <EscolhasLoteCampos valor={escolhasGrupo} onChange={setEscolhasGrupo} modo="grupo" turnos={turnos} />
+          <EscolhasLoteCampos
+            valor={escolhasGrupo}
+            onChange={setEscolhasGrupo}
+            modo="grupo"
+            turnos={turnos}
+            unidadeTemPonto={unidadeTemPonto}
+          />
         ) : (
           <EscolhasLoteCampos
             valor={rascunho}
@@ -115,6 +122,7 @@ export function FichaLotePadroesCard({
             modo="padrao"
             turnos={turnos}
             unidadeSemAdiantamento={unidadeSemAdiantamento}
+            unidadeTemPonto={unidadeTemPonto}
           />
         )}
       </ResponsiveDialog>

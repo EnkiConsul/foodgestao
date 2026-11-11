@@ -28,7 +28,10 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { matchCargo } from "@/lib/dp/ficha-registro/cargo-match";
 import { matchTurno, type TurnoCadastrado } from "@/lib/dp/ficha-registro/turno-match";
-import { semDadosAcesso, turnoPadraoDoLote, type AjusteFichaLote } from "@/lib/dp/ficha-registro/organizacao-lote";
+import {
+  dispensaPontoExigeMotivo, JUSTIFICATIVA_PONTO_MIN, semDadosAcesso, turnoPadraoDoLote, type AjusteFichaLote,
+} from "@/lib/dp/ficha-registro/organizacao-lote";
+import { MOTIVOS_DISPENSA_PONTO } from "@/components/dp/ficha-registro/lote/EscolhasLoteCampos";
 import { formatCnpj, matchUnidade } from "@/lib/dp/ficha-registro/unidade-match";
 import { CONFIANCA_LABEL, nivelDoCampo, trechoDoTexto, type NivelConfianca } from "@/lib/dp/ficha-registro/confianca";
 import { montarPayloadFicha } from "@/lib/dp/ficha-registro/payload";
@@ -145,6 +148,10 @@ interface Props {
   formaPagamentoPadrao?: string | null;
   /** Lote: salva o que foi preenchido sem criar o cadastro e segue para a próxima ficha. */
   onSalvarRascunho?: (ajuste: AjusteFichaLote) => Promise<void>;
+  /** Lote: ponto decidido na ação em grupo (null = segue a unidade). */
+  folhaPontoPadrao?: boolean | null;
+  /** Lote: motivo da dispensa de ponto informado na ação em grupo. */
+  justificativaPontoPadrao?: string | null;
 }
 
 export function FichaRevisaoCard({
@@ -153,6 +160,7 @@ export function FichaRevisaoCard({
   pessoaApoioId = null, posicao, total, emFoco = false, onConcluido, avisoFranquia = true, vinculoLote = null,
   turnoPadraoId = null, destacarPendencias = false, rodapeFixo = false,
   rascunho = null, formaPagamentoPadrao = null, onSalvarRascunho,
+  folhaPontoPadrao = null, justificativaPontoPadrao = null,
 }: Props) {
   const extraidos = (item.dados_extraidos ?? {}) as Record<string, unknown>;
   const confianca = (item.confianca_campos ?? {}) as Record<string, string>;
@@ -200,7 +208,15 @@ export function FichaRevisaoCard({
   const [formaPagamento, setFormaPagamento] = useState<string | null>(
     rascunho?.forma_pagamento ?? formaPagamentoPadrao ?? null,
   );
-  const [possuiFolhaPonto, setPossuiFolhaPonto] = useState<boolean | null>(null);
+  // Escolha salva na ficha (rascunho) > ação em grupo do lote > unidade (efeito abaixo).
+  const [possuiFolhaPonto, setPossuiFolhaPontoState] = useState<boolean | null>(
+    typeof rascunho?.folha_ponto === "boolean" ? rascunho.folha_ponto : folhaPontoPadrao,
+  );
+  const [pontoTocado, setPontoTocado] = useState(false);
+  const setPossuiFolhaPonto = (v: boolean | null) => {
+    setPontoTocado(true);
+    setPossuiFolhaPontoState(v);
+  };
   const [optanteEscolhido, setOptanteAdiantamento] = useState<boolean | null>(
     typeof rascunho?.adiantamento === "boolean" ? rascunho.adiantamento : null,
   );
@@ -338,12 +354,27 @@ export function FichaRevisaoCard({
   const justificativaUnidade = pontoConformidade.data?.find((u) => u.id === unidadeId)?.justificativa ?? null;
   const unidadeIrregularPonto =
     !!unidadeId && !unidadeTemPonto && lotacaoComEste > LIMITE_PONTO_OBRIGATORIO && !justificativaValida(justificativaUnidade);
-  const [justificativaPonto, setJustificativaPonto] = useState("");
+  const [justificativaPonto, setJustificativaPontoState] = useState(
+    rascunho?.folha_ponto_justificativa ?? justificativaPontoPadrao ?? "",
+  );
+  const setJustificativaPonto = (v: string) => {
+    setPontoTocado(true);
+    setJustificativaPontoState(v);
+  };
+  // No lote, quem não foi marcado registra ponto quando a unidade tem relógio.
+  const pontoPadraoUnidade = pontoObrigatorio || !!onSalvarRascunho;
   useEffect(() => {
     if (!unidadeId) return;
-    if (!unidadeTemPonto) setPossuiFolhaPonto(false);
-    else if (possuiFolhaPonto === null && pontoObrigatorio) setPossuiFolhaPonto(true);
-  }, [unidadeId, unidadeTemPonto, pontoObrigatorio, possuiFolhaPonto]);
+    if (!unidadeTemPonto) setPossuiFolhaPontoState(false);
+    else if (possuiFolhaPonto === null && pontoPadraoUnidade) setPossuiFolhaPontoState(true);
+  }, [unidadeId, unidadeTemPonto, pontoPadraoUnidade, possuiFolhaPonto]);
+  /**
+   * Dispensa de ponto em unidade com relógio precisa de motivo quando a lei obriga
+   * (mais de 20 pessoas) ou quando o banco religaria o ponto do vínculo de emprego.
+   */
+  const exigeMotivoPonto =
+    unidadeTemPonto && possuiFolhaPonto === false && (pontoObrigatorio || (!preadmissaoId && dispensaPontoExigeMotivo(regime)));
+  const faltaMotivoPonto = exigeMotivoPonto && justificativaPonto.trim().length < JUSTIFICATIVA_PONTO_MIN;
 
   const salarioFicha = useMemo(() => salarioDaFicha(dados), [dados]);
   // Na pré-admissão valem os familiares que o próprio candidato informou.
@@ -512,10 +543,14 @@ export function FichaRevisaoCard({
       toast.error(mensagemEscolhasObrigatorias(escolhasPendentes));
       return;
     }
-    if (pontoObrigatorio && possuiFolhaPonto === false && justificativaPonto.trim().length < 10) {
+    if (faltaMotivoPonto) {
       setCompletarAberto(true);
       setTentouCriar(true);
-      toast.error("A unidade tem mais de 20 pessoas: o ponto é obrigatório (Art. 74 da CLT). Justifique a dispensa (ex.: cargo de confiança, Art. 62).");
+      toast.error(
+        pontoObrigatorio
+          ? "A unidade tem mais de 20 pessoas: o ponto é obrigatório (Art. 74 da CLT). Informe o motivo da dispensa (ex.: cargo de confiança, Art. 62)."
+          : "Informe o motivo de não registrar ponto (ex.: cargo de confiança, Art. 62 da CLT). Sem ele o sistema volta a ligar o ponto.",
+      );
       return;
     }
     if (divergenciasRegistro.length > 0 && !cienciaDivergenciaValida(justDivergencia, cienteDivergencia)) {
@@ -582,7 +617,7 @@ export function FichaRevisaoCard({
       return;
     }
     const dadosBase = preadmissaoId ? dadosParaCadastro(stagingDados, dados, escolhas) : dados;
-    const dadosEnvio = pontoObrigatorio && possuiFolhaPonto === false
+    const dadosEnvio = unidadeTemPonto && possuiFolhaPonto === false && justificativaPonto.trim()
       ? { ...dadosBase, folha_ponto_dispensa_justificativa: justificativaPonto.trim() }
       : dadosBase;
     if (!(atualizar && !!item.colaborador_existente_id)) {
@@ -688,6 +723,11 @@ export function FichaRevisaoCard({
     if (regimeEscolhido) aj.regime = regimeEscolhido;
     if (formaPagamento) aj.forma_pagamento = formaPagamento;
     if (optanteEscolhido !== null) aj.adiantamento = optanteEscolhido;
+    // Ponto: guarda a decisão desta ficha (ou a que veio do rascunho) para não se perder.
+    if (possuiFolhaPonto !== null && (pontoTocado || typeof rascunho?.folha_ponto === "boolean")) {
+      aj.folha_ponto = possuiFolhaPonto;
+      aj.folha_ponto_justificativa = possuiFolhaPonto === false ? justificativaPonto.trim() || null : null;
+    }
     if (turnoId) aj.turno_id = turnoId;
     if (cargoTocado) aj.cargo_id = cargoId;
     if (setorEscolhido && setorEscolhido !== (vinculoLote?.setorId ?? null)) aj.setor_id = setorEscolhido;
@@ -1130,16 +1170,34 @@ export function FichaRevisaoCard({
                     {pontoObrigatorio && possuiFolhaPonto !== false && (
                       <p className="text-[11px] text-muted-foreground">Obrigatório: a unidade tem mais de 20 pessoas (Art. 74 da CLT).</p>
                     )}
-                    {pontoObrigatorio && possuiFolhaPonto === false && (
-                      <div className="space-y-1 rounded-md bg-amber-500/10 p-2">
+                    {exigeMotivoPonto && (
+                      <div className="space-y-1.5 rounded-md bg-amber-500/10 p-2">
                         <p className="text-[11px] text-amber-700 dark:text-amber-400">
-                          A unidade tem mais de 20 pessoas e o ponto é obrigatório por lei. Só dispense em exceção legal (ex.: cargo de confiança, Art. 62 da CLT).
+                          {pontoObrigatorio
+                            ? "A unidade tem mais de 20 pessoas e o ponto é obrigatório por lei. Só dispense em exceção legal:"
+                            : "Só fica sem ponto quem se enquadra numa exceção legal. Informe o motivo:"}
                         </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {MOTIVOS_DISPENSA_PONTO.map((m) => (
+                            <button
+                              key={m}
+                              type="button"
+                              onClick={() => setJustificativaPonto(m)}
+                              className={cn(
+                                "min-h-8 rounded-full border px-2.5 text-[11px]",
+                                justificativaPonto === m ? "border-primary bg-primary/10 text-primary" : "bg-background",
+                              )}
+                            >
+                              {m}
+                            </button>
+                          ))}
+                        </div>
                         <Input
                           value={justificativaPonto}
                           onChange={(e) => setJustificativaPonto(e.target.value)}
-                          placeholder="Justificativa da dispensa *"
-                          className={cn("h-8 text-xs", realce(justificativaPonto.trim().length < 10))}
+                          placeholder="Motivo da dispensa *"
+                          maxLength={500}
+                          className={cn("h-9 text-xs", realce(faltaMotivoPonto))}
                         />
                       </div>
                     )}
@@ -1188,7 +1246,11 @@ export function FichaRevisaoCard({
                       </SelectContent>
                     </Select>
                     {optanteEscolhido === null && adiantamentoPadrao !== null && (
-                      <p className="text-[11px] text-muted-foreground">Preenchido pelo adiantamento da maioria do lote.</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {adiantamentoPadrao === false && onSalvarRascunho
+                          ? "Entra como não optante. Dá para mudar depois no cadastro."
+                          : "Preenchido pelo adiantamento da maioria do lote."}
+                      </p>
                     )}
                     {tentouCriar && optanteAdiantamento === null && (
                       <p className="text-[11px] text-destructive">Informe se recebe adiantamento.</p>

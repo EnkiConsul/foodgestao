@@ -104,11 +104,21 @@ describe("organização do lote de fichas", () => {
     expect(situacaoFichaLote(a, org, { ...ctx, padroes: { ...ctx.padroes, regime: "clt" } })).toBe("pronta");
   });
 
-  it("unidade com ponto pede a folha de ponto na ficha", () => {
+  it("unidade com ponto: quem não foi marcado registra ponto sem pendência", () => {
     const a = item("1", "ATENDENTE", "513435", { pis_nit: "123" });
     const org = { grupos: { [chaveCargoItem(a)]: { cargo_id: "g", setor_id: null } } };
-    const ctx = { padroes: { adiantamento: false, unidadeTemPonto: true }, formaPagamento: "mensalista" };
-    expect(pendenciasFichaLote(a, org, ctx).obrigatorias).toEqual(["folha de ponto"]);
+    const ctx = { padroes: { adiantamento: false, unidadeTemPonto: true, regime: "clt" }, formaPagamento: "mensalista" };
+    expect(pendenciasFichaLote(a, org, ctx).obrigatorias).toEqual([]);
+  });
+
+  it("CLT marcado como não registra ponto pede o motivo da dispensa", () => {
+    const a = item("1", "GERENTE", "141205", { pis_nit: "123" });
+    const base = { grupos: { [chaveCargoItem(a)]: { cargo_id: "g", setor_id: null } } };
+    const ctx = { padroes: { adiantamento: false, unidadeTemPonto: true, regime: "clt" }, formaPagamento: "mensalista" };
+    const semMotivo = { ...base, ajustes: { "1": { folha_ponto: false } } };
+    expect(pendenciasFichaLote(a, semMotivo, ctx).obrigatorias).toEqual(["motivo de não registrar ponto"]);
+    const comMotivo = { ...base, ajustes: { "1": { folha_ponto: false, folha_ponto_justificativa: "Cargo de confiança (Art. 62, II da CLT)" } } };
+    expect(pendenciasFichaLote(a, comMotivo, ctx).obrigatorias).toEqual([]);
   });
 
   it("lista o que não veio na ficha sem travar a situação", () => {
@@ -178,6 +188,13 @@ describe("dados de acesso, padrões salvos e ajustes em grupo", () => {
     const r = ajustesEmGrupo(["1", "2"], { turno_id: "t1", adiantamento: false }, (id) => id === "2");
     expect(r.itens).toEqual({ "1": { turno_id: "t1", adiantamento: false }, "2": { adiantamento: false } });
     expect(r.turnoMantido).toBe(1);
+  });
+
+  it("ação em grupo grava quem não registra ponto com o motivo", () => {
+    const r = ajustesEmGrupo(["1"], { folha_ponto: false, folha_ponto_justificativa: " Trabalho externo (Art. 62, I da CLT) " }, () => false);
+    expect(r.itens["1"]).toEqual({ folha_ponto: false, folha_ponto_justificativa: "Trabalho externo (Art. 62, I da CLT)" });
+    const volta = ajustesEmGrupo(["1"], { folha_ponto: true, folha_ponto_justificativa: "x" }, () => false);
+    expect(volta.itens["1"]).toEqual({ folha_ponto: true, folha_ponto_justificativa: null });
   });
 
   it("atalhos por setor contam só fichas pendentes, sem setor por último", () => {
