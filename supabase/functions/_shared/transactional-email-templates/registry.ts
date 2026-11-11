@@ -14,6 +14,7 @@ import { template as companyInvite } from './company-invite.tsx'
 import { template as billingDunning } from './billing-dunning.tsx'
 import { template as billingPlanChange } from './billing-plan-change.tsx'
 import { template as conciergeConclusao } from './concierge-conclusao.tsx'
+import { template as fichaLotePronto } from './ficha-lote-pronto.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'contact-lead': contactLead,
@@ -21,4 +22,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'billing-dunning': billingDunning,
   'billing-plan-change': billingPlanChange,
   'concierge-conclusao': conciergeConclusao,
+  'ficha-lote-pronto': fichaLotePronto,
 }

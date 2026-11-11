@@ -44,12 +44,44 @@ export type OrganizacaoLote = {
   grupos?: Record<string, { cargo_id: string | null; setor_id: string | null }>;
   itens?: Record<string, { cargo_id: string | null; setor_id: string | null }>;
   organizado_em?: string | null;
-  notificacao?: { user_id: string; em: string; fichas: number } | null;
+  notificacao?: NotificacaoLote | null;
   /** Padrões da maioria salvos no lote (chave presente com null = "conforme cada ficha"). */
   padroes?: EscolhasLote;
   /** Ajustes e rascunho de cada ficha, salvos sem criar o colaborador. */
   ajustes?: Record<string, AjusteFichaLote>;
 };
+
+/** Canais usados no repasse do lote ao responsável (gravados pelo servidor). */
+export type CanaisRepasse = {
+  whatsapp?: { enviado: boolean; final?: string | null; erro?: string | null } | null;
+  email?: { enviado: boolean; destino?: string | null; erro?: string | null } | null;
+};
+
+export type NotificacaoLote = {
+  user_id: string;
+  em: string;
+  fichas: number;
+  notificacao_id?: string | null;
+  canais?: CanaisRepasse | null;
+};
+
+/**
+ * Frase curta do último repasse: "11/11 às 00:55 · WhatsApp (•••• 7653) e e-mail".
+ * Sem canais gravados (repasses antigos), informa só o aviso no sistema.
+ */
+export function resumoRepasse(n: NotificacaoLote | null | undefined, fuso = "America/Sao_Paulo"): string | null {
+  if (!n?.em) return null;
+  const d = new Date(n.em);
+  if (Number.isNaN(d.getTime())) return null;
+  const data = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", timeZone: fuso });
+  const hora = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: fuso });
+  const wa = n.canais?.whatsapp?.enviado
+    ? `WhatsApp${n.canais.whatsapp.final ? ` (•••• ${n.canais.whatsapp.final})` : ""}`
+    : null;
+  const em = n.canais?.email?.enviado ? "e-mail" : null;
+  const canais = [wa, em].filter(Boolean).join(" e ");
+  return `${data} às ${hora} · ${canais || "só no aviso do sistema"}`;
+}
 
 /** Escolhas que valem para o lote todo ou para um grupo de fichas. */
 export type EscolhasLote = {

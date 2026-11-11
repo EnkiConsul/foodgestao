@@ -11,7 +11,7 @@ export type ContextoEnvio = {
   // deno-lint-ignore no-explicit-any
   admin: any;
   companyId: string;
-  tipo: "acesso" | "senha" | "recibo" | "ata";
+  tipo: "acesso" | "senha" | "recibo" | "ata" | "lote_ficha";
   colaboradorId?: string | null;
   reciboId?: string | null;
   nome?: string | null;

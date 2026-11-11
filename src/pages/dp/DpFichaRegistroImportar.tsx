@@ -31,7 +31,7 @@ import { ContatosLoteDialog, type LinhaContatoLote } from "@/components/dp/ficha
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
-  agruparCargosLote, ajustesEmGrupo, dadosDaFichaLote, escolhaDaFicha, montarContatosLote, rotuloSetor, semDadosAcesso,
+  agruparCargosLote, ajustesEmGrupo, dadosDaFichaLote, escolhaDaFicha, montarContatosLote, resumoRepasse, rotuloSetor, semDadosAcesso,
   vinculoOrganizado, type ContatoEditado, type EscolhasLote, type OrganizacaoLote,
 } from "@/lib/dp/ficha-registro/organizacao-lote";
 import { useDpCargos, useDpUnidades } from "@/hooks/useDpCadastros";
@@ -828,7 +828,7 @@ export default function DpFichaRegistroImportar() {
                   <Progress value={itens.length ? (prontos.length / itens.length) * 100 : 0} className="h-1.5" />
                   {organizacao?.notificacao?.em && (
                     <p className="truncate text-[11px] text-muted-foreground">
-                      Responsável avisado em {new Date(organizacao.notificacao.em).toLocaleDateString("pt-BR")}
+                      Responsável avisado em {resumoRepasse(organizacao.notificacao)}
                     </p>
                   )}
                 </div>

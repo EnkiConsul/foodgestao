@@ -581,7 +581,7 @@ export function useAjustarLoteFicha() {
   });
 }
 
-export interface ResponsavelLote { user_id: string; nome: string; email: string; perfil: string }
+export interface ResponsavelLote { user_id: string; nome: string; email: string; perfil: string; whatsapp: string | null }
 
 /** Donos/administradores da empresa que podem receber o lote (somente equipe Aveto). */
 export function useResponsaveisLote(importacaoId: string | null, habilitado: boolean) {
@@ -596,28 +596,36 @@ export function useResponsaveisLote(importacaoId: string | null, habilitado: boo
   });
 }
 
-/** Passa o lote ao responsável da empresa, em nome da Aveto 360. */
+export interface ResultadoRepasseLote {
+  fichas: number;
+  whatsapp: { enviado: boolean; final: string | null; erro: string | null };
+  email: { enviado: boolean; destino: string | null; erro: string | null };
+  mensagem: string;
+  link: string;
+  /** Número (com 55) para abrir a conversa manualmente quando o envio automático falhou. */
+  telefone_contingencia: string | null;
+}
+
+/** Passa o lote ao responsável da empresa, em nome da Aveto 360: aviso no sistema, WhatsApp e e-mail. */
 export function useNotificarLoteFicha() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ importacaoId, userId }: { importacaoId: string; userId: string }) => {
-      const { data, error } = await supabase.rpc("dp_ficha_lote_notificar", {
-        p_importacao_id: importacaoId,
-        p_user_id: userId,
+    mutationFn: async ({ importacaoId, userId, whatsapp }: { importacaoId: string; userId: string; whatsapp?: string | null }) => {
+      const { data, error } = await supabase.functions.invoke("dp-ficha-lote-notificar", {
+        body: { importacaoId, userId, whatsapp: whatsapp || null },
       });
       if (error) {
-        const m = error.message ?? "";
-        throw new Error(
-          /LOTE_SEM_PENDENCIAS/.test(m)
-            ? "Todas as fichas deste lote já foram concluídas."
-            : /RESPONSAVEL_INVALIDO/.test(m)
-              ? "Escolha um dono ou administrador ativo da empresa."
-              : /SEM_PERMISSAO/.test(m)
-                ? "Somente a equipe Aveto pode passar o lote ao responsável."
-                : "Não foi possível enviar a notificação. Tente novamente.",
-        );
+        let msg = "Não foi possível enviar a notificação. Tente novamente.";
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const ctx = (error as any)?.context;
+          const body = ctx && typeof ctx.json === "function" ? await ctx.json() : null;
+          if (body?.error) msg = String(body.error);
+        } catch { /* mantém a mensagem padrão */ }
+        throw new Error(msg);
       }
-      return data as { fichas: number };
+      if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
+      return data as ResultadoRepasseLote;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_ficha_importacoes"] }),
   });

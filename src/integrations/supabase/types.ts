@@ -20767,6 +20767,14 @@ export type Database = {
         }
         Returns: Json
       }
+      dp_ficha_lote_registrar_canais: {
+        Args: {
+          p_canais: Json
+          p_importacao_id: string
+          p_notificacao_id: string
+        }
+        Returns: undefined
+      }
       dp_ficha_lote_responsaveis: {
         Args: { p_importacao_id: string }
         Returns: {
@@ -20774,6 +20782,7 @@ export type Database = {
           nome: string
           perfil: string
           user_id: string
+          whatsapp: string
         }[]
       }
       dp_folga_admin_cancelar: {
