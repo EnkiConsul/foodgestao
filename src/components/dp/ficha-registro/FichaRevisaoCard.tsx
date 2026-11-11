@@ -111,6 +111,8 @@ interface Props {
   /** Setor e vínculo definidos na barra "aplicar a todas as fichas". */
   setorPadraoId?: string | null;
   regimePadrao?: string | null;
+  /** Adiantamento da maioria do lote (a escolha na ficha prevalece). */
+  adiantamentoPadrao?: boolean | null;
   /** Abre o cadastro completo do colaborador criado por esta ficha. */
   onAbrirCadastro?: (colaboradorId: string) => void;
   /**
@@ -141,7 +143,7 @@ interface Props {
 
 export function FichaRevisaoCard({
   item, cargos, unidades, setores = [], turnos = [], unidadePadraoId, empresaCnpj,
-  setorPadraoId = null, regimePadrao = null, onAbrirCadastro, preadmissaoId = null,
+  setorPadraoId = null, regimePadrao = null, adiantamentoPadrao = null, onAbrirCadastro, preadmissaoId = null,
   pessoaApoioId = null, posicao, total, emFoco = false, onConcluido, avisoFranquia = true, vinculoLote = null,
   turnoPadraoId = null, destacarPendencias = false, rodapeFixo = false,
 }: Props) {
@@ -183,13 +185,15 @@ export function FichaRevisaoCard({
   const [regimeEscolhidoManual, setRegimeEscolhidoManual] = useState(false);
   const setorId = setorEscolhido ?? setorPadraoId ?? null;
   const regime = regimeEscolhido ?? regimePadrao ?? null;
-  const [completarAberto, setCompletarAberto] = useState(false);
+  // Na conferência do lote nada fica escondido: o bloco já nasce aberto.
+  const [completarAberto, setCompletarAberto] = useState(destacarPendencias);
   const [usarJornada, setUsarJornada] = useState(true);
   const [atualizar, setAtualizar] = useState(!!item.colaborador_existente_id);
   const [anexarFicha, setAnexarFicha] = useState(true);
   const [formaPagamento, setFormaPagamento] = useState<string | null>(null);
   const [possuiFolhaPonto, setPossuiFolhaPonto] = useState<boolean | null>(null);
-  const [optanteAdiantamento, setOptanteAdiantamento] = useState<boolean | null>(null);
+  const [optanteEscolhido, setOptanteAdiantamento] = useState<boolean | null>(null);
+  const optanteAdiantamento = optanteEscolhido ?? adiantamentoPadrao ?? null;
   const escolhasPendentes = escolhasObrigatoriasFaltando({
     regime,
     formaPagamento,
@@ -778,10 +782,20 @@ export function FichaRevisaoCard({
               60,
             );
           };
+          const naoVeio = faltando.map((c) => c.label);
+          const blocoNaoVeio = naoVeio.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">Não veio na ficha:</span> {naoVeio.join(", ")}.
+              {" "}Não impede o cadastro — dá para completar abaixo ou depois.
+            </p>
+          );
           return pend.length === 0 ? (
-            <div className="flex items-center gap-2 rounded-lg border border-success/40 bg-success/10 p-3 text-sm">
-              <Check className="h-4 w-4 shrink-0 text-success" />
-              <span>Tudo definido. Confira os dados lidos e crie o cadastro.</span>
+            <div className="space-y-2 rounded-lg border border-success/40 bg-success/10 p-3 text-sm">
+              <div className="flex items-center gap-2">
+                <Check className="h-4 w-4 shrink-0 text-success" />
+                <span>Tudo o que é obrigatório está definido. Confira os dados lidos e crie o cadastro.</span>
+              </div>
+              {blocoNaoVeio}
             </div>
           ) : (
             <div className="space-y-2 rounded-lg border border-warning/50 bg-warning/10 p-3">
@@ -800,7 +814,8 @@ export function FichaRevisaoCard({
                   </Button>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground">Toque para ir direto ao campo. O restante já veio da ficha.</p>
+              <p className="text-xs text-muted-foreground">Toque para ir direto ao campo.</p>
+              {blocoNaoVeio}
             </div>
           );
         })()}
@@ -1122,6 +1137,9 @@ export function FichaRevisaoCard({
                         <SelectItem value="false">Não optante</SelectItem>
                       </SelectContent>
                     </Select>
+                    {optanteEscolhido === null && adiantamentoPadrao !== null && (
+                      <p className="text-[11px] text-muted-foreground">Preenchido pelo adiantamento da maioria do lote.</p>
+                    )}
                     {tentouCriar && optanteAdiantamento === null && (
                       <p className="text-[11px] text-destructive">Informe se recebe adiantamento.</p>
                     )}
@@ -1370,7 +1388,7 @@ export function FichaRevisaoCard({
           </pre>
         )}
 
-        {!aplicado && faltando.length > 0 && (() => {
+        {!aplicado && !destacarPendencias && faltando.length > 0 && (() => {
           const obrig = faltando.filter((c) => c.obrigatorio);
           const opc = faltando.filter((c) => !c.obrigatorio);
           return (

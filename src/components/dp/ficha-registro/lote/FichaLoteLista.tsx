@@ -2,9 +2,11 @@ import { useMemo, useState } from "react";
 import { ChevronRight, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import type { FichaItem } from "@/hooks/useDpFichaImportacao";
+import { jornadaDaFicha, type FichaItem } from "@/hooks/useDpFichaImportacao";
+import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
+import { inferirFormaPagamento } from "@/lib/dp/ficha-registro/inferencia";
 import {
-  situacaoFichaLote, vinculoOrganizado, type OrganizacaoLote,
+  pendenciasFichaLote, vinculoOrganizado, type OrganizacaoLote, type PadroesLote,
 } from "@/lib/dp/ficha-registro/organizacao-lote";
 import { cn } from "@/lib/utils";
 
@@ -27,11 +29,22 @@ interface Props {
   organizacao: OrganizacaoLote | null;
   cargos: Array<{ id: string; nome: string }>;
   setores: Array<{ id: string; nome: string }>;
+  /** Padrões da maioria (vínculo, adiantamento, ponto da unidade) usados na situação de cada ficha. */
+  padroes: PadroesLote;
+  unidadeId: string | null;
   onAbrir: (itemId: string) => void;
 }
 
+const lista = (xs: string[], max = 4) => {
+  const v = xs.slice(0, max);
+  const resto = xs.length - v.length;
+  const base = v.length > 1 ? `${v.slice(0, -1).join(", ")} e ${v[v.length - 1]}` : v[0] ?? "";
+  return resto > 0 ? `${base} e mais ${resto}` : base;
+};
+
 /** Etapa 3: lista enxuta do lote; cada pessoa abre a conferência completa numa janela. */
-export function FichaLoteLista({ itens, organizacao, cargos, setores, onAbrir }: Props) {
+export function FichaLoteLista({ itens, organizacao, cargos, setores, padroes, unidadeId, onAbrir }: Props) {
+  const salarioCargoDe = useDpSalarioCargoResolver();
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const [busca, setBusca] = useState("");
 
@@ -40,6 +53,14 @@ export function FichaLoteLista({ itens, organizacao, cargos, setores, onAbrir }:
       itens.map((item, idx) => {
         const d = (item.dados_extraidos ?? {}) as Record<string, unknown>;
         const v = vinculoOrganizado(item, organizacao);
+        const concluida = item.status === "criado" || item.status === "atualizado";
+        const pend = pendenciasFichaLote(item, organizacao, {
+          padroes,
+          formaPagamento: inferirFormaPagamento(d, jornadaDaFicha(d)),
+          salarioCargo: salarioCargoDe(v?.cargoId ?? null, unidadeId),
+          exigirSetor: setores.length > 0,
+        });
+        const situacao = concluida ? "concluida" : item.status === "ignorado" ? "ignorada" : pend.obrigatorias.length ? "atencao" : "pronta";
         return {
           item,
           posicao: idx + 1,
@@ -48,10 +69,12 @@ export function FichaLoteLista({ itens, organizacao, cargos, setores, onAbrir }:
           cargoDecidido: !!v?.cargoId,
           setor: setores.find((s) => s.id === v?.setorId)?.nome ?? null,
           salario: brl(d.salario),
-          situacao: situacaoFichaLote(item, organizacao),
+          situacao,
+          obrigatorias: situacao === "atencao" ? pend.obrigatorias : [],
+          complementares: situacao === "atencao" || situacao === "pronta" ? pend.complementares : [],
         };
       }),
-    [itens, organizacao, cargos, setores],
+    [itens, organizacao, cargos, setores, padroes, unidadeId, salarioCargoDe],
   );
 
   const contagem = useMemo(() => {
@@ -123,6 +146,16 @@ export function FichaLoteLista({ itens, organizacao, cargos, setores, onAbrir }:
                       .filter(Boolean)
                       .join(" · ")}
                   </span>
+                  {l.obrigatorias.length > 0 && (
+                    <span className="block truncate text-xs font-medium text-warning-foreground">
+                      Falta definir: {lista(l.obrigatorias)}
+                    </span>
+                  )}
+                  {l.complementares.length > 0 && (
+                    <span className="block truncate text-[11px] text-muted-foreground">
+                      Não veio na ficha: {lista(l.complementares)}
+                    </span>
+                  )}
                 </span>
                 <Badge variant="outline" className={cn("shrink-0 text-[11px]", r.classe)}>{r.texto}</Badge>
                 <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />

@@ -136,3 +136,7 @@
 - [x] Queda do portal em `/dp/meu` ("U.destroy is not a function") resolvida: o visualizador de assinatura guarda a tarefa de carregamento do pdfjs e libera por `task.destroy()` + `doc.cleanup()` protegidos; 4 testes do visualizador OK (o novo falha com o código antigo), typecheck e build OK. Sem publicação e sem gravar dados reais.
 - [x] Folgas no portal: mudar a folga direto encerra o pedido antigo ao gestor; colaborador cancela o próprio pedido pendente pelo calendário; pedido órfão da Hanna (29/11→21/11) encerrado; troca entre folgas fixas da mesma semana conferida no servidor (vai direto, sem gestor). 1.437 testes aprovados, build OK; não publicado.
 - [ ] Conferir o cartão "Seu pedido está com o gestor" com sessão real de colaborador: só há sessão de gestor e não serão criados pedidos em clientes para teste.
+
+## Revisão da importação de fichas (11/11)
+- [x] Unidade incompleta sinalizada, feriados nacionais com categoria correta, setores de uma palavra (Salão/Atendimento), adiantamento da maioria e situação real das fichas.
+- [ ] Conferir a esteira do Rancho 330 no celular com sessão autorizada: não aberta com login para não usar sessão de cliente.

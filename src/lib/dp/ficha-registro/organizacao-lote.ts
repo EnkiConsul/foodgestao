@@ -7,6 +7,10 @@
  * à parte. Nada aqui cadastra colaborador — só sugere e lê o que foi salvo.
  */
 import { matchCargo, normalizeCargoNome, normalizeCbo, type CargoCadastrado } from "./cargo-match";
+import { inferirRegime } from "./inferencia";
+import { montarPayloadFicha } from "./payload";
+import { escolhasObrigatoriasFaltando } from "./validacao";
+import { camposFaltando } from "@/lib/dp/cadastro-completude";
 
 export type ItemLote = {
   id: string;
@@ -53,28 +57,34 @@ export function cargoGenerico(nome: string | null | undefined): boolean {
   return ROTULO_GENERICO.test(String(nome ?? "").toUpperCase()) || ROTULO_GENERICO.test(n);
 }
 
-/** Setores clássicos do food service. */
-export const SETORES_FOOD = ["Cozinha", "Salão e Atendimento", "Bar", "Limpeza e Higiene", "Administração e Apoio"] as const;
+/**
+ * Setores clássicos do food service, sempre em uma palavra. "Salão" reúne as
+ * funções específicas de mesa (garçom, cumim, maître); "Atendimento" é o setor
+ * abrangente da frente de loja (atendente, caixa, recepção, balcão, entrega).
+ */
+export const SETORES_FOOD = ["Cozinha", "Salão", "Atendimento", "Bar", "Limpeza", "Administração"] as const;
+export type SetorFood = (typeof SETORES_FOOD)[number];
 
-const REGRAS_SETOR: Array<{ setor: (typeof SETORES_FOOD)[number]; termos: RegExp }> = [
+const REGRAS_SETOR: Array<{ setor: SetorFood; termos: RegExp }> = [
   { setor: "Bar", termos: /\b(BARMAN|BARTENDER|BARISTA|COQUETELEIRO|BAR)\b/ },
-  { setor: "Limpeza e Higiene", termos: /(LIMPEZA|FAXIN|HIGIEN|SERVICOS GERAIS|ZELADOR|LAVADOR)/ },
+  { setor: "Limpeza", termos: /(LIMPEZA|FAXIN|HIGIEN|SERVICOS GERAIS|ZELADOR|LAVADOR)/ },
+  { setor: "Salão", termos: /(GARCO|GARCON|GARCONETE|CUMIM|COMMIS|MAITRE|CAPITAO|SALAO|SOMMELIER|CHEFE DE FILA)/ },
   {
     setor: "Cozinha",
     termos: /(COZINH|CHURRASQ|CHAPEIR|PIZZAI|SUSHI|CONFEIT|PADEIR|PADARIA|COPA|COPEIR|SALGADEIR|MASSEIR|ACOUG|CHEF|SALADEIR|FRITADEIR|GRELHA|LANCHEIR|SANDUICH)/,
   },
   {
-    setor: "Salão e Atendimento",
-    termos: /(ATENDENTE|GARCO|GARCON|GARCONETE|CUMIM|COMMIS|MAITRE|CAIXA|RECEPCION|HOSTESS|RECEPCAO|CAPITAO|SALAO|ENTREGADOR|MOTOBOY)/,
+    setor: "Atendimento",
+    termos: /(ATENDENTE|ATENDIMENTO|CAIXA|RECEPCION|HOSTESS|RECEPCAO|BALCON|BALCAO|ENTREGADOR|MOTOBOY|DELIVERY|TELEFONIST)/,
   },
   {
-    setor: "Administração e Apoio",
+    setor: "Administração",
     termos: /(ADMINISTRA|COMPRA|ALMOXARIF|NUTRICION|ESTOQU|GERENTE|FINANCEIR|ESCRITORIO|RECURSOS HUMANOS|\bRH\b|CONTAB|SUPERVISOR|ENCARREGAD|MANUTEN|ELETRICIST|MOTORISTA|ASSISTENTE)/,
   },
 ];
 
 /** Setor sugerido pelo nome do cargo, com o CBO como desempate. */
-export function setorSugeridoParaCargo(cargoNome: string | null | undefined, cbo?: string | null): string | null {
+export function setorSugeridoParaCargo(cargoNome: string | null | undefined, cbo?: string | null): SetorFood | null {
   const n = normalizeCargoNome(cargoNome);
   if (n && !cargoGenerico(cargoNome)) {
     for (const r of REGRAS_SETOR) if (r.termos.test(n)) return r.setor;
@@ -83,11 +93,12 @@ export function setorSugeridoParaCargo(cargoNome: string | null | undefined, cbo
   if (c.length >= 4) {
     const f = c.slice(0, 4);
     if (f === "5132" || f === "5135" || f === "8483" || f === "8484") return "Cozinha";
-    if (c.startsWith("513425")) return "Cozinha";
-    if (c.startsWith("513420")) return "Bar";
-    if (f === "5134" || f === "4211" || f === "4221") return "Salão e Atendimento";
-    if (f === "5143" || f === "5142" || f === "5141") return "Limpeza e Higiene";
-    if (c.startsWith("41") || c.startsWith("14") || c.startsWith("2237") || c.startsWith("39")) return "Administração e Apoio";
+    if (c.startsWith("513425") || c.startsWith("513430")) return "Cozinha";
+    if (c.startsWith("513420") || c.startsWith("513440")) return "Bar";
+    if (c.startsWith("513405") || c.startsWith("513410") || c.startsWith("513415")) return "Salão";
+    if (f === "5134" || f === "4211" || f === "4221") return "Atendimento";
+    if (f === "5143" || f === "5142" || f === "5141") return "Limpeza";
+    if (c.startsWith("41") || c.startsWith("14") || c.startsWith("2237") || c.startsWith("39")) return "Administração";
   }
   return null;
 }
@@ -176,18 +187,77 @@ export function vinculoOrganizado(
   return null;
 }
 
+/** Padrões escolhidos para a maioria do lote (valem onde a ficha não tem escolha própria). */
+export type PadroesLote = {
+  regime?: string | null;
+  /** true = optante, false = não optante, null = decidir ficha a ficha. */
+  adiantamento?: boolean | null;
+  /** A unidade usa registro de ponto: a folha de ponto é decidida na ficha. */
+  unidadeTemPonto?: boolean;
+};
+
+export type ContextoFichaLote = {
+  padroes?: PadroesLote;
+  /** Forma de pagamento sugerida pela ficha (mesma inferência do cartão de conferência). */
+  formaPagamento?: string | null;
+  /** Salário de referência do cargo na unidade: cobre ficha sem salário. */
+  salarioCargo?: number | null;
+  /** A empresa usa setores: setor em branco aparece como complemento. */
+  exigirSetor?: boolean;
+};
+
+export type PendenciasFichaLote = {
+  /** Impedem salvar a ficha: a lista mostra "Atenção" com estes motivos. */
+  obrigatorias: string[];
+  /** Não impedem o cadastro, mas não vieram na ficha: aparecem sem esconder. */
+  complementares: string[];
+};
+
+/**
+ * O que ainda falta numa ficha do lote, com as mesmas regras do cartão de
+ * conferência: só é "pronta" quem abre e salva sem nenhuma parada forçada.
+ */
+export function pendenciasFichaLote(
+  item: ItemLote,
+  org: OrganizacaoLote | null | undefined,
+  ctx: ContextoFichaLote = {},
+): PendenciasFichaLote {
+  const d = dadosDe(item);
+  const v = vinculoOrganizado(item, org);
+  const padroes = ctx.padroes ?? {};
+  const obrigatorias: string[] = [];
+  if (item.status === "duplicado") obrigatorias.push("conferir cadastro existente");
+  if (item.status === "revisar") obrigatorias.push("revisar leitura");
+  const cpf = String(d.cpf ?? item.cpf_extraido ?? "").replace(/\D/g, "");
+  if (cpf.length !== 11) obrigatorias.push("CPF");
+  if (!v?.cargoId) obrigatorias.push("cargo");
+  const regime = padroes.regime ?? inferirRegime(d);
+  obrigatorias.push(
+    ...escolhasObrigatoriasFaltando({
+      regime,
+      formaPagamento: ctx.formaPagamento ?? null,
+      possuiFolhaPonto: padroes.unidadeTemPonto ? null : false,
+      optanteAdiantamento: padroes.adiantamento ?? null,
+    }),
+  );
+  const complementares = camposFaltando(
+    { ...montarPayloadFicha(d), setor_id: v?.setorId ?? null, regime },
+    { exigirSetor: ctx.exigirSetor ?? true, salarioCargo: ctx.salarioCargo ?? null },
+  )
+    .filter((c) => !["dados_pagamento", "cargo_id", "regime"].includes(c.chave))
+    .map((c) => c.label);
+  return { obrigatorias, complementares };
+}
+
 /** Situação de uma ficha na lista compacta. */
 export function situacaoFichaLote(
   item: ItemLote,
   org: OrganizacaoLote | null | undefined,
+  ctx: ContextoFichaLote = {},
 ): "concluida" | "ignorada" | "pronta" | "atencao" {
   if (item.status === "criado" || item.status === "atualizado") return "concluida";
   if (item.status === "ignorado") return "ignorada";
-  const d = dadosDe(item);
-  const v = vinculoOrganizado(item, org);
-  const cpf = String(d.cpf ?? item.cpf_extraido ?? "").replace(/\D/g, "");
-  if (!v?.cargoId || item.status === "duplicado" || item.status === "revisar" || cpf.length !== 11) return "atencao";
-  return "pronta";
+  return pendenciasFichaLote(item, org, ctx).obrigatorias.length > 0 ? "atencao" : "pronta";
 }
 
 /**

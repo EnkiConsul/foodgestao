@@ -171,7 +171,7 @@ export function FichaLoteCargos({ grupos, cargos, setores, unidadeId, organizaca
   const seletorSetor = (g: GrupoCargoLote, e: Escolha) => (
     <div className="space-y-1">
       <Select value={e.setor} onValueChange={(v) => set(g.chave, { setor: v })}>
-        <SelectTrigger className="h-9 text-xs" aria-label={`Setor de ${g.generico ? g.nomes[0] : g.cargoNome}`}>
+        <SelectTrigger className="h-9 w-full text-xs [&>span]:truncate" aria-label={`Setor de ${g.generico ? g.nomes[0] : g.cargoNome}`}>
           <SelectValue placeholder="Setor" />
         </SelectTrigger>
         <SelectContent>
@@ -179,7 +179,7 @@ export function FichaLoteCargos({ grupos, cargos, setores, unidadeId, organizaca
             <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
           ))}
           {setoresNovos.map((n) => (
-            <SelectItem key={`s-${n}`} value={`novo:${n}`}>{n}</SelectItem>
+            <SelectItem key={`s-${n}`} value={`novo:${n}`}>{n.toUpperCase()}</SelectItem>
           ))}
           <SelectItem value={OUTRO_SETOR}>Outro setor…</SelectItem>
           <SelectItem value={SEM_SETOR}>Sem setor</SelectItem>
@@ -239,7 +239,7 @@ export function FichaLoteCargos({ grupos, cargos, setores, unidadeId, organizaca
                         ].filter(Boolean).join(" · ")}
                       </p>
                     </button>
-                    <div className="w-36 shrink-0 sm:w-48">{seletorSetor(g, e)}</div>
+                    <div className="w-[9.5rem] shrink-0 sm:w-48">{seletorSetor(g, e)}</div>
                   </div>
                   {aberto && <div className="pb-1">{seletorCargo(g, e)}</div>}
                 </div>

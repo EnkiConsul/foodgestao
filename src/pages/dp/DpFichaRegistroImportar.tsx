@@ -155,6 +155,8 @@ export default function DpFichaRegistroImportar() {
   const [regimePadrao, setRegimePadrao] = useState<string | null>(null);
   /** Turno da maioria do lote: vale só para fichas sem horário reconhecido no PDF. */
   const [turnoPadraoId, setTurnoPadraoId] = useState<string | null>(null);
+  /** Adiantamento da maioria: `undefined` segue a unidade (sem adiantamento → não optante). */
+  const [adiantamentoEscolhido, setAdiantamentoEscolhido] = useState<boolean | null | undefined>(undefined);
   /** No lote, o envio de arquivo e o histórico ficam recolhidos para a esteira subir. */
   const [envioAberto, setEnvioAberto] = useState(false);
 
@@ -217,6 +219,7 @@ export default function DpFichaRegistroImportar() {
     setSindicatoLote(undefined);
     setAbertoId(null);
     setTurnoPadraoId(null);
+    setAdiantamentoEscolhido(undefined);
   }, [atual?.id]);
   const etapaAtual: EtapaLote = etapa ?? (organizacao?.organizado_em ? 3 : 1);
   const unidadeLida = useMemo(
@@ -225,6 +228,16 @@ export default function DpFichaRegistroImportar() {
   );
   const unidadeLoteId =
     unidadeLote ?? organizacao?.unidade_id ?? unidadeLida?.unidade_id ?? unidadesDaEmpresa[0]?.id ?? null;
+  const unidadeDoLote = unidades.find((u) => u.id === unidadeLoteId) as
+    | { tem_adiantamento?: boolean | null; possui_relogio_ponto?: boolean | null }
+    | undefined;
+  const unidadeSemAdiantamento = unidadeDoLote?.tem_adiantamento === false;
+  const adiantamentoPadrao: boolean | null =
+    adiantamentoEscolhido !== undefined ? adiantamentoEscolhido : unidadeSemAdiantamento ? false : null;
+  const padroesLote = useMemo(
+    () => ({ regime: regimePadrao, adiantamento: adiantamentoPadrao, unidadeTemPonto: !!unidadeDoLote?.possui_relogio_ponto }),
+    [regimePadrao, adiantamentoPadrao, unidadeDoLote?.possui_relogio_ponto],
+  );
   const sindicatoLoteId = sindicatoLote === undefined ? organizacao?.sindicato_laboral_id ?? null : sindicatoLote;
   const itemAberto = itens.find((i) => i.id === abertoId) ?? null;
   const compacto = modoLote && !envioAberto;
@@ -703,6 +716,23 @@ export default function DpFichaRegistroImportar() {
                       </Select>
                     </div>
                   )}
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Adiantamento da maioria</Label>
+                    <Select
+                      value={adiantamentoPadrao === null ? "__none" : String(adiantamentoPadrao)}
+                      onValueChange={(v) => setAdiantamentoEscolhido(v === "__none" ? null : v === "true")}
+                    >
+                      <SelectTrigger className="h-10"><SelectValue placeholder="Escolher" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none">Conforme cada ficha</SelectItem>
+                        <SelectItem value="false">Não optante</SelectItem>
+                        <SelectItem value="true">Optante</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {unidadeSemAdiantamento && adiantamentoEscolhido === undefined && (
+                      <p className="text-[11px] text-muted-foreground">A unidade não paga adiantamento.</p>
+                    )}
+                  </div>
                   <p className="text-[11px] text-muted-foreground sm:col-span-2">
                     Vale para as fichas em que você não escolher outro. O turno só entra nas fichas sem horário lido no PDF.
                   </p>
@@ -713,6 +743,8 @@ export default function DpFichaRegistroImportar() {
                 organizacao={organizacao}
                 cargos={cargosLista}
                 setores={setoresAtivos}
+                padroes={padroesLote}
+                unidadeId={unidadeLoteId}
                 onAbrir={setAbertoId}
               />
               <div className="sticky bottom-[calc(76px+env(safe-area-inset-bottom)+0.5rem)] z-10 flex items-center gap-2 rounded-xl border bg-card p-2 shadow-lg md:bottom-4">
@@ -890,6 +922,7 @@ export default function DpFichaRegistroImportar() {
                   unidadePadraoId={unidadeLoteId}
                   empresaCnpj={empresaCnpj}
                   regimePadrao={regimePadrao}
+                  adiantamentoPadrao={adiantamentoPadrao}
                   turnoPadraoId={turnoPadraoId}
                   destacarPendencias
                   rodapeFixo

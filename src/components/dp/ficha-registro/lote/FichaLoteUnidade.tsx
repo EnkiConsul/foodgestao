@@ -1,14 +1,17 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Building2, CheckCircle2, MapPin, Pencil, Plus, Scale } from "lucide-react";
+import { AlertCircle, ArrowRight, Building2, CalendarDays, CheckCircle2, ChevronRight, MapPin, Pencil, Plus, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UnidadeFormDialog, type UnidadeEdicao } from "@/components/dp/UnidadeFormDialog";
+import { UnidadeFormDialog, type UnidadeAba, type UnidadeEdicao } from "@/components/dp/UnidadeFormDialog";
 import { SindicatoLaboralRapidoDialog } from "./SindicatoLaboralRapidoDialog";
 import { useDpPatronalPorUnidade, useDpSindicatos, useDpUnidades } from "@/hooks/useDpCadastros";
 import { formatCnpj } from "@/lib/dp/ficha-registro/unidade-match";
+import { useDpFeriados } from "@/hooks/useDpFeriados";
+import { pendenciasUnidade } from "@/lib/dp/unidade-completude";
 import { cn } from "@/lib/utils";
 
 /** Data-base guardada como 2000-MM-DD: mostramos só dia/mês. */
@@ -38,7 +41,8 @@ export function FichaLoteUnidade({
   cnpjLido, empregadorLido, totalFichas, onContinuar,
 }: Props) {
   const [novaUnidade, setNovaUnidade] = useState(false);
-  const [editarUnidade, setEditarUnidade] = useState(false);
+  const [editarUnidade, setEditarUnidade] = useState<UnidadeAba | null>(null);
+  const [verFaltas, setVerFaltas] = useState(false);
   const [trocarUnidade, setTrocarUnidade] = useState(false);
   const [novoSindicato, setNovoSindicato] = useState(false);
   const { data: sindicatos = [] } = useDpSindicatos();
@@ -52,6 +56,14 @@ export function FichaLoteUnidade({
     [unidadesCompletas, unidadeId],
   );
   const local = unidade ? [unidade.cidade, unidade.uf].filter(Boolean).join(" - ") : "";
+  const { feriados, isLoading: carregandoFeriados } = useDpFeriados(unidade?.id ?? null);
+  const feriadosAtivos = feriados.filter((f) => f.ativo);
+  const nacionais = feriadosAtivos.filter((f) => f.categoria === "nacional").length;
+  const faltas = useMemo(
+    () => pendenciasUnidade(unidade, carregandoFeriados ? {} : { feriadosAtivos: feriadosAtivos.length }),
+    [unidade, carregandoFeriados, feriadosAtivos.length],
+  );
+  const completar = (aba: UnidadeAba = "dados") => { setVerFaltas(false); setEditarUnidade(aba); };
   const mostrarSeletor = !unidadeId || trocarUnidade;
 
   return (
@@ -77,7 +89,7 @@ export function FichaLoteUnidade({
               </div>
               <div className="flex shrink-0 flex-col gap-1 sm:flex-row">
                 {unidade && (
-                  <Button type="button" variant="ghost" size="sm" className="h-9 px-2" onClick={() => setEditarUnidade(true)}>
+                  <Button type="button" variant="ghost" size="sm" className="h-9 px-2" onClick={() => setEditarUnidade("dados")}>
                     <Pencil className="mr-1 h-3.5 w-3.5" /> Editar
                   </Button>
                 )}
@@ -87,6 +99,60 @@ export function FichaLoteUnidade({
                   </Button>
                 )}
               </div>
+            </div>
+          )}
+          {unidadeId && !trocarUnidade && unidade && (
+            <div className="flex flex-wrap items-center gap-2">
+              {faltas.length > 0 && (
+                <Popover open={verFaltas} onOpenChange={setVerFaltas}>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-warning/50 bg-warning/10 px-3 text-xs font-medium"
+                    >
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0 text-warning" aria-hidden="true" />
+                      Cadastro incompleto · Ver o que falta
+                      <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-[min(20rem,calc(100vw-2rem))] space-y-3 p-3">
+                    <div>
+                      <p className="text-sm font-semibold">Falta no cadastro da unidade</p>
+                      <p className="text-xs text-muted-foreground">Não impede a importação. Dá para completar agora ou depois.</p>
+                    </div>
+                    <ul className="space-y-1.5 text-sm">
+                      {faltas.map((f) => (
+                        <li key={f.chave} className="flex items-start gap-2">
+                          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-warning" aria-hidden="true" />
+                          <span>
+                            {f.rotulo}
+                            {f.detalhe && <span className="text-muted-foreground"> · {f.detalhe}</span>}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-10 w-full"
+                      onClick={() => completar(faltas.length === 1 && faltas[0].chave === "feriados" ? "feriados" : "dados")}
+                    >
+                      Completar cadastro da unidade
+                    </Button>
+                  </PopoverContent>
+                </Popover>
+              )}
+              {!carregandoFeriados && nacionais > 0 && (
+                <button
+                  type="button"
+                  onClick={() => completar("feriados")}
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-xs text-muted-foreground hover:bg-muted/50"
+                >
+                  <CalendarDays className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  {nacionais} feriados nacionais vinculados
+                  {feriadosAtivos.length > nacionais ? ` · +${feriadosAtivos.length - nacionais} locais` : ""}
+                </button>
+              )}
             </div>
           )}
           {mostrarSeletor && unidades.length > 0 && (
@@ -200,7 +266,12 @@ export function FichaLoteUnidade({
       )}
 
       {editarUnidade && unidade && (
-        <UnidadeFormDialog open={editarUnidade} onOpenChange={setEditarUnidade} unidade={unidade} />
+        <UnidadeFormDialog
+          open={!!editarUnidade}
+          onOpenChange={(o) => !o && setEditarUnidade(null)}
+          unidade={unidade}
+          abaInicial={editarUnidade}
+        />
       )}
     </Card>
   );

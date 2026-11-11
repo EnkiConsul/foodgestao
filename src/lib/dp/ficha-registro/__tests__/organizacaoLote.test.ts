@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  agruparCargosLote, cargoGenerico, chaveCargoItem, setorSugeridoParaCargo, situacaoFichaLote, turnoPadraoDoLote, vinculoOrganizado,
+  agruparCargosLote, cargoGenerico, chaveCargoItem, pendenciasFichaLote, SETORES_FOOD, setorSugeridoParaCargo, situacaoFichaLote, turnoPadraoDoLote, vinculoOrganizado,
 } from "../organizacao-lote";
 
 const item = (id: string, cargo: string, cbo: string, extra: Record<string, unknown> = {}, status = "pendente") => ({
@@ -9,14 +9,31 @@ const item = (id: string, cargo: string, cbo: string, extra: Record<string, unkn
 });
 
 describe("organização do lote de fichas", () => {
+  it("setores do lote têm sempre uma única palavra", () => {
+    for (const n of SETORES_FOOD) expect(n.trim().split(/\s+/)).toHaveLength(1);
+  });
+
   it("sugere setores clássicos do food service pelo cargo", () => {
     expect(setorSugeridoParaCargo("AUXILIAR DE COZINHA", "513505")).toBe("Cozinha");
     expect(setorSugeridoParaCargo("AUX. SERVIÇOS COPA", "513425")).toBe("Cozinha");
-    expect(setorSugeridoParaCargo("ATENDENTE", "513435")).toBe("Salão e Atendimento");
-    expect(setorSugeridoParaCargo("OPERADOR DE CAIXA", "421125")).toBe("Salão e Atendimento");
-    expect(setorSugeridoParaCargo("AUXILIAR DE LIMPEZA", "514320")).toBe("Limpeza e Higiene");
-    expect(setorSugeridoParaCargo("AUXILIAR DE ALMOXARIFADO", "414105")).toBe("Administração e Apoio");
+    expect(setorSugeridoParaCargo("AUXILIAR DE LIMPEZA", "514320")).toBe("Limpeza");
+    expect(setorSugeridoParaCargo("AUXILIAR DE ALMOXARIFADO", "414105")).toBe("Administração");
     expect(setorSugeridoParaCargo("BARMAN", null)).toBe("Bar");
+  });
+
+  it("funções específicas de mesa vão para Salão", () => {
+    expect(setorSugeridoParaCargo("GARÇOM", null)).toBe("Salão");
+    expect(setorSugeridoParaCargo("GARÇONETE", null)).toBe("Salão");
+    expect(setorSugeridoParaCargo("CUMIM", "513415")).toBe("Salão");
+    expect(setorSugeridoParaCargo("MAÎTRE", null)).toBe("Salão");
+    expect(setorSugeridoParaCargo("PROFISSIONAL X", "513405")).toBe("Salão");
+  });
+
+  it("cargos genéricos da frente de loja vão para Atendimento", () => {
+    expect(setorSugeridoParaCargo("ATENDENTE", "513435")).toBe("Atendimento");
+    expect(setorSugeridoParaCargo("OPERADOR DE CAIXA", "421125")).toBe("Atendimento");
+    expect(setorSugeridoParaCargo("RECEPCIONISTA", null)).toBe("Atendimento");
+    expect(setorSugeridoParaCargo("ENTREGADOR", null)).toBe("Atendimento");
   });
 
   it("usa o CBO quando o nome não indica o setor", () => {
@@ -60,11 +77,46 @@ describe("organização do lote de fichas", () => {
     expect(vinculoOrganizado(item("2", "ATENDENTE", "513435"), org)).toEqual({ cargoId: "g", setorId: "s" });
   });
 
-  it("ficha sem cargo decidido fica em atenção; com cargo, pronta", () => {
-    const a = item("1", "ATENDENTE", "513435");
-    expect(situacaoFichaLote(a, {})).toBe("atencao");
-    expect(situacaoFichaLote(a, { grupos: { [chaveCargoItem(a)]: { cargo_id: "g", setor_id: null } } })).toBe("pronta");
+  it("ficha sem cargo decidido fica em atenção; com tudo definido, pronta", () => {
+    const a = item("1", "ATENDENTE", "513435", { pis_nit: "123" });
+    const org = { grupos: { [chaveCargoItem(a)]: { cargo_id: "g", setor_id: null } } };
+    const ctx = { padroes: { adiantamento: false }, formaPagamento: "mensalista" };
+    expect(situacaoFichaLote(a, {}, ctx)).toBe("atencao");
+    expect(situacaoFichaLote(a, org, ctx)).toBe("pronta");
     expect(situacaoFichaLote(item("2", "X", "", {}, "criado"), {})).toBe("concluida");
+  });
+
+  it("sem adiantamento definido a ficha não é 'pronta' e diz o motivo", () => {
+    const a = item("1", "ATENDENTE", "513435", { pis_nit: "123" });
+    const org = { grupos: { [chaveCargoItem(a)]: { cargo_id: "g", setor_id: null } } };
+    const ctx = { formaPagamento: "mensalista" };
+    expect(situacaoFichaLote(a, org, ctx)).toBe("atencao");
+    expect(pendenciasFichaLote(a, org, ctx).obrigatorias).toEqual(["adiantamento salarial"]);
+    expect(situacaoFichaLote(a, org, { ...ctx, padroes: { adiantamento: true } })).toBe("pronta");
+  });
+
+  it("vínculo vem do padrão do lote quando a ficha não indica CLT", () => {
+    const a = item("1", "ATENDENTE", "513435");
+    const org = { grupos: { [chaveCargoItem(a)]: { cargo_id: "g", setor_id: null } } };
+    const ctx = { padroes: { adiantamento: false }, formaPagamento: "mensalista" };
+    expect(pendenciasFichaLote(a, org, ctx).obrigatorias).toEqual(["vínculo"]);
+    expect(situacaoFichaLote(a, org, { ...ctx, padroes: { ...ctx.padroes, regime: "clt" } })).toBe("pronta");
+  });
+
+  it("unidade com ponto pede a folha de ponto na ficha", () => {
+    const a = item("1", "ATENDENTE", "513435", { pis_nit: "123" });
+    const org = { grupos: { [chaveCargoItem(a)]: { cargo_id: "g", setor_id: null } } };
+    const ctx = { padroes: { adiantamento: false, unidadeTemPonto: true }, formaPagamento: "mensalista" };
+    expect(pendenciasFichaLote(a, org, ctx).obrigatorias).toEqual(["folha de ponto"]);
+  });
+
+  it("lista o que não veio na ficha sem travar a situação", () => {
+    const a = item("1", "ATENDENTE", "513435", { pis_nit: "123", salario: 1500 });
+    const org = { grupos: { [chaveCargoItem(a)]: { cargo_id: "g", setor_id: "s" } } };
+    const p = pendenciasFichaLote(a, org, { padroes: { adiantamento: false }, formaPagamento: "mensalista" });
+    expect(p.obrigatorias).toEqual([]);
+    expect(p.complementares).toEqual(expect.arrayContaining(["telefone ou WhatsApp", "e-mail", "endereço"]));
+    expect(p.complementares).not.toContain("salário");
   });
 });
 
