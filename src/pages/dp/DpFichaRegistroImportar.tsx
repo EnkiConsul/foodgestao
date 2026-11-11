@@ -25,6 +25,9 @@ import { FichaLoteCargos } from "@/components/dp/ficha-registro/lote/FichaLoteCa
 import { FichaLoteLista } from "@/components/dp/ficha-registro/lote/FichaLoteLista";
 import { NotificarResponsavelDialog } from "@/components/dp/ficha-registro/lote/NotificarResponsavelDialog";
 import { EfetivarLoteDialog } from "@/components/dp/ficha-registro/lote/EfetivarLoteDialog";
+import { CienciaIntervaloLoteCard } from "@/components/dp/ficha-registro/lote/CienciaIntervaloLoteCard";
+import { inconformidadesJornada, jornadaDosDadosDaFicha } from "@/lib/dp/ficha-registro/jornada-parse";
+import { registrarCienciaRegra } from "@/lib/dp/regras-oficial";
 import { planejarLote } from "@/lib/dp/ficha-registro/efetivacao-lote";
 import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
 import {
@@ -249,11 +252,48 @@ export default function DpFichaRegistroImportar() {
     adiantamento: adiantamentoPadrao,
     turno_id: padroesSalvos.turno_id ?? null,
   };
+  /** Ciência única do lote para intervalo de 30 a 59 min (CLT art. 71 e 611-A, III). */
+  const cienciaIntervalo = padroesSalvos.intervalo_reduzido_ciencia ?? null;
   const padroesLote = useMemo(
-    () => ({ regime: padroesSalvos.regime ?? null, adiantamento: adiantamentoPadrao, unidadeTemPonto: !!unidadeDoLote?.possui_relogio_ponto }),
-    [padroesSalvos.regime, adiantamentoPadrao, unidadeDoLote?.possui_relogio_ponto],
+    () => ({
+      regime: padroesSalvos.regime ?? null,
+      adiantamento: adiantamentoPadrao,
+      unidadeTemPonto: !!unidadeDoLote?.possui_relogio_ponto,
+      intervaloReduzidoAceito: !!cienciaIntervalo,
+    }),
+    [padroesSalvos.regime, adiantamentoPadrao, unidadeDoLote?.possui_relogio_ponto, cienciaIntervalo],
   );
   const ajustar = useAjustarLoteFicha();
+  const fichasIntervaloReduzido = useMemo(
+    () => pendentes.filter((i) =>
+      inconformidadesJornada(jornadaDosDadosDaFicha(dadosDaFichaLote(i, organizacao))).some((x) => x.codigo === "intervalo_reduzido"),
+    ).length,
+    [pendentes, organizacao],
+  );
+  const salvarCienciaIntervalo = async (justificativa: string | null) => {
+    try {
+      await ajustar.mutateAsync({
+        importacaoId: atual!.id,
+        padroes: { intervalo_reduzido_ciencia: justificativa ? { justificativa, ciente: true } : null },
+      });
+      if (justificativa && selectedCompanyId) {
+        try {
+          await registrarCienciaRegra({
+            companyId: selectedCompanyId,
+            tabela: "dp_ficha_importacoes",
+            registroId: atual!.id,
+            valorNovo: { tipo: "intervalo_reduzido_lote", fichas: fichasIntervaloReduzido },
+            justificativa,
+            ciencia: true,
+          });
+        } catch { /* a ciência fica gravada no lote e em cada colaborador criado */ }
+      }
+      toast.success(justificativa ? "Ciência do intervalo de 30 min registrada no lote." : "Ciência do lote desfeita.");
+    } catch (e) {
+      toast.error((e as Error).message);
+      throw e;
+    }
+  };
   const salvarPadroes = async (p: EscolhasLote) => {
     try {
       await ajustar.mutateAsync({ importacaoId: atual!.id, padroes: p });
@@ -837,6 +877,15 @@ export default function DpFichaRegistroImportar() {
                   onAplicarGrupo={aplicarGrupo}
                 />
               )}
+              {pendentes.length > 0 && (
+                <CienciaIntervaloLoteCard
+                  quantidade={fichasIntervaloReduzido}
+                  ciencia={cienciaIntervalo}
+                  salvando={ajustar.isPending}
+                  onSalvar={(j) => salvarCienciaIntervalo(j)}
+                  onDesfazer={() => salvarCienciaIntervalo(null).catch(() => undefined)}
+                />
+              )}
               <FichaLoteLista
                 itens={itens}
                 organizacao={organizacao}
@@ -1058,6 +1107,7 @@ export default function DpFichaRegistroImportar() {
                   folhaPontoPadrao={escolhaDaFicha(itemAberto, organizacao, "folha_ponto") ?? null}
                   justificativaPontoPadrao={escolhaDaFicha(itemAberto, organizacao, "folha_ponto_justificativa") ?? null}
                   rascunho={organizacao?.ajustes?.[itemAberto.id] ?? null}
+                  cienciaIntervaloLote={cienciaIntervalo?.justificativa ?? null}
                   onSalvarRascunho={async (aj) => {
                     await ajustar.mutateAsync({ importacaoId: atual!.id, itens: { [itemAberto.id]: aj } });
                     const prox = proximaPendente(itemAberto.id);
@@ -1094,6 +1144,7 @@ export default function DpFichaRegistroImportar() {
           companyId={selectedCompanyId}
           itens={itens}
           plano={planoEfetivacao}
+          cienciaIntervaloLote={cienciaIntervalo?.justificativa ?? null}
         />
       )}
 

@@ -620,7 +620,8 @@ export function useAjustarLoteFicha() {
   return useMutation({
     mutationFn: async (input: {
       importacaoId: string;
-      padroes?: EscolhasLote;
+      /** `intervalo_reduzido_ciencia`: ciência única do lote (autor e data gravados pelo servidor). */
+      padroes?: EscolhasLote & { intervalo_reduzido_ciencia?: { justificativa: string; ciente: true } | null };
       itens?: Record<string, AjusteFichaLote>;
     }) => {
       const { data, error } = await supabase.rpc("dp_ficha_lote_ajustar", {

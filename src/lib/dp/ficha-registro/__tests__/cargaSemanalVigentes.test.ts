@@ -78,9 +78,14 @@ describe("lote com carga acima de 44h", () => {
     expect("motivos" in p ? p.motivos : []).toContain("horário acima de 44h");
   });
 
-  it("jornada 6x1 de 44h segue pronta", () => {
-    const p = planejarFichaLote(ficha("das 16:00 as 23:50 - intervalo: das 18:00 as 18:30"), org, ctx);
-    expect(p.apta).toBe(true);
+  it("jornada 6x1 de 44h com 30 min de intervalo só segue pronta com a ciência do lote", () => {
+    const texto = "das 16:00 as 23:50 - intervalo: das 18:00 as 18:30";
+    const sem = planejarFichaLote(ficha(texto), org, ctx);
+    expect(sem.apta).toBe(false);
+    expect("motivos" in sem ? sem.motivos : []).toContain("intervalo de 30 min");
+    const com = planejarFichaLote(ficha(texto), org, { ...ctx, padroes: { ...ctx.padroes, intervaloReduzidoAceito: true } });
+    expect(com.apta).toBe(true);
+    expect("intervaloReduzidoLote" in com && com.intervaloReduzidoLote).toBe(true);
   });
 });
 

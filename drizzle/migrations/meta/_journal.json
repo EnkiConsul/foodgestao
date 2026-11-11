@@ -1632,6 +1632,13 @@
       "when": 1794431788851,
       "tag": "0232_troca_folga_independente_da_marcacao",
       "breakpoints": true
+    },
+    {
+      "idx": 233,
+      "version": "7",
+      "when": 1794439942100,
+      "tag": "0233_ficha_lote_ciencia_intervalo_reduzido",
+      "breakpoints": true
     }
   ]
 }

@@ -48,9 +48,12 @@ import {
   jornadaDaFicha, useAplicarFicha, useIgnorarFicha, useReativarFicha, type FichaItem,
 } from "@/hooks/useDpFichaImportacao";
 import {
-  alertaCargaSemanal, formatarHoras, normalizeHora, problemasJornada, resumoSemanal, rotuloFolgaSemanal,
+  alertaCargaSemanal, aplicarIntervaloMinimo, formatarHoras, inconformidadesJornada, minutosEntre, normalizeHora,
+  problemasJornada, resumoInconformidades, resumoSemanal, rotuloFolgaSemanal,
   type JornadaDia, type JornadaSugerida,
 } from "@/lib/dp/ficha-registro/jornada-parse";
+import { PENDENCIA_POR_INCONFORMIDADE } from "@/lib/dp/ficha-registro/organizacao-lote";
+import { JornadaConformidadeAlerta } from "./JornadaConformidadeAlerta";
 import { notifyError } from "@/lib/notifyError";
 import { mensagemOrigemApoio, vincularOrigemApoio } from "@/lib/dp/apoio-origem";
 import { EnderecoFields } from "@/components/shared/EnderecoFields";
@@ -153,6 +156,8 @@ interface Props {
   folhaPontoPadrao?: boolean | null;
   /** Lote: motivo da dispensa de ponto informado na ação em grupo. */
   justificativaPontoPadrao?: string | null;
+  /** Lote: ciência única do intervalo de 30 a 59 min (justificativa registrada no lote). */
+  cienciaIntervaloLote?: string | null;
 }
 
 export function FichaRevisaoCard({
@@ -161,7 +166,7 @@ export function FichaRevisaoCard({
   pessoaApoioId = null, posicao, total, emFoco = false, onConcluido, avisoFranquia = true, vinculoLote = null,
   turnoPadraoId = null, destacarPendencias = false, rodapeFixo = false,
   rascunho = null, formaPagamentoPadrao = null, onSalvarRascunho,
-  folhaPontoPadrao = null, justificativaPontoPadrao = null,
+  folhaPontoPadrao = null, justificativaPontoPadrao = null, cienciaIntervaloLote = null,
 }: Props) {
   const extraidos = (item.dados_extraidos ?? {}) as Record<string, unknown>;
   const confianca = (item.confianca_campos ?? {}) as Record<string, string>;
@@ -382,6 +387,28 @@ export function FichaRevisaoCard({
   /** Carga semanal e descanso: recalculados a cada ajuste do horário. */
   const semana = useMemo(() => resumoSemanal(jornada), [jornada]);
   const alertaCarga = usarJornada ? alertaCargaSemanal(jornada) : null;
+  /**
+   * Jornada fora da CLT (carga, intervalo, descanso): corrigir ou registrar a
+   * ciência com justificativa. Horário ilegível vem antes (problemasHorario).
+   */
+  const [folgaNaEscala, setFolgaNaEscala] = useState(false);
+  const [justJornada, setJustJornada] = useState("");
+  const [cienteJornada, setCienteJornada] = useState(false);
+  const [tentouJornada, setTentouJornada] = useState(false);
+  const inconformidades = usarJornada && problemasHorario.length === 0
+    ? inconformidadesJornada(jornada, { intervaloReduzidoAceito: !!cienciaIntervaloLote })
+      .filter((i) => !(folgaNaEscala && i.codigo === "descanso_semanal"))
+    : [];
+  /** Intervalo de 30–59 min coberto pela ciência do lote: registrado também nesta pessoa. */
+  const intervaloReduzidoPeloLote = usarJornada && !!cienciaIntervaloLote
+    && inconformidadesJornada(jornada).some((i) => i.codigo === "intervalo_reduzido");
+  const cienciaJornadaOk = inconformidades.length === 0 || cienciaDivergenciaValida(justJornada, cienteJornada);
+  const plantaoLongo = usarJornada && jornada.dias.some((d) => d.trabalha && d.entrada && d.saida && minutosEntre(d.entrada, d.saida) >= 11 * 60);
+  const podeCompletarIntervalo = (() => {
+    if (!usarJornada || !inconformidades.some((i) => i.codigo === "intervalo" || i.codigo === "intervalo_reduzido")) return false;
+    const base = jornadaEditada ?? jornadaEditavel(jornadaLida);
+    return JSON.stringify(aplicarIntervaloMinimo(base).dias) !== JSON.stringify(base.dias);
+  })();
   const faltaMotivoPonto = exigeMotivoPonto && justificativaPonto.trim().length < JUSTIFICATIVA_PONTO_MIN;
 
   const salarioFicha = useMemo(() => salarioDaFicha(dados), [dados]);
@@ -571,6 +598,12 @@ export function FichaRevisaoCard({
       );
       return;
     }
+    if (!cienciaJornadaOk) {
+      setTentouJornada(true);
+      toast.error("Horário fora da CLT: corrija o horário ou registre a ciência com o motivo.");
+      document.getElementById(`ficha-clt-${item.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     if (divergenciasRegistro.length > 0 && !cienciaDivergenciaValida(justDivergencia, cienteDivergencia)) {
       setTentouCriar(true);
       toast.error("Há divergência com a ficha de registro. Informe a justificativa e confirme a ciência.");
@@ -688,6 +721,35 @@ export function FichaRevisaoCard({
                 ciencia: true,
               });
             } catch { /* o cadastro não falha pelo registro de ciência */ }
+          }
+          if (colabId && !res?.jaAplicado && (inconformidades.length > 0 || intervaloReduzidoPeloLote || folgaNaEscala)) {
+            const motivos = [
+              inconformidades.length > 0 ? justJornada.trim() : null,
+              intervaloReduzidoPeloLote ? `Ciência do lote (intervalo de 30 min): ${cienciaIntervaloLote}` : null,
+              folgaNaEscala ? "Ficha listava os 7 dias: 1 folga por semana definida na escala." : null,
+            ].filter(Boolean);
+            try {
+              await registrarCienciaRegra({
+                companyId: item.company_id,
+                tabela: "dp_colaboradores",
+                registroId: colabId,
+                valorAntigo: {
+                  origem: "ficha_registro",
+                  ficha_item_id: item.id,
+                  horario_ficha: typeof dados.jornada_texto === "string" ? dados.jornada_texto : null,
+                },
+                valorNovo: {
+                  tipo: "jornada_fora_clt",
+                  inconformidades: resumoInconformidades(inconformidades),
+                  intervalo_reduzido_ciencia_lote: intervaloReduzidoPeloLote,
+                  folga_definida_na_escala: folgaNaEscala,
+                },
+                justificativa: motivos.join(" | "),
+                ciencia: true,
+              });
+            } catch {
+              toast.warning("Cadastro criado, mas a ciência do horário não foi registrada. Avise o suporte Aveto.");
+            }
           }
           if (colabId && importarDependentes && dependentesLidos.length > 0 && !res?.jaAplicado) {
             const { data: existentes } = await supabase
@@ -907,7 +969,9 @@ export function FichaRevisaoCard({
           if (!cargoId) pend.push({ rotulo: "cargo", alvo: `ficha-cargo-${item.id}` });
           for (const r of escolhasPendentes) pend.push({ rotulo: r, alvo: `ficha-completar-${item.id}`, abrir: true });
           if (usarJornada && !turnoEscolhido && jornada.vazia) pend.push({ rotulo: "horário", alvo: `ficha-turno-${item.id}` });
-          if (alertaCarga) pend.push({ rotulo: "horário acima de 44h", alvo: `ficha-horario-${item.id}` });
+          if (!cienciaJornadaOk) {
+            for (const i of inconformidades) pend.push({ rotulo: PENDENCIA_POR_INCONFORMIDADE[i.codigo], alvo: `ficha-clt-${item.id}` });
+          }
           const ir = (p: (typeof pend)[number]) => {
             if (p.abrir) setCompletarAberto(true);
             window.setTimeout(
@@ -1519,12 +1583,31 @@ export function FichaRevisaoCard({
                 {" "}Toque em "Editar horários" e informe o intervalo em minutos.
               </div>
             )}
-            {!aplicado && alertaCarga && (
-              <div role="alert" className="mt-2 rounded-md border border-warning/40 bg-warning/10 p-2 text-[11px] leading-relaxed text-warning-foreground">
-                <strong>Carga acima do limite.</strong> {alertaCarga} O que passa de 44h por semana é hora extra, não
-                jornada contratual. Confira com a contabilidade ou toque em "Editar horários"
-                {semana?.folgaVariavel ? " e desligue o dia de folga fixa, se houver." : "."}
-              </div>
+            {!aplicado && (
+              <JornadaConformidadeAlerta
+                id={`ficha-clt-${item.id}`}
+                inconformidades={inconformidades}
+                justificativa={justJornada}
+                onJustificativa={setJustJornada}
+                ciente={cienteJornada}
+                onCiente={setCienteJornada}
+                mostrarErro={tentouJornada}
+                plantaoLongo={plantaoLongo && inconformidades.some((i) => i.codigo === "carga_semanal")}
+                onIntervaloMinimo={podeCompletarIntervalo
+                  ? () => {
+                      setJornadaEditada((j) => aplicarIntervaloMinimo(j ?? jornadaEditavel(jornadaLida)));
+                      setUsarJornada(true);
+                      toast.success("Intervalo mínimo aplicado. Confira a carga semanal.");
+                    }
+                  : null}
+                onFolgaNaEscala={() => setFolgaNaEscala(true)}
+              />
+            )}
+            {!aplicado && folgaNaEscala && (
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Folga semanal: 1 por semana, definida na escala.{" "}
+                <button type="button" className="underline" onClick={() => setFolgaNaEscala(false)}>Desfazer</button>
+              </p>
             )}
             {jornadaEditada && !jornadaLida.vazia && (
               <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-[11px] leading-relaxed text-amber-800 dark:text-amber-300">
@@ -1738,6 +1821,18 @@ export function FichaRevisaoCard({
                 "sticky bottom-0 z-10 -mx-4 -mb-4 rounded-b-lg border-t bg-card px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]",
             )}
           >
+            {!cienciaJornadaOk && (
+              <button
+                type="button"
+                className="w-full rounded-md border border-warning/50 bg-warning/10 px-3 py-2 text-left text-xs"
+                onClick={() => {
+                  setTentouJornada(true);
+                  document.getElementById(`ficha-clt-${item.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }}
+              >
+                <strong>Horário fora da CLT.</strong> Corrija o horário ou registre a ciência para criar o cadastro.
+              </button>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -1784,7 +1879,7 @@ export function FichaRevisaoCard({
             <Button
               size="sm"
               disabled={
-                aplicar.isPending || preparando ||
+                aplicar.isPending || preparando || !cienciaJornadaOk ||
                 bloqueadoPorEmpresa || bloqueadoPorFranquia ||
                 (!preadmissaoId && !!item.colaborador_existente_id && !atualizar) ||
                 (!!preadmissaoId && (!stagingDados || faltaDecidir > 0))

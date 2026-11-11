@@ -399,7 +399,7 @@ export function alertaCargaSemanal(j: JornadaSugerida | null | undefined): strin
     (semIntervalo ? " A ficha não informa intervalo: se houver, informe-o em minutos." : "");
 }
 
-export type CodigoInconformidadeJornada = "carga_semanal" | "intervalo" | "descanso_semanal";
+export type CodigoInconformidadeJornada = "carga_semanal" | "intervalo" | "intervalo_reduzido" | "descanso_semanal";
 
 export type InconformidadeJornada = {
   codigo: CodigoInconformidadeJornada;
@@ -423,20 +423,30 @@ const ordemSemana = (dow: number) => (dow + 6) % 7;
 const listaDias = (dows: number[]) =>
   dows.length === 7 ? "todos os dias" : [...dows].sort((a, b) => ordemSemana(a) - ordemSemana(b)).map((d) => DIA_CURTO[d]).join(", ");
 
-/** Dias trabalhados cujo intervalo fica abaixo do mínimo ou acima de 2h. */
+/** Menor intervalo que a convenção coletiva pode fixar acima de 6h (CLT art. 611-A, III). */
+export const INTERVALO_REDUZIDO_MIN_MINUTOS = 30;
+
+/** Dias trabalhados cujo intervalo fica abaixo do mínimo, reduzido (30–59 min) ou acima de 2h. */
 function diasComIntervaloForaDaClt(j: JornadaSugerida) {
   const curtos: number[] = [];
+  const reduzidos: number[] = [];
   const longos: number[] = [];
   for (const d of j.dias) {
     if (!d.trabalha || !d.entrada || !d.saida) continue;
     const intervalo = d.intervalo_minutos ?? 0;
     const trabalhado = Math.max(0, minutosEntre(d.entrada, d.saida) - intervalo);
     const minimo = intervaloMinimoClt(trabalhado);
-    if (minimo !== null && intervalo < minimo) curtos.push(d.dow);
+    if (minimo === 60 && intervalo >= INTERVALO_REDUZIDO_MIN_MINUTOS && intervalo < 60) reduzidos.push(d.dow);
+    else if (minimo !== null && intervalo < minimo) curtos.push(d.dow);
     else if (intervalo > INTERVALO_MAX_CLT_MINUTOS) longos.push(d.dow);
   }
-  return { curtos, longos };
+  return { curtos, reduzidos, longos };
 }
+
+export type OpcoesConformidade = {
+  /** Ciência única do lote: intervalo de 30 a 59 min previsto em convenção coletiva. */
+  intervaloReduzidoAceito?: boolean;
+};
 
 /**
  * Jornada fora do padrão da CLT: carga acima de 44h (CF art. 7º, XIII; CLT art. 58),
@@ -444,7 +454,10 @@ function diasComIntervaloForaDaClt(j: JornadaSugerida) {
  * (CLT art. 67). Não impede o cadastro sozinha: quem confere corrige o horário ou
  * registra a ciência com justificativa. Horário ilegível fica em `problemasJornada`.
  */
-export function inconformidadesJornada(j: JornadaSugerida | null | undefined): InconformidadeJornada[] {
+export function inconformidadesJornada(
+  j: JornadaSugerida | null | undefined,
+  opcoes: OpcoesConformidade = {},
+): InconformidadeJornada[] {
   if (!j || j.vazia) return [];
   const out: InconformidadeJornada[] = [];
   const r = resumoSemanal(j);
@@ -456,7 +469,15 @@ export function inconformidadesJornada(j: JornadaSugerida | null | undefined): I
       fundamento: "CF, art. 7º, XIII; CLT, art. 58",
     });
   }
-  const { curtos, longos } = diasComIntervaloForaDaClt(j);
+  const { curtos, reduzidos, longos } = diasComIntervaloForaDaClt(j);
+  if (reduzidos.length > 0 && !opcoes.intervaloReduzidoAceito) {
+    out.push({
+      codigo: "intervalo_reduzido",
+      titulo: "Intervalo reduzido (menos de 1h)",
+      detalhe: `${listaDias(reduzidos)}: mais de 6h de trabalho com intervalo entre 30 e 59 min. Só vale se a convenção ou o acordo coletivo prever.`,
+      fundamento: "CLT, art. 71 e art. 611-A, III",
+    });
+  }
   if (curtos.length > 0 || longos.length > 0) {
     const partes: string[] = [];
     if (curtos.length > 0) {

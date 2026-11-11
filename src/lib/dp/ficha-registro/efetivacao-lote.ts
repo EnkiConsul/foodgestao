@@ -8,7 +8,7 @@
  */
 import { divergenciasComFicha, type DivergenciaFicha } from "./divergencia";
 import { dependentesDaFicha, inferirFormaPagamento, inferirRegime } from "./inferencia";
-import { jornadaDosDadosDaFicha, type JornadaSugerida } from "./jornada-parse";
+import { inconformidadesJornada, jornadaDosDadosDaFicha, type JornadaSugerida } from "./jornada-parse";
 import { matchTurno, type TurnoCadastrado } from "./turno-match";
 import { matchUnidade, type UnidadeCadastrada } from "./unidade-match";
 import {
@@ -60,6 +60,8 @@ export type PlanoFichaLote =
       divergencias: DivergenciaFicha[];
       dependentes: ReturnType<typeof dependentesDaFicha>;
       semAcesso: boolean;
+      /** Intervalo de 30 a 59 min coberto pela ciência única do lote: registrar por pessoa. */
+      intervaloReduzidoLote: boolean;
     }
   | { itemId: string; nome: string; apta: false; motivos: string[] };
 
@@ -165,6 +167,8 @@ export function planejarFichaLote(item: ItemEfetivacao, org: OrganizacaoLote | n
     divergencias,
     dependentes: dependentesDaFicha(d),
     semAcesso: semDadosAcesso(d),
+    intervaloReduzidoLote: !!ctx.padroes.intervaloReduzidoAceito
+      && inconformidadesJornada(jornada).some((i) => i.codigo === "intervalo_reduzido"),
   };
 }
 

@@ -73,8 +73,8 @@ describe("finalizar implantação com horário", () => {
   };
   const org: OrganizacaoLote = { unidade_id: "u1", grupos: { "COZINHEIRA|513205": { cargo_id: "c1", setor_id: "s1" } }, ajustes: {} };
 
-  it("ficha da Adriana entra com 10:00–17:50 e 30 minutos de intervalo", () => {
-    const p = planejarFichaLote(ficha(RANCHO[0][0]), org, ctx);
+  it("ficha da Adriana entra com 10:00–17:50 e 30 minutos de intervalo (com a ciência do lote)", () => {
+    const p = planejarFichaLote(ficha(RANCHO[0][0]), org, { ...ctx, padroes: { ...ctx.padroes, intervaloReduzidoAceito: true } });
     expect(p.apta).toBe(true);
     if (!("envio" in p)) return;
     const dias = p.envio.jornada?.dias.filter((d) => d.trabalha) ?? [];

@@ -32,10 +32,12 @@ interface Props {
   companyId: string | null;
   itens: FichaItem[];
   plano: Plano;
+  /** Ciência única do lote para intervalo de 30 a 59 min: registrada também em cada pessoa. */
+  cienciaIntervaloLote?: string | null;
 }
 
 /** Cria, de uma vez, o cadastro de todas as fichas do lote que estão prontas. */
-export function EfetivarLoteDialog({ open, onOpenChange, companyId, itens, plano }: Props) {
+export function EfetivarLoteDialog({ open, onOpenChange, companyId, itens, plano, cienciaIntervaloLote = null }: Props) {
   const qc = useQueryClient();
   const [justificativa, setJustificativa] = useState("");
   const [ciente, setCiente] = useState(false);
@@ -116,6 +118,22 @@ export function EfetivarLoteDialog({ open, onOpenChange, companyId, itens, plano
                 ciencia: true,
               });
             } catch { /* o cadastro não falha pelo registro de ciência (igual à ficha individual) */ }
+          }
+          if (p.intervaloReduzidoLote && cienciaIntervaloLote && !res.jaAplicado) {
+            try {
+              await registrarCienciaRegra({
+                companyId,
+                tabela: "dp_colaboradores",
+                registroId: res.colaboradorId,
+                valorAntigo: {
+                  origem: "ficha_registro", ficha_item_id: item.id, efetivacao: "lote",
+                  horario_ficha: typeof p.envio.dados.jornada_texto === "string" ? p.envio.dados.jornada_texto : null,
+                },
+                valorNovo: { tipo: "jornada_fora_clt", intervalo_reduzido_ciencia_lote: true },
+                justificativa: `Ciência do lote (intervalo de 30 min): ${cienciaIntervaloLote}`,
+                ciencia: true,
+              });
+            } catch { /* a ciência continua gravada no lote */ }
           }
           if (!res.jaAplicado && p.dependentes.length > 0) {
             for (const dep of p.dependentes) {

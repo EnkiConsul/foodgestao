@@ -47,7 +47,7 @@ export type OrganizacaoLote = {
   organizado_em?: string | null;
   notificacao?: NotificacaoLote | null;
   /** Padrões da maioria salvos no lote (chave presente com null = "conforme cada ficha"). */
-  padroes?: EscolhasLote;
+  padroes?: EscolhasLote & { intervalo_reduzido_ciencia?: CienciaIntervaloLote | null };
   /** Ajustes e rascunho de cada ficha, salvos sem criar o colaborador. */
   ajustes?: Record<string, AjusteFichaLote>;
 };
@@ -313,7 +313,12 @@ export type PadroesLote = {
   adiantamento?: boolean | null;
   /** A unidade usa registro de ponto: todos registram, salvo quem for marcado como dispensado. */
   unidadeTemPonto?: boolean;
+  /** Ciência única do lote para intervalo de 30 a 59 min (convenção coletiva). */
+  intervaloReduzidoAceito?: boolean;
 };
+
+/** Ciência do intervalo reduzido gravada no lote (autor e data vêm do servidor). */
+export type CienciaIntervaloLote = { justificativa: string; ciente: true; em?: string; por?: string };
 
 export type ContextoFichaLote = {
   padroes?: PadroesLote;
@@ -348,6 +353,8 @@ export const PENDENCIA_CARGA_SEMANAL = "horário acima de 44h";
 export const PENDENCIA_INTERVALO = "intervalo fora da CLT";
 /** Sete dias trabalhados sem descanso (CLT art. 67). */
 export const PENDENCIA_DESCANSO = "semana sem descanso";
+/** Intervalo de 30 a 59 min acima de 6h: ciência única no lote ou na ficha. */
+export const PENDENCIA_INTERVALO_REDUZIDO = "intervalo de 30 min";
 
 /**
  * Jornada fora da CLT não entra pelo "Finalizar implantação": só na conferência
@@ -356,6 +363,7 @@ export const PENDENCIA_DESCANSO = "semana sem descanso";
 export const PENDENCIA_POR_INCONFORMIDADE: Record<CodigoInconformidadeJornada, string> = {
   carga_semanal: PENDENCIA_CARGA_SEMANAL,
   intervalo: PENDENCIA_INTERVALO,
+  intervalo_reduzido: PENDENCIA_INTERVALO_REDUZIDO,
   descanso_semanal: PENDENCIA_DESCANSO,
 };
 
@@ -395,7 +403,8 @@ export function pendenciasFichaLote(
   // Horário com intervalo ilegível ou impossível: sinaliza para conferir, nunca grava às cegas.
   const jornada = jornadaDosDadosDaFicha(d);
   if (problemasJornada(jornada).length > 0) obrigatorias.push(PENDENCIA_HORARIO);
-  else obrigatorias.push(...inconformidadesJornada(jornada).map((i) => PENDENCIA_POR_INCONFORMIDADE[i.codigo]));
+  else obrigatorias.push(...inconformidadesJornada(jornada, { intervaloReduzidoAceito: !!padroes.intervaloReduzidoAceito })
+    .map((i) => PENDENCIA_POR_INCONFORMIDADE[i.codigo]));
   const complementares = camposFaltando(
     { ...montarPayloadFicha(d), setor_id: v?.setorId ?? null, regime },
     { exigirSetor: ctx.exigirSetor ?? true, salarioCargo: ctx.salarioCargo ?? null },
