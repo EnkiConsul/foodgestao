@@ -1562,6 +1562,13 @@
       "when": 1794404884009,
       "tag": "0222_ficha_reativar_ignorada",
       "breakpoints": true
+    },
+    {
+      "idx": 223,
+      "version": "7",
+      "when": 1794413529294,
+      "tag": "0223_folga_marcacao_portal_trava",
+      "breakpoints": true
     }
   ]
 }

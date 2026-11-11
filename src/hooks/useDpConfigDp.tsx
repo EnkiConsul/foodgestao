@@ -21,7 +21,7 @@ const COLUNAS =
   "modo_frequencia_domingo_mulher, periodicidade_domingo_mulher, domingos_por_mes_mulher, " +
   "regra_dsr, exige_validacao_menor, tipo_descanso_domingo, dias_descanso_negociados, negociacao_id, folgas_fds_por_mes, " +
   "troca_folga_modo, troca_folga_escopo, folga_janela_ativa, folga_janela_abre_dia, " +
-  "folga_janela_fecha_dia, folga_autoatribuir";
+  "folga_janela_fecha_dia, folga_autoatribuir, folga_marcacao_portal";
 
 const asModo = (v: unknown): ModoFrequencia => (v === "por_mes" ? "por_mes" : "semanas");
 
@@ -49,6 +49,7 @@ function mapRow(data: Record<string, unknown>): ConfigRow {
     folga_janela_abre_dia: Number(data.folga_janela_abre_dia ?? 10),
     folga_janela_fecha_dia: Number(data.folga_janela_fecha_dia ?? 20),
     folga_autoatribuir: data.folga_autoatribuir !== false,
+    folga_marcacao_portal: data.folga_marcacao_portal !== false,
   };
 }
 

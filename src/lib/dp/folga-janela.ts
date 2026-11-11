@@ -76,6 +76,16 @@ export function podeMarcarNormal(janela: JanelaResolvida, data: Date): boolean {
 }
 
 /**
+ * A loja deixa o colaborador marcar, mudar, pedir e trocar folgas pelo portal?
+ * Só `false` explícito do servidor trava (escala definida pela administração);
+ * resposta ausente mantém o comportamento de sempre, e o servidor segue como
+ * defesa final.
+ */
+export function marcacaoPortalLiberada(remota: { marcacao_portal?: boolean | null } | null | undefined): boolean {
+  return remota?.marcacao_portal !== false;
+}
+
+/**
  * Texto curto do estado da janela para o colaborador. Só aparece no mês
  * anterior ao mês-alvo, antes e durante a escolha; depois de encerrada, some.
  */

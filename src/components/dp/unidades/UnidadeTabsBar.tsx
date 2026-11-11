@@ -3,10 +3,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const secoes = [
-  ["dados", "Dados"], ["setores", "Setores"], ["funcionamento", "Horários"],
-  ["feriados", "Feriados"], ["sindicato", "Sindicato"],
-];
+import { UNIDADE_ETAPAS } from "@/lib/dp/unidade-etapas";
 
 export function UnidadeTabsBar({ value }: { value: string }) {
   const scroller = useRef<HTMLDivElement>(null);
@@ -48,7 +45,7 @@ export function UnidadeTabsBar({ value }: { value: string }) {
     <div className="relative min-w-0 shrink-0 border-b px-4 py-2">
       <div ref={scroller} className="relative min-w-0 max-w-full overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <TabsList aria-label="Seções da unidade" className="flex h-auto min-h-12 w-max min-w-full justify-start sm:w-full">
-          {secoes.map(([valor, label]) => <TabsTrigger key={valor} value={valor} className="h-11 shrink-0 px-3 sm:flex-1 sm:px-2">{label}</TabsTrigger>)}
+          {UNIDADE_ETAPAS.map(({ valor, rotulo: label }) => <TabsTrigger key={valor} value={valor} className="h-11 shrink-0 px-3 sm:flex-1 sm:px-2">{label}</TabsTrigger>)}
         </TabsList>
       </div>
       {bordas.esquerda && <div className="absolute inset-y-2 left-4 flex w-11 items-center bg-gradient-to-r from-background via-background/90 to-transparent">

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   resolverJanela,
   podeMarcarNormal,
+  marcacaoPortalLiberada,
   distribuirFolgasAutomaticas,
   diasFdsDoMes,
   mesKey,
@@ -148,5 +149,22 @@ describe("distribuirFolgasAutomaticas", () => {
 describe("mesKey", () => {
   it("formata com dois dígitos", () => {
     expect(mesKey(new Date(2026, 0, 5))).toBe("2026-01");
+  });
+});
+
+describe("marcacaoPortalLiberada", () => {
+  it("loja com escala definida pela administração trava o portal", () => {
+    expect(marcacaoPortalLiberada({ marcacao_portal: false })).toBe(false);
+  });
+
+  it("loja liberada ou sem a informação mantém a marcação pelo portal", () => {
+    expect(marcacaoPortalLiberada({ marcacao_portal: true })).toBe(true);
+    expect(marcacaoPortalLiberada({})).toBe(true);
+    expect(marcacaoPortalLiberada(null)).toBe(true);
+  });
+
+  it("sem período de escolha a marcação continua livre para quem não travou", () => {
+    const inativa = resolverJanela({ ...cfg, ativa: false }, new Date(2026, 8, 25));
+    expect(podeMarcarNormal(inativa, new Date(2026, 8, 27))).toBe(true);
   });
 });

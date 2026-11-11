@@ -144,3 +144,10 @@
 ## Revisão da importação de fichas (11/11)
 - [x] Unidade incompleta sinalizada, feriados nacionais com categoria correta, setores de uma palavra (Salão/Atendimento), adiantamento da maioria e situação real das fichas.
 - [ ] Conferir a esteira do Rancho 330 no celular com sessão autorizada: não aberta com login para não usar sessão de cliente.
+
+## Etapa 1 do Rancho 330 (11/11)
+- [x] Cadastro de unidade com "Salvar e avançar" entre Dados → Setores → Horários → Feriados → Sindicato.
+- [x] Trava "Colaboradores marcam folgas pelo portal" nas Regras de Folga; servidor recusa marcar/mudar/pedir/trocar; Rancho 330 travado (portal só consulta).
+- [x] SECHSEG laboral cadastrado e ligado à unidade RANCHO 330 (data-base em branco para confirmar).
+- [ ] Assinatura física/digital com vigência: adiada a pedido.
+- [ ] Ver o calendário do portal travado com sessão real de colaborador do Rancho 330: não usar sessão de cliente sem autorização.

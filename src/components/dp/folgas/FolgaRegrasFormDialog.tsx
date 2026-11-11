@@ -823,6 +823,29 @@ export function FolgaRegrasFormDialog({
           <Separator />
 
           <SubSection
+            title="Marcação de Folgas pelo Colaborador"
+            description="Define se os colaboradores escolhem, mudam, pedem e trocam folgas pelo portal."
+          >
+            <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="marcacao-portal">Colaboradores marcam folgas pelo portal</Label>
+                <p className="text-xs text-muted-foreground">
+                  {form.folga_marcacao_portal
+                    ? "Ligado: o colaborador marca, muda, pede e troca folgas pelo celular, conforme as regras abaixo."
+                    : "Desligado: a escala de folgas é definida só pela administração. O colaborador vê as folgas no calendário, mas não marca, não muda, não pede e não troca. Período de escolha, lembretes e distribuição automática ficam parados."}
+                </p>
+              </div>
+              <Switch
+                id="marcacao-portal"
+                checked={form.folga_marcacao_portal}
+                onCheckedChange={(v) => set("folga_marcacao_portal", v)}
+              />
+            </div>
+          </SubSection>
+
+          <Separator />
+
+          <SubSection
             title="Troca de Folga entre Colaboradores"
             description="Define se os colaboradores podem trocar folgas entre si e sobre quais folgas a troca vale."
           >

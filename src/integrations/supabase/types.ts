@@ -6931,6 +6931,7 @@ export type Database = {
           folga_janela_abre_dia: number
           folga_janela_ativa: boolean
           folga_janela_fecha_dia: number
+          folga_marcacao_portal: boolean
           folgas_fds_por_mes: number
           id: string
           modo_domingo: string
@@ -6995,6 +6996,7 @@ export type Database = {
           folga_janela_abre_dia?: number
           folga_janela_ativa?: boolean
           folga_janela_fecha_dia?: number
+          folga_marcacao_portal?: boolean
           folgas_fds_por_mes?: number
           id?: string
           modo_domingo?: string
@@ -7059,6 +7061,7 @@ export type Database = {
           folga_janela_abre_dia?: number
           folga_janela_ativa?: boolean
           folga_janela_fecha_dia?: number
+          folga_marcacao_portal?: boolean
           folgas_fds_por_mes?: number
           id?: string
           modo_domingo?: string
@@ -19685,6 +19688,7 @@ export type Database = {
           folga_janela_abre_dia: number
           folga_janela_ativa: boolean
           folga_janela_fecha_dia: number
+          folga_marcacao_portal: boolean
           folgas_fds_por_mes: number
           id: string
           modo_domingo: string

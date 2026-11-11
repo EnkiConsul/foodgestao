@@ -31,6 +31,7 @@ import {
 } from "@/lib/dp/ponto-conformidade";
 import { POLITICA_LABEL, politicaPedeData, registrarPeriodosPolitica, type PoliticaUnidade } from "@/lib/dp/unidadePoliticas";
 import { forcarRecargaPendencias } from "@/lib/dp/pendencias-resolver";
+import { proximaEtapaUnidade, type UnidadeEtapa } from "@/lib/dp/unidade-etapas";
 
 
 export const onlyNumbers = (v: string) => v.replace(/\D/g, "");
@@ -100,7 +101,7 @@ export interface UnidadeEdicao {
 }
 
 /** Abas do cadastro de unidade. */
-export type UnidadeAba = "dados" | "setores" | "funcionamento" | "feriados" | "sindicato";
+export type UnidadeAba = UnidadeEtapa;
 
 interface Props {
   open: boolean;
@@ -203,9 +204,17 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
     salvarFuncionamento.current = fn;
   }, []);
 
+  /**
+   * Última versão gravada da unidade. Com "Salvar e avançar" o diálogo segue
+   * aberto: as comparações (ponto, políticas, ciência sindical) partem do que
+   * acabou de ser salvo, não do que estava gravado quando o diálogo abriu.
+   */
+  const [gravada, setGravada] = useState<UnidadeEdicao | null>(null);
+
   useEffect(() => {
     if (!open) return;
     setCriadaId(null);
+    setGravada(unidade ?? null);
     setAba(unidade ? abaInicial : "dados");
     if (unidade) {
       // Endereço antigo gravado em uma linha só é aproveitado nos campos novos.
@@ -274,21 +283,21 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
   const ativosUnidade = lotacao.data ?? 0;
   const pontoObrigatorio = pontoObrigatorioPorLotacao(ativosUnidade);
   const compensacaoAtiva = form.banco_horas || form.compensa_feriados;
-  const cienciaNova = form.ciencia_sindical && !unidade?.compensacao_sindical_ciencia_em;
-  const pontoOriginal = unidade?.possui_relogio_ponto ?? false;
-  const pontoAlterado = !!unidade && form.possui_relogio_ponto !== pontoOriginal;
+  const cienciaNova = form.ciencia_sindical && !gravada?.compensacao_sindical_ciencia_em;
+  const pontoOriginal = gravada?.possui_relogio_ponto ?? false;
+  const pontoAlterado = !!gravada && form.possui_relogio_ponto !== pontoOriginal;
   const justificativaAlterada =
-    justificativaPonto.trim() !== (unidade?.relogio_ponto_dispensa_justificativa ?? "").trim();
+    justificativaPonto.trim() !== (gravada?.relogio_ponto_dispensa_justificativa ?? "").trim();
 
   // Data de início (ao ligar) ou de fim (ao desligar) de cada política da unidade.
   const [datasPolitica, setDatasPolitica] = useState<Partial<Record<PoliticaUnidade, string>>>({});
   useEffect(() => { if (open) setDatasPolitica({}); }, [open, unidade?.id]);
-  const unidadeNova = !unidade && !criadaId;
+  const unidadeNova = !gravada;
   const politicasForm: { politica: PoliticaUnidade; original: boolean | null | undefined; atual: boolean }[] = [
-    { politica: "relogio_ponto", original: unidade?.possui_relogio_ponto, atual: form.possui_relogio_ponto },
-    { politica: "banco_horas", original: unidade?.banco_horas, atual: form.banco_horas },
-    { politica: "compensa_feriados", original: unidade?.compensa_feriados, atual: form.compensa_feriados },
-    { politica: "adiantamento", original: unidade?.tem_adiantamento, atual: form.tem_adiantamento },
+    { politica: "relogio_ponto", original: gravada?.possui_relogio_ponto, atual: form.possui_relogio_ponto },
+    { politica: "banco_horas", original: gravada?.banco_horas, atual: form.banco_horas },
+    { politica: "compensa_feriados", original: gravada?.compensa_feriados, atual: form.compensa_feriados },
+    { politica: "adiantamento", original: gravada?.tem_adiantamento, atual: form.tem_adiantamento },
   ];
   const politicasPendentes = politicasForm.filter((p) => politicaPedeData(p.original, p.atual, unidadeNova));
   const campoData = (politica: PoliticaUnidade, ativo: boolean) => {
@@ -308,7 +317,11 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
     );
   };
 
-  const save = async () => {
+  /**
+   * Grava a unidade. "fechar" encerra o diálogo (unidade nova segue para a
+   * próxima etapa, como sempre); "avancar" grava e abre a etapa seguinte.
+   */
+  const save = async (modo: "fechar" | "avancar" = "fechar") => {
     if (!form.company_id) {
       toast.error("Selecione a empresa vinculada");
       return;
@@ -344,6 +357,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
       return;
     }
     try {
+      const cienciaEm = compensacaoAtiva && cienciaNova ? new Date().toISOString() : null;
       const salva = await upsert.mutateAsync({
         id: unidadeId ?? undefined,
         company_id: form.company_id,
@@ -380,7 +394,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
         convoca_feriados_automatico: form.convoca_feriados_automatico,
         compensacao_feriado_antecedencia_dias: Math.min(60, Math.max(0, Number(form.compensacao_feriado_antecedencia_dias) || 0)),
         ...(compensacaoAtiva && cienciaNova
-          ? { compensacao_sindical_ciencia_em: new Date().toISOString(), compensacao_sindical_ciencia_por: (await supabase.auth.getUser()).data.user?.id ?? null }
+          ? { compensacao_sindical_ciencia_em: cienciaEm, compensacao_sindical_ciencia_por: (await supabase.auth.getUser()).data.user?.id ?? null }
           : {}),
       } as Parameters<typeof upsert.mutateAsync>[0]);
       if (unidadeId && (pontoAlterado || (!form.possui_relogio_ponto && justificativaAlterada))) {
@@ -407,13 +421,33 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
       setDatasPolitica({});
       if (salvarFuncionamento.current) await salvarFuncionamento.current();
       onSaved?.(salva);
-      if (unidade || criadaId) {
-        toast.success("Unidade atualizada");
+      const eraNova = !gravada;
+      setGravada((anterior) => ({
+        ...(anterior ?? {}),
+        id: salva.id,
+        company_id: form.company_id,
+        nome: form.nome.trim(),
+        ativo: form.ativo,
+        possui_relogio_ponto: form.possui_relogio_ponto,
+        relogio_ponto_dispensa_justificativa: form.possui_relogio_ponto ? null : justificativaPonto.trim() || null,
+        banco_horas: form.banco_horas,
+        compensa_feriados: form.compensa_feriados,
+        tem_adiantamento: form.tem_adiantamento,
+        compensacao_sindical_ciencia_em: cienciaEm ?? anterior?.compensacao_sindical_ciencia_em ?? null,
+      }));
+      if (eraNova) setCriadaId(salva.id);
+      const proxima = proximaEtapaUnidade(aba);
+      if (modo === "avancar" && proxima) {
+        setAba(proxima);
+        toast.success(eraNova ? "Unidade criada. Siga para a próxima etapa." : "Etapa salva.");
+        return;
+      }
+      if (!eraNova || modo === "avancar") {
+        toast.success(eraNova ? "Unidade criada" : "Unidade atualizada");
         onOpenChange(false);
         return;
       }
-      // Nova unidade: mantém aberta para configurar o funcionamento da loja.
-      setCriadaId(salva.id);
+      // Nova unidade pelo "Cadastrar": mantém aberta para configurar o funcionamento da loja.
       setAba("funcionamento");
       toast.success("Unidade criada. Agora defina o horário de funcionamento (opcional).");
     } catch (e) {
@@ -768,12 +802,23 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
 
         </Tabs>
         <DialogFooter className="shrink-0 flex-row gap-2 border-t p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row">
-          <Button variant="ghost" className="h-11 w-full sm:w-auto" onClick={() => onOpenChange(false)}>
+          <Button variant="ghost" className="hidden h-11 sm:inline-flex sm:w-auto" onClick={() => onOpenChange(false)}>
             {criadaId ? "Fechar" : "Cancelar"}
           </Button>
-          <Button className="h-11 w-full sm:w-auto" onClick={save} disabled={upsert.isPending}>
-            {upsert.isPending ? "Salvando..." : unidade || criadaId ? "Salvar" : "Cadastrar"}
-          </Button>
+          {proximaEtapaUnidade(aba) ? (
+            <>
+              <Button variant="outline" className="h-11 flex-1 sm:flex-none sm:w-auto" onClick={() => void save("fechar")} disabled={upsert.isPending}>
+                {gravada ? "Salvar" : "Cadastrar"}
+              </Button>
+              <Button className="h-11 flex-1 sm:flex-none sm:w-auto" onClick={() => void save("avancar")} disabled={upsert.isPending}>
+                {upsert.isPending ? "Salvando..." : "Salvar e avançar"}
+              </Button>
+            </>
+          ) : (
+            <Button className="h-11 w-full sm:w-auto" onClick={() => void save("fechar")} disabled={upsert.isPending}>
+              {upsert.isPending ? "Salvando..." : gravada ? "Salvar e concluir" : "Cadastrar"}
+            </Button>
+          )}
         </DialogFooter>
 
       </DialogContent>

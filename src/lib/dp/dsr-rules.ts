@@ -120,6 +120,11 @@ export interface DpConfigDp {
   folga_janela_fecha_dia: number;
   /** Após o encerramento, distribui automaticamente quem não escolheu. */
   folga_autoatribuir: boolean;
+  /**
+   * Colaborador marca, muda, pede e troca folgas pelo portal? Desligado, a escala
+   * de folgas é definida só pela administração e o portal apenas mostra.
+   */
+  folga_marcacao_portal: boolean;
 }
 
 export const DP_CONFIG_DP_DEFAULT: Omit<DpConfigDp, "company_id" | "unidade_id"> = {
@@ -142,6 +147,7 @@ export const DP_CONFIG_DP_DEFAULT: Omit<DpConfigDp, "company_id" | "unidade_id">
   folga_janela_abre_dia: 10,
   folga_janela_fecha_dia: 20,
   folga_autoatribuir: true,
+  folga_marcacao_portal: true,
 };
 
 

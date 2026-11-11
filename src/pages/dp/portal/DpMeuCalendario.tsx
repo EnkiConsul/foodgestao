@@ -53,6 +53,7 @@ import { ocupacaoNoEscopo, resolverLimiteFolga } from "@/lib/dp/folga-limites";
 import {
   resolverJanela,
   podeMarcarNormal,
+  marcacaoPortalLiberada,
   mensagemJanela,
   type JanelaResolvida,
 } from "@/lib/dp/folga-janela";
@@ -124,6 +125,8 @@ interface JanelaRemota {
   hoje: string;
   competencia: string;
   estado: string;
+  /** false = escala de folgas definida só pela administração (portal só consulta). */
+  marcacao_portal?: boolean;
 }
 
 const STATUS_LABEL: Record<DateStatusKind, string> = {
@@ -385,6 +388,13 @@ export default function DpMeuCalendario() {
   }, [janelaQuery.data]);
 
   const avisoJanela = janela.estado === "inativa" ? "" : mensagemJanela(janela, formatBR);
+  /**
+   * Loja com escala de folgas definida pela administração: o calendário vira
+   * consulta. Enquanto a regra carrega, as ações ficam escondidas (o servidor
+   * recusa de qualquer forma).
+   */
+  const portalLivre = janelaQuery.isPending ? false : marcacaoPortalLiberada(janelaQuery.data);
+  const TEXTO_ESCALA_ADMIN = "A escala de folgas desta loja é definida pela administração. Se precisar mudar alguma folga, fale com o seu gestor.";
 
 
 
@@ -1772,7 +1782,9 @@ export default function DpMeuCalendario() {
             ? "Carregando seu vínculo..."
             : convocavel
               ? "Marque os dias em que você não pode trabalhar."
-              : "Escolha suas folgas de fim de semana."
+              : portalLivre
+                ? "Escolha suas folgas de fim de semana."
+                : "Consulte suas folgas definidas pela administração."
         }
         actions={
           <Button
@@ -1800,16 +1812,25 @@ export default function DpMeuCalendario() {
                 </p>
                 {d.devolvido_motivo && <p className="text-xs text-muted-foreground">Recado: “{d.devolvido_motivo}”</p>}
               </div>
-              <Button size="sm" className="min-h-9" onClick={() => ajustarDevolvido(d)}>
-                Ajustar e reenviar
-              </Button>
+              {portalLivre && (
+                <Button size="sm" className="min-h-9" onClick={() => ajustarDevolvido(d)}>
+                  Ajustar e reenviar
+                </Button>
+              )}
             </div>
           ))}
         </div>
       )}
 
 
-      {!convocavel && vinculoCarregado && <div className="space-y-2">
+      {!convocavel && vinculoCarregado && !portalLivre && !janelaQuery.isPending && (
+        <div className="flex items-start gap-2 rounded-xl border bg-muted/40 px-3 py-2 text-sm">
+          <AlertCircle className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <span>{TEXTO_ESCALA_ADMIN}</span>
+        </div>
+      )}
+
+      {!convocavel && vinculoCarregado && portalLivre && <div className="space-y-2">
         <p className="text-sm font-medium">Clique no dia desejado para visualizar, solicitar ou trocar folga.</p>
         {!/já está marcada|folga fixa/.test(resumoDomingos) && (
           <p className="text-xs text-muted-foreground">{resumoFolgas.texto}</p>
@@ -2100,7 +2121,7 @@ export default function DpMeuCalendario() {
                     : null
                 }
                 trocaveis={
-                  dayInfo.canTrade && !["blocked", "past", "mine", "fixed"].includes(selectedDay.status)
+                  portalLivre && dayInfo.canTrade && !["blocked", "past", "mine", "fixed"].includes(selectedDay.status)
                     ? dayInfo.occupants
                         .filter((o) => o.colaboradorId !== meRef.data?.id
                           // Folga do colega coberta por atestado, licença, suspensão ou férias não é negociável.
@@ -2131,17 +2152,22 @@ export default function DpMeuCalendario() {
                     diaDeTrabalho={!["past", "mine", "fixed", "pending", "swapped"].includes(selectedDay.status)}
                   />
                 )}
-                {selectedDay.status === "available" && dayInfo.isWeekend && (
+                {!portalLivre && selectedDay.status !== "past" && (
+                  <p className="rounded-xl border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                    {TEXTO_ESCALA_ADMIN}
+                  </p>
+                )}
+                {portalLivre && selectedDay.status === "available" && dayInfo.isWeekend && (
                   <Button onClick={() => marcarFolga.mutate(selectedDay.iso)} disabled={marcarFolga.isPending}>
                     {marcarFolga.isPending ? "Marcando..." : "Marcar folga"}
                   </Button>
                 )}
-                {selectedDay.status === "available" && !dayInfo.isWeekend && (
+                {portalLivre && selectedDay.status === "available" && !dayInfo.isWeekend && (
                   <p className="text-xs text-muted-foreground">
                     Somente fins de semana podem ser marcados diretamente. Use "Solicitar exceção" para outros dias.
                   </p>
                 )}
-                {folgaParaMover && (
+                {portalLivre && folgaParaMover && (
                   <Button
                     variant="outline"
                     className="h-auto min-h-10 w-full whitespace-normal break-words px-3 py-2.5 text-center leading-snug"
@@ -2183,7 +2209,7 @@ export default function DpMeuCalendario() {
                     Folga definida automaticamente porque você não escolheu no período de marcação.
                   </p>
                 )}
-                {selectedDay.status === "mine" && (
+                {portalLivre && selectedDay.status === "mine" && (
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -2196,12 +2222,12 @@ export default function DpMeuCalendario() {
                     <CalendarClock className="mr-2 h-4 w-4" /> Mudar o dia da minha folga
                   </Button>
                 )}
-                {selectedDay.status === "mine" && janela.estado !== "aberta" && (
+                {portalLivre && selectedDay.status === "mine" && janela.estado !== "aberta" && (
                   <p className="text-xs text-muted-foreground">
                     O período de escolha já fechou: esta folga não pode mais ser removida, apenas trocada para outro dia.
                   </p>
                 )}
-                {selectedDay.status === "mine" && janela.estado === "aberta" && (
+                {portalLivre && selectedDay.status === "mine" && janela.estado === "aberta" && (
                   <ConfirmarAcaoDialog
                     titulo="Remover esta folga?"
                     descricao="O dia volta a ficar livre e pode ser escolhido por outra pessoa da equipe."
@@ -2216,7 +2242,7 @@ export default function DpMeuCalendario() {
                   </ConfirmarAcaoDialog>
                 )}
 
-                {selectedDay.status === "fixed" && (
+                {portalLivre && selectedDay.status === "fixed" && (
                   <p className="text-xs text-muted-foreground">
                     Esta é sua folga semanal fixa. Para trocá-la, toque no dia em que deseja folgar: use "Trocar" ao
                     lado de um colega que folga nesse dia ou "Solicitar exceção ao gestor".
@@ -2233,7 +2259,9 @@ export default function DpMeuCalendario() {
                       </p>
                     )}
                     <p className="text-xs text-muted-foreground">
-                      Data bloqueada pelo setor de pessoal. Você pode pedir uma exceção abaixo.
+                      {portalLivre
+                        ? "Data bloqueada pelo setor de pessoal. Você pode pedir uma exceção abaixo."
+                        : "Data bloqueada pelo setor de pessoal."}
                     </p>
                   </div>
                 )}
@@ -2241,7 +2269,7 @@ export default function DpMeuCalendario() {
                 {selectedDay.status === "taken" && (
                   <p className="text-xs text-muted-foreground">Limite de folgas atingido neste dia.</p>
                 )}
-                {selectedDay.status === "quota" && (
+                {portalLivre && selectedDay.status === "quota" && (
                   <p className="rounded-xl border border-sky-200 bg-sky-500/10 px-3 py-2 text-xs font-medium text-sky-700">
                     {folgaParaMover
                       ? `Este dia tem vaga. Você já marcou sua folga do mês em ${diaSemanaBR(folgaParaMover.data)} ${formatBR(parseYMD(folgaParaMover.data))}: toque no botão acima para mudar para este dia, sem precisar do gestor.`
@@ -2277,16 +2305,18 @@ export default function DpMeuCalendario() {
                         {dev.devolvido_motivo && (
                           <p className="text-xs text-muted-foreground">Recado: “{dev.devolvido_motivo}”</p>
                         )}
-                        <Button
-                          size="sm"
-                          className="min-h-9 w-full sm:w-auto"
-                          onClick={() => {
-                            setSelectedDay(null);
-                            ajustarDevolvido(dev);
-                          }}
-                        >
-                          Ajustar e reenviar
-                        </Button>
+                        {portalLivre && (
+                          <Button
+                            size="sm"
+                            className="min-h-9 w-full sm:w-auto"
+                            onClick={() => {
+                              setSelectedDay(null);
+                              ajustarDevolvido(dev);
+                            }}
+                          >
+                            Ajustar e reenviar
+                          </Button>
+                        )}
                         {botaoCancelar(dev.id, "Desistir do pedido")}
                       </div>
                     );
@@ -2317,7 +2347,7 @@ export default function DpMeuCalendario() {
                 {selectedDay.status === "past" && (
                   <p className="text-xs text-muted-foreground">Data já passou.</p>
                 )}
-                {selectedDay.status === "weekday" && (
+                {portalLivre && selectedDay.status === "weekday" && (
                   <p className="text-xs text-muted-foreground">
                     Dia de trabalho. Você pode pedir uma troca com um colega que está de folga neste dia ou
                     solicitar uma exceção ao DP.
@@ -2408,7 +2438,7 @@ export default function DpMeuCalendario() {
                 )}
 
 
-                {showExceptionBtn && (
+                {portalLivre && showExceptionBtn && (
                   <Button
                     variant="outline"
                     className="border-amber-200 text-amber-700 hover:bg-amber-50"
