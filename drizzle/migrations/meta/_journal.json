@@ -1646,6 +1646,13 @@
       "when": 1794456904309,
       "tag": "0234_adiantamento_antecedencia_portal_relacao",
       "breakpoints": true
+    },
+    {
+      "idx": 235,
+      "version": "7",
+      "when": 1794489565065,
+      "tag": "0235_app_error_log_empresa_automatica",
+      "breakpoints": true
     }
   ]
 }

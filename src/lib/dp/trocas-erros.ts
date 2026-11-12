@@ -1,3 +1,5 @@
+import { RegraNegada } from "./regraAviso";
+
 /**
  * Tradução dos códigos de erro das rotinas de troca de folga para o texto que
  * o colaborador e o gestor leem na tela.
@@ -42,5 +44,18 @@ export function mensagemErroTroca(raw: string | null | undefined): string {
   if (msg.includes("INVALID_INPUT")) return "Revise os dados da troca.";
   if (msg.includes("Limite") || msg.includes("bloquead"))
     return "A troca não pode ser efetivada pelas regras de folga deste dia.";
-  return "Não foi possível concluir a ação. Tente novamente.";
+  return FALHA_TROCA;
+}
+
+const FALHA_TROCA = "Não foi possível concluir a ação. Tente novamente.";
+const TOKENS_TROCA = /\b(TROCA_[A-Z0-9_]+|PLANTAO_12X36_[A-Z_]+|DSR_CIENCIA_OBRIGATORIA|troca_sem_assinatura_solicitante|DUPLICATE_REQUEST|STATUS_INVALIDO|PAST_DATE_NOT_EDITABLE|FORBIDDEN|INVALID_INPUT)\b/;
+
+/**
+ * Erro pronto para lançar: recusa identificada por token do servidor vira
+ * aviso de regra (não entra na Auditoria de erros); o resto segue como falha.
+ */
+export function erroTroca(raw: string | null | undefined): Error {
+  const texto = mensagemErroTroca(raw);
+  if (texto !== FALHA_TROCA && TOKENS_TROCA.test(raw ?? "")) return new RegraNegada(texto);
+  return new Error(texto);
 }

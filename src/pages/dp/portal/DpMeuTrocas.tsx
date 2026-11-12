@@ -35,7 +35,7 @@ import { textoDecisaoGestor } from "@/lib/dp/troca-acoes";
 import { cn } from "@/lib/utils";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { notifyError } from "@/lib/notifyError";
-import { mensagemErroTroca } from "@/lib/dp/trocas-erros";
+import { erroTroca } from "@/lib/dp/trocas-erros";
 import { pessoaConvocavel } from "@/lib/dp/convocacoes-planejamento";
 import { dataEmAfastamento, type PeriodoAfastamento } from "@/lib/dp/troca-oferta";
 import { hojeIsoLocal } from "@/lib/dp/dataLocal";
@@ -265,7 +265,7 @@ export default function DpMeuTrocas() {
         p_id: id,
         p_aceito: aceito,
       });
-      if (error) throw new Error(mensagemErroTroca(error.message));
+      if (error) throw erroTroca(error.message);
       const res = (data ?? null) as { efetivada?: boolean } | null;
       return !!res?.efetivada;
     },
@@ -282,7 +282,7 @@ export default function DpMeuTrocas() {
   const cancelar = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.rpc("dp_troca_cancelar_self", { p_id: id });
-      if (error) throw new Error(mensagemErroTroca(error.message));
+      if (error) throw erroTroca(error.message);
     },
     onSuccess: () => {
       toast.success("Troca cancelada");
@@ -325,7 +325,7 @@ export default function DpMeuTrocas() {
         p_data_proposta: form.data_proposta!,
         p_motivo: form.motivo,
       });
-      if (error) throw new Error(mensagemErroTroca(error.message));
+      if (error) throw erroTroca(error.message);
       const trocaId = (data as { troca_id?: string } | null)?.troca_id;
       if (trocaId) await assinarTroca(trocaId, assinatura);
       return !!(data as { exige_gestor?: boolean } | null)?.exige_gestor;

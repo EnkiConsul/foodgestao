@@ -2,11 +2,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyContext } from "@/hooks/useCompanyContext";
 import { toast } from "sonner";
+import { casaBusca, fatiar, nomeEmpresa, temChamadoPendente } from "@/lib/admin/auditoriaErros";
 
 export type AppErrorLog = {
   id: string;
   fingerprint: string;
   company_id: string | null;
+  /** Nome fantasia (ou razão social) da empresa, para o suporte reconhecer o cliente. */
+  company_name?: string | null;
+  company_cnpj?: string | null;
   user_name: string | null;
   user_email: string | null;
   surface: string | null;
@@ -63,6 +67,10 @@ export type AppErrorFiltros = {
   busca: string;
   /** Quando true ignora o filtro de empresa (uso no backoffice). */
   todasEmpresas?: boolean;
+  /** Backoffice: só erros desta empresa ("todas" = sem filtro, "sem" = sem empresa). */
+  empresaId?: string;
+  /** Só erros com chamado de cliente aberto ou em análise. */
+  comChamados?: boolean;
 };
 
 export const FILTROS_ERRO_PADRAO: AppErrorFiltros = {
@@ -84,11 +92,13 @@ export function useAppErrorLogs(filtros: AppErrorFiltros) {
     queryFn: async (): Promise<AppErrorLog[]> => {
       let q = supabase
         .from("app_error_logs")
-        .select("*")
+        .select("*, companies:company_id(name, trade_name, cnpj)")
         .order("last_seen_at", { ascending: false })
         .limit(300);
 
       if (!filtros.todasEmpresas && selectedCompanyId) q = q.eq("company_id", selectedCompanyId);
+      if (filtros.todasEmpresas && filtros.empresaId === "sem") q = q.is("company_id", null);
+      else if (filtros.todasEmpresas && filtros.empresaId && filtros.empresaId !== "todas") q = q.eq("company_id", filtros.empresaId);
       if (filtros.status !== "todos") q = q.eq("status", filtros.status);
       if (filtros.severity !== "todos") q = q.eq("severity", filtros.severity);
       if (filtros.source !== "todos") q = q.eq("source", filtros.source);
@@ -100,51 +110,62 @@ export function useAppErrorLogs(filtros: AppErrorFiltros) {
       const { data, error } = await q;
       if (error) throw error;
 
-      const termo = filtros.busca.trim().toLowerCase();
-      const linhas = (data ?? []) as unknown as AppErrorLog[];
+      const termo = filtros.busca.trim();
+      type Linha = AppErrorLog & { companies?: { name?: string | null; trade_name?: string | null; cnpj?: string | null } | null };
+      const linhas = ((data ?? []) as unknown as Linha[]).map(({ companies, ...linha }) => ({
+        ...linha,
+        company_name: nomeEmpresa(companies),
+        company_cnpj: companies?.cnpj ?? null,
+      })) as AppErrorLog[];
       const ids = linhas.map((linha) => linha.id);
-      let reports: AppErrorReport[] = [];
-      if (ids.length > 0) {
-        const { data: reportData, error: reportError } = await supabase
-          .from("app_error_reports")
-          .select("id,error_log_id,protocol,reporter_name,reporter_email,description,attempted_action,route,status,internal_note,created_at")
-          .in("error_log_id", ids)
-          .order("created_at", { ascending: false });
-        if (reportError) throw reportError;
-        reports = (reportData ?? []) as AppErrorReport[];
-      }
-      let ocorrencias: AppErrorOccurrence[] = [];
-      if (ids.length > 0) {
-        const { data: ocData } = await supabase
-          .from("app_error_occurrences")
-          .select("id,error_log_id,user_name,user_email,route,code,message,details,created_at")
-          .in("error_log_id", ids)
-          .order("created_at", { ascending: false })
-          .limit(1000);
-        ocorrencias = (ocData ?? []) as unknown as AppErrorOccurrence[];
-      }
+
+      // Fatias pequenas: 300 ids num só filtro passam de 11 mil caracteres no endereço.
+      const fatias = fatiar(ids);
+      const [reportsPorFatia, ocorrenciasPorFatia] = await Promise.all([
+        Promise.all(fatias.map(async (fatia) => {
+          const { data: reportData, error: reportError } = await supabase
+            .from("app_error_reports")
+            .select("id,error_log_id,protocol,reporter_name,reporter_email,description,attempted_action,route,status,internal_note,created_at")
+            .in("error_log_id", fatia)
+            .order("created_at", { ascending: false });
+          if (reportError) throw reportError;
+          return (reportData ?? []) as AppErrorReport[];
+        })),
+        Promise.all(fatias.map(async (fatia) => {
+          const { data: ocData } = await supabase
+            .from("app_error_occurrences")
+            .select("id,error_log_id,user_name,user_email,route,code,message,details,created_at")
+            .in("error_log_id", fatia)
+            .order("created_at", { ascending: false })
+            .limit(fatia.length * 20);
+          return (ocData ?? []) as unknown as AppErrorOccurrence[];
+        })),
+      ]);
+
       const ocorrenciasByError = new Map<string, AppErrorOccurrence[]>();
-      ocorrencias.forEach((oc) => {
+      ocorrenciasPorFatia.flat().forEach((oc) => {
         ocorrenciasByError.set(oc.error_log_id, [...(ocorrenciasByError.get(oc.error_log_id) ?? []), oc]);
       });
-
       const reportsByError = new Map<string, AppErrorReport[]>();
-      reports.forEach((report) => {
+      reportsPorFatia.flat().forEach((report) => {
         reportsByError.set(report.error_log_id, [...(reportsByError.get(report.error_log_id) ?? []), report]);
       });
-      const enriched = linhas.map((linha) => ({
+      let enriched = linhas.map((linha) => ({
         ...linha,
         reports: reportsByError.get(linha.id) ?? [],
         ocorrencias: ocorrenciasByError.get(linha.id) ?? [],
       }));
+      if (filtros.comChamados) enriched = enriched.filter(temChamadoPendente);
       if (!termo) return enriched;
       return enriched.filter((l) =>
-        [
-          l.message, l.surface, l.action, l.route, l.code, l.user_name, l.user_email,
-          ...(l.reports ?? []).flatMap((report) => [report.protocol, report.reporter_name, report.reporter_email, report.description, report.attempted_action]),
-        ]
-          .filter(Boolean)
-          .some((v) => String(v).toLowerCase().includes(termo)),
+        casaBusca(
+          [
+            l.message, l.surface, l.action, l.route, l.code, l.user_name, l.user_email, l.company_name,
+            ...(l.reports ?? []).flatMap((report) => [report.protocol, report.reporter_name, report.reporter_email, report.description, report.attempted_action]),
+          ],
+          termo,
+          l.company_cnpj,
+        ),
       );
     },
   });
@@ -175,24 +196,30 @@ export function useAppErrorStatus() {
 
   return useMutation({
     mutationFn: async (input: {
-      id: string;
+      /** Um erro ou vários (decisão em lote). */
+      id: string | string[];
       status: "aberto" | "resolvido" | "ignorado";
       nota?: string;
     }) => {
-      const { error } = await supabase
-        .from("app_error_logs")
-        .update({ status: input.status, status_note: input.nota ?? null })
-        .eq("id", input.id);
-      if (error) throw error;
+      const ids = Array.isArray(input.id) ? input.id : [input.id];
+      for (const fatia of fatiar(ids)) {
+        const { error } = await supabase
+          .from("app_error_logs")
+          .update({ status: input.status, status_note: input.nota ?? null })
+          .in("id", fatia);
+        if (error) throw error;
+      }
     },
     onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ["app_error_logs"] });
+      const n = Array.isArray(vars.id) ? vars.id.length : 1;
+      const plural = n > 1;
       toast.success(
         vars.status === "resolvido"
-          ? "Erro marcado como resolvido."
+          ? plural ? `${n} erros marcados como resolvidos.` : "Erro marcado como resolvido."
           : vars.status === "ignorado"
-            ? "Erro ignorado."
-            : "Erro reaberto.",
+            ? plural ? `${n} erros ignorados.` : "Erro ignorado."
+            : plural ? `${n} erros reabertos.` : "Erro reaberto.",
       );
     },
     onError: (e: unknown) =>

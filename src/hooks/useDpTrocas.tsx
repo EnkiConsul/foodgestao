@@ -9,7 +9,7 @@ import {
   type TrocaFiltros,
 } from "@/lib/dp/trocas-filtros";
 import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
-import { mensagemErroTroca } from "@/lib/dp/trocas-erros";
+import { erroTroca } from "@/lib/dp/trocas-erros";
 import { invalidarRotina } from "@/lib/dp/rotina-cache";
 
 export type DpTrocaModo = "direta" | "aprovacao_admin" | "proibida";
@@ -135,7 +135,7 @@ export function useDpTrocas(filtros: TrocaFiltros = FILTROS_TROCA_PADRAO) {
         p_aceito: aceito,
         p_observacao: obs?.trim() || null,
       });
-      if (error) throw new Error(mensagemErroTroca(error.message));
+      if (error) throw erroTroca(error.message);
     },
     onSuccess: () => {
       invalidate();

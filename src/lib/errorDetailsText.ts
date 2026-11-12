@@ -27,6 +27,7 @@ export type ErroDetalhesInput = {
   userName?: string | null;
   userEmail?: string | null;
   companyId?: string | null;
+  companyName?: string | null;
   occurrences?: number | null;
   firstSeenAt?: string | null;
   lastSeenAt?: string | null;
@@ -63,7 +64,7 @@ export function errorDetailsToText(input: ErroDetalhesInput): string {
   add("Código", input.code);
   add("Mensagem mostrada", input.userMessage);
   add("Usuário", usuarioLabel({ nome: input.userName, email: input.userEmail }));
-  add("Empresa", input.companyId);
+  add("Empresa", input.companyName ? `${input.companyName}${input.companyId ? ` (${input.companyId})` : ""}` : input.companyId);
   add("Repetições", input.occurrences ? String(input.occurrences) : null);
   add("Primeira vez", input.firstSeenAt);
   add("Última vez", input.lastSeenAt);

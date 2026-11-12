@@ -71,7 +71,7 @@ import { useDpRegrasColaborador } from "@/hooks/useDpRegrasColaborador";
 import { resumoEscolhaFolgas, folgaDominicalAutomatica, podeTrocarFolga, domingosFolgaNoPeriodo } from "@/lib/dp/dsr-rules";
 import { trocaLiberadaNoPortal } from "@/lib/dp/folga-regras-blocos";
 import { folgasOfertaveis, dataEmAfastamento, trocasAbertasComColegas, type PeriodoAfastamento } from "@/lib/dp/troca-oferta";
-import { mensagemErroTroca } from "@/lib/dp/trocas-erros";
+import { erroTroca } from "@/lib/dp/trocas-erros";
 import { avaliarRiscoDsrTroca, avisoDsr } from "@/lib/dp/dsr-consecutivo";
 import { registrarCienciaDsr } from "@/lib/dp/dsr-ciencia";
 import { CienciaDsrBox } from "@/components/dp/CienciaDsrBox";
@@ -1417,7 +1417,7 @@ export default function DpMeuCalendario() {
         p_data_proposta: tradeOpen.iso,
         p_motivo: motivo,
       });
-      if (error) throw new Error(mensagemErroTroca(error.message));
+      if (error) throw erroTroca(error.message);
       const trocaId = (res as { troca_id?: string } | null)?.troca_id;
       if (!trocaId) throw new Error("A troca não foi registrada. Atualize a tela e tente de novo.");
       await assinarTroca(trocaId, assinatura);
@@ -1599,7 +1599,7 @@ export default function DpMeuCalendario() {
         await assinarTroca(id, assinatura);
       }
       const { data, error } = await supabase.rpc("dp_troca_responder_colega", { p_id: id, p_aceito: aceito });
-      if (error) throw new Error(mensagemErroTroca(error.message));
+      if (error) throw erroTroca(error.message);
       return { aceito, efetivada: !!(data as { efetivada?: boolean } | null)?.efetivada, id };
     },
     onSuccess: ({ aceito, efetivada, id }) => {
@@ -1621,7 +1621,7 @@ export default function DpMeuCalendario() {
   const cancelarTroca = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.rpc("dp_troca_cancelar_self", { p_id: id });
-      if (error) throw new Error(mensagemErroTroca(error.message));
+      if (error) throw erroTroca(error.message);
     },
     onSuccess: () => {
       toast.success("Pedido de troca cancelado.");
