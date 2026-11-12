@@ -44,9 +44,9 @@ export function ImportarDocumentoDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] flex-col gap-0 overflow-hidden p-0 sm:h-auto sm:max-h-[92dvh] sm:max-w-5xl sm:p-0">
         <DialogHeader className="shrink-0 border-b p-4 pr-12 text-left">
-          <DialogTitle>{somenteHistorico ? "Histórico de Importações" : "Importar Documento"}</DialogTitle>
+          <DialogTitle>{somenteHistorico ? "Lotes e envios" : "Importar Documento"}</DialogTitle>
           <DialogDescription>
-            {somenteHistorico ? "Lotes enviados e resultados da conferência." : "Envie o PDF e confira as páginas antes de salvar."}
+            {somenteHistorico ? "Tudo o que foi enviado e o resultado da conferência." : "Continue um lote enviado ou mande um PDF novo."}
           </DialogDescription>
         </DialogHeader>
         <Tabs
@@ -58,8 +58,8 @@ export function ImportarDocumentoDialog({
           className="shrink-0 px-4 pt-3"
         >
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="enviar" className="gap-2"><Upload className="h-4 w-4" />Novo envio</TabsTrigger>
-            <TabsTrigger value="historico" className="gap-2"><History className="h-4 w-4" />Histórico de lotes</TabsTrigger>
+            <TabsTrigger value="enviar" className="gap-2"><Upload className="h-4 w-4" />Importar</TabsTrigger>
+            <TabsTrigger value="historico" className="gap-2"><History className="h-4 w-4" />Lotes e envios</TabsTrigger>
           </TabsList>
         </Tabs>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">

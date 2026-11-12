@@ -5,8 +5,10 @@ import { aprovarEmBlocos } from "@/lib/dp/bulkApproveChunks";
 import { validarUpload } from "@/lib/storage/uploadPolicy";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Upload, Loader2, Check, X, ChevronDown, ChevronRight, RefreshCw, ExternalLink, AlertTriangle, Eye, Trash2, Info, History,
+  Upload, Loader2, Check, X, ChevronDown, ChevronRight, ChevronUp, RefreshCw, ExternalLink, AlertTriangle, Eye, Trash2, Info, History, Plus,
 } from "lucide-react";
+import { useDpLotesDocumentoAbertos } from "@/hooks/useDpLotesDocumentoAbertos";
+import { envioRecolhidoAoAbrir, loteEmLeitura, situacaoLoteAberto } from "@/lib/dp/documentos/lotes-abertos";
 import {
   statusLabel, MobileDetailsSheet,
 } from "@/components/dp/MobileCardKit";
@@ -108,6 +110,18 @@ export function BulkImportPanel({
   /** Lotes concluídos ficam ocultos; o gestor abre o histórico só quando precisa. */
   const [mostrarHistoricoLotes, setMostrarHistoricoLotes] = useState(false);
   const [lotesDaSessao, setLotesDaSessao] = useState<string[]>(loteAbertoId ? [loteAbertoId] : []);
+  /**
+   * Lotes que ainda pedem conferência aparecem ANTES do campo de envio: quem
+   * volta à janela continua o que mandou em vez de reenviar o mesmo PDF. O
+   * envio fica recolhido até a pessoa pedir "Enviar outro arquivo".
+   */
+  const abertosQ = useDpLotesDocumentoAbertos(!somenteHistorico);
+  const lotesAbertosVis = useMemo(
+    () => (abertosQ.data ?? []).filter((l) => !(filterByTipo && tipoFixed) || l.tipo === tipoFixed),
+    [abertosQ.data, filterByTipo, tipoFixed],
+  );
+  const [envioEscolha, setEnvioEscolha] = useState<boolean | null>(null);
+  const envioVisivel = envioEscolha ?? !envioRecolhidoAoAbrir(lotesAbertosVis, tipoFixed ?? tipoInicial ?? null);
   const conclusaoNotificada = useRef(false);
 
   useEffect(() => { if (tipoFixed) setTipo(tipoFixed); }, [tipoFixed]);
@@ -138,6 +152,7 @@ export function BulkImportPanel({
     if (!foco?.nonce) return;
     if (!tipoFixed && foco.tipo) setTipo(foco.tipo);
     if (!referenciaFixed && foco.competencia) setReferencia(`${foco.competencia}-01`);
+    setEnvioEscolha(true);
     requestAnimationFrame(() => rolarAte(uploadCardRef.current));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [foco?.nonce]);
@@ -351,6 +366,8 @@ export function BulkImportPanel({
       conclusaoNotificada.current = false;
       setLotesDaSessao((prev) => [...prev, ...res.enviados]);
       setFiles([]);
+      // O lote novo sobe para o topo ("aguardando conferência") e o envio recolhe.
+      setEnvioEscolha(null);
       qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
       qc.invalidateQueries({ queryKey: ["dp_bulk_pending_counts"] });
     },
@@ -452,21 +469,105 @@ export function BulkImportPanel({
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
   };
 
+  /** Abre o lote aberto: conferência em tela cheia, ou acompanha a leitura na lista. */
+  const abrirLoteAberto = (l: { id: string; status: string; source_file_name: string | null }) => {
+    if (loteEmLeitura(l)) {
+      setExpanded((s) => ({ ...s, [l.id]: true }));
+      requestAnimationFrame(() => rolarAte(document.getElementById(`lote-${l.id}`)));
+      return;
+    }
+    setReviewBatch({ id: l.id, name: l.source_file_name ?? undefined });
+  };
+
   return (
     <div className="space-y-4">
-      {!somenteHistorico && <div ref={uploadCardRef} className="scroll-mt-20">
+      {!somenteHistorico && lotesAbertosVis.length > 0 && (
+        <section
+          aria-label="Lotes aguardando conferência"
+          className="space-y-2 rounded-xl border border-primary/40 bg-primary/5 p-3"
+        >
+          <div>
+            <p className="text-sm font-semibold">
+              {lotesAbertosVis.length === 1
+                ? "Você tem um lote aguardando conferência"
+                : `Você tem ${lotesAbertosVis.length} lotes aguardando conferência`}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Continue de onde parou — não é preciso enviar o mesmo PDF de novo.
+            </p>
+          </div>
+          <ul className="space-y-2">
+            {lotesAbertosVis.slice(0, 3).map((l) => {
+              const lendo = loteEmLeitura(l);
+              return (
+                <li key={l.id} className="flex flex-col gap-2 rounded-lg border bg-card p-2.5 sm:flex-row sm:items-center">
+                  <div className="min-w-0 flex-1">
+                    <p className="break-words text-sm font-medium">{loteAssunto(l, [])}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {l.source_file_name ?? "Arquivo sem nome"} · enviado em{" "}
+                      {new Date(l.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                    <p className="flex items-center gap-1 text-xs font-medium text-foreground">
+                      {lendo && <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />}
+                      {situacaoLoteAberto(l, l.pendentes)}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant={lendo ? "outline" : "default"}
+                    className="h-10 w-full shrink-0 sm:w-auto"
+                    onClick={() => abrirLoteAberto(l)}
+                  >
+                    {lendo ? "Acompanhar" : "Conferir agora"}
+                  </Button>
+                </li>
+              );
+            })}
+          </ul>
+          {lotesAbertosVis.length > 3 && (
+            <p className="text-xs text-muted-foreground">
+              E mais {lotesAbertosVis.length - 3} na lista de lotes abaixo.
+            </p>
+          )}
+        </section>
+      )}
+
+      {!somenteHistorico && !envioVisivel && (
+        <Button variant="outline" className="h-11 w-full" onClick={() => setEnvioEscolha(true)}>
+          <Plus className="mr-1 h-4 w-4" /> Enviar outro arquivo
+        </Button>
+      )}
+
+      {!somenteHistorico && envioVisivel && abertosQ.isLoading && (
+        <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground" role="status">
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Conferindo os lotes enviados…
+        </div>
+      )}
+
+      {!somenteHistorico && envioVisivel && !abertosQ.isLoading && <div ref={uploadCardRef} className="scroll-mt-20">
       <DpFilterCard>
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-base font-semibold">{title}</h2>
-            {!temLoteAtivo && (batches.data ?? []).length > 0 && (
+            <h2 className="text-base font-semibold">{lotesAbertosVis.length > 0 ? "Enviar outro arquivo" : title}</h2>
+            {lotesAbertosVis.length > 0 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-9 shrink-0"
+                onClick={() => { setEnvioEscolha(false); setFiles([]); }}
+              >
+                <ChevronUp className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Recolher</span>
+              </Button>
+            )}
+            {!temLoteAtivo && lotesAbertosVis.length === 0 && (batches.data ?? []).length > 0 && (
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 shrink-0"
-                aria-label={mostrarHistoricoLotes ? "Ocultar histórico de lotes" : "Ver histórico de lotes importados"}
-                title={mostrarHistoricoLotes ? "Ocultar histórico de lotes" : "Ver histórico de lotes importados"}
+                aria-label={mostrarHistoricoLotes ? "Ocultar lotes e envios" : "Ver lotes e envios"}
+                title={mostrarHistoricoLotes ? "Ocultar lotes e envios" : "Ver lotes e envios"}
                 onClick={() => setMostrarHistoricoLotes((v) => !v)}
               >
                 <History className="h-4 w-4" />
@@ -652,7 +753,7 @@ export function BulkImportPanel({
             className="text-xs text-muted-foreground"
             onClick={() => setMostrarHistoricoLotes(true)}
           >
-            Ver histórico de lotes anteriores
+            Ver lotes e envios anteriores
           </Button>
         </div>
       )}
@@ -660,7 +761,7 @@ export function BulkImportPanel({
       {(temLoteAtivo || mostrarHistoricoLotes || somenteHistorico) && (
       <Card className="dp-content-card" ref={lotesRef}>
         <CardHeader className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle className="text-base">Lotes recentes</CardTitle>
+          <CardTitle className="text-base">Lotes e envios</CardTitle>
           <div className="flex items-center gap-2">
             {!temLoteAtivo && !somenteHistorico && (
               <Button

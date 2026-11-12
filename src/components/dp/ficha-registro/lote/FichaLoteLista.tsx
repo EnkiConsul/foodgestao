@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CheckSquare, ChevronRight, FileSignature, KeyRound, Plus, Search, SlidersHorizontal, X } from "lucide-react";
+import { CheckSquare, ChevronRight, FileSignature, KeyRound, Loader2, Plus, RotateCcw, Search, SlidersHorizontal, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -13,7 +13,7 @@ import {
 } from "@/lib/dp/ficha-registro/organizacao-lote";
 import { cn } from "@/lib/utils";
 
-type Filtro = "todas" | "pronta" | "atencao" | "concluida";
+type Filtro = "todas" | "pronta" | "atencao" | "concluida" | "ignorada";
 
 const ROTULO: Record<SituacaoFichaLote, { texto: string; classe: string }> = {
   pronta: { texto: "Pronta", classe: "border-primary/40 bg-primary/10 text-primary" },
@@ -43,6 +43,10 @@ interface Props {
   onPreencherContatos: (focoId: string | null) => void;
   /** Marca (ou desmarca) que estas fichas assinam os documentos em papel. */
   onAssinaturaPapel?: (itemIds: string[], papel: boolean) => Promise<void> | void;
+  /** Traz de volta uma ficha ignorada direto da lista, sem abrir a conferência. */
+  onReativar?: (itemId: string) => void;
+  /** Ficha sendo reativada agora (mostra o carregando só nela). */
+  reativandoId?: string | null;
 }
 
 const lista = (xs: string[], max = 4) => {
@@ -55,6 +59,7 @@ const lista = (xs: string[], max = 4) => {
 /** Etapa 3: lista enxuta do lote, com atalhos por setor, ação em grupo e contato rápido. */
 export function FichaLoteLista({
   itens, organizacao, cargos, setores, padroes, unidadeId, onAbrir, onAplicarMarcadas, onPreencherContatos, onAssinaturaPapel,
+  onReativar, reativandoId = null,
 }: Props) {
   const salarioCargoDe = useDpSalarioCargoResolver();
   const [filtro, setFiltro] = useState<Filtro>("todas");
@@ -100,21 +105,24 @@ export function FichaLoteLista({
   const gruposSetor = useMemo(() => setoresDoLote(itens, organizacao, setores), [itens, organizacao, setores]);
 
   const contagem = useMemo(() => {
-    const c = { todas: linhas.length, pronta: 0, atencao: 0, concluida: 0 };
+    const c = { todas: linhas.length, pronta: 0, atencao: 0, concluida: 0, ignorada: 0 };
     for (const l of linhas) {
-      if (l.situacao === "pronta") c.pronta += 1;
+      if (l.situacao === "ignorada") c.ignorada += 1;
+      else if (l.situacao === "pronta") c.pronta += 1;
       else if (l.situacao === "atencao" || l.situacao === "acesso") c.atencao += 1;
       else if (l.situacao === "concluida") c.concluida += 1;
     }
     return c;
   }, [linhas]);
 
+  // Reativou a última ignorada com o filtro aberto: volta para "Todas".
+  const filtroEfetivo: Filtro = filtro === "ignorada" && contagem.ignorada === 0 ? "todas" : filtro;
   const termo = busca.trim().toLowerCase();
   const visiveis = linhas.filter(
     (l) =>
-      (filtro === "todas" ||
-        l.situacao === filtro ||
-        (filtro === "atencao" && l.situacao === "acesso")) &&
+      (filtroEfetivo === "todas" ||
+        l.situacao === filtroEfetivo ||
+        (filtroEfetivo === "atencao" && l.situacao === "acesso")) &&
       (setorFiltro === "todos" || l.setorChave === setorFiltro) &&
       (!termo || l.nome.toLowerCase().includes(termo) || (l.cargo ?? "").toLowerCase().includes(termo)),
   );
@@ -138,6 +146,8 @@ export function FichaLoteLista({
     { id: "pronta", label: "Prontas" },
     { id: "atencao", label: "Atenção" },
     { id: "concluida", label: "No cadastro" },
+    // Só aparece quando há alguma: é por aqui que a pessoa reconsidera.
+    ...(contagem.ignorada > 0 ? [{ id: "ignorada" as const, label: "Ignoradas" }] : []),
   ];
 
   return (
@@ -168,17 +178,17 @@ export function FichaLoteLista({
         </div>
       )}
 
-      <div className="grid grid-cols-4 gap-1 rounded-xl border bg-card p-1" role="tablist" aria-label="Filtrar fichas">
+      <div className={cn("grid gap-1 rounded-xl border bg-card p-1", FILTROS.length > 4 ? "grid-cols-5" : "grid-cols-4")} role="tablist" aria-label="Filtrar fichas">
         {FILTROS.map((f) => (
           <button
             key={f.id}
             type="button"
             role="tab"
-            aria-selected={filtro === f.id}
+            aria-selected={filtroEfetivo === f.id}
             onClick={() => setFiltro(f.id)}
             className={cn(
               "flex min-h-10 flex-col items-center justify-center rounded-lg px-1 text-[11px] font-medium leading-tight sm:flex-row sm:gap-1 sm:text-sm",
-              filtro === f.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
+              filtroEfetivo === f.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
             )}
           >
             <span className="truncate">{f.label}</span>
@@ -315,6 +325,23 @@ export function FichaLoteLista({
                   <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                 </button>
               </div>
+              {l.situacao === "ignorada" && onReativar && !selecionando && (
+                <div className="-mt-1 pb-2 pl-3 pr-3 sm:pl-12">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 text-xs"
+                    disabled={reativandoId === l.item.id}
+                    aria-label={`Reativar a ficha de ${l.nome}`}
+                    onClick={() => onReativar(l.item.id)}
+                  >
+                    {reativandoId === l.item.id
+                      ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                      : <RotateCcw className="mr-1 h-3.5 w-3.5" />}
+                    Reativar
+                  </Button>
+                </div>
+              )}
               {l.semAcesso && !selecionando && (
                 <div className="-mt-1 pb-2 pl-3 pr-3 sm:pl-12">
                   <div className="flex flex-wrap gap-2">

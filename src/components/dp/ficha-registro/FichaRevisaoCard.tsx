@@ -40,6 +40,7 @@ import { camposFaltando, resumoFaltando } from "@/lib/dp/cadastro-completude";
 import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
 import { CargoFormDialog } from "@/components/dp/cargos/CargoFormDialog";
 import { CargoBuscaSelect } from "./CargoBuscaSelect";
+import { ConfirmarIgnorarFichaDialog } from "./ConfirmarIgnorarFichaDialog";
 import { UnidadeFormDialog } from "@/components/dp/UnidadeFormDialog";
 import { SetorFormDialog } from "@/components/dp/setores/SetorFormDialog";
 import { TurnoForm } from "@/components/dp/TurnoForm";
@@ -138,6 +139,8 @@ interface Props {
   emFoco?: boolean;
   /** Chamado após cadastrar/atualizar com sucesso. */
   onConcluido?: (itemId: string, nome: string) => void;
+  /** Chamado depois de ignorar a ficha (a tela avança e oferece "Desfazer"). */
+  onIgnorado?: (itemId: string, nome: string) => void;
   /** Mostra o aviso de franquia no cartão (a tela de lote mostra um único aviso no topo). */
   avisoFranquia?: boolean;
   /** Cargo e setor decididos na organização do lote (o gestor ainda pode trocar). */
@@ -170,7 +173,7 @@ interface Props {
 export function FichaRevisaoCard({
   item, cargos, unidades, setores = [], turnos = [], unidadePadraoId, empresaCnpj,
   setorPadraoId = null, regimePadrao = null, adiantamentoPadrao = null, onAbrirCadastro, preadmissaoId = null,
-  pessoaApoioId = null, posicao, total, emFoco = false, onConcluido, avisoFranquia = true, vinculoLote = null,
+  pessoaApoioId = null, posicao, total, emFoco = false, onConcluido, onIgnorado, avisoFranquia = true, vinculoLote = null,
   turnoPadraoId = null, destacarPendencias = false, rodapeFixo = false, rodapeContainer = null,
   rascunho = null, formaPagamentoPadrao = null, onSalvarRascunho,
   folhaPontoPadrao = null, justificativaPontoPadrao = null, cienciaIntervaloLote = null,
@@ -1838,14 +1841,21 @@ export function FichaRevisaoCard({
                 <strong>Horário fora da CLT.</strong> Corrija o horário ou registre a ciência para criar o cadastro.
               </button>
             )}
-            <Button
-              variant="ghost"
-              size="sm"
+            <ConfirmarIgnorarFichaDialog
+              nome={String(dados.nome ?? item.nome_extraido ?? "esta pessoa")}
+              emLote={destacarPendencias}
               disabled={ignorar.isPending}
-              onClick={() => ignorar.mutate(item, { onError: (e: Error) => notifyError(e, { surface: "Pessoas 360°", action: "concluir a ação" }) })}
+              onConfirm={() =>
+                ignorar.mutate(item, {
+                  onSuccess: () => onIgnorado?.(item.id, String(dados.nome ?? item.nome_extraido ?? "Ficha sem nome")),
+                  onError: (e: Error) => notifyError(e, { surface: "Pessoas 360°", action: "ignorar a ficha" }),
+                })
+              }
             >
-              <X className="mr-1 h-4 w-4" /> Ignorar
-            </Button>
+              <Button variant="ghost" size="sm" disabled={ignorar.isPending}>
+                {ignorar.isPending ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <X className="mr-1 h-4 w-4" />} Ignorar
+              </Button>
+            </ConfirmarIgnorarFichaDialog>
             {preadmissaoId && (
               <Button
                 variant="outline"

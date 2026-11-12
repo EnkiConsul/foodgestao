@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams } from "react-router-dom";
-import { CheckCircle2, FileText, History, Info, ListChecks, Loader2, Upload, X } from "lucide-react";
+import { CheckCircle2, ChevronRight, FileText, History, Info, ListChecks, Loader2, Upload, X } from "lucide-react";
+import { useDpLotesDocumentoAbertos } from "@/hooks/useDpLotesDocumentoAbertos";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -182,7 +183,7 @@ export function AcoesDocumentosCard({ onImportar, onHistorico }: { onImportar?: 
           </span>
         </button>
         {onHistorico && (
-          <Button type="button" variant="ghost" size="icon" aria-label="Ver histórico de importações" title="Histórico de importações" className="h-11 w-11 shrink-0 rounded-xl text-muted-foreground" onClick={onHistorico}>
+          <Button type="button" variant="ghost" size="icon" aria-label="Ver lotes e envios" title="Lotes e envios" className="h-11 w-11 shrink-0 rounded-xl text-muted-foreground" onClick={onHistorico}>
             <History className="h-4 w-4" aria-hidden="true" />
           </Button>
         )}
@@ -285,6 +286,10 @@ export default function DpDocumentosGestao() {
   ].filter(Boolean) as string[];
 
   const mostrarAviso = partes.length > 0 || !!lote;
+  /** Lotes enviados que ainda esperam conferência: a tela chama para continuar antes de um envio novo. */
+  const { data: lotesAbertos = [] } = useDpLotesDocumentoAbertos();
+  const paginasAbertas = lotesAbertos.reduce((n, l) => n + l.pendentes, 0);
+  const lendoAlgum = lotesAbertos.some((l) => l.status === "processing" || l.status === "queued");
 
   return (
     <DpPage>
@@ -326,6 +331,28 @@ export default function DpDocumentosGestao() {
         onImportar={() => { setAbaInicial("enviar"); setImportarAberto(true); }}
         onHistorico={() => { setAbaInicial("historico"); setImportarAberto(true); }}
       />
+
+      {lotesAbertos.length > 0 && (
+        <button
+          type="button"
+          onClick={() => { setAbaInicial("enviar"); setImportarAberto(true); }}
+          className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-primary/40 bg-primary/5 px-3 py-2 text-left transition-colors hover:bg-primary/10"
+        >
+          {lendoAlgum
+            ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden="true" />
+            : <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-warning" aria-hidden="true" />}
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold">Continuar conferência</span>
+            <span className="block text-xs text-muted-foreground">
+              {lotesAbertos.length === 1 ? "1 lote enviado" : `${lotesAbertos.length} lotes enviados`}
+              {paginasAbertas > 0
+                ? ` · ${paginasAbertas} ${paginasAbertas === 1 ? "página para conferir" : "páginas para conferir"}`
+                : " · lendo as páginas"}
+            </span>
+          </span>
+          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        </button>
+      )}
 
       <ImportarDocumentoDialog
         open={importarAberto}

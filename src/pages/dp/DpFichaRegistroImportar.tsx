@@ -3,7 +3,7 @@ import { abrirNoApp } from "@/lib/visualizadorGlobal";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, ChevronUp, FileText, Loader2, Send, Upload, UserPlus } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronUp, FileText, Loader2, Plus, Send, Upload, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,21 +50,14 @@ import { useCompanyContext } from "@/hooks/useCompanyContext";
 import {
   useDpFichaImportacoes, useDpFichaItens, useEnviarFichaPdf,
   useCancelarLeituraFicha, useTentarNovamenteFicha, MOTIVO_CANCELADA, useOrganizarLoteFicha,
-  useAjustarLoteFicha, jornadaDaFicha,
+  useAjustarLoteFicha, jornadaDaFicha, useDpFichaResumoEnvios, useReativarFicha,
 } from "@/hooks/useDpFichaImportacao";
+import { envioEmAndamento, envioParaAbrir, situacaoEnvio } from "@/lib/dp/ficha-registro/lote-andamento";
 import { notifyError } from "@/lib/notifyError";
 import { divergenciaLote } from "@/lib/dp/ficha-registro/lote-empresa";
 import { leituraTravada } from "@/lib/dp/ficha-registro/leituraTravada";
 import { digitsCnpj, formatCnpj, matchUnidade } from "@/lib/dp/ficha-registro/unidade-match";
 import { cn } from "@/lib/utils";
-
-/** Situação de cada envio, em linguagem de tela. */
-const STATUS_ENVIO: Record<string, string> = {
-  pending: "na fila",
-  processing: "em leitura",
-  ready: "lido",
-  failed: "não foi possível ler",
-};
 
 /** Vínculos do cadastro (enum dp_regime_trabalho) — igual ao card de conferência. */
 const REGIMES: Array<{ value: string; label: string }> = [
@@ -124,9 +117,20 @@ export default function DpFichaRegistroImportar() {
   const cancelar = useCancelarLeituraFicha();
   const repetir = useTentarNovamenteFicha();
 
+  /** Quantas fichas cada envio ainda tem para conferir (decide qual abrir e o texto da lista). */
+  const idsEnvios = useMemo(() => importacoes.map((i) => i.id), [importacoes]);
+  const resumoEnviosQ = useDpFichaResumoEnvios(idsEnvios);
+  const resumoEnvios = useMemo(() => resumoEnviosQ.data ?? {}, [resumoEnviosQ.data]);
+  const resumoPronto = idsEnvios.length === 0 || resumoEnviosQ.isFetched || resumoEnviosQ.isError;
+  /**
+   * Sem escolha da pessoa, abre o envio com trabalho pela metade (fichas a
+   * conferir ou em leitura) — não o mais recente —, para quem volta à tela
+   * continuar o que começou em vez de reenviar o PDF.
+   */
+  const envioPadrao = useMemo(() => envioParaAbrir(importacoes, resumoEnvios), [importacoes, resumoEnvios]);
   const atual = useMemo(
-    () => importacoes.find((i) => i.id === importacaoId) ?? importacoes[0] ?? null,
-    [importacoes, importacaoId],
+    () => importacoes.find((i) => i.id === importacaoId) ?? (resumoPronto ? envioPadrao : null),
+    [importacoes, importacaoId, resumoPronto, envioPadrao],
   );
   const processando = atual?.status === "processing";
   const aguardandoFichas = atual?.status === "ready" && (atual?.fichas_identificadas ?? 0) > 0;
@@ -178,11 +182,17 @@ export default function DpFichaRegistroImportar() {
   );
 
   useEffect(() => {
-    if (!importacaoId && importacoes[0]) setImportacaoId(importacoes[0].id);
-  }, [importacoes, importacaoId]);
+    if (!importacaoId && resumoPronto && envioPadrao) setImportacaoId(envioPadrao.id);
+  }, [importacaoId, resumoPronto, envioPadrao]);
+  /** Outros envios que também esperam conferência (aparecem no cartão do topo). */
+  const outrosEmAndamento = useMemo(
+    () => importacoes.filter((i) => i.id !== atual?.id && envioEmAndamento(i, resumoEnvios[i.id])),
+    [importacoes, atual?.id, resumoEnvios],
+  );
 
   const pendentes = itens.filter((i) => ["pendente", "revisar", "duplicado"].includes(i.status));
   const prontos = itens.filter((i) => ["criado", "atualizado"].includes(i.status));
+  const ignoradas = itens.filter((i) => i.status === "ignorado");
   // Avisa no início do lote quantos cadastros novos cabem na franquia.
   const novasFichas = pendentes.filter((i) => !i.colaborador_existente_id).length;
   const estadoFranquiaLote = useEstadoFranquia(novasFichas > 0 ? pendentes[0]?.company_id : null, novasFichas);
@@ -401,7 +411,53 @@ export default function DpFichaRegistroImportar() {
   const itemAberto = itens.find((i) => i.id === abertoId) ?? null;
   const nomeDaFicha = (i: (typeof itens)[number]) =>
     String(dadosDaFichaLote(i, organizacao).nome ?? i.nome_extraido ?? "Ficha sem nome");
-  const compacto = modoLote && !envioAberto;
+  const reativar = useReativarFicha();
+  /** Ficha ignorada: avança e oferece "Desfazer" (reativa e reabre a mesma ficha). */
+  const aoIgnorar = (itemId: string, nome: string, abrirProxima: boolean) => {
+    const prox = abrirProxima ? proximaPendente(itemId) : null;
+    if (abrirProxima) setAbertoId(prox?.id ?? null);
+    toast(`Ficha de ${nome} ignorada.`, {
+      description: prox ? "Abrimos a próxima ficha." : "Ela fica em Ignoradas e pode ser reativada.",
+      duration: 8000,
+      action: {
+        label: "Desfazer",
+        onClick: () =>
+          reativar.mutate(itemId, {
+            onSuccess: () => {
+              toast.success(`Ficha de ${nome} reativada.`);
+              if (abrirProxima) setAbertoId(itemId);
+            },
+            onError: (e: Error) => notifyError(e, { surface: "Pessoas 360°", action: "reativar a ficha" }),
+          }),
+      },
+    });
+  };
+  const reativarDaLista = (itemId: string) =>
+    reativar.mutate(itemId, {
+      onSuccess: () => toast.success("Ficha reativada: ela volta para a conferência."),
+      onError: (e: Error) => notifyError(e, { surface: "Pessoas 360°", action: "reativar a ficha" }),
+    });
+  /**
+   * Com trabalho em andamento (lote, leitura ou fichas a conferir), o envio de
+   * arquivo fica recolhido e o topo mostra o que falta — quem volta à tela vê
+   * o lote, não um campo de envio em branco.
+   */
+  const fluxoLivre = !preadmissaoId && !pessoaApoioId;
+  const emAndamento = fluxoLivre && !!atual && (processando || atual.status === "pending" || pendentes.length > 0);
+  const compacto = (modoLote || emAndamento) && !envioAberto;
+  const conferidas = prontos.length + ignoradas.length;
+  const continuarConferencia = () => {
+    if (modoLote) {
+      if (etapaAtual === 3) {
+        const prox = proximaPendente();
+        if (prox) { setAbertoId(prox.id); return; }
+      }
+      document.getElementById("lote-esteira")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    const primeira = pendentes[0];
+    if (primeira) document.getElementById(`ficha-item-${primeira.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   const turnosDoLote = useMemo(
     () => turnos.filter((t) => t.ativo !== false && (!t.unidade_id || t.unidade_id === unidadeLoteId)),
     [turnos, unidadeLoteId],
@@ -459,6 +515,61 @@ export default function DpFichaRegistroImportar() {
     });
   };
 
+  /** Progresso da leitura do PDF (aparece no cartão do lote e no envio aberto). */
+  const blocoLeitura = processando && atual ? (
+<div className="space-y-1">
+                <Progress
+                  value={atual!.total_paginas ? (atual!.paginas_processadas / atual!.total_paginas) * 100 : 8}
+                />
+                {travada ? (
+                  <p className="text-xs text-destructive">
+                    A leitura parou de responder na página {atual!.paginas_processadas} de{" "}
+                    {atual!.total_paginas || "…"}. Tente novamente — não é preciso reenviar o PDF.
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Lendo página {atual!.paginas_processadas} de {atual!.total_paginas || "…"}
+                    {" · "}
+                    {atual!.fichas_identificadas ?? 0} ficha(s) encontrada(s) até aqui — pode deixar a tela aberta.
+                  </p>
+                )}
+                <div className="flex flex-wrap justify-end gap-2">
+                  {travada && (
+                    <Button
+                      size="sm"
+                      className="h-8"
+                      disabled={repetir.isPending}
+                      onClick={() =>
+                        repetir.mutate(atual!, {
+                          onSuccess: () => toast.success("Leitura reiniciada."),
+                          onError: (e) => toast.error((e as Error).message),
+                        })
+                      }
+                    >
+                      {repetir.isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+                      Tentar novamente
+                    </Button>
+                  )}
+                  <ConfirmarAcaoDialog
+                    titulo="Cancelar a leitura?"
+                    descricao="A leitura deste arquivo será interrompida. Depois você pode tentar novamente sem reenviar o PDF."
+                    confirmar="Cancelar leitura"
+                    onConfirm={() =>
+                      cancelar.mutate(atual!.id, {
+                        onSuccess: () => toast.success("Leitura cancelada."),
+                        onError: (e) => toast.error((e as Error).message),
+                      })
+                    }
+                    disabled={cancelar.isPending}
+                  >
+                    <Button variant="outline" size="sm" className="h-8" disabled={cancelar.isPending}>
+                      Cancelar leitura
+                    </Button>
+                  </ConfirmarAcaoDialog>
+                </div>
+              </div>
+  ) : null;
+
   return (
     <DpPage>
       <DpPageHeader
@@ -487,19 +598,78 @@ export default function DpFichaRegistroImportar() {
       )}
 
       {compacto && atual && (
-        <Card>
-          <CardContent className="flex items-center gap-3 p-3">
-            <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{atual.arquivo_nome}</p>
-              <p className="text-xs text-muted-foreground tabular-nums">
-                {itens.length} fichas · {prontos.length} no cadastro
-              </p>
+        <Card className={cn(pendentes.length > 0 && "border-primary/40 bg-primary/5")} aria-label="Lote em andamento">
+          <CardContent className="space-y-3 p-4">
+            <div className="flex items-start gap-3">
+              <FileText className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium text-muted-foreground">
+                  {processando || atual.status === "pending"
+                    ? "Lendo o arquivo que você enviou"
+                    : pendentes.length > 0
+                      ? "Lote em conferência"
+                      : "Último lote"}
+                </p>
+                <p className="break-words text-sm font-semibold">{atual.arquivo_nome}</p>
+                <p className="text-xs text-muted-foreground">
+                  Enviado em{" "}
+                  {new Date(atual.created_at).toLocaleString("pt-BR", {
+                    day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
+                  })}
+                </p>
+              </div>
             </div>
-            <Button variant="outline" size="sm" className="h-10 shrink-0 rounded-full" onClick={() => setEnvioAberto(true)}>
-              <Upload className="h-4 w-4 sm:mr-1.5" />
-              <span className="sr-only sm:not-sr-only">Novo envio</span>
-            </Button>
+
+            {blocoLeitura}
+
+            {!processando && itens.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-sm tabular-nums">
+                  <strong>{conferidas} de {itens.length}</strong> fichas conferidas
+                  {pendentes.length > 0 && (
+                    <span className="text-muted-foreground">
+                      {" · "}{pendentes.length} aguardando você
+                    </span>
+                  )}
+                </p>
+                <Progress value={(conferidas / itens.length) * 100} className="h-1.5" />
+              </div>
+            )}
+
+            {outrosEmAndamento.length > 0 && (
+              <div className="space-y-1 rounded-lg border bg-card p-2">
+                <p className="text-xs text-muted-foreground">
+                  {outrosEmAndamento.length === 1 ? "Outro envio também espera conferência:" : "Outros envios também esperam conferência:"}
+                </p>
+                {outrosEmAndamento.slice(0, 3).map((o) => (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() => setImportacaoId(o.id)}
+                    className="flex min-h-10 w-full items-center gap-2 rounded-md px-2 text-left text-sm hover:bg-muted"
+                  >
+                    <span className="min-w-0 flex-1 truncate font-medium">{o.arquivo_nome}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">{situacaoEnvio(o, resumoEnvios[o.id])}</span>
+                    <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="flex flex-col gap-2 sm:flex-row">
+              {pendentes.length > 0 && !bloqueadoPorEmpresa && (
+                <Button className="h-11 w-full sm:w-auto" onClick={continuarConferencia}>
+                  Continuar conferência <ArrowRight className="ml-1 h-4 w-4" />
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                className="h-11 w-full sm:w-auto"
+                onClick={() => setEnvioAberto(true)}
+              >
+                <Plus className="mr-1 h-4 w-4" /> Enviar outro arquivo
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -509,7 +679,7 @@ export default function DpFichaRegistroImportar() {
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
           <CardTitle className="text-base">Enviar ficha em PDF</CardTitle>
-          {modoLote && (
+          {(modoLote || emAndamento) && (
             <Button variant="ghost" size="sm" className="h-9" onClick={() => setEnvioAberto(false)}>
               <ChevronUp className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Recolher</span>
             </Button>
@@ -564,9 +734,7 @@ export default function DpFichaRegistroImportar() {
                       day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
                     })}
                     {" · "}
-                    {imp.fichas_identificadas ?? 0} ficha(s)
-                    {" · "}
-                    {STATUS_ENVIO[imp.status] ?? imp.status}
+                    {situacaoEnvio(imp, resumoEnvios[imp.id])}
                   </span>
                 </button>
                 {imp.arquivo_path ? (
@@ -601,59 +769,7 @@ export default function DpFichaRegistroImportar() {
               </div>
             </div>
 
-            {processando && (
-              <div className="space-y-1">
-                <Progress
-                  value={atual.total_paginas ? (atual.paginas_processadas / atual.total_paginas) * 100 : 8}
-                />
-                {travada ? (
-                  <p className="text-xs text-destructive">
-                    A leitura parou de responder na página {atual.paginas_processadas} de{" "}
-                    {atual.total_paginas || "…"}. Tente novamente — não é preciso reenviar o PDF.
-                  </p>
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    Lendo página {atual.paginas_processadas} de {atual.total_paginas || "…"}
-                    {" · "}
-                    {atual.fichas_identificadas ?? 0} ficha(s) encontrada(s) até aqui — pode deixar a tela aberta.
-                  </p>
-                )}
-                <div className="flex flex-wrap justify-end gap-2">
-                  {travada && (
-                    <Button
-                      size="sm"
-                      className="h-8"
-                      disabled={repetir.isPending}
-                      onClick={() =>
-                        repetir.mutate(atual, {
-                          onSuccess: () => toast.success("Leitura reiniciada."),
-                          onError: (e) => toast.error((e as Error).message),
-                        })
-                      }
-                    >
-                      {repetir.isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
-                      Tentar novamente
-                    </Button>
-                  )}
-                  <ConfirmarAcaoDialog
-                    titulo="Cancelar a leitura?"
-                    descricao="A leitura deste arquivo será interrompida. Depois você pode tentar novamente sem reenviar o PDF."
-                    confirmar="Cancelar leitura"
-                    onConfirm={() =>
-                      cancelar.mutate(atual.id, {
-                        onSuccess: () => toast.success("Leitura cancelada."),
-                        onError: (e) => toast.error((e as Error).message),
-                      })
-                    }
-                    disabled={cancelar.isPending}
-                  >
-                    <Button variant="outline" size="sm" className="h-8" disabled={cancelar.isPending}>
-                      Cancelar leitura
-                    </Button>
-                  </ConfirmarAcaoDialog>
-                </div>
-              </div>
-            )}
+            {blocoLeitura}
 
             {atual.status === "ready" && (
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-dashed p-3">
@@ -795,7 +911,7 @@ export default function DpFichaRegistroImportar() {
       )}
 
       {modoLote && !bloqueadoPorEmpresa && (
-        <section className="space-y-3" aria-label="Organizar o lote">
+        <section id="lote-esteira" className="scroll-mt-20 space-y-3" aria-label="Organizar o lote">
           <FichaLoteEtapas
             atual={etapaAtual}
             concluidas={[...(unidadeLoteId ? [1 as EtapaLote] : []), ...(organizacao?.organizado_em ? [2 as EtapaLote] : [])]}
@@ -899,6 +1015,8 @@ export default function DpFichaRegistroImportar() {
                 onAplicarMarcadas={(ids, titulo) => setPadroesAbertura({ escopo: "grupo", ids, titulo })}
                 onPreencherContatos={(foco) => setContatosFoco({ foco })}
                 onAssinaturaPapel={(ids, papel) => aplicarGrupo(ids, { assinatura_papel: papel }).catch(() => undefined)}
+                onReativar={reativarDaLista}
+                reativandoId={reativar.isPending ? reativar.variables ?? null : null}
               />
               <ContatosLoteDialog
                 open={!!contatosFoco}
@@ -1030,6 +1148,7 @@ export default function DpFichaRegistroImportar() {
                   toast.success("Todas as fichas deste lote foram conferidas.");
                 }
               }}
+              onIgnorado={fluxoLivre ? (itemId, nome) => aoIgnorar(itemId, nome, false) : undefined}
               item={item}
               cargos={cargos.map((c) => ({ id: c.id, nome: c.nome, cbo: c.cbo }))}
               turnos={turnos}
@@ -1044,6 +1163,22 @@ export default function DpFichaRegistroImportar() {
               pessoaApoioId={pessoaApoioId}
             />
             </div>
+          ))}
+        </div>
+      )}
+
+      {!modoLote && fluxoLivre && ignoradas.length > 0 && (
+        <div className="space-y-2">
+          <h2 className="text-sm font-semibold">Ignoradas ({ignoradas.length})</h2>
+          {ignoradas.map((item) => (
+            <FichaRevisaoCard
+              key={item.id}
+              item={item}
+              cargos={cargosLista}
+              unidades={unidadesDaEmpresa}
+              unidadePadraoId={null}
+              empresaCnpj={empresaCnpj}
+            />
           ))}
         </div>
       )}
@@ -1114,6 +1249,7 @@ export default function DpFichaRegistroImportar() {
                   rodapeContainer={rodapeFichaEl}
                   vinculoLote={vinculoOrganizado(itemAberto, organizacao)}
                   onAbrirCadastro={setCadastroAbertoId}
+                  onIgnorado={(itemId, nome) => aoIgnorar(itemId, nome, true)}
                   onConcluido={(itemId, nome) => {
                     const prox = proximaPendente(itemId);
                     if (prox) {

@@ -15,6 +15,7 @@ import {
   reativarFichaRpc,
 } from "@/lib/dp/ficha-registro/aplicarFichaRpc";
 import { DP_DOCUMENTOS_BUCKET } from "@/hooks/useDpDocumentos";
+import { resumirEnvios } from "@/lib/dp/ficha-registro/lote-andamento";
 import type { AjusteFichaLote, EscolhasLote, OrganizacaoLote } from "@/lib/dp/ficha-registro/organizacao-lote";
 import { registrarDocumento as registrarDocumentoOficial } from "@/lib/dp/documentos-oficial";
 import {
@@ -689,5 +690,28 @@ export function useNotificarLoteFicha() {
       return data as ResultadoRepasseLote;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_ficha_importacoes"] }),
+  });
+}
+
+/**
+ * Quantas fichas de cada envio ainda aguardam conferência, foram ignoradas ou
+ * já viraram cadastro. A chave começa com "dp_ficha_itens" para acompanhar as
+ * mesmas atualizações das fichas (aplicar, ignorar, reativar).
+ */
+export function useDpFichaResumoEnvios(importacaoIds: string[]) {
+  const { selectedCompanyId } = useCompanyContext();
+  return useQuery({
+    queryKey: ["dp_ficha_itens", selectedCompanyId, "__resumo", ...importacaoIds],
+    enabled: !!selectedCompanyId && importacaoIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dp_ficha_importacao_itens")
+        .select("importacao_id, status")
+        .eq("company_id", selectedCompanyId!)
+        .in("importacao_id", importacaoIds)
+        .limit(5000);
+      if (error) throw error;
+      return resumirEnvios((data ?? []) as Array<{ importacao_id: string; status: string }>);
+    },
   });
 }
