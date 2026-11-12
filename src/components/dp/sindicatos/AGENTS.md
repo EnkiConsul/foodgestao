@@ -1,0 +1,3 @@
+# Sindicatos
+
+- Union base: `dp_sindicatos_catalogo` is shared, read-only for clients and written only by SECURITY DEFINER triggers/RPC; company unions link by valid CNPJ (`catalogo_id`), links accumulate unit cities within the catalog UF, and `dp_sindicato_adotar` reuses or copies into the company — client contact names/emails never enter the shared base. Bulk labor framing uses `dp_sindicato_vincular_cargos_sem_laboral` (only active jobs with no labor union; never replaces links), the confirmation dialog lists the jobs that will be framed before linking while the server count stays authoritative, and batch/quick-form defaults come from `laboralPadraoDaUnidade` — never auto-pick when two unions qualify.
