@@ -17,6 +17,8 @@ interface Props {
   onChange: (id: string) => void;
   /** Nome do cargo lido na ficha, oferecido para cadastro em 1 toque. */
   nomeLido?: string | null;
+  /** CBO lido na ficha: acompanha o cadastro rápido só quando o nome é o lido. */
+  cboLido?: string | null;
   /** Cargo parecido (ex.: mesmo CBO), mostrado como sugestão no topo. */
   sugestaoId?: string | null;
   /** Rótulo de reserva enquanto um cargo recém-criado ainda não chegou na lista. */
@@ -32,7 +34,7 @@ interface Props {
  * (sem janela flutuante), para não brigar com o teclado nem com a rolagem
  * da gaveta no celular.
  */
-export function CargoBuscaSelect({ id, cargos, value, onChange, nomeLido, sugestaoId, rotuloReserva, onCriar, classeRealce }: Props) {
+export function CargoBuscaSelect({ id, cargos, value, onChange, nomeLido, cboLido, sugestaoId, rotuloReserva, onCriar, classeRealce }: Props) {
   const [aberto, setAberto] = useState(false);
   const [busca, setBusca] = useState("");
   const ordenados = useMemo(() => [...cargos].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")), [cargos]);
@@ -42,6 +44,9 @@ export function CargoBuscaSelect({ id, cargos, value, onChange, nomeLido, sugest
   const buscaLimpa = busca.trim();
   const nomeNovo = (buscaLimpa || lido).toUpperCase();
   const jaExiste = !!nomeNovo && cargos.some((c) => normalizeCargoNome(c.nome) === normalizeCargoNome(nomeNovo));
+  // Mesmo critério do cadastro do cargo: o CBO só vai junto com o nome lido.
+  const cbo = String(cboLido ?? "").trim();
+  const cboDoNovo = cbo && lido && normalizeCargoNome(nomeNovo) === normalizeCargoNome(lido) ? cbo : null;
 
   const escolher = (cargoId: string) => {
     onChange(cargoId);
@@ -85,7 +90,14 @@ export function CargoBuscaSelect({ id, cargos, value, onChange, nomeLido, sugest
                   className="min-h-10 text-primary"
                 >
                   <Plus className="mr-2 h-4 w-4 shrink-0" />
-                  <span className="truncate">Cadastrar “{nomeNovo}”</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate">Cadastrar “{nomeNovo}”</span>
+                    {cboDoNovo && (
+                      <span className="mt-0.5 inline-flex rounded-full border border-border bg-muted px-1.5 py-0 text-[11px] font-medium text-muted-foreground">
+                        CBO sugerido: {cboDoNovo}
+                      </span>
+                    )}
+                  </span>
                 </CommandItem>
               </CommandGroup>
             )}

@@ -71,3 +71,15 @@ export function situacaoEnvio(env: EnvioFichas, resumo?: ResumoEnvioFichas): str
   if (r.ignoradas > 0) partes.push(`${r.ignoradas} ${r.ignoradas === 1 ? "ignorada" : "ignoradas"}`);
   return partes.join(" · ");
 }
+
+export type DesfechoLote = "todas_cadastradas" | "com_ignoradas" | null;
+
+/**
+ * Fim do lote: só diz "todas cadastradas" quando ninguém foi ignorado. Lote
+ * sem pendências mas com fichas ignoradas fica em aberto para reconsiderar —
+ * nunca anunciar que todas viraram colaboradores.
+ */
+export function desfechoLote(r: { total: number; pendentes: number; ignoradas: number }): DesfechoLote {
+  if (r.total === 0 || r.pendentes > 0) return null;
+  return r.ignoradas > 0 ? "com_ignoradas" : "todas_cadastradas";
+}

@@ -1104,6 +1104,7 @@ export function FichaRevisaoCard({
                 value={cargoId}
                 onChange={setCargoId}
                 nomeLido={(dados.cargo_nome as string) ?? null}
+                cboLido={dados.cbo ? String(dados.cbo) : null}
                 sugestaoId={cargoPorCbo?.id ?? null}
                 rotuloReserva={cargoId && cargoCriado?.id === cargoId ? cargoCriado.nome : null}
                 onCriar={abrirCadastroCargo}

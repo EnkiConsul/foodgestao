@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Store } from "lucide-react";
+import { HandCoins, Loader2, Store } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -701,7 +701,7 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
               </div>
             )}
           </div>
-          <div className="space-y-3 rounded-xl border border-border p-3">
+          <div id="unidade-adiantamento" className="scroll-mt-4 space-y-3 rounded-xl border border-border p-3">
             <div className="flex min-h-11 items-center gap-3">
             <Switch
               id="tem_adiantamento"
@@ -772,6 +772,15 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
                     : "Aviso a cada pedido feito pelo portal."}
                 </p>
               </div>
+            )}
+            {/* Só depois de gravado ligado: antes disso não há relação para ver. */}
+            {unidadeId && form.tem_adiantamento && gravada?.tem_adiantamento && (
+              <Button asChild variant="outline" className="min-h-11 w-full sm:w-auto">
+                <Link to={`/dp/adiantamentos?unidade=${unidadeId}`} onClick={() => onOpenChange(false)}>
+                  <HandCoins className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Ver relação de adiantamentos desta unidade
+                </Link>
+              </Button>
             )}
           </div>
         </TabsContent>

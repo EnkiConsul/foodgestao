@@ -3,10 +3,10 @@
 // contabilidade. Aberta pelos avisos de adiantamento e pela unidade.
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Download, FileSpreadsheet, HandCoins, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, FileSpreadsheet, HandCoins, Loader2, Settings2 } from "lucide-react";
 import { DpEmptyState, DpPage, DpPageHeader } from "@/components/dp/DpPage";
 import { DpErrorState } from "@/components/dp/DpErrorState";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,9 @@ import { cpfFmt } from "@/lib/dp/termos-freelancer";
 import { cn } from "@/lib/utils";
 
 const TODAS = "todas";
+const oferece = (u: { tem_adiantamento?: boolean | null; dia_adiantamento?: number | null }) =>
+  !!u.tem_adiantamento && !!u.dia_adiantamento;
+const linkConfigurar = (id: string) => `/dp/cadastros/unidades?editar=${id}&aba=dados&foco=adiantamento`;
 const hoje = () => new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
 const brl = (v: number | null) => (v == null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
 
@@ -70,15 +73,33 @@ function LinhaCard({ l, mostrarUnidade }: { l: LinhaRelacao; mostrarUnidade: boo
   </li>;
 }
 
+function AvisoConfigurar({ titulo, texto, rotulo, to }: { titulo: string; texto: string; rotulo: string; to: string }) {
+  return <section className="space-y-3 rounded-2xl border border-dashed bg-muted/30 p-4" aria-label={titulo}>
+    <div className="flex gap-3">
+      <HandCoins className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+      <div className="min-w-0 space-y-1">
+        <h2 className="text-sm font-semibold">{titulo}</h2>
+        <p className="text-sm text-muted-foreground">{texto}</p>
+      </div>
+    </div>
+    <Button asChild className="h-auto min-h-11 w-full whitespace-normal py-2 text-center sm:w-auto">
+      <Link to={to}><Settings2 className="mr-2 h-4 w-4 shrink-0" aria-hidden="true" />{rotulo}</Link>
+    </Button>
+  </section>;
+}
+
 export default function DpAdiantamentosRelacao() {
   const [params, setParams] = useSearchParams();
   const { selectedCompanyId, companies } = useCompanyContext();
   const empresa = companies.find((c) => c.id === selectedCompanyId);
   const unidadesQ = useDpUnidades();
-  const unidades = useMemo(
-    () => (unidadesQ.data ?? []).filter((u) => u.company_id === selectedCompanyId && u.tem_adiantamento && u.dia_adiantamento),
+  // Todas as unidades ativas aparecem no seletor: a que não oferece
+  // adiantamento é sinalizada, nunca some sem explicação.
+  const unidadesEmpresa = useMemo(
+    () => (unidadesQ.data ?? []).filter((u) => u.company_id === selectedCompanyId && u.ativo),
     [unidadesQ.data, selectedCompanyId],
   );
+  const unidades = useMemo(() => unidadesEmpresa.filter(oferece), [unidadesEmpresa]);
 
   // Aviso de pedido: abre a competência e a unidade daquele pedido.
   const solicitacaoId = params.get("solicitacao");
@@ -102,8 +123,11 @@ export default function DpAdiantamentosRelacao() {
   }, [solicitacaoQ.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const unidadeParam = params.get("unidade");
-  const unidadeId = unidadeParam && unidades.some((u) => u.id === unidadeParam) ? unidadeParam : unidades.length === 1 ? unidades[0].id : TODAS;
-  const unidade = unidades.find((u) => u.id === unidadeId) ?? null;
+  const unidadeId = unidadeParam && unidadesEmpresa.some((u) => u.id === unidadeParam) ? unidadeParam : unidades.length === 1 ? unidades[0].id : TODAS;
+  const unidadeEscolhida = unidadesEmpresa.find((u) => u.id === unidadeId) ?? null;
+  /** Unidade escolhida sem adiantamento: mostra o motivo e o atalho, não uma lista vazia. */
+  const unidadeSemAdiantamento = unidadeEscolhida && !oferece(unidadeEscolhida) ? unidadeEscolhida : null;
+  const unidade = unidadeEscolhida && !unidadeSemAdiantamento ? unidadeEscolhida : null;
   const diaRef = unidade?.dia_adiantamento ?? unidades[0]?.dia_adiantamento ?? 15;
   const compParam = params.get("competencia");
   const competencia = compParam && /^\d{4}-(0[1-9]|1[0-2])$/.test(compParam) ? compParam : competenciaDoProximoPagamento(hoje(), diaRef);
@@ -116,7 +140,7 @@ export default function DpAdiantamentosRelacao() {
 
   const relacaoQ = useQuery({
     queryKey: ["dp_adiantamento_relacao", selectedCompanyId, competencia, unidadeId],
-    enabled: !!selectedCompanyId && !solicitacaoId,
+    enabled: !!selectedCompanyId && !solicitacaoId && unidades.length > 0 && !unidadeSemAdiantamento,
     queryFn: () => carregarRelacao(selectedCompanyId!, competencia, unidadeId === TODAS ? null : unidadeId),
   });
   const linhas = relacaoQ.data ?? [];
@@ -129,7 +153,7 @@ export default function DpAdiantamentosRelacao() {
   const meta = {
     empresa: empresa ? (empresa.trade_name || empresa.name) : "Empresa",
     cnpj: (empresa as { cnpj?: string | null } | undefined)?.cnpj ?? null,
-    unidade: unidade ? unidade.nome : "Todas as unidades",
+    unidade: unidade ? unidade.nome : unidades.length === 1 ? unidades[0].nome : "Todas as unidades",
     competencia,
   };
   const nomeArquivo = `relacao-adiantamento-${competencia}${unidade ? `-${unidade.nome.toLowerCase().normalize("NFD").replace(/[^\w]+/g, "-")}` : ""}`;
@@ -145,7 +169,9 @@ export default function DpAdiantamentosRelacao() {
     }
   };
 
-  const prazoTexto = unidade
+  const prazoTexto = unidadeSemAdiantamento
+    ? "Esta unidade não oferece adiantamento"
+    : unidade
     ? `Pagamento em ${rotuloDiaMes(pagamentoNaCompetencia(competencia, unidade.dia_adiantamento))} · pedidos pelo portal até ${rotuloDiaMes(limitePedidoPortal(competencia, unidade.dia_adiantamento, unidade.adiantamento_antecedencia_dias))}`
     : "Pagamento e prazo conforme cada unidade";
 
@@ -166,23 +192,28 @@ export default function DpAdiantamentosRelacao() {
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
-      {unidades.length > 1 && (
+      {unidadesEmpresa.length > 1 && (
         <div className="space-y-1">
           <Label htmlFor="relacao-unidade" className="text-xs text-muted-foreground">Unidade</Label>
           <Select value={unidadeId} onValueChange={(v) => mudar({ unidade: v === TODAS ? null : v })}>
             <SelectTrigger id="relacao-unidade" className="min-h-11"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value={TODAS}>Todas as unidades</SelectItem>
-              {unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+              {unidadesEmpresa.map((u) => (
+                <SelectItem key={u.id} value={u.id}>
+                  {u.nome}
+                  {!oferece(u) && <span className="text-muted-foreground"> · sem adiantamento</span>}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
       )}
       <div className="grid grid-cols-2 gap-2">
-        <Button className="min-h-11" disabled={!linhas.length || !!baixando || relacaoQ.isLoading} onClick={() => void baixar("pdf")}>
+        <Button className="min-h-11" disabled={!linhas.length || !!baixando || relacaoQ.isFetching} onClick={() => void baixar("pdf")}>
           {baixando === "pdf" ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Download className="mr-1.5 h-4 w-4" />} Baixar PDF
         </Button>
-        <Button variant="outline" className="min-h-11" disabled={!linhas.length || !!baixando || relacaoQ.isLoading} onClick={() => void baixar("csv")}>
+        <Button variant="outline" className="min-h-11" disabled={!linhas.length || !!baixando || relacaoQ.isFetching} onClick={() => void baixar("csv")}>
           {baixando === "csv" ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <FileSpreadsheet className="mr-1.5 h-4 w-4" />} Planilha
         </Button>
       </div>
@@ -190,10 +221,22 @@ export default function DpAdiantamentosRelacao() {
 
     {relacaoQ.isError ? (
       <DpErrorState message="Não foi possível carregar a relação." onRetry={() => relacaoQ.refetch()} />
-    ) : relacaoQ.isLoading || solicitacaoQ.isLoading || unidadesQ.isLoading ? (
+    ) : unidadesQ.isLoading || solicitacaoQ.isLoading || (relacaoQ.isLoading && relacaoQ.fetchStatus !== "idle") ? (
       <p role="status" className="py-8 text-center text-sm text-muted-foreground">Carregando relação…</p>
     ) : !unidades.length ? (
-      <DpEmptyState icon={HandCoins} dashed>Nenhuma unidade oferece adiantamento salarial. Ative no cadastro da unidade.</DpEmptyState>
+      <AvisoConfigurar
+        titulo="Nenhuma unidade oferece adiantamento salarial"
+        texto="Para os colaboradores pedirem o adiantamento pelo portal, ligue a regra no cadastro da unidade e informe o dia do pagamento e a antecedência."
+        rotulo={unidadesEmpresa.length === 1 ? "Configurar adiantamento da unidade" : "Configurar unidades"}
+        to={unidadesEmpresa.length === 1 ? linkConfigurar(unidadesEmpresa[0].id) : "/dp/cadastros/unidades"}
+      />
+    ) : unidadeSemAdiantamento ? (
+      <AvisoConfigurar
+        titulo={`${unidadeSemAdiantamento.nome} não oferece adiantamento`}
+        texto="Para os colaboradores desta unidade pedirem o adiantamento pelo portal, ligue a regra no cadastro da unidade."
+        rotulo="Configurar adiantamento desta unidade"
+        to={linkConfigurar(unidadeSemAdiantamento.id)}
+      />
     ) : <>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Contador rotulo="Recebem" valor={resumo.recebem} />

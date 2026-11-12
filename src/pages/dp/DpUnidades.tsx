@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Building2, ListChecks, Users, Search, Store, Scale } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, ListChecks, Users, Search, Store, Scale, HandCoins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,6 +42,10 @@ function SeloPonto({ situacao }: { situacao?: PontoConformidade }) {
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${estilo}`}>{texto}</span>
   );
 }
+
+/** Unidade com adiantamento ligado e dia definido: tem relação mensal para ver. */
+const temRelacaoAdiantamento = (u: DpUnidadeWithCounts) =>
+  !!(u as { tem_adiantamento?: boolean | null }).tem_adiantamento && !!(u as { dia_adiantamento?: number | null }).dia_adiantamento;
 
 export default function DpUnidades() {
   const list = useDpUnidades();
@@ -94,9 +98,17 @@ export default function DpUnidades() {
     const aba = params.get("aba") as UnidadeAba | null;
     const abasValidas: UnidadeAba[] = ["dados", "setores", "funcionamento", "feriados", "sindicato"];
     openEdit(alvo, aba && abasValidas.includes(aba) ? aba : "dados");
+    // Vindo da relação de adiantamento: leva direto ao bloco do adiantamento.
+    if (params.get("foco") === "adiantamento") {
+      window.setTimeout(
+        () => document.getElementById("unidade-adiantamento")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+        350,
+      );
+    }
     const next = new URLSearchParams(params);
     next.delete("editar");
     next.delete("aba");
+    next.delete("foco");
     setParams(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params, list.data]);
@@ -233,6 +245,16 @@ export default function DpUnidades() {
                       <Store className="size-3 shrink-0" aria-hidden="true" />
                       {resumos[u.id] ?? "Funcionamento não configurado"}
                     </div>
+                    {temRelacaoAdiantamento(u) && (
+                      <Link
+                        to={`/dp/adiantamentos?unidade=${u.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-primary underline-offset-2 hover:underline"
+                      >
+                        <HandCoins className="size-3 shrink-0" aria-hidden="true" />
+                        Relação de adiantamentos
+                      </Link>
+                    )}
                   </td>
                   <td className="p-4 hidden lg:table-cell text-xs truncate">
                     {u.company_name ?? "—"}
@@ -364,6 +386,13 @@ export default function DpUnidades() {
                 <span className="truncate">{patronais.data?.[u.id]?.nome ?? "Sem sindicato"}</span>
               </span>
             </div>
+            {temRelacaoAdiantamento(u) && (
+              <Button asChild size="sm" variant="outline" className="min-h-11 w-full" onClick={(e) => e.stopPropagation()}>
+                <Link to={`/dp/adiantamentos?unidade=${u.id}`}>
+                  <HandCoins className="size-4 mr-1.5" aria-hidden="true" /> Relação de adiantamentos
+                </Link>
+              </Button>
+            )}
             <div className="flex flex-wrap gap-1 pt-1 border-t border-border/60" onClick={(e) => e.stopPropagation()}>
               <Button size="sm" variant="ghost" className="min-h-11 flex-1" onClick={() => openEdit(u, "funcionamento")}>
                 <Store className="size-4 mr-1" /> Funcionamento
@@ -443,6 +472,14 @@ export default function DpUnidades() {
                     ? `Sim (Dia ${(viewing as any).dia_adiantamento || "—"})`
                     : "Não"}
                 </p>
+                {temRelacaoAdiantamento(viewing) && (
+                  <Link
+                    to={`/dp/adiantamentos?unidade=${viewing.id}`}
+                    className="mt-1 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-primary underline-offset-2 hover:underline"
+                  >
+                    <HandCoins className="size-4" aria-hidden="true" /> Ver relação de adiantamentos
+                  </Link>
+                )}
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground">Pagamento do salário</Label>

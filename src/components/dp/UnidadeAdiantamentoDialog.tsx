@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { HandCoins } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -114,8 +115,11 @@ export function UnidadeAdiantamentoDialog({ unidade, open, onOpenChange }: Props
             </RadioGroup>
           </fieldset>
           {unidade?.id && unidade.tem_adiantamento && (
-            <Button asChild variant="link" className="h-auto px-0">
-              <Link to={`/dp/adiantamentos?unidade=${unidade.id}`} onClick={() => onOpenChange(false)}>Ver relação de adiantamento</Link>
+            <Button asChild variant="outline" className="min-h-11 w-full">
+              <Link to={`/dp/adiantamentos?unidade=${unidade.id}`} onClick={() => onOpenChange(false)}>
+                <HandCoins className="mr-2 h-4 w-4" aria-hidden="true" />
+                Ver relação de adiantamentos desta unidade
+              </Link>
             </Button>
           )}
         </>}

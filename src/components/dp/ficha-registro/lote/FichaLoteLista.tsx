@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { CheckSquare, ChevronRight, FileSignature, KeyRound, Loader2, Plus, RotateCcw, Search, SlidersHorizontal, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Archive, CheckSquare, ChevronRight, FileSignature, KeyRound, Loader2, Plus, RotateCcw, Search, SlidersHorizontal, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -47,6 +47,8 @@ interface Props {
   onReativar?: (itemId: string) => void;
   /** Ficha sendo reativada agora (mostra o carregando só nela). */
   reativandoId?: string | null;
+  /** Muda a cada pedido externo de "Revisar fichas ignoradas" (abre o filtro). */
+  abrirIgnoradas?: number;
 }
 
 const lista = (xs: string[], max = 4) => {
@@ -59,7 +61,7 @@ const lista = (xs: string[], max = 4) => {
 /** Etapa 3: lista enxuta do lote, com atalhos por setor, ação em grupo e contato rápido. */
 export function FichaLoteLista({
   itens, organizacao, cargos, setores, padroes, unidadeId, onAbrir, onAplicarMarcadas, onPreencherContatos, onAssinaturaPapel,
-  onReativar, reativandoId = null,
+  onReativar, reativandoId = null, abrirIgnoradas = 0,
 }: Props) {
   const salarioCargoDe = useDpSalarioCargoResolver();
   const [filtro, setFiltro] = useState<Filtro>("todas");
@@ -67,6 +69,9 @@ export function FichaLoteLista({
   const [busca, setBusca] = useState("");
   const [selecionando, setSelecionando] = useState(false);
   const [marcadas, setMarcadas] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (abrirIgnoradas > 0) setFiltro("ignorada");
+  }, [abrirIgnoradas]);
 
   const linhas = useMemo(
     () =>
@@ -146,9 +151,10 @@ export function FichaLoteLista({
     { id: "pronta", label: "Prontas" },
     { id: "atencao", label: "Atenção" },
     { id: "concluida", label: "No cadastro" },
-    // Só aparece quando há alguma: é por aqui que a pessoa reconsidera.
-    ...(contagem.ignorada > 0 ? [{ id: "ignorada" as const, label: "Ignoradas" }] : []),
   ];
+  // Ignoradas ficam numa faixa própria (não numa 5ª aba): no celular de 360px
+  // cinco abas espremem os rótulos e os contadores.
+  const vendoIgnoradas = filtroEfetivo === "ignorada";
 
   return (
     <div className="space-y-3">
@@ -178,7 +184,7 @@ export function FichaLoteLista({
         </div>
       )}
 
-      <div className={cn("grid gap-1 rounded-xl border bg-card p-1", FILTROS.length > 4 ? "grid-cols-5" : "grid-cols-4")} role="tablist" aria-label="Filtrar fichas">
+      <div className="grid grid-cols-4 gap-1 rounded-xl border bg-card p-1" role="tablist" aria-label="Filtrar fichas">
         {FILTROS.map((f) => (
           <button
             key={f.id}
@@ -196,6 +202,34 @@ export function FichaLoteLista({
           </button>
         ))}
       </div>
+
+      {contagem.ignorada > 0 && (
+        <div
+          className={cn(
+            "flex items-center gap-2 rounded-xl border p-2 pl-3",
+            vendoIgnoradas ? "border-primary/40 bg-primary/5" : "border-border bg-muted/40",
+          )}
+        >
+          <Archive className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <p className="min-w-0 flex-1 text-sm">
+            <span className="font-medium tabular-nums">
+              {contagem.ignorada} {contagem.ignorada === 1 ? "ficha ignorada" : "fichas ignoradas"}
+            </span>
+            <span className="block text-xs text-muted-foreground">
+              {vendoIgnoradas ? "Toque em Reativar para trazer a pessoa de volta." : "Não viram colaborador até você reativar."}
+            </span>
+          </p>
+          <Button
+            size="sm"
+            variant={vendoIgnoradas ? "ghost" : "outline"}
+            className="h-10 shrink-0 bg-background"
+            aria-pressed={vendoIgnoradas}
+            onClick={() => setFiltro(vendoIgnoradas ? "todas" : "ignorada")}
+          >
+            {vendoIgnoradas ? "Ver todas" : "Ver ignoradas"}
+          </Button>
+        </div>
+      )}
 
       {gruposSetor.length > 1 && (
         <div className="scrollbar-none -mx-1 flex gap-1.5 overflow-x-auto px-1" aria-label="Filtrar por setor">

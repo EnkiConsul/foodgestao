@@ -52,7 +52,7 @@ import {
   useCancelarLeituraFicha, useTentarNovamenteFicha, MOTIVO_CANCELADA, useOrganizarLoteFicha,
   useAjustarLoteFicha, jornadaDaFicha, useDpFichaResumoEnvios, useReativarFicha,
 } from "@/hooks/useDpFichaImportacao";
-import { envioEmAndamento, envioParaAbrir, situacaoEnvio } from "@/lib/dp/ficha-registro/lote-andamento";
+import { desfechoLote, envioEmAndamento, envioParaAbrir, situacaoEnvio } from "@/lib/dp/ficha-registro/lote-andamento";
 import { notifyError } from "@/lib/notifyError";
 import { divergenciaLote } from "@/lib/dp/ficha-registro/lote-empresa";
 import { leituraTravada } from "@/lib/dp/ficha-registro/leituraTravada";
@@ -446,6 +446,20 @@ export default function DpFichaRegistroImportar() {
   const emAndamento = fluxoLivre && !!atual && (processando || atual.status === "pending" || pendentes.length > 0);
   const compacto = (modoLote || emAndamento) && !envioAberto;
   const conferidas = prontos.length + ignoradas.length;
+  const desfecho = desfechoLote({ total: itens.length, pendentes: pendentes.length, ignoradas: ignoradas.length });
+  const [pedidoIgnoradas, setPedidoIgnoradas] = useState(0);
+  /** Leva direto às ignoradas: no lote abre a etapa 3 já filtrada; fora dele, rola até a lista. */
+  const revisarIgnoradas = () => {
+    if (modoLote) {
+      setEtapa(3);
+      setPedidoIgnoradas((n) => n + 1);
+      requestAnimationFrame(() =>
+        document.getElementById("lote-lista-fichas")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      );
+      return;
+    }
+    document.getElementById("fichas-ignoradas")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   const continuarConferencia = () => {
     if (modoLote) {
       if (etapaAtual === 3) {
@@ -885,14 +899,37 @@ export default function DpFichaRegistroImportar() {
         </Card>
       )}
 
-      {itens.length > 0 && pendentes.length === 0 && (
+      {desfecho === "com_ignoradas" && (
+        <Card className="border-warning/50 bg-warning/10" aria-label="Lote com fichas ignoradas">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Nenhuma ficha para conferir</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <p>
+              <span className="font-medium tabular-nums">
+                {prontos.length} {prontos.length === 1 ? "ficha cadastrada" : "fichas cadastradas"} e {ignoradas.length}{" "}
+                {ignoradas.length === 1 ? "ignorada" : "ignoradas"}
+              </span>{" "}
+              neste lote. As ignoradas não viraram colaboradores; reative quem precisar sem enviar o PDF de novo.
+            </p>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button className="min-h-11" onClick={revisarIgnoradas}>Revisar fichas ignoradas</Button>
+              {prontos.length > 0 && (
+                <Button asChild variant="outline" className="min-h-11"><Link to="/dp/colaboradores">Ver Colaboradores</Link></Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {desfecho === "todas_cadastradas" && (
         <Card className="border-primary/40 bg-primary/5">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Todas as Fichas Foram Cadastradas</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             <p className="text-muted-foreground">
-              As {itens.length} fichas deste lote já viraram colaboradores. Próximos passos sugeridos:
+              As {prontos.length} fichas deste lote já viraram colaboradores. Próximos passos sugeridos:
             </p>
             <ol className="list-decimal space-y-1 pl-5">
               <li>Confira a lista de colaboradores e complete o que ficou marcado como incompleto.</li>
@@ -1004,7 +1041,9 @@ export default function DpFichaRegistroImportar() {
                   onDesfazer={() => salvarCienciaIntervalo(null).catch(() => undefined)}
                 />
               )}
+              <div id="lote-lista-fichas" className="scroll-mt-20" aria-hidden="true" />
               <FichaLoteLista
+                abrirIgnoradas={pedidoIgnoradas}
                 itens={itens}
                 organizacao={organizacao}
                 cargos={cargosLista}
@@ -1168,7 +1207,7 @@ export default function DpFichaRegistroImportar() {
       )}
 
       {!modoLote && fluxoLivre && ignoradas.length > 0 && (
-        <div className="space-y-2">
+        <div id="fichas-ignoradas" className="scroll-mt-20 space-y-2">
           <h2 className="text-sm font-semibold">Ignoradas ({ignoradas.length})</h2>
           {ignoradas.map((item) => (
             <FichaRevisaoCard

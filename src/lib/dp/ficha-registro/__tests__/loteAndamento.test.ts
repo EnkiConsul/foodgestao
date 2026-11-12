@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { envioParaAbrir, resumirEnvios, situacaoEnvio } from "../lote-andamento";
+import { desfechoLote, envioParaAbrir, resumirEnvios, situacaoEnvio } from "../lote-andamento";
 
 const linhas = [
   ...Array.from({ length: 12 }, () => ({ importacao_id: "rancho", status: "pendente" })),
@@ -41,5 +41,17 @@ describe("situação de cada envio", () => {
     ]).a;
     expect(r.pendentes).toBe(0);
     expect(situacaoEnvio({ id: "a", status: "ready" }, r)).toBe("1 já no cadastro · 1 ignorada");
+  });
+});
+
+describe("desfechoLote", () => {
+  it("20 fichas com 15 cadastradas e 5 ignoradas não anuncia todas cadastradas", () => {
+    expect(desfechoLote({ total: 20, pendentes: 0, ignoradas: 5 })).toBe("com_ignoradas");
+  });
+  it("todas cadastradas só quando não há ignoradas nem pendentes", () => {
+    expect(desfechoLote({ total: 20, pendentes: 0, ignoradas: 0 })).toBe("todas_cadastradas");
+  });
+  it("com fichas a conferir ainda não há desfecho", () => {
+    expect(desfechoLote({ total: 20, pendentes: 1, ignoradas: 5 })).toBeNull();
   });
 });
