@@ -62,6 +62,8 @@ const blank = {
   possui_relogio_ponto: false,
   tem_adiantamento: false,
   dia_adiantamento: "" as string,
+  adiantamento_antecedencia_dias: "5" as string,
+  adiantamento_aviso: "alteracoes" as "alteracoes" | "relacao_mensal",
   pagamento_salario_tipo: "" as "" | "quinto_dia_util" | "dia_fixo",
   pagamento_salario_dia: "" as string,
   banco_horas: false,
@@ -91,6 +93,8 @@ export interface UnidadeEdicao {
   relogio_ponto_dispensa_justificativa?: string | null;
   tem_adiantamento?: boolean | null;
   dia_adiantamento?: number | null;
+  adiantamento_antecedencia_dias?: number | null;
+  adiantamento_aviso?: string | null;
   pagamento_salario_tipo?: string | null;
   pagamento_salario_dia?: number | null;
   banco_horas?: boolean | null;
@@ -236,6 +240,8 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
         possui_relogio_ponto: unidade.possui_relogio_ponto ?? false,
         tem_adiantamento: unidade.tem_adiantamento ?? false,
         dia_adiantamento: unidade.dia_adiantamento != null ? String(unidade.dia_adiantamento) : "",
+        adiantamento_antecedencia_dias: String(unidade.adiantamento_antecedencia_dias ?? 5),
+        adiantamento_aviso: unidade.adiantamento_aviso === "relacao_mensal" ? "relacao_mensal" : "alteracoes",
         pagamento_salario_tipo:
           unidade.pagamento_salario_tipo === "quinto_dia_util" || unidade.pagamento_salario_tipo === "dia_fixo"
             ? unidade.pagamento_salario_tipo
@@ -386,6 +392,12 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
         ...(unidadeId ? {} : { possui_relogio_ponto: form.possui_relogio_ponto }),
         tem_adiantamento: form.tem_adiantamento,
         dia_adiantamento: form.dia_adiantamento ? Number(form.dia_adiantamento) : null,
+        ...(form.tem_adiantamento
+          ? {
+              adiantamento_antecedencia_dias: Math.min(20, Math.max(1, Math.round(Number(form.adiantamento_antecedencia_dias) || 5))),
+              adiantamento_aviso: form.adiantamento_aviso,
+            }
+          : {}),
         pagamento_salario_tipo: form.pagamento_salario_tipo || null,
         pagamento_salario_dia:
           form.pagamento_salario_tipo === "dia_fixo" && form.pagamento_salario_dia ? Number(form.pagamento_salario_dia) : null,
@@ -717,6 +729,48 @@ export function UnidadeFormDialog({ open, onOpenChange, unidade = null, nomeInic
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            )}
+            {form.tem_adiantamento && (
+              <div className="space-y-2">
+                <Label htmlFor="adiantamento_antecedencia_dias">Antecedência mínima para o pedido (dias)</Label>
+                <Input
+                  id="adiantamento_antecedencia_dias"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={20}
+                  value={form.adiantamento_antecedencia_dias}
+                  onChange={(e) => setForm({ ...form, adiantamento_antecedencia_dias: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {(() => {
+                    const dia = Number(form.dia_adiantamento);
+                    const ant = Number(form.adiantamento_antecedencia_dias) || 5;
+                    const prazo = dia && dia - ant >= 1 ? `até o dia ${dia - ant}` : `até ${ant} dias antes do pagamento`;
+                    return `O colaborador pede ou suspende pelo portal ${prazo} para valer no mês; depois, vale a partir do mês seguinte. O gestor altera a qualquer momento, sem antecedência.`;
+                  })()}
+                </p>
+              </div>
+            )}
+            {form.tem_adiantamento && (
+              <div className="space-y-2">
+                <Label>Avisos para a gestão</Label>
+                <Select
+                  value={form.adiantamento_aviso}
+                  onValueChange={(v) => setForm({ ...form, adiantamento_aviso: v as "alteracoes" | "relacao_mensal" })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="alteracoes">Só novas adesões e suspensões</SelectItem>
+                    <SelectItem value="relacao_mensal">Relação completa todo mês</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {form.adiantamento_aviso === "relacao_mensal"
+                    ? "Além de cada pedido, quando o prazo fecha chega o aviso com todos que recebem no mês, pronto para baixar em PDF."
+                    : "Aviso a cada pedido feito pelo portal."}
+                </p>
               </div>
             )}
           </div>

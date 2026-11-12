@@ -85,6 +85,7 @@ const DpHome = lazyWithRetry(() => import("./pages/dp/DpHome"));
 const DpColaboradores = lazyWithRetry(() => import("./pages/dp/DpColaboradores"));
 const DpColaboradoresLixeira = lazyWithRetry(() => import("./pages/dp/DpColaboradoresLixeira"));
 const DpFichaRegistroImportar = lazyWithRetry(() => import("./pages/dp/DpFichaRegistroImportar"));
+const DpAdiantamentosRelacao = lazyWithRetry(() => import("./pages/dp/DpAdiantamentosRelacao"));
 const DpPreadmissoes = lazyWithRetry(() => import("./pages/dp/DpPreadmissoes"));
 const PreAdmissao = lazyWithRetry(() => import("./pages/PreAdmissao"));
 const VagaPublica = lazyWithRetry(() => import("./pages/VagaPublica"));
@@ -556,6 +557,7 @@ const AppRoutes = () => (
         <Route path="colaboradores/importar-ficha" element={<DpFichaRegistroImportar />} />
         <Route path="colaboradores/lixeira" element={<DpColaboradoresLixeira />} />
         <Route path="colaboradores/pre-admissoes" element={<DpPreadmissoes />} />
+        <Route path="adiantamentos" element={<DpAdiantamentosRelacao />} />
 
         <Route path="solicitacoes" element={<Navigate to="/dp/folgas?aba=solicitacoes" replace />} />
         <Route path="folgas" element={<DpFolgasHub />} />

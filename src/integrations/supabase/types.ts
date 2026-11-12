@@ -3724,6 +3724,8 @@ export type Database = {
           id: string
           observacao: string | null
           origem: string
+          termo_documento_id: string | null
+          termo_modo: string | null
           tipo: string
           updated_at: string
         }
@@ -3737,6 +3739,8 @@ export type Database = {
           id?: string
           observacao?: string | null
           origem?: string
+          termo_documento_id?: string | null
+          termo_modo?: string | null
           tipo: string
           updated_at?: string
         }
@@ -3750,6 +3754,8 @@ export type Database = {
           id?: string
           observacao?: string | null
           origem?: string
+          termo_documento_id?: string | null
+          termo_modo?: string | null
           tipo?: string
           updated_at?: string
         }
@@ -3773,6 +3779,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dp_adiantamento_solicitacoes_termo_documento_id_fkey"
+            columns: ["termo_documento_id"]
+            isOneToOne: false
+            referencedRelation: "dp_documentos"
             referencedColumns: ["id"]
           },
         ]
@@ -14456,6 +14469,8 @@ export type Database = {
       }
       dp_unidades: {
         Row: {
+          adiantamento_antecedencia_dias: number
+          adiantamento_aviso: string
           ativo: boolean
           bairro: string | null
           banco_horas: boolean
@@ -14491,6 +14506,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          adiantamento_antecedencia_dias?: number
+          adiantamento_aviso?: string
           ativo?: boolean
           bairro?: string | null
           banco_horas?: boolean
@@ -14526,6 +14543,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          adiantamento_antecedencia_dias?: number
+          adiantamento_aviso?: string
           ativo?: boolean
           bairro?: string | null
           banco_horas?: boolean
@@ -19314,9 +19333,41 @@ export type Database = {
           p_colaborador: string
           p_data: string
           p_observacao?: string
+          p_termo_documento_id?: string
+          p_termo_modo?: string
           p_tipo: string
         }
         Returns: Json
+      }
+      dp_adiantamento_relacao: {
+        Args: { p_company: string; p_competencia: string; p_unidade?: string }
+        Returns: {
+          cargo: string
+          colaborador_id: string
+          dia_adiantamento: number
+          mudanca_data: string
+          mudanca_origem: string
+          nome: string
+          pagamento_em: string
+          regime: string
+          situacao: string
+          termo_documento_id: string
+          termo_situacao: string
+          unidade_id: string
+          unidade_nome: string
+        }[]
+      }
+      dp_adiantamento_solicitar_portal: {
+        Args: { p_documento?: string; p_tipo: string }
+        Returns: Json
+      }
+      dp_adiantamento_termo_descartar: {
+        Args: { p_documento: string }
+        Returns: boolean
+      }
+      dp_adiantamento_termo_preparar: {
+        Args: { p_file_path: string; p_file_size?: number }
+        Returns: string
       }
       dp_adicional_tempo_servico_salvar: {
         Args: { p_company_id: string; p_dados: Json; p_id?: string }
@@ -21641,6 +21692,7 @@ export type Database = {
           unidade_id: string
         }[]
       }
+      dp_portal_meu_adiantamento: { Args: never; Returns: Json }
       dp_portal_meus_contatos: { Args: never; Returns: Json }
       dp_portal_meus_disciplinares: {
         Args: never
@@ -23503,6 +23555,8 @@ export type Database = {
         | "desligamento_aviso"
         | "feriado_convocacao"
         | "ficha_lote_pronto"
+        | "adiantamento_solicitacao"
+        | "adiantamento_relacao"
       dp_ocorrencia_analise_status: "pendente" | "analisada" | "nao_se_aplica"
       dp_ocorrencia_cobertura_execucao:
         | "prevista"
@@ -23993,6 +24047,8 @@ export const Constants = {
         "desligamento_aviso",
         "feriado_convocacao",
         "ficha_lote_pronto",
+        "adiantamento_solicitacao",
+        "adiantamento_relacao",
       ],
       dp_ocorrencia_analise_status: ["pendente", "analisada", "nao_se_aplica"],
       dp_ocorrencia_cobertura_execucao: [

@@ -32,6 +32,8 @@ export type RegistrarDocumentoDados = {
   ferias_gozo_id?: string | null;
   rescisao_grupo_id?: string | null;
   exige_aceite?: boolean | null;
+  /** Só o gestor: via impressa para assinatura à mão (o servidor ignora para o colaborador). */
+  assinatura_fisica?: boolean | null;
 };
 
 export type SubstituirDocumentoPatch = {

@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { notifyError } from "@/lib/notifyError";
 import { negarRegra } from "@/lib/dp/regraAviso";
 import { useMeuVinculoPortal } from "@/hooks/useMeuVinculoPortal";
+import { AdiantamentoPortalCard } from "@/components/dp/adiantamento/AdiantamentoPortalAcao";
 import { atualizarMeuCadastro } from "@/lib/dp/colaborador-oficial";
 import { COLUNAS_COLABORADOR_PUBLICAS, mesclarConfidencial } from "@/lib/dp/confidencial";
 
@@ -168,6 +169,8 @@ export default function DpMeuPerfil() {
               <Field label="E-mail do portal" value={p.email_portal} />
             </CardContent>
           </Card>
+
+          <AdiantamentoPortalCard />
 
           <Card className="dp-content-card">
             <CardHeader><CardTitle className="text-base">Contato & Endereço</CardTitle></CardHeader>

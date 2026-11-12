@@ -75,12 +75,17 @@ export async function registrarAdiantamento(params: {
   tipo: "ativar" | "cancelar";
   data: string;
   observacao?: string | null;
+  /** Só na ativação: termo emitido (documento) ou já assinado em papel. */
+  termoModo?: "documento" | "papel_existente" | null;
+  termoDocumentoId?: string | null;
 }): Promise<AdiantamentoRegistroResultado> {
   const { data, error } = await supabase.rpc("dp_adiantamento_registrar", {
     p_colaborador: params.colaboradorId,
     p_tipo: params.tipo,
     p_data: params.data,
-    p_observacao: params.observacao?.trim() ? params.observacao.trim() : null,
+    p_observacao: params.observacao?.trim() ? params.observacao.trim() : undefined,
+    p_termo_modo: params.termoModo ?? undefined,
+    p_termo_documento_id: params.termoDocumentoId ?? undefined,
   });
   if (error) throw error;
   return data as unknown as AdiantamentoRegistroResultado;

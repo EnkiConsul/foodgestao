@@ -27,6 +27,8 @@ export interface DadosTermoPdf {
   clausulas: string[];
   /** Via impressa para assinar à mão: sem chancela eletrônica e com data em branco. */
   manual?: boolean;
+  /** Fundamento legal abaixo do título (padrão: compensação de jornada). */
+  fundamento?: string;
 }
 
 const AZUL = rgb(0.06, 0.11, 0.24);
@@ -78,7 +80,8 @@ export async function gerarTermoCompensacaoPdf(d: DadosTermoPdf): Promise<Uint8A
   for (const l of quebrarLinhas(d.titulo.toUpperCase(), b, 13, L)) {
     texto(l, M + (L - b.widthOfTextAtSize(l, 13)) / 2, y, 13, b); y -= 17;
   }
-  texto("CLT, art. 59, §§ 2º, 5º e 6º", M + (L - f.widthOfTextAtSize("CLT, art. 59, §§ 2º, 5º e 6º", 8.5)) / 2, y, 8.5, f, CINZA);
+  const fundamento = d.fundamento ?? "CLT, art. 59, §§ 2º, 5º e 6º";
+  texto(fundamento, M + (L - f.widthOfTextAtSize(fundamento, 8.5)) / 2, y, 8.5, f, CINZA);
   y -= 22;
 
   // Partes

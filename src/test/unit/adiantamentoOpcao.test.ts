@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   competenciaEfeito,
   optanteNaCompetencia,
+  prazoPortal,
   situacaoAtual,
   validarSolicitacaoPortal,
 } from "@/lib/dp/adiantamento-opcao";
+import { resumoRelacao, termoPendente } from "@/lib/dp/adiantamento-relacao";
+import { mensagemAdiantamento } from "@/lib/dp/adiantamento-termo";
 import { elegivelDocumento } from "@/lib/dp/pendencias-documentos";
 
 const sol = (tipo: "ativar" | "cancelar", data: string, dia = 15) => ({
@@ -45,15 +48,40 @@ describe("adiantamento por solicitações datadas", () => {
     expect(validarSolicitacaoPortal("2026-07-08", 15, "2026-07-05")).toBeNull();
   });
 
-  it("pedido do portal tem carência de 30 dias", () => {
-    // 01/07 + 30 dias = 31/07 → depois do dia 15 de julho → agosto.
-    expect(competenciaEfeito("2026-07-01", 15, "portal")).toBe("2026-08");
-    // 20/06 + 30 dias = 20/07 → depois do dia 15 → agosto.
-    expect(competenciaEfeito("2026-06-20", 15, "portal")).toBe("2026-08");
-    // 10/07 + 30 dias = 09/08 → antes do dia 25 de agosto → agosto.
-    expect(competenciaEfeito("2026-07-10", 25, "portal")).toBe("2026-08");
-    // Gestor segue sem carência.
-    expect(competenciaEfeito("2026-07-01", 15, "gestor")).toBe("2026-07");
+  it("pedido do portal vale no mês até (pagamento − antecedência) da unidade", () => {
+    // Pagamento dia 20 e 5 dias de antecedência: prazo até 15/07.
+    expect(competenciaEfeito("2026-07-15", 20, "portal", 5)).toBe("2026-07");
+    expect(competenciaEfeito("2026-07-16", 20, "portal", 5)).toBe("2026-08");
+    // Antecedência de 10 dias: prazo até 10/07.
+    expect(competenciaEfeito("2026-07-10", 20, "portal", 10)).toBe("2026-07");
+    expect(competenciaEfeito("2026-07-11", 20, "portal", 10)).toBe("2026-08");
+    // Prazo que cai no mês anterior: pagamento dia 3, 5 dias → até 28/06 para julho.
+    expect(competenciaEfeito("2026-06-28", 3, "portal", 5)).toBe("2026-07");
+    expect(competenciaEfeito("2026-06-29", 3, "portal", 5)).toBe("2026-08");
+  });
+
+  it("gestor não tem antecedência", () => {
+    expect(competenciaEfeito("2026-07-19", 20, "gestor")).toBe("2026-07");
+    expect(competenciaEfeito("2026-07-20", 20, "gestor")).toBe("2026-08");
+  });
+
+  it("prazo do portal informa se ainda dá tempo para o próximo pagamento", () => {
+    const dentro = prazoPortal("2026-07-12", 20, 5);
+    expect(dentro).toMatchObject({ competencia: "2026-07", limite: "2026-07-15", pagamento: "2026-07-20", noProximoPagamento: true });
+    const fora = prazoPortal("2026-07-17", 20, 5);
+    expect(fora).toMatchObject({ competencia: "2026-08", competenciaProxima: "2026-07", noProximoPagamento: false });
+  });
+
+  it("antes da primeira solicitação o estado é o oposto do pedido", () => {
+    // Quem pediu suspensão em agosto estava recebendo antes.
+    expect(optanteNaCompetencia([sol("cancelar", "2026-08-02")], "2026-07", false)).toBe(true);
+    expect(optanteNaCompetencia([sol("ativar", "2026-08-02")], "2026-07", true)).toBe(false);
+  });
+
+  it("ativação continua nos meses seguintes até a suspensão", () => {
+    const hist = [sol("ativar", "2026-01-05")];
+    expect(optanteNaCompetencia(hist, "2026-12")).toBe(true);
+    expect(optanteNaCompetencia([...hist, sol("cancelar", "2026-12-20")], "2027-01")).toBe(false);
   });
 });
 
@@ -100,5 +128,28 @@ describe("elegibilidade de adiantamento por admissão/desligamento", () => {
         diaAdiantamento: 15,
       }),
     ).toBe(true);
+  });
+});
+
+describe("relação de adiantamento", () => {
+  it("suspensos não contam como quem recebe e termo pendente só de quem recebe", () => {
+    const r = resumoRelacao([
+      { situacao: "optante", termo_situacao: "assinado", salario_base: 2000 },
+      { situacao: "nova_adesao", termo_situacao: "aguardando_assinatura", salario_base: 1800 },
+      { situacao: "cancelado", termo_situacao: null, salario_base: 3000 },
+    ]);
+    expect(r).toEqual({ recebem: 2, novas: 1, suspensos: 1, termosPendentes: 1, salarios: 3800 });
+  });
+
+  it("termo em papel declarado pelo gestor não fica pendente", () => {
+    expect(termoPendente("papel_existente")).toBe(false);
+    expect(termoPendente("assinado_papel")).toBe(false);
+    expect(termoPendente("aguardando_via")).toBe(true);
+    expect(termoPendente("sem_termo")).toBe(true);
+  });
+
+  it("recusa do servidor vira frase pelo token", () => {
+    expect(mensagemAdiantamento({ message: "ADIANTAMENTO_TERMO_PENDENTE: assine o termo." })).toMatch(/assine o termo/i);
+    expect(mensagemAdiantamento({ message: "erro qualquer" })).toMatch(/não foi possível/i);
   });
 });

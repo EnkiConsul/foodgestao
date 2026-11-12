@@ -19,6 +19,8 @@ export const NOTIFICACAO_ORIGEM_LABEL: Record<string, string> = {
   dp_elogios: "Reconhecimento",
   dp_desligamento_processos: "Desligamento",
   dp_ficha_importacoes: "Fichas de registro",
+  dp_adiantamento_solicitacoes: "Adiantamento",
+  dp_adiantamento_relacao: "Adiantamento",
 };
 
 export function notificacaoOrigemLabel(refTable: string | null | undefined): string {
@@ -41,6 +43,8 @@ export const NOTIFICACAO_PATH_GESTOR: Record<string, string> = {
   dp_folgas: "/dp/folgas",
   dp_desligamento_processos: "/dp/colaboradores",
   dp_ficha_importacoes: "/dp/colaboradores/importar-ficha",
+  dp_adiantamento_solicitacoes: "/dp/adiantamentos",
+  dp_adiantamento_relacao: "/dp/adiantamentos",
 };
 
 export function notificacaoPathGestor(refTable: string | null | undefined, refId?: string | null, colaboradorId?: string | null): string {
@@ -54,6 +58,9 @@ export function notificacaoPathGestor(refTable: string | null | undefined, refId
   if (refTable === "dp_ficha_importacoes" && refId) return `${base}?lote=${encodeURIComponent(refId)}`;
   // Troca: abre direto o detalhe da troca envolvida.
   if (refTable === "dp_trocas" && refId) return `${base}&troca_id=${encodeURIComponent(refId)}`;
+  // Adiantamento: abre a relação do mês do pedido (ou da unidade avisada).
+  if (refTable === "dp_adiantamento_solicitacoes" && refId) return `${base}?solicitacao=${encodeURIComponent(refId)}`;
+  if (refTable === "dp_adiantamento_relacao" && refId) return `${base}?unidade=${encodeURIComponent(refId)}`;
   // Ocorrência: abre direto o dia/colaborador e a tratativa da ocorrência.
   if (refTable === "dp_ocorrencias" && refId) return `${base}?id=${encodeURIComponent(refId)}`;
   return base;

@@ -30,6 +30,7 @@ import {
   Lock,
   Send,
   User as UserIcon,
+  HandCoins,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -109,6 +110,8 @@ import { agruparFeriadosDia, textoFeriadosDia, type FeriadoDia } from "@/lib/dp/
 import { FERIADO_CATEGORIA_LABEL, type FeriadoCategoria } from "@/lib/dp/feriados";
 import { useMeusPagamentosMarcos } from "@/hooks/useDpPagamentosMarcos";
 import { PagamentosDoDia, PilulaPagamento } from "@/components/dp/calendario/PagamentosDia";
+import { AdiantamentoPortalAcao } from "@/components/dp/adiantamento/AdiantamentoPortalAcao";
+import { useMeuAdiantamento } from "@/hooks/useMeuAdiantamento";
 import { DiasEmLista, type DiaEmLista } from "@/components/dp/DiasEmLista";
 import { SocioBloqueioDialog } from "@/components/dp/SocioBloqueioDialog";
 import { isSocio } from "@/lib/dp/contrato-policy";
@@ -325,6 +328,7 @@ export default function DpMeuCalendario() {
   };
   /** Previsões de salário, adiantamento e VA que valem para mim neste mês. */
   const pagamentos = useMeusPagamentosMarcos(`${ano}-${String(mes).padStart(2, "0")}`, !!meRef.data?.id);
+  const meuAdiantamento = useMeuAdiantamento(!!meRef.data?.id);
 
   /** Atestados e faltas do próprio colaborador, marcados no calendário dele. */
   const marcadoresQuery = useQuery({
@@ -2108,6 +2112,12 @@ export default function DpMeuCalendario() {
       <p className="text-xs text-muted-foreground">
         Clique em um dia para ver detalhes, marcar folga de fim de semana, pedir troca ou solicitar exceção.
       </p>
+      {meuAdiantamento.data?.disponivel && (
+        <section aria-label="Adiantamento salarial" className="rounded-2xl border border-success/30 bg-success/5 p-3">
+          <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><HandCoins className="h-4 w-4 text-success" aria-hidden /> Adiantamento salarial</p>
+          <AdiantamentoPortalAcao info={meuAdiantamento.data} compacto />
+        </section>
+      )}
       </>)}
 
 
@@ -2133,7 +2143,9 @@ export default function DpMeuCalendario() {
                 const fer = feriadoDoDia(selectedDay.iso);
                 const pico = diaEhPico(selectedDay.iso, fer.feriado_nome);
                 const pags = pagamentos.porData.get(selectedDay.iso) ?? [];
-                if (!fer.feriados.length && !pico && !pags.length) return null;
+                const adi = meuAdiantamento.data?.disponivel ? meuAdiantamento.data : null;
+                const diaDoAdiantamento = !!adi && (selectedDay.iso === adi.pagamento_atual || selectedDay.iso === adi.pagamento_pedido);
+                if (!fer.feriados.length && !pico && !pags.length && !diaDoAdiantamento) return null;
                 return (
                   <section className="space-y-2" aria-label="Marcos do dia">
                     <div className="flex flex-wrap items-center gap-1.5">
@@ -2150,6 +2162,12 @@ export default function DpMeuCalendario() {
                       )}
                     </div>
                     <PagamentosDoDia marcos={pags} />
+                    {diaDoAdiantamento && adi && (
+                      <div className="rounded-xl border border-success/30 p-3">
+                        <p className="mb-2 text-xs font-semibold">Seu adiantamento salarial</p>
+                        <AdiantamentoPortalAcao info={adi} compacto />
+                      </div>
+                    )}
                   </section>
                 );
               })()}

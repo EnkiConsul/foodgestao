@@ -1639,6 +1639,13 @@
       "when": 1794439942100,
       "tag": "0233_ficha_lote_ciencia_intervalo_reduzido",
       "breakpoints": true
+    },
+    {
+      "idx": 234,
+      "version": "7",
+      "when": 1794456904309,
+      "tag": "0234_adiantamento_antecedencia_portal_relacao",
+      "breakpoints": true
     }
   ]
 }

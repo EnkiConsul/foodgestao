@@ -7,7 +7,7 @@ import { CargoSelectItems, CargoSelectAviso } from "@/components/dp/cargos/Cargo
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check, Lock, Eye, EyeOff, Sparkles, UserMinus, RotateCcw, MoreHorizontal, FileText, History as HistoryIcon, Building2 } from "lucide-react";
+import { Plus, Pencil, Trash, Trash2, Users, Search, KeyRound, UserPlus, Copy, Check, Lock, Eye, EyeOff, Sparkles, UserMinus, RotateCcw, MoreHorizontal, FileText, History as HistoryIcon, Building2, HandCoins } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -765,6 +765,7 @@ export default function DpColaboradores() {
         actionItems={[
           { key: "novo", label: "Novo colaborador", icon: Plus, primary: true, onSelect: () => setMetodoOpen(true) },
           { key: "acesso-massa", label: "Gerar Acessos ao Portal", icon: KeyRound, onSelect: () => setAcessoMassaOpen(true) },
+          { key: "adiantamentos", label: "Relação de adiantamento", icon: HandCoins, to: "/dp/adiantamentos" },
           { key: "lixeira", label: "Lixeira", icon: Trash, to: "/dp/colaboradores/lixeira", keepVisible: true },
         ]}
       />
