@@ -564,6 +564,8 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName, onCon
           }
           return (
           <>
+        {/* No celular o topo e as páginas rolam juntos; no computador só as colunas rolam. */}
+        <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden lg:flex lg:flex-col">
         <div className="px-4 pt-2 space-y-2">
           {parcial && <LoteParcialAviso resumo={resumo} tipoLabel={docTipoLabel(bLote?.tipo ?? null)} />}
           <ExibirPaginasToggle
@@ -595,7 +597,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName, onCon
             onDesfazer={(id) => compMes && desfazerIntermitente.mutate({ colaboradorId: id, competencia: `${compMes}-01` })}
           />
         </div>
-        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-0 overflow-y-auto lg:overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-0 lg:flex-1 lg:min-h-0 lg:overflow-hidden">
           {/* LEFT: PDF preview */}
           <div className="order-2 lg:order-1 bg-muted/20 border-t lg:border-t-0 lg:border-r flex flex-col min-h-[45vh] lg:min-h-0">
             <div className="flex items-center justify-between gap-1 px-2 sm:px-3 py-2 border-b bg-background/60">
@@ -777,6 +779,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName, onCon
               </div>
             )}
           </div>
+        </div>
         </div>
 
         <DialogFooter className="p-3 border-t bg-background gap-2 shrink-0 flex-col-reverse sm:flex-row">

@@ -63,9 +63,9 @@ export function ConcluirIgnorandoBotao({ semSaida, concluindo, onClick, classNam
 }) {
   return (
     <div className={cn("flex w-full flex-col gap-1 sm:w-auto sm:items-end", className)}>
-      <Button variant="outline" className="w-full sm:w-auto h-11" onClick={onClick} disabled={concluindo}>
+      <Button variant="outline" className="w-full sm:w-auto h-auto min-h-11 whitespace-normal py-2" onClick={onClick} disabled={concluindo}>
         {concluindo ? <Loader2 className="h-4 w-4 mr-1 animate-spin shrink-0" /> : <Check className="h-4 w-4 mr-1 shrink-0" />}
-        <span className="truncate">
+        <span className="text-center leading-tight">
           Concluir lote ignorando {semSaida} {semSaida === 1 ? "página" : "páginas"}
         </span>
       </Button>
