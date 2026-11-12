@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { garantirColaboradorNovo } from "@/lib/billing/excedente-colaboradores";
 import { FranquiaColaboradoresAviso, useEstadoFranquia } from "@/components/billing/FranquiaColaboradoresAviso";
 import { useQuery } from "@tanstack/react-query";
@@ -38,6 +39,7 @@ import { montarPayloadFicha } from "@/lib/dp/ficha-registro/payload";
 import { camposFaltando, resumoFaltando } from "@/lib/dp/cadastro-completude";
 import { useDpSalarioCargoResolver } from "@/hooks/useDpSalarioCargoResolver";
 import { CargoFormDialog } from "@/components/dp/cargos/CargoFormDialog";
+import { CargoBuscaSelect } from "./CargoBuscaSelect";
 import { UnidadeFormDialog } from "@/components/dp/UnidadeFormDialog";
 import { SetorFormDialog } from "@/components/dp/setores/SetorFormDialog";
 import { TurnoForm } from "@/components/dp/TurnoForm";
@@ -146,6 +148,11 @@ interface Props {
   destacarPendencias?: boolean;
   /** Botões fixos no rodapé da janela, acima da área segura do celular. */
   rodapeFixo?: boolean;
+  /**
+   * Base fixa da gaveta de conferência: quando informada, as ações (Ignorar,
+   * Salvar e próxima, Criar cadastro) são desenhadas nela, fora da rolagem.
+   */
+  rodapeContainer?: HTMLElement | null;
   /** Rascunho salvo no lote para esta ficha (dados completados e escolhas). */
   rascunho?: AjusteFichaLote | null;
   /** Forma de pagamento escolhida para o lote/grupo (a escolha na ficha prevalece). */
@@ -164,10 +171,11 @@ export function FichaRevisaoCard({
   item, cargos, unidades, setores = [], turnos = [], unidadePadraoId, empresaCnpj,
   setorPadraoId = null, regimePadrao = null, adiantamentoPadrao = null, onAbrirCadastro, preadmissaoId = null,
   pessoaApoioId = null, posicao, total, emFoco = false, onConcluido, avisoFranquia = true, vinculoLote = null,
-  turnoPadraoId = null, destacarPendencias = false, rodapeFixo = false,
+  turnoPadraoId = null, destacarPendencias = false, rodapeFixo = false, rodapeContainer = null,
   rascunho = null, formaPagamentoPadrao = null, onSalvarRascunho,
   folhaPontoPadrao = null, justificativaPontoPadrao = null, cienciaIntervaloLote = null,
 }: Props) {
+  const comRodape = (node: ReactNode) => (rodapeContainer ? createPortal(node, rodapeContainer) : node);
   const extraidos = (item.dados_extraidos ?? {}) as Record<string, unknown>;
   const confianca = (item.confianca_campos ?? {}) as Record<string, string>;
 
@@ -243,6 +251,12 @@ export function FichaRevisaoCard({
 
   const [verTexto, setVerTexto] = useState(false);
   const [cargoDialog, setCargoDialog] = useState(false);
+  const [cargoNovoNome, setCargoNovoNome] = useState("");
+  const [cargoCriado, setCargoCriado] = useState<{ id: string; nome: string } | null>(null);
+  const abrirCadastroCargo = (nome: string) => {
+    setCargoNovoNome(nome.trim().toUpperCase());
+    setCargoDialog(true);
+  };
   const [unidadeDialog, setUnidadeDialog] = useState(false);
   const [setorDialog, setSetorDialog] = useState(false);
   const [comparacao, setComparacao] = useState(false);
@@ -1082,16 +1096,16 @@ export function FichaRevisaoCard({
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1" id={`ficha-cargo-${item.id}`}>
               <Label className="text-xs">Cargo cadastrado *</Label>
-              <Select value={cargoId ?? undefined} onValueChange={(v) => setCargoId(v)}>
-                <SelectTrigger className={cn("h-9", realce(!cargoId))}>
-                  <SelectValue placeholder="Escolha o cargo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {cargos.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <CargoBuscaSelect
+                cargos={cargos}
+                value={cargoId}
+                onChange={setCargoId}
+                nomeLido={(dados.cargo_nome as string) ?? null}
+                sugestaoId={cargoPorCbo?.id ?? null}
+                rotuloReserva={cargoId && cargoCriado?.id === cargoId ? cargoCriado.nome : null}
+                onCriar={abrirCadastroCargo}
+                classeRealce={realce(!cargoId)}
+              />
               {cargoId && cargoAutomatico === cargoId && (
                 <p className="text-[11px] text-muted-foreground">Preenchido pelo cargo da ficha.</p>
               )}
@@ -1104,7 +1118,7 @@ export function FichaRevisaoCard({
                     <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setCargoId(cargoPorCbo.id)}>
                       Usar {cargoPorCbo.nome}
                     </Button>
-                    <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setCargoDialog(true)}>
+                    <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => abrirCadastroCargo(String(dados.cargo_nome ?? ""))}>
                       <Plus className="mr-1 h-3 w-3" /> Criar “{String(dados.cargo_nome)}”
                     </Button>
                   </div>
@@ -1119,7 +1133,7 @@ export function FichaRevisaoCard({
                         : `Nenhum cargo cadastrado corresponde a “${String(dados.cargo_nome)}”.`
                       : "Escolha o cargo ou cadastre um novo."}
                   </p>
-                  <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setCargoDialog(true)}>
+                  <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => abrirCadastroCargo(String(dados.cargo_nome ?? ""))}>
                     <Plus className="mr-1 h-3 w-3" /> Criar este cargo
                   </Button>
                 </div>
@@ -1132,15 +1146,6 @@ export function FichaRevisaoCard({
                     {patronalUnidade ? ` na convenção ${patronalUnidade.nome}` : " nesta unidade"} quando ainda não houver salário cadastrado.
                   </span>
                 </label>
-              )}
-              {cargoId && (
-                <button
-                  type="button"
-                  className="text-[11px] text-muted-foreground underline underline-offset-2"
-                  onClick={() => setCargoDialog(true)}
-                >
-                  Cadastrar outro cargo
-                </button>
               )}
             </div>
 
@@ -1812,12 +1817,12 @@ export function FichaRevisaoCard({
           />
         )}
 
-        {!aplicado && (
+        {!aplicado && comRodape(
 
           <div
             className={cn(
               "flex flex-wrap justify-end gap-2",
-              rodapeFixo &&
+              rodapeFixo && !rodapeContainer &&
                 "sticky bottom-0 z-10 -mx-4 -mb-4 rounded-b-lg border-t bg-card px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]",
             )}
           >
@@ -1916,10 +1921,17 @@ export function FichaRevisaoCard({
             onOpenChange={setCargoDialog}
             cargo={null}
             inicial={{
-              nome: String(dados.cargo_nome ?? "").toUpperCase(),
-              cbo: String((dados.cbo as string) ?? ""),
+              nome: cargoNovoNome || String(dados.cargo_nome ?? "").toUpperCase(),
+              // O CBO lido só acompanha o nome lido; nome digitado na busca começa sem CBO.
+              cbo:
+                !cargoNovoNome || cargoNovoNome === String(dados.cargo_nome ?? "").trim().toUpperCase()
+                  ? String((dados.cbo as string) ?? "")
+                  : "",
             }}
-            onSaved={(c) => setCargoId(c.id)}
+            onSaved={(c) => {
+              setCargoCriado({ id: c.id, nome: c.nome });
+              setCargoId(c.id);
+            }}
           />
         )}
 

@@ -18,7 +18,7 @@ import { FichaRevisaoCard } from "@/components/dp/ficha-registro/FichaRevisaoCar
 import { FranquiaColaboradoresAviso, useEstadoFranquia } from "@/components/billing/FranquiaColaboradoresAviso";
 import { FichaHistoricoPainel } from "@/components/dp/ficha-registro/FichaHistoricoPainel";
 import { ColaboradorFormDialog } from "@/components/dp/ColaboradorFormDialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { ConferenciaFichaGaveta } from "@/components/dp/ficha-registro/lote/ConferenciaFichaGaveta";
 import { FichaLoteEtapas, type EtapaLote } from "@/components/dp/ficha-registro/lote/FichaLoteEtapas";
 import { FichaLoteUnidade } from "@/components/dp/ficha-registro/lote/FichaLoteUnidade";
 import { FichaLoteCargos } from "@/components/dp/ficha-registro/lote/FichaLoteCargos";
@@ -399,6 +399,8 @@ export default function DpFichaRegistroImportar() {
     ? organizacao?.sindicato_laboral_id ?? laboralSugeridoLote
     : sindicatoLote;
   const itemAberto = itens.find((i) => i.id === abertoId) ?? null;
+  const nomeDaFicha = (i: (typeof itens)[number]) =>
+    String(dadosDaFichaLote(i, organizacao).nome ?? i.nome_extraido ?? "Ficha sem nome");
   const compacto = modoLote && !envioAberto;
   const turnosDoLote = useMemo(
     () => turnos.filter((t) => t.ativo !== false && (!t.unidade_id || t.unidade_id === unidadeLoteId)),
@@ -1072,21 +1074,14 @@ export default function DpFichaRegistroImportar() {
       )}
 
       {modoLote && (
-        <Sheet open={!!itemAberto} onOpenChange={(o) => !o && setAbertoId(null)}>
-          <SheetContent
-            side={isMobile ? "bottom" : "right"}
-            className={cn(
-              "overflow-y-auto p-0",
-              isMobile ? "max-h-[92dvh] rounded-t-2xl" : "w-full sm:max-w-2xl",
-            )}
-          >
-            <SheetHeader className="sticky top-0 z-10 border-b bg-background px-4 py-3 text-left">
-              <SheetTitle className="pr-8 text-base">
-                Ficha {itemAberto ? itens.findIndex((i) => i.id === itemAberto.id) + 1 : ""} de {itens.length}
-              </SheetTitle>
-            </SheetHeader>
-            <div className="p-2 sm:p-3">
-              {itemAberto && (
+        <ConferenciaFichaGaveta
+          fichaId={itemAberto?.id ?? null}
+          nome={itemAberto ? nomeDaFicha(itemAberto) : "Ficha"}
+          posicao={itemAberto ? itens.findIndex((i) => i.id === itemAberto.id) + 1 : 0}
+          total={itens.length}
+          onFechar={() => setAbertoId(null)}
+        >
+          {(rodapeFichaEl) => itemAberto && (
                 <FichaRevisaoCard
                   key={itemAberto.id}
                   avisoFranquia={false}
@@ -1116,10 +1111,9 @@ export default function DpFichaRegistroImportar() {
                   }}
                   destacarPendencias
                   rodapeFixo
+                  rodapeContainer={rodapeFichaEl}
                   vinculoLote={vinculoOrganizado(itemAberto, organizacao)}
                   onAbrirCadastro={setCadastroAbertoId}
-                  posicao={itens.findIndex((i) => i.id === itemAberto.id) + 1}
-                  total={itens.length}
                   onConcluido={(itemId, nome) => {
                     const prox = proximaPendente(itemId);
                     if (prox) {
@@ -1131,10 +1125,8 @@ export default function DpFichaRegistroImportar() {
                     }
                   }}
                 />
-              )}
-            </div>
-          </SheetContent>
-        </Sheet>
+          )}
+        </ConferenciaFichaGaveta>
       )}
 
       {modoLote && (
