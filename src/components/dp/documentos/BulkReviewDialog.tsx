@@ -38,6 +38,17 @@ import { resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { useDpIntermitenteConfirmacoes } from "@/hooks/useDpIntermitenteConfirmacoes";
 import { isIntermitente } from "@/lib/dp/contrato-policy";
 import { notifyError } from "@/lib/notifyError";
+import { docTipoLabel } from "@/lib/dp/documentoTipos";
+import {
+  indicesVisiveis, loteParcial, modoExibicaoInicial, paginaSemSaida, podeConcluirIgnorando,
+  primeiraPendente, proximaPendente, resumoLoteParcial, textoConclusao, type ModoExibicao,
+} from "@/lib/dp/documentos/lote-parcial";
+import { ignorarPaginasLote, reabrirPaginaLote } from "@/lib/dp/documentos/lote-parcial-acoes";
+import { ConcluirIgnorandoBotao, ConcluirIgnorandoDialog, ExibirPaginasToggle, LoteParcialAviso } from "./LoteParcialControles";
+
+const STATUS_PAGINA: Record<string, string> = {
+  imported: "Salva", rejected: "Ignorada", failed: "Falha", dead: "Falha", pending: "A conferir",
+};
 
 // Setup pdfjs worker once
 (pdfjsLib as unknown as { GlobalWorkerOptions: { workerPort: Worker } })
@@ -125,6 +136,8 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName, onCon
     if (!open) setCurrentIdx(0);
     setAguardandoConclusao(false);
     conclusaoNotificada.current = false;
+    pularPendenteRef.current = true;
+    setModoEscolhido(null);
   }, [open, batchId]);
 
   useEffect(() => {
@@ -138,6 +151,22 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName, onCon
 
   const rows = items.data ?? [];
   const current = rows[currentIdx];
+
+  // Lote parcialmente salvo: mostra o que já foi salvo e abre no que falta.
+  const resumo = useMemo(() => resumoLoteParcial(rows as any[]), [rows]);
+  const [modoEscolhido, setModoEscolhido] = useState<ModoExibicao | null>(null);
+  const modo: ModoExibicao = modoEscolhido ?? modoExibicaoInicial(resumo);
+  const visiveis = useMemo(() => indicesVisiveis(rows as any[], modo), [rows, modo]);
+  const posVisivel = visiveis.indexOf(currentIdx);
+  const [concluirOpen, setConcluirOpen] = useState(false);
+  const [concluindo, setConcluindo] = useState(false);
+  const pularPendenteRef = useRef(true);
+  function irPara(delta: number) {
+    if (visiveis.length === 0) return;
+    const pos = posVisivel >= 0 ? posVisivel : 0;
+    const alvo = visiveis[Math.min(visiveis.length - 1, Math.max(0, pos + delta))];
+    if (alvo !== undefined) setCurrentIdx(alvo);
+  }
 
   // Páginas vinculadas antes da regra de vínculo: corrige a natureza ao abrir.
   useNormalizarTipoPorVinculo({
@@ -264,23 +293,58 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName, onCon
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] }),
   });
 
+  function atualizarListasLote() {
+    qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] });
+    qc.invalidateQueries({ queryKey: ["dp_bulk_batch_info", batchId] });
+    qc.invalidateQueries({ queryKey: ["dp_bulk_items"] });
+    qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
+    qc.invalidateQueries({ queryKey: ["dp_bulk_pending_counts"] });
+  }
+
+  /** Ignora páginas, segue para a próxima pendente e fecha a tela se o lote terminar. */
+  async function ignorarPaginas(ids: string[], opts: { desfazer?: boolean } = {}) {
+    const idx = currentIdx;
+    const r = await ignorarPaginasLote(batchId, ids);
+    atualizarListasLote();
+    if (r.status === "imported") {
+      const fim = resumoLoteParcial(r.paginas);
+      toast.success(textoConclusao(fim.salvas, fim.ignoradas));
+      conclusaoNotificada.current = true;
+      onOpenChange(false);
+      onConcluido?.();
+      return;
+    }
+    const prox = proximaPendente(rows as any[], idx, new Set(ids));
+    if (ids.includes((rows as any[])[idx]?.id) && prox >= 0) setCurrentIdx(prox);
+    if (opts.desfazer && ids.length === 1) {
+      const id = ids[0];
+      toast("Página ignorada", { action: { label: "Desfazer", onClick: () => undo.mutate(id) } });
+    }
+  }
+
   const reject = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_bulk_import_items" as any)
-        .update({ status: "rejected", decided_at: new Date().toISOString() }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] }),
+    mutationFn: async (id: string) => ignorarPaginas([id], { desfazer: true }),
+    onError: (e: any) => notifyError(e, { surface: "Importar documentos", action: "ignorar página", fallback: "Falha ao ignorar a página" }),
   });
 
   const undo = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_bulk_import_items" as any)
-        .update({ status: "pending", decided_at: null }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] }),
+    mutationFn: async (id: string) => reabrirPaginaLote(batchId, id),
+    onSuccess: () => atualizarListasLote(),
+    onError: (e: any) => notifyError(e, { surface: "Importar documentos", action: "desfazer", fallback: "Falha ao devolver a página para a conferência" }),
   });
+
+  async function concluirIgnorando() {
+    const ids = (rows as any[]).filter(paginaSemSaida).map((r) => r.id);
+    setConcluindo(true);
+    try {
+      await ignorarPaginas(ids);
+      setConcluirOpen(false);
+    } catch (e: any) {
+      notifyError(e, { surface: "Importar documentos", action: "concluir lote", fallback: "Falha ao concluir o lote" });
+    } finally {
+      setConcluindo(false);
+    }
+  }
 
   const [confirmDup, setConfirmDup] = useState<{
     collisions: DuplicateCollision[];
@@ -341,6 +405,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName, onCon
         details: { batch_id: batchId, ...(e?.details ?? {}) },
       });
     } finally {
+      pularPendenteRef.current = true;
       setIsSaving(false);
     }
   }
@@ -443,6 +508,24 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName, onCon
   );
   const faltantesVisiveis = coverage.faltantes.filter((c) => !dispensadosSet.has(c.id));
 
+  const bLote = batchInfo.data as any;
+  const leituraEmAndamento = !bLote || bLote.status === "processing"
+    || (bLote.status === "ready" && (bLote.total_pages ?? 0) > 0 && rows.length < (bLote.total_pages ?? 0));
+  // Abre (e volta depois de salvar) na primeira página que pede decisão.
+  useEffect(() => {
+    if (!open || leituraEmAndamento || isSaving || !pularPendenteRef.current || rows.length === 0) return;
+    pularPendenteRef.current = false;
+    const cur = (rows as any[])[currentIdx];
+    if (cur && (cur.status === "pending" || cur.status === "failed" || cur.status === "dead")) return;
+    const alvo = primeiraPendente(rows as any[]);
+    if (alvo >= 0) setCurrentIdx(alvo);
+  }, [open, leituraEmAndamento, isSaving, rows, currentIdx]);
+  useEffect(() => {
+    if (open && visiveis.length > 0 && posVisivel < 0 && !isSaving) setCurrentIdx(visiveis[0]);
+  }, [open, visiveis, posVisivel, isSaving]);
+  const parcial = loteParcial(resumo);
+  const concluirIgnorandoDisponivel = podeConcluirIgnorando(resumo);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-screen max-w-[100vw] h-[100dvh] rounded-none sm:rounded-lg sm:max-w-[95vw] sm:w-[1400px] sm:h-[92vh] p-0 flex flex-col overflow-hidden">
@@ -481,7 +564,15 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName, onCon
           }
           return (
           <>
-        <div className="px-4 pt-2">
+        <div className="px-4 pt-2 space-y-2">
+          {parcial && <LoteParcialAviso resumo={resumo} tipoLabel={docTipoLabel(bLote?.tipo ?? null)} />}
+          <ExibirPaginasToggle
+            modo={modo}
+            abertas={resumo.abertas}
+            total={rows.length}
+            onPendentes={() => { setModoEscolhido("pendentes"); const a = primeiraPendente(rows as any[]); if (a >= 0) setCurrentIdx(a); }}
+            onTodas={() => setModoEscolhido("todas")}
+          />
           <ColaboradoresFaltantesPanel
             faltantes={faltantesVisiveis}
             totalEsperados={coverage.esperados.length - (coverage.faltantes.length - faltantesVisiveis.length)}
@@ -511,13 +602,13 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName, onCon
               <Button
                 size="sm" variant="ghost"
                 className="px-2 shrink-0"
-                disabled={currentIdx <= 0}
-                onClick={() => setCurrentIdx((i) => Math.max(0, i - 1))}
+                disabled={posVisivel <= 0}
+                onClick={() => irPara(-1)}
               >
                 <ChevronLeft className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Anterior</span>
               </Button>
               <div className="text-xs text-muted-foreground text-center min-w-0 truncate">
-                Página <b>{current?.page_index ?? "-"}</b> ({currentIdx + 1}/{rows.length})
+                Página <b>{current?.page_index ?? "-"}</b> ({Math.max(0, posVisivel) + 1}/{visiveis.length}{visiveis.length < rows.length ? " pendentes" : ""})
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 <Button size="sm" variant="ghost" className="px-2" onClick={openInNewTab} title="Abrir em nova aba">
@@ -526,8 +617,8 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName, onCon
                 <Button
                   size="sm" variant="ghost"
                   className="px-2"
-                  disabled={currentIdx >= rows.length - 1}
-                  onClick={() => setCurrentIdx((i) => Math.min(rows.length - 1, i + 1))}
+                  disabled={posVisivel < 0 ? visiveis.length === 0 : posVisivel >= visiveis.length - 1}
+                  onClick={() => irPara(1)}
                 >
                   <span className="hidden sm:inline">Próxima</span> <ChevronRight className="h-4 w-4 sm:ml-1" />
                 </Button>
@@ -559,7 +650,8 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName, onCon
                     <Loader2 className="h-4 w-4 animate-spin" /> Processando OCR…
                   </p>
                 )}
-                {rows.map((it, idx) => {
+                {visiveis.map((idx) => {
+                  const it = rows[idx];
                   const active = idx === currentIdx;
                   const colab = colaboradores.find((c: any) => c.id === it.matched_colaborador_id);
                   return (
@@ -581,7 +673,7 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName, onCon
                             : "secondary"
                           }
                         >
-                          {it.status}
+                          {STATUS_PAGINA[it.status] ?? it.status}
                         </Badge>
                       </div>
                       <div className="text-xs text-muted-foreground truncate">
@@ -596,6 +688,18 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName, onCon
                       )}
                       {it.duplicate_of && (
                         <div className="text-[10px] text-destructive mt-0.5">Duplicado</div>
+                      )}
+                      {paginaSemSaida(it) && (
+                        <div className="mt-1 flex justify-end">
+                          <Button
+                            size="sm" variant="ghost" className="h-9 px-2"
+                            disabled={reject.isPending}
+                            onClick={(e) => { e.stopPropagation(); reject.mutate(it.id); }}
+                            aria-label={`Ignorar página ${it.page_index}`}
+                          >
+                            <X className="h-3.5 w-3.5 mr-1" /> Ignorar
+                          </Button>
+                        </div>
                       )}
                     </div>
                   );
@@ -677,6 +781,9 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName, onCon
 
         <DialogFooter className="p-3 border-t bg-background gap-2 shrink-0 flex-col-reverse sm:flex-row">
           <Button variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>Fechar</Button>
+          {concluirIgnorandoDisponivel ? (
+            <ConcluirIgnorandoBotao semSaida={resumo.semSaida} concluindo={concluindo} onClick={() => setConcluirOpen(true)} />
+          ) : (
           <Button
             className="w-full sm:w-auto h-11 sm:h-10"
             onClick={handleApproveClick}
@@ -690,12 +797,20 @@ export function BulkReviewDialog({ open, onOpenChange, batchId, batchName, onCon
               <span className="hidden sm:inline">Aprovar e Salvar {pendingCount} Documento(s)</span>
             </span>
           </Button>
+          )}
         </DialogFooter>
 
           </>
           );
         })()}
       </DialogContent>
+      <ConcluirIgnorandoDialog
+        open={concluirOpen}
+        onOpenChange={setConcluirOpen}
+        resumo={resumo}
+        concluindo={concluindo}
+        onConfirm={() => void concluirIgnorando()}
+      />
       <ConfirmarSemUnidadeDialog
         open={confirmSemUnidade}
         onOpenChange={setConfirmSemUnidade}

@@ -40,6 +40,12 @@ import { tipoCanonicoPorVinculo } from "@/lib/dp/documento-tipo-por-vinculo";
 import { useNormalizarTipoPorVinculo } from "./useNormalizarTipoPorVinculo";
 import { porDocumento, qualquer, resolverPendencias } from "@/lib/dp/pendencias-resolver";
 import { notifyError } from "@/lib/notifyError";
+import { ConcluirIgnorandoBotao, ConcluirIgnorandoDialog, ExibirPaginasToggle, LoteParcialAviso } from "./LoteParcialControles";
+import {
+  indicesVisiveis, loteParcial, modoExibicaoInicial, paginaSemSaida, podeConcluirIgnorando,
+  primeiraPendente, proximaPendente, resumoLoteParcial, textoConclusao, type ModoExibicao,
+} from "@/lib/dp/documentos/lote-parcial";
+import { ignorarPaginasLote, reabrirPaginaLote } from "@/lib/dp/documentos/lote-parcial-acoes";
 
 // Setup pdfjs worker once (shared with BulkReviewDialog)
 (pdfjsLib as unknown as { GlobalWorkerOptions: { workerPort: Worker } })
@@ -143,6 +149,17 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
 
   const rows = items.data ?? [];
   const current = rows[currentIdx];
+
+  // Lote parcialmente salvo: mostra o que já foi salvo e abre no que falta.
+  const resumo = useMemo(() => resumoLoteParcial(rows as any[]), [rows]);
+  const [modoEscolhido, setModoEscolhido] = useState<ModoExibicao | null>(null);
+  const modo: ModoExibicao = modoEscolhido ?? modoExibicaoInicial(resumo);
+  const visiveis = useMemo(() => indicesVisiveis(rows as any[], modo), [rows, modo]);
+  const posVisivel = visiveis.indexOf(currentIdx);
+  const [concluirOpen, setConcluirOpen] = useState(false);
+  const [concluindo, setConcluindo] = useState(false);
+  /** Pula para a primeira pendente ao abrir o lote e depois de cada gravação. */
+  const pularPendenteRef = useRef(true);
 
   // Páginas vinculadas antes da regra de vínculo: corrige a natureza ao abrir.
   useNormalizarTipoPorVinculo({
@@ -285,12 +302,20 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.tagName?.match(/INPUT|TEXTAREA|SELECT/)) return;
-      if (e.key === "ArrowLeft") setCurrentIdx((i) => Math.max(0, i - 1));
-      else if (e.key === "ArrowRight") setCurrentIdx((i) => Math.min(rows.length - 1, i + 1));
+      if (e.key === "ArrowLeft") irPara(-1);
+      else if (e.key === "ArrowRight") irPara(1);
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
-  }, [rows.length]);
+  });
+
+  /** Navega entre as páginas exibidas (todas ou só as pendentes). */
+  function irPara(delta: number) {
+    if (visiveis.length === 0) return;
+    const pos = posVisivel >= 0 ? posVisivel : 0;
+    const alvo = visiveis[Math.min(visiveis.length - 1, Math.max(0, pos + delta))];
+    if (alvo !== undefined) setCurrentIdx(alvo);
+  }
 
   const setColab = useMutation({
     mutationFn: async ({ id, colaborador_id }: { id: string; colaborador_id: string | null }) => {
@@ -415,23 +440,58 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
   });
 
 
+  function atualizarListasLote() {
+    qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] });
+    qc.invalidateQueries({ queryKey: ["dp_bulk_batch_info", batchId] });
+    qc.invalidateQueries({ queryKey: ["dp_bulk_items"] });
+    qc.invalidateQueries({ queryKey: ["dp_bulk_batches"] });
+    qc.invalidateQueries({ queryKey: ["dp_bulk_pending_counts"] });
+  }
+
+  /** Ignora páginas, segue para a próxima pendente e encerra o lote se não sobrar nada. */
+  async function ignorarPaginas(ids: string[], opts: { desfazer?: boolean } = {}) {
+    const idx = currentIdx;
+    const r = await ignorarPaginasLote(batchId, ids);
+    atualizarListasLote();
+    if (r.status === "imported") {
+      const fim = resumoLoteParcial(r.paginas);
+      toast.success(textoConclusao(fim.salvas, fim.ignoradas));
+      onConcluido?.();
+      return;
+    }
+    const prox = proximaPendente(rows as any[], idx, new Set(ids));
+    if (ids.includes((rows as any[])[idx]?.id) && prox >= 0) setCurrentIdx(prox);
+    if (opts.desfazer && ids.length === 1) {
+      const id = ids[0];
+      toast("Página ignorada", {
+        action: { label: "Desfazer", onClick: () => undo.mutate(id) },
+      });
+    }
+  }
+
   const reject = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_bulk_import_items" as any)
-        .update({ status: "rejected", decided_at: new Date().toISOString() }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] }),
+    mutationFn: async (id: string) => ignorarPaginas([id], { desfazer: true }),
+    onError: (e: any) => notifyError(e, { surface: "Importar documentos", action: "ignorar página", fallback: "Falha ao ignorar a página" }),
   });
 
   const undo = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("dp_bulk_import_items" as any)
-        .update({ status: "pending", decided_at: null }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["dp_bulk_items_review", batchId] }),
+    mutationFn: async (id: string) => reabrirPaginaLote(batchId, id),
+    onSuccess: () => atualizarListasLote(),
+    onError: (e: any) => notifyError(e, { surface: "Importar documentos", action: "desfazer", fallback: "Falha ao devolver a página para a conferência" }),
   });
+
+  async function concluirIgnorando() {
+    const ids = (rows as any[]).filter(paginaSemSaida).map((r) => r.id);
+    setConcluindo(true);
+    try {
+      await ignorarPaginas(ids);
+      setConcluirOpen(false);
+    } catch (e: any) {
+      notifyError(e, { surface: "Importar documentos", action: "concluir lote", fallback: "Falha ao concluir o lote" });
+    } finally {
+      setConcluindo(false);
+    }
+  }
 
   const [confirmDup, setConfirmDup] = useState<{
     collisions: DuplicateCollision[];
@@ -527,6 +587,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
         details: { batch_id: batchId, ...(e?.details ?? {}) },
       });
     } finally {
+      pularPendenteRef.current = true;
       setIsSaving(false);
       aprovandoRef.current = false;
     }
@@ -540,22 +601,24 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       <Button
         size="sm" variant="outline"
         className="h-10 px-2 sm:px-3 shrink-0"
-        disabled={currentIdx <= 0}
-        onClick={() => setCurrentIdx((i) => Math.max(0, i - 1))}
+        disabled={posVisivel <= 0}
+        onClick={() => irPara(-1)}
         aria-label="Página anterior"
       >
         <ChevronLeft className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Anterior</span>
       </Button>
       <div className="text-sm text-muted-foreground text-center truncate">
         {rows.length > 0
-          ? <><span className="hidden sm:inline">Página </span><b className="text-foreground">{currentIdx + 1}</b><span className="sm:hidden"> / </span><span className="hidden sm:inline"> de </span>{rows.length}</>
+          ? modo === "pendentes" && visiveis.length < rows.length
+            ? <>Pendente <b className="text-foreground">{posVisivel + 1}</b> de {visiveis.length}<span className="hidden sm:inline"> · página {current?.page_index ?? currentIdx + 1}</span></>
+            : <><span className="hidden sm:inline">Página </span><b className="text-foreground">{currentIdx + 1}</b><span className="sm:hidden"> / </span><span className="hidden sm:inline"> de </span>{rows.length}</>
           : "—"}
       </div>
       <Button
         size="sm" variant="outline"
         className="h-10 px-2 sm:px-3 shrink-0"
-        disabled={currentIdx >= rows.length - 1}
-        onClick={() => setCurrentIdx((i) => Math.min(rows.length - 1, i + 1))}
+        disabled={posVisivel < 0 ? visiveis.length === 0 : posVisivel >= visiveis.length - 1}
+        onClick={() => irPara(1)}
         aria-label="Próxima página"
       >
         <span className="hidden sm:inline">Próximo</span> <ChevronRight className="h-4 w-4 sm:ml-1" />
@@ -709,6 +772,24 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
   );
   const faltantesVisiveis = coverage.faltantes.filter((c) => !dispensados.has(c.id));
 
+  // Abre (e volta depois de salvar) na primeira página que pede decisão.
+  useEffect(() => {
+    if (ocrInProgress || isSaving || !pularPendenteRef.current || rows.length === 0) return;
+    pularPendenteRef.current = false;
+    const cur = (rows as any[])[currentIdx];
+    if (cur && (cur.status === "pending" || cur.status === "failed" || cur.status === "dead")) return;
+    const alvo = primeiraPendente(rows as any[]);
+    if (alvo >= 0) setCurrentIdx(alvo);
+  }, [ocrInProgress, isSaving, rows, currentIdx]);
+  // A página atual sai do filtro de pendentes: segue para uma que esteja nele.
+  useEffect(() => {
+    if (visiveis.length > 0 && posVisivel < 0 && !isSaving) setCurrentIdx(visiveis[0]);
+  }, [visiveis, posVisivel, isSaving]);
+
+  const tipoLabel = docTipoLabel(bInfo?.tipo ?? null);
+  const parcial = !ocrInProgress && !isSaving && loteParcial(resumo);
+  const concluirIgnorandoDisponivel = !ocrInProgress && !isSaving && podeConcluirIgnorando(resumo);
+
 
 
   return (
@@ -738,6 +819,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
             style={{ width: `${progressPct}%` }}
           />
         </div>
+        {parcial && <LoteParcialAviso className="mt-2" resumo={resumo} tipoLabel={tipoLabel} />}
         {!ocrInProgress && !isSaving && (
           <ColaboradoresFaltantesPanel
             className="mt-2"
@@ -789,13 +871,25 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
                           Página {r.page_index}{cpf ? ` · CPF ${cpf}` : ""}
                         </span>
                       </button>
-                      <NovoColaboradorInlineDialog
-                        defaultNome={nome}
-                        defaultCpf={cpf}
-                        defaultUnidadeId={r.detected_unidade_id ?? batchInfo.data?.unidade_id ?? null}
-                        onCreated={(id) => setColab.mutate({ id: r.id, colaborador_id: id })}
-                        trigger={<Button size="sm" variant="outline">Criar Cadastro</Button>}
-                      />
+                      <div className="flex w-full gap-2 sm:w-auto">
+                        <NovoColaboradorInlineDialog
+                          defaultNome={nome}
+                          defaultCpf={cpf}
+                          defaultUnidadeId={r.detected_unidade_id ?? batchInfo.data?.unidade_id ?? null}
+                          onCreated={(id) => setColab.mutate({ id: r.id, colaborador_id: id })}
+                          trigger={<Button size="sm" variant="outline" className="h-10 flex-1 sm:flex-none">Criar Cadastro</Button>}
+                        />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-10 flex-1 sm:flex-none"
+                          disabled={reject.isPending}
+                          onClick={() => reject.mutate(r.id)}
+                          aria-label={`Ignorar página ${r.page_index}${nome ? ` de ${nome}` : ""}`}
+                        >
+                          <X className="h-4 w-4 mr-1" /> Ignorar
+                        </Button>
+                      </div>
                     </li>
                   );
                 })}
@@ -847,6 +941,16 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
           )}
         </div>
       )}
+
+      {/* Exibir só pendentes ou todas — some quando não há o que filtrar */}
+      <ExibirPaginasToggle
+        className="mx-2 sm:mx-3 mt-2"
+        modo={modo}
+        abertas={resumo.abertas}
+        total={rows.length}
+        onPendentes={() => { setModoEscolhido("pendentes"); const a = primeiraPendente(rows as any[]); if (a >= 0) setCurrentIdx(a); }}
+        onTodas={() => setModoEscolhido("todas")}
+      />
 
       {/* Navigation bar (topo) */}
       {pageNav("border-b")}
@@ -1140,7 +1244,7 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
       </div>
 
       {/* Navigation bar (rodapé) — evita rolar até o topo para trocar de página */}
-      {rows.length > 1 && pageNav("border-t")}
+      {visiveis.length > 1 && pageNav("border-t")}
 
       {/* Rodapé de aprovação */}
       {stats.total > 0 && (
@@ -1160,6 +1264,9 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
             </Label>
             </>)}
           </div>
+          {concluirIgnorandoDisponivel ? (
+            <ConcluirIgnorandoBotao semSaida={resumo.semSaida} concluindo={concluindo} onClick={() => setConcluirOpen(true)} />
+          ) : (
           <Button
             className="w-full sm:w-auto h-11"
             onClick={handleApproveClick}
@@ -1177,11 +1284,20 @@ export function BulkReviewInline({ batchId, batchName, onOpenFullscreen, onConcl
               <span className="hidden sm:inline">Aprovar e Salvar {rows.filter((r: any) => r.status === "pending" && r.matched_colaborador_id).length} Documento(s)</span>
             </span>
           </Button>
+          )}
         </div>
       )}
 
       </>
       )}
+
+      <ConcluirIgnorandoDialog
+        open={concluirOpen}
+        onOpenChange={setConcluirOpen}
+        resumo={resumo}
+        concluindo={concluindo}
+        onConfirm={() => void concluirIgnorando()}
+      />
 
       <ConfirmarSemUnidadeDialog
         open={confirmSemUnidade}

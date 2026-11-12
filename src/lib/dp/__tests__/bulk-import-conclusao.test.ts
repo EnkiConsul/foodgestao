@@ -18,12 +18,20 @@ describe("loteConcluido", () => {
     expect(loteConcluido(linhas, ["a"])).toBe(false);
   });
 
-  it("ignora páginas pendentes sem colaborador vinculado", () => {
+  it("mantém o lote aberto quando sobra página sem colaborador (caso Praianos 44 + 2)", () => {
     const linhas = [
       { id: "a", status: "pending", matched_colaborador_id: "c1" },
       { id: "b", status: "pending", matched_colaborador_id: null },
     ];
-    expect(loteConcluido(linhas, ["a"])).toBe(true);
+    expect(loteConcluido(linhas, ["a"])).toBe(false);
+  });
+
+  it("conclui quando a página sem colaborador é ignorada", () => {
+    const linhas = [
+      { id: "a", status: "imported", matched_colaborador_id: "c1" },
+      { id: "b", status: "pending", matched_colaborador_id: null },
+    ];
+    expect(loteConcluido(linhas, [], ["b"])).toBe(true);
   });
 
   it("lote vazio conta como concluído", () => {
