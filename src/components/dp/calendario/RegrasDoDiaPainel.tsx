@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Lock, LockOpen } from "lucide-react";
 import { useDpFolgaLimites } from "@/hooks/useDpFolgaLimites";
-import { cotasPorCargoNoDia, origemLimiteLabel, resolverLimiteFolga, limiteComFolgaFixaDiaUtil } from "@/lib/dp/folga-limites";
+import { cotasPorCargoNoDia, origemLimiteLabel, resolverLimiteFolga, limiteComFolgaFixaDiaUtil, situacaoVagasDia, composicaoLimiteLabel } from "@/lib/dp/folga-limites";
 import { useBloqueiosEfetivos } from "@/hooks/useBloqueiosEfetivos";
 import { useFixosPorDiaSemana } from "@/hooks/useFixosPorDiaSemana";
 import { VagasCargoSetorDia } from "@/components/dp/bloqueios/RestricoesDoDia";
@@ -134,6 +134,8 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
   const bloqueio = efetivos.data?.get(data) ?? null;
   const resolvido = limiteComFolgaFixaDiaUtil(data, resolverLimiteFolga({ data, unidadeId, regras: regrasLimite ?? [], diaConfig }), fixosPorDow.naData(data));
   const lim = resolvido.limite;
+  const situacao = lim == null ? null : situacaoVagasDia(folgasNoDia, lim);
+  const composicao = composicaoLimiteLabel(resolvido);
   const cotas = cotasPorCargoNoDia({ data, unidadeId, regras: regrasLimite ?? [], diaConfig, ocupantes: ocupantes ?? [], cargoNomeById: new Map(cargosQ.data ?? []) });
   const trocasDaUnidade = trocas.filter((t) => nomes.has(t.solicitante_id) || nomes.has(t.destino_id));
   // Teto do dia bloqueado = folgas fixas cadastradas nesse dia da semana
@@ -178,14 +180,16 @@ export function RegrasDoDiaPainel({ companyId, unidadeId, data, folgasNoDia, nom
           <p className="text-sm text-muted-foreground">Nenhum limite cadastrado para este dia. Cadastre uma regra em Folgas &gt; Regras ou ajuste abaixo.</p>
         ) : (
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className={cn("text-2xl font-extrabold tabular-nums", folgasNoDia >= lim ? "text-destructive" : "text-primary")}>
+            <span className={cn("text-2xl font-extrabold tabular-nums", situacao === "excedido" ? "text-destructive" : situacao === "lotado" ? "text-foreground" : "text-primary")}>
               {folgasNoDia}/{lim}
             </span>
-            <span className="text-sm font-semibold">
-              {folgasNoDia >= lim ? "Lotado" : `${lim - folgasNoDia} ${lim - folgasNoDia === 1 ? "vaga livre" : "vagas livres"}`}
+            <span className={cn("text-sm font-semibold", situacao === "excedido" && "text-destructive")}>
+              {situacao === "excedido" ? "Excedido" : situacao === "lotado" ? "Lotado" : `${lim - folgasNoDia} ${lim - folgasNoDia === 1 ? "vaga livre" : "vagas livres"}`}
             </span>
             <span className="text-xs text-muted-foreground">
-              {resolvido.origem === "regra_recorrente" ? "Regras da unidade" : origemLimiteLabel(resolvido.origem)}
+              {resolvido.origem === "regra_recorrente"
+                ? composicao ? `Regras da unidade (${composicao})` : "Regras da unidade"
+                : origemLimiteLabel(resolvido.origem)}
             </span>
           </div>
         )}

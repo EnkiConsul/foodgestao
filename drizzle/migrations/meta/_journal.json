@@ -1681,6 +1681,13 @@
       "when": 1794544855441,
       "tag": "0239_folga_dia_lotado_pede_gestor",
       "breakpoints": true
+    },
+    {
+      "idx": 240,
+      "version": "7",
+      "when": 1794576189083,
+      "tag": "0240_folga_limite_fixos_mais_vagas",
+      "breakpoints": true
     }
   ]
 }

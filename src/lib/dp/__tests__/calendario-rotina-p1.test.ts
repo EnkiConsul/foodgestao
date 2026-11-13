@@ -35,9 +35,9 @@ describe("limite em dia útil", () => {
     expect(r.limite).toBe(1);
     expect(r.origem).toBe("excecao_data");
   });
-  it("regra do gestor acima das fixas prevalece; abaixo, sobe para as fixas", () => {
-    expect(limiteComFolgaFixaDiaUtil("2026-10-12", { limite: 6, origem: "regra_recorrente" } as never, new Map([[1, 5]])).limite).toBe(6);
-    expect(limiteComFolgaFixaDiaUtil("2026-10-12", { limite: 2, origem: "regra_recorrente" } as never, new Map([[1, 5]])).limite).toBe(5);
+  it("vagas da regra somam-se às folgas fixas do dia", () => {
+    expect(limiteComFolgaFixaDiaUtil("2026-10-12", { limite: 6, origem: "regra_recorrente" } as never, new Map([[1, 5]])).limite).toBe(11);
+    expect(limiteComFolgaFixaDiaUtil("2026-10-12", { limite: 2, origem: "regra_recorrente" } as never, new Map([[1, 5]])).limite).toBe(7);
   });
 });
 
@@ -47,10 +47,10 @@ describe("folga fixa no domingo", () => {
     expect(folgaFixaDoDia("2026-10-11", { troca: true, folga_fixa_dows: [0] })).toBe(false);
   });
   it("domingo: quem folga padrão também conta no limite do dia", () => {
-    // 2026-10-11 é domingo: as 2 folgas fixas são o piso, mesmo com regra de 1 vaga.
+    // 2026-10-11 é domingo: 2 folgas fixas + 1 vaga da escala.
     const r = limiteComFolgaFixaDiaUtil("2026-10-11", { limite: 1, origem: "regra_recorrente" } as never, new Map([[0, 2]]));
-    expect(r.limite).toBe(2);
-    expect(r.origem).toBe("folga_fixa");
+    expect(r.limite).toBe(3);
+    expect(r.origem).toBe("regra_recorrente");
   });
   it("sábado sem limite cadastrado usa as folgas fixas do dia", () => {
     const r = limiteComFolgaFixaDiaUtil("2026-10-10", { limite: null, origem: "sem_limite" } as never, new Map([[6, 2]]));

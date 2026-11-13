@@ -53,6 +53,8 @@ export type LimiteResolvido = {
   limite: number | null;
   origem: OrigemLimite;
   regra?: RegraLimiteFolga;
+  /** Quando o teto soma folgas fixas do dia às vagas da regra geral. */
+  composicao?: { fixos: number; vagas: number };
 };
 
 const ORIGEM_LABEL: Record<OrigemLimite, string> = {
@@ -340,9 +342,10 @@ export function cotasPorCargoNoDia(params: {
 }
 
 /**
- * Mesma regra do Calendário de Folgas: em qualquer dia da semana, sem exceção
- * na data, o limite é pelo menos a quantidade de ativos da unidade com folga
- * fixa nesse dia — quem folga padrão sempre conta na ocupação das vagas.
+ * Mesma regra do servidor (`dp_folga_limite_dia`): sem exceção na data, a regra
+ * geral de quantidade define as vagas da escala, que se somam às folgas fixas
+ * contratuais do dia da semana (capacidade = fixos + vagas). Sem regra, o teto
+ * é só o número de fixos. Exceção da data e cotas por cargo/setor prevalecem.
  */
 export function limiteComFolgaFixaDiaUtil(
   iso: string,
@@ -353,8 +356,25 @@ export function limiteComFolgaFixaDiaUtil(
   if (!fixosPorDow || res.origem === "excecao_data") return res;
   if (res.regra && (res.regra.tipo !== "quantidade" || res.regra.cargo_ids.length > 0 || res.regra.setor_ids.length > 0)) return res;
   const fixos = fixosPorDow.get(wd) ?? 0;
-  if (res.origem === "sem_limite") return { ...res, limite: fixos, origem: "folga_fixa" };
-  // Com limite configurado, as folgas fixas cadastradas no dia são o piso: o teto nunca fica abaixo delas.
-  if (res.limite != null && res.limite < fixos) return { ...res, limite: fixos, origem: "folga_fixa" };
-  return res;
+  if (res.origem === "sem_limite") return { ...res, limite: fixos, origem: "folga_fixa", composicao: { fixos, vagas: 0 } };
+  if (res.limite == null) return res;
+  return { ...res, limite: fixos + res.limite, composicao: { fixos, vagas: res.limite } };
+}
+
+export type SituacaoVagasDia = "livre" | "lotado" | "excedido";
+
+/** Lotado = capacidade preenchida (regular); excedido só acima da capacidade. */
+export function situacaoVagasDia(ocupadas: number, limite: number): SituacaoVagasDia {
+  if (ocupadas > limite) return "excedido";
+  if (ocupadas === limite) return "lotado";
+  return "livre";
+}
+
+/** "3 folgas fixas + 1 vaga da escala" quando o teto soma fixos e vagas da regra. */
+export function composicaoLimiteLabel(res: LimiteResolvido): string | null {
+  const c = res.composicao;
+  if (!c || c.fixos === 0 || res.origem !== "regra_recorrente") return null;
+  const fixos = `${c.fixos} ${c.fixos === 1 ? "folga fixa" : "folgas fixas"}`;
+  const vagas = `${c.vagas} ${c.vagas === 1 ? "vaga" : "vagas"} da escala`;
+  return `${fixos} + ${vagas}`;
 }

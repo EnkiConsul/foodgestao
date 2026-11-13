@@ -21,7 +21,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useDpFolgaLimites } from "@/hooks/useDpFolgaLimites";
-import { resolverLimiteFolga, limiteComFolgaFixaDiaUtil } from "@/lib/dp/folga-limites";
+import { resolverLimiteFolga, limiteComFolgaFixaDiaUtil, situacaoVagasDia } from "@/lib/dp/folga-limites";
 import { useBloqueiosParciais } from "@/hooks/useBloqueiosParciais";
 import { useBloqueiosEfetivos } from "@/hooks/useBloqueiosEfetivos";
 import { useFixosPorDiaSemana } from "@/hooks/useFixosPorDiaSemana";
@@ -618,7 +618,7 @@ export function CalendarioAusenciasMes({ dias: diasBrutos, selecionado, filtros,
                       // Quem folga padrão (folga fixa da jornada) também ocupa vaga do limite do dia.
                       const usadas = aus.filter((a) => a.tipo === "folga").length;
                       return (
-                        <span className={cn("mt-auto inline-flex w-fit items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tabular-nums", usadas >= lim ? "border-destructive/40 text-destructive" : "border-border text-muted-foreground")} title="Vagas de folga da unidade neste dia">
+                        <span className={cn("mt-auto inline-flex w-fit items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tabular-nums", situacaoVagasDia(usadas, lim) === "excedido" ? "border-destructive/40 text-destructive" : situacaoVagasDia(usadas, lim) === "lotado" ? "border-foreground/30 text-foreground" : "border-border text-muted-foreground")} title={situacaoVagasDia(usadas, lim) === "excedido" ? "Acima das vagas de folga da unidade neste dia" : "Vagas de folga da unidade neste dia"}>
                           Folgas {usadas}/{lim}
                         </span>
                       );

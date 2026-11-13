@@ -5,6 +5,8 @@ import {
   diasPermitidosParaLimite,
   resolverLimiteFolga,
   limiteComFolgaFixaDiaUtil,
+  situacaoVagasDia,
+  composicaoLimiteLabel,
   resumoRegraLimite,
   type RegraLimiteFolga,
 } from "@/lib/dp/folga-limites";
@@ -25,12 +27,22 @@ const base: RegraLimiteFolga = {
 };
 
 describe("piso da jornada vigente", () => {
-  it("duas folgas padrão na segunda elevam a regra geral de 1 para 2", () => {
+  it("duas folgas padrão na segunda somam-se à regra geral de 1 vaga (capacidade 3)", () => {
     const resolvido = resolverLimiteFolga({ data: "2026-10-19", unidadeId: "u1", regras: [{ ...base, maximo: 1 }] });
-    expect(limiteComFolgaFixaDiaUtil("2026-10-19", resolvido, new Map([[1, 2]])).limite).toBe(2);
+    expect(limiteComFolgaFixaDiaUtil("2026-10-19", resolvido, new Map([[1, 2]])).limite).toBe(3);
   });
-  it("o sábado também respeita o piso da jornada", () => {
-    expect(limiteComFolgaFixaDiaUtil("2026-10-24", { limite: 1, origem: "regra_recorrente" }, new Map([[6, 3]])).limite).toBe(3);
+  it("sábado com 3 folgas fixas e regra de 1 vaga tem capacidade 4 (fixos + vagas)", () => {
+    const r = limiteComFolgaFixaDiaUtil("2026-11-28", { limite: 1, origem: "regra_recorrente" }, new Map([[6, 3]]));
+    expect(r.limite).toBe(4);
+    expect(r.origem).toBe("regra_recorrente");
+    expect(composicaoLimiteLabel(r)).toBe("3 folgas fixas + 1 vaga da escala");
+  });
+  it("dia sem folgas fixas mantém só as vagas da regra", () => {
+    expect(limiteComFolgaFixaDiaUtil("2026-11-24", { limite: 1, origem: "regra_recorrente" }, new Map([[6, 3]])).limite).toBe(1);
+  });
+  it("cota por cargo não soma as folgas fixas", () => {
+    const r = limiteComFolgaFixaDiaUtil("2026-11-28", { limite: 1, origem: "regra_recorrente", regra: { ...base, maximo: 1, cargo_ids: ["c1"] } }, new Map([[6, 3]]));
+    expect(r.limite).toBe(1);
   });
   it("exceção explícita da data não é elevada pelas folgas padrão", () => {
     expect(limiteComFolgaFixaDiaUtil("2026-10-19", { limite: 0, origem: "excecao_data" }, new Map([[1, 2]])).limite).toBe(0);
@@ -289,5 +301,13 @@ describe("limite de folga por setor", () => {
       regras: [porSetor, porCargo],
     });
     expect(r.limite).toBe(1);
+  });
+});
+
+describe("situacaoVagasDia", () => {
+  it("3/4 livre, 4/4 lotado sem excesso, 5/4 excedido", () => {
+    expect(situacaoVagasDia(3, 4)).toBe("livre");
+    expect(situacaoVagasDia(4, 4)).toBe("lotado");
+    expect(situacaoVagasDia(5, 4)).toBe("excedido");
   });
 });
