@@ -55,6 +55,7 @@ import { ocupacaoNoEscopo, resolverLimiteFolga } from "@/lib/dp/folga-limites";
 import {
   resolverJanela,
   podeMarcarNormal,
+  temDireitoMesCorrente,
   marcacaoPortalLiberada,
   mensagemJanela,
   type JanelaResolvida,
@@ -1088,8 +1089,25 @@ export default function DpMeuCalendario() {
         negarRegra('Apenas fins de semana podem ser marcados diretamente. Use "Solicitar exceção".');
       }
 
-      // 2a) período mensal de escolha (só o início da escolha é restrito)
-      if (!podeMarcarNormal(janela, d)) {
+      // Folga de fim de semana já marcada no mês desta data?
+      const mk = monthKey(d);
+      const jaTem = folgas.some(
+        (f) =>
+          f.colaborador_id === meRef.data!.id &&
+          monthKey(parseYMD(f.data)) === mk &&
+          f.extra !== true &&
+          f.status !== "cancelada" &&
+          [0, 6].includes(parseYMD(f.data).getDay()),
+      );
+      const direitoMes = {
+        hoje: janelaQuery.data?.hoje ? parseYMD(janelaQuery.data.hoje) : hoje,
+        semFolgaFdsNoMes: !jaTem,
+      };
+      const direitoMesCorrente = temDireitoMesCorrente(d, direitoMes);
+
+      // 2a) período mensal de escolha (só o início da escolha é restrito);
+      // quem está sem a folga do mês em curso sempre pode marcá-la.
+      if (!podeMarcarNormal(janela, d, direitoMes)) {
         const alvo = janela.competencia.toLocaleDateString("pt-BR", {
           month: "long",
           year: "numeric",
@@ -1130,15 +1148,6 @@ export default function DpMeuCalendario() {
       if (jaNoDia) negarRegra("Você já tem folga marcada neste dia.");
 
       // 5) limite mensal (1 folga de fim de semana)
-      const mk = monthKey(d);
-      const jaTem = folgas.some(
-        (f) =>
-          f.colaborador_id === meRef.data!.id &&
-          monthKey(parseYMD(f.data)) === mk &&
-          f.extra !== true &&
-          f.status !== "cancelada" &&
-          [0, 6].includes(parseYMD(f.data).getDay()),
-      );
       if (jaTem)
         negarRegra(
           "Você já possui uma folga de fim de semana neste mês. Remova a folga atual para escolher outra data.",
@@ -1159,7 +1168,9 @@ export default function DpMeuCalendario() {
       });
       if (limiteErr) throw limiteErr;
       const limiteInfo = (limiteDia ?? {}) as Record<string, any>;
-      if (limiteInfo.excedido) {
+      // Sem a folga do mês em curso: o servidor decide se há outra data livre
+      // ou se marca acima do limite com aviso ao gestor (ninguém fica sem folga).
+      if (limiteInfo.excedido && !direitoMesCorrente) {
         negarRegra(
           limiteInfo.reserva && limiteInfo.reserva > 0
             ? "Data indisponível. Vagas reservadas por indisponibilidade de convocáveis."
@@ -1192,7 +1203,11 @@ export default function DpMeuCalendario() {
         if (raw.includes("FOLGA_FORA_DA_JANELA"))
           negarRegra('Fora do período de escolha das folgas. Use "Solicitar exceção".');
         if (raw.includes("FOLGA_LIMITE_DIA"))
-          negarRegra("Data indisponível. Limite de folgas atingido.");
+          negarRegra(
+            direitoMesCorrente
+              ? "Este dia está lotado, mas ainda há outro fim de semana com vaga neste mês. Escolha um dia disponível."
+              : "Data indisponível. Limite de folgas atingido.",
+          );
         if (raw.includes("FOLGA_INCOMPATIBILIDADE"))
           negarRegra(
             raw.split("FOLGA_INCOMPATIBILIDADE:").pop()?.trim() ||
@@ -2344,6 +2359,31 @@ export default function DpMeuCalendario() {
                 {selectedDay.status === "taken" && (
                   <p className="text-xs text-muted-foreground">Limite de folgas atingido neste dia.</p>
                 )}
+                {portalLivre &&
+                  selectedDay.status === "taken" &&
+                  dayInfo.isWeekend &&
+                  !meu12x36 &&
+                  temDireitoMesCorrente(parseYMD(selectedDay.iso), {
+                    hoje: janelaQuery.data?.hoje ? parseYMD(janelaQuery.data.hoje) : new Date(),
+                    semFolgaFdsNoMes: !folgas.some(
+                      (f) =>
+                        f.colaborador_id === meRef.data?.id &&
+                        f.data.slice(0, 7) === selectedDay.iso.slice(0, 7) &&
+                        f.extra !== true &&
+                        f.status !== "cancelada" &&
+                        [0, 6].includes(parseYMD(f.data).getDay()),
+                    ),
+                  }) && (
+                    <div className="flex flex-col gap-2 rounded-xl border border-amber-200 bg-amber-500/10 px-3 py-2">
+                      <p className="text-xs font-medium text-amber-700">
+                        Você ainda não tem folga de fim de semana neste mês. Se não houver outro fim de semana com vaga,
+                        a folga é marcada mesmo assim e o gestor é avisado.
+                      </p>
+                      <Button onClick={() => marcarFolga.mutate(selectedDay.iso)} disabled={marcarFolga.isPending}>
+                        {marcarFolga.isPending ? "Marcando..." : "Marcar folga"}
+                      </Button>
+                    </div>
+                  )}
                 {portalLivre && selectedDay.status === "quota" && (
                   <p className="rounded-xl border border-sky-200 bg-sky-500/10 px-3 py-2 text-xs font-medium text-sky-700">
                     {folgaParaMover

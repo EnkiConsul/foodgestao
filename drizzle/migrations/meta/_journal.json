@@ -1653,6 +1653,27 @@
       "when": 1794489565065,
       "tag": "0235_app_error_log_empresa_automatica",
       "breakpoints": true
+    },
+    {
+      "idx": 236,
+      "version": "7",
+      "when": 1794540242796,
+      "tag": "0236_folga_fds_ninguem_sem_folga",
+      "breakpoints": true
+    },
+    {
+      "idx": 237,
+      "version": "7",
+      "when": 1794540486581,
+      "tag": "0237_folga_auto_dias_trabalhados",
+      "breakpoints": true
+    },
+    {
+      "idx": 238,
+      "version": "7",
+      "when": 1794541088138,
+      "tag": "0238_folga_reavaliacao_conservadora",
+      "breakpoints": true
     }
   ]
 }
