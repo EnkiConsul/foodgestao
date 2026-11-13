@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
+import { BotaoBaixarAppLogin } from "@/components/pwa/BotaoBaixarAppLogin";
 import { TurnstileWidget } from "@/components/auth/TurnstileWidget";
 import { ReclameAquiSeal } from "@/components/marketing/ReclameAquiSeal";
 import { useTurnstileConfig } from "@/hooks/useTurnstileSiteKey";
@@ -560,6 +561,9 @@ export default function Auth() {
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Voltar ao site
         </Link>
+
+        {/* Celular sem o app instalado: atalho para baixar. */}
+        <BotaoBaixarAppLogin />
 
         {/* Celular: o cartão é ancorado na base da arte de fundo (a imagem
             941x1672 é desenhada com object-contain/object-top, então sua altura

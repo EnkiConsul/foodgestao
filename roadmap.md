@@ -164,3 +164,8 @@
 - [x] Portal do colaborador 12x36: calendário pessoal e dos colegas pinta o descanso dia sim, dia não ("Descanso"); plantão de fim de semana não fica disponível para marcar; "Sua próxima folga" mostra "Descanso 12x36"; sem cartão de escolha de folga, sem pedido de dispensa ou compensação de feriado (Art. 59-A, parágrafo único); calendário do gestor e painel do dia rotulam "Descanso 12x36"; compensatória de feriado recusada pelo servidor. 13 testes novos aprovados; tela não conferida com login real (nenhum colaborador em 12x36 cadastrado ainda).
 - [ ] Conferir o calendário 12x36 com login real: depende de um colaborador cadastrado em 12x36 na conta Sandbox autorizada.
 - [x] Adiantamento salarial: antecedência editável na unidade (só para o portal), pedido e suspensão no Meu Perfil e no calendário com termo de opção assinado, termo também pelo gestor, avisos por unidade e relação do mês em PDF/planilha.
+
+## Baixar o aplicativo no celular (13/11)
+- [x] Passo a passo por aparelho: Android dentro do WhatsApp abre o Chrome com um toque; iPhone dentro do WhatsApp mostra "não é nos três pontinhos", Compartilhar → Abrir no Safari → Adicionar à Tela de Início, copiar link e abrir no Chrome; some quando o app já está instalado e no computador.
+- [x] Presente na ativação de acesso (aviso antes e tela "Sua senha foi criada!" depois), no login (botão "Baixar app", abre sozinho com o link de instalar) e no início do portal.
+- [ ] Conferir em aparelhos reais (iPhone e Android pelo WhatsApp) e a tela pós-senha com um link de ativação real: não foi gerado link de colaborador para teste.

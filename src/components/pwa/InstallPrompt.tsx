@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Share, Plus, X } from "lucide-react";
+import { abrirPromptNativo, assinarPromptNativo, obterPromptNativo } from "@/lib/pwa/promptNativo";
 
 const DISMISS_KEY = "pwa-install-dismissed-at";
 const DISMISS_DAYS = 14;
@@ -124,22 +125,14 @@ export function InstallPrompt() {
       return;
     }
 
-    const onBeforeInstall = (e: Event) => {
-      e.preventDefault();
-      console.info(LOG_PREFIX, "captured beforeinstallprompt (Android/Chrome)");
-      setDeferred(e as BeforeInstallPromptEvent);
+    // O evento é capturado na inicialização (src/lib/pwa/promptNativo.ts),
+    // porque costuma chegar antes desta tela montar.
+    const sincronizar = () => {
+      const atual = obterPromptNativo() as BeforeInstallPromptEvent | null;
+      setDeferred(atual);
     };
-    const onInstalled = () => {
-      console.info(LOG_PREFIX, "appinstalled event received, hiding prompt");
-      setDismissed(true);
-      setDeferred(null);
-    };
-    window.addEventListener("beforeinstallprompt", onBeforeInstall);
-    window.addEventListener("appinstalled", onInstalled);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
-      window.removeEventListener("appinstalled", onInstalled);
-    };
+    sincronizar();
+    return assinarPromptNativo(sincronizar);
   }, []);
 
   if (dismissed) return null;
@@ -157,9 +150,8 @@ export function InstallPrompt() {
 
   const handleInstall = async () => {
     if (!deferred) return;
-    await deferred.prompt();
-    const { outcome } = await deferred.userChoice;
-    if (outcome === "accepted") {
+    const resultado = await abrirPromptNativo();
+    if (resultado === "aceito") {
       setDismissed(true);
     } else {
       handleDismiss();

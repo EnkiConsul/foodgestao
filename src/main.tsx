@@ -8,6 +8,9 @@ import { supabase } from "./integrations/supabase/client";
 import { instalarGuardasHomologacao } from "./lib/env/homologacaoRuntime";
 import { installStaleBundleRecovery } from "./lib/staleBundle";
 import { installCspViolationLogger } from "./lib/security/cspViolationLogger";
+import { instalarCapturaPromptNativo } from "./lib/pwa/promptNativo";
+import { marcarAppInstalado } from "./lib/pwa/instalacao";
+import { isStandalone } from "./components/pwa/InstallPrompt";
 
 
 import "@fontsource/urbanist/600.css";
@@ -26,6 +29,9 @@ instalarGuardasHomologacao(supabase as never);
 
 installStaleBundleRecovery();
 installCspViolationLogger();
+// Instalador nativo do Android chega uma vez, cedo: guardamos para as telas.
+instalarCapturaPromptNativo();
+if (isStandalone()) marcarAppInstalado();
 // Offline caching was removed because an old app-shell cache could route valid
 // URLs to the legacy 404 page. Aqui desregistramos qualquer Service Worker
 // remanescente para garantir sempre o bundle novo.

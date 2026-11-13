@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ArrowLeft, Eye, EyeOff, Lock } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Eye, EyeOff, Lock, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,8 @@ import { MedidorSenha } from "@/components/auth/MedidorSenha";
 import { ChecklistRequisitosSenha } from "@/components/auth/ChecklistRequisitosSenha";
 import { TermoPrimeiroAcesso } from "@/components/auth/TermoPrimeiroAcesso";
 import { TERMO_PORTAL_VERSAO } from "@/lib/dp/termoPortal";
+import { useInstalacaoApp } from "@/components/pwa/useInstalacaoApp";
+import { GuiaInstalacaoApp } from "@/components/pwa/GuiaInstalacaoApp";
 
 /** Regra única de senha nova (S3): src/lib/security/passwordPolicy.ts */
 function validarSenha(senha: string): string | null {
@@ -47,6 +49,10 @@ export default function AtivarAcesso() {
   const [termoPendente, setTermoPendente] = useState(false);
 
   const [estadoLink, setEstadoLink] = useState<"verificando" | "valido" | "usado" | "expirado" | "invalido">("verificando");
+  // Celular sem o app: depois de criar a senha, mostra como baixar o app
+  // antes de seguir para o login (o link de ativação não serve mais).
+  const instalacao = useInstalacaoApp();
+  const [senhaCriadaCpf, setSenhaCriadaCpf] = useState<string | null>(null);
 
   useEffect(() => {
     // Ninguém precisa estar logado aqui; se houver sessão antiga, encerra.
@@ -123,6 +129,10 @@ export default function AtivarAcesso() {
         setErro(corpo.error);
         return;
       }
+      if (instalacao.oferecer) {
+        setSenhaCriadaCpf(digitos);
+        return;
+      }
       toast.success("Senha criada!", { description: "Entre com seu CPF e a senha que você acabou de escolher." });
       navigate(`/login?cpf=${digitos}`, { replace: true });
     } catch {
@@ -137,6 +147,43 @@ export default function AtivarAcesso() {
   // bate e, na ativação, o termo de primeiro acesso está aceito.
   const senhaAprovada = avaliarSenha(senha, { cpf }).valida;
   const termoOk = !exigeTermo || termoAceito;
+
+  if (senhaCriadaCpf) {
+    const urlLogin =
+      typeof window !== "undefined" ? `${window.location.origin}/login?cpf=${senhaCriadaCpf}` : `/login?cpf=${senhaCriadaCpf}`;
+    return (
+      <div className="flex min-h-screen items-start justify-center bg-background p-4 pt-[max(1rem,env(safe-area-inset-top))] sm:items-center">
+        <Helmet><title>Senha criada — Aveto 360</title></Helmet>
+        <Card className="w-full max-w-md shadow-lg">
+          <CardHeader className="space-y-3 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-success/15">
+              <CheckCircle2 className="h-6 w-6 text-success" />
+            </div>
+            <CardTitle className="text-2xl font-bold">Sua senha foi criada!</CardTitle>
+            <CardDescription>
+              Agora coloque o aplicativo Aveto 360 na tela do seu celular para entrar sempre que precisar,
+              sem procurar este link.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <GuiaInstalacaoApp
+              instalacao={instalacao}
+              urlDestino={urlLogin}
+              onInstalado={() => navigate(`/login?cpf=${senhaCriadaCpf}`, { replace: true })}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              className="min-h-11 w-full"
+              onClick={() => navigate(`/login?cpf=${senhaCriadaCpf}`, { replace: true })}
+            >
+              Ir para o Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (estadoLink === "verificando") {
     return (
@@ -212,6 +259,14 @@ export default function AtivarAcesso() {
           <ArrowLeft className="h-4 w-4" />
           Voltar ao site
         </Link>
+        {instalacao.oferecer && (
+          <div className="flex items-start gap-2 rounded-xl border border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground">
+            <Smartphone className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <p>
+              Crie sua senha aqui mesmo. Depois de salvar, mostramos como colocar o aplicativo na tela do seu celular.
+            </p>
+          </div>
+        )}
         <Card className="w-full shadow-lg">
           <CardHeader className="space-y-3 text-center">
             <CardTitle className="text-2xl font-bold">{titulo}</CardTitle>

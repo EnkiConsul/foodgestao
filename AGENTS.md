@@ -67,3 +67,4 @@
 - Onboarding reconciles the signup trial with the selected modules via `fn_onboarding_sincronizar_trial` (converts an unchosen signup trial instead of burning it, covers every chosen module) so v2 access matches what the client picked.
 - Concierge: super admin is temporary owner; server-only `concierge_ativar` transfers ownership, starts trial on activation.
 - Onboarding never copies company phones into `profiles.phone` (notices reach the signer).
+- App install guidance is manifest-only (no app-shell service worker): device/browser strategy lives in `src/lib/pwa/instalacao.ts`, the native Android prompt is captured at boot in `src/lib/pwa/promptNativo.ts`, and every surface (activation success, login, portal) reuses `GuiaInstalacaoApp` — in-app browsers can't install, so Android exits via Chrome intent and iOS gets Share → Safari steps.
