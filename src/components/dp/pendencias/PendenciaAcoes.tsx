@@ -1,3 +1,4 @@
+import { mensagemPedidoDiaLotado } from "@/lib/dp/folga-dia-lotado";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Ban, CalendarPlus, Check, FileUp, RotateCcw, X } from "lucide-react";
@@ -109,7 +110,7 @@ export function PendenciaAcoes({
       concluir();
     },
     onError: (e: any) => toast.error("Não foi possível registrar a decisão", {
-      description: `${e?.message ?? "Erro"} — tente de novo ou abra a tela de Folgas.`,
+      description: mensagemPedidoDiaLotado(String(e?.message ?? "")) ?? `${e?.message ?? "Erro"} — tente de novo ou abra a tela de Folgas.`,
     }),
   });
 

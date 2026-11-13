@@ -1,3 +1,4 @@
+import { temFimDeSemanaAposAdmissao } from "@/lib/dp/folga-dia-lotado";
 import { tratativaPendente } from "@/lib/dp/ocorrencias";
 import { prazoLegalRescisao, prazoPagamentoRescisao } from "@/lib/dp/desligamento";
 import { datasDeFeriados, faltaFeriadoLocal } from "@/lib/dp/feriados";
@@ -150,7 +151,7 @@ export function useDpPendencias() {
       try {
         const { data: sols } = await supabase
           .from("dp_solicitacoes")
-          .select("id, tipo, created_at, dp_colaboradores(nome)").abortSignal(signal).throwOnError()
+          .select("id, tipo, created_at, data_alvo, excede_limite_dia, dp_colaboradores(nome)").abortSignal(signal).throwOnError()
           .is("removido_em", null)
           .eq("company_id", selectedCompanyId!)
           .eq("status", "pendente")
@@ -163,8 +164,10 @@ export function useDpPendencias() {
           results.push({
             id: `sol-${s.id}`,
             icon: ClipboardList,
-            titulo: `Solicitação de ${s.tipo}`,
-            subtitulo: s.dp_colaboradores?.nome ?? "Colaborador",
+            titulo: s.excede_limite_dia ? "Folga do mês em dia lotado" : `Solicitação de ${s.tipo}`,
+            subtitulo: s.excede_limite_dia && s.data_alvo
+              ? `${s.dp_colaboradores?.nome ?? "Colaborador"} — ainda sem folga de fim de semana no mês; ${format(new Date(`${String(s.data_alvo).slice(0, 10)}T00:00:00`), "dd/MM")} já está no limite. Aprove acima do limite ou combine outro dia.`
+              : s.dp_colaboradores?.nome ?? "Colaborador",
             tipo: "Solicitação",
             colaboradorNome: s.dp_colaboradores?.nome ?? null,
             vencimento: ymd(vencimento),
@@ -1285,7 +1288,9 @@ export function useDpPendencias() {
               .select("colaborador_id").abortSignal(signal).throwOnError()
               .eq("company_id", selectedCompanyId!)
               .eq("tipo", "folga")
-              .eq("status", "aprovada")
+              .is("removido_em", null)
+              // Pedido da folga do mês em dia lotado já está na fila do gestor.
+              .or("status.eq.aprovada,and(status.eq.pendente,excede_limite_dia.eq.true)")
               .gte("data_alvo", ymd(inicioProx))
               .lte("data_alvo", ymd(fimProx)),
             supabase
@@ -1331,6 +1336,8 @@ export function useDpPendencias() {
             // inteiro dispensam a folga mensal — não há dias trabalhados.
             if (feriasMesInteiro.has(c.id)) return false;
             if (afastadoMesInteiro(c as ColabElegibilidade, ymd(inicioProx).slice(0, 7))) return false;
+            // Admitido depois do último fim de semana do mês não tem folga a cobrar.
+            if (!temFimDeSemanaAposAdmissao(c.data_admissao, ymd(inicioProx), ymd(fimProx))) return false;
             return true;
           });
           const faltantes = elegiveis.filter((c: any) => !comFolga.has(c.id));
@@ -1345,7 +1352,7 @@ export function useDpPendencias() {
               id: `sem-folga-${anoVigente}-${mesVigente}`,
               icon: Clock,
               titulo: "Colaborador Sem Folga no Mês",
-              subtitulo: `A distribuição automática não definiu folga em ${MES_NOME[inicioProx.getMonth()]} para: ${nomes}. Abra o calendário e marque o dia manualmente.`,
+              subtitulo: `Sem folga de fim de semana em ${MES_NOME[inicioProx.getMonth()]} para: ${nomes}. Abra o calendário e marque o dia — com o mês lotado, a folga pode entrar acima do limite.`,
               tipo: "Escala",
               vencimento: ymd(prazo),
               atrasoDias: differenceInCalendarDays(today, prazo),

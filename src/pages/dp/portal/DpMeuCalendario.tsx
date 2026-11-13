@@ -120,6 +120,7 @@ import { MinhaDisponibilidadeCard } from "@/components/dp/MinhaDisponibilidadeCa
 import { MeusPlantoesTrocaCard } from "@/components/dp/convocacoes/MeusPlantoesTrocaCard";
 import { pessoaConvocavel } from "@/lib/dp/convocacoes-planejamento";
 import { notifyError } from "@/lib/notifyError";
+import { mensagemPedidoDiaLotado, pedidoDiaLotadoNoMes } from "@/lib/dp/folga-dia-lotado";
 import { negarRegra } from "@/lib/dp/regraAviso";
 import { lancarErroSolicitacao } from "@/lib/dp/regraServidor";
 const hojeLocalIso = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
@@ -476,7 +477,7 @@ export default function DpMeuCalendario() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dp_solicitacoes")
-        .select("id, colaborador_id, data_alvo, data_fim, motivo, tipo, status, dp_colaboradores(nome, unidade_id)")
+        .select("id, colaborador_id, data_alvo, data_fim, motivo, tipo, status, excede_limite_dia, dp_colaboradores(nome, unidade_id)")
         .is("removido_em", null)
         .eq("company_id", companyId!)
         .eq("status", "pendente")
@@ -1168,13 +1169,15 @@ export default function DpMeuCalendario() {
       });
       if (limiteErr) throw limiteErr;
       const limiteInfo = (limiteDia ?? {}) as Record<string, any>;
-      // Sem a folga do mês em curso: o servidor decide se há outra data livre
-      // ou se marca acima do limite com aviso ao gestor (ninguém fica sem folga).
-      if (limiteInfo.excedido && !direitoMesCorrente) {
+      // Dia lotado nunca entra direto, nem para quem está sem folga no mês:
+      // nesse caso o pedido vai ao gestor ("Solicitar folga ao gestor").
+      if (limiteInfo.excedido) {
         negarRegra(
-          limiteInfo.reserva && limiteInfo.reserva > 0
-            ? "Data indisponível. Vagas reservadas por indisponibilidade de convocáveis."
-            : "Data indisponível. Limite de folgas atingido.",
+          direitoMesCorrente
+            ? 'Este dia está lotado. Toque em "Solicitar folga ao gestor" para ele avaliar.'
+            : limiteInfo.reserva && limiteInfo.reserva > 0
+              ? "Data indisponível. Vagas reservadas por indisponibilidade de convocáveis."
+              : "Data indisponível. Limite de folgas atingido.",
         );
       }
 
@@ -1205,7 +1208,7 @@ export default function DpMeuCalendario() {
         if (raw.includes("FOLGA_LIMITE_DIA"))
           negarRegra(
             direitoMesCorrente
-              ? "Este dia está lotado, mas ainda há outro fim de semana com vaga neste mês. Escolha um dia disponível."
+              ? 'Este dia acabou de lotar. Toque em "Solicitar folga ao gestor" para ele avaliar.'
               : "Data indisponível. Limite de folgas atingido.",
           );
         if (raw.includes("FOLGA_INCOMPATIBILIDADE"))
@@ -1230,6 +1233,25 @@ export default function DpMeuCalendario() {
       }
     },
     onError: (e: any) => notifyError(e, { surface: "Meu calendário", action: "concluir a ação", fallback: "Erro ao marcar folga" }),
+  });
+
+  // Folga do mês em dia lotado: nunca entra direto, vira pedido ao gestor.
+  const pedirDiaLotado = useMutation({
+    mutationFn: async (iso: string) => {
+      const { error } = await supabase.rpc("dp_folga_solicitar_mes_lotado", { p_data: iso, p_motivo: null } as never);
+      if (error) {
+        const msg = mensagemPedidoDiaLotado(error.message ?? "");
+        if (msg) negarRegra(msg);
+        lancarErroSolicitacao(error);
+      }
+    },
+    onSuccess: () => {
+      toast.success("Pedido enviado ao gestor. A folga só vale depois que ele aprovar.");
+      setSelectedDay(null);
+      qc.invalidateQueries({ queryKey: ["dp_solic_meu_cal"] });
+      qc.invalidateQueries({ queryKey: ["dp_folgas_meu_cal"] });
+    },
+    onError: (e: any) => notifyError(e, { surface: "Meu calendário", action: "enviar o pedido ao gestor", fallback: "Erro ao enviar o pedido" }),
   });
 
   const removerFolga = useMutation({
@@ -1819,8 +1841,32 @@ export default function DpMeuCalendario() {
   /** Rótulo do status do dia; no 12x36 a folga fixa é o descanso do ciclo. */
   const rotuloStatus = (st: DateStatusKind) => (st === "fixed" && meu12x36 ? ROTULO_DESCANSO_12X36 : STATUS_LABEL[st]);
 
+  // Sábado/domingo lotado do mês em curso para quem ainda está sem a folga do mês.
+  const diaLotadoComDireito =
+    !!selectedDay &&
+    selectedDay.status === "taken" &&
+    [0, 6].includes(parseYMD(selectedDay.iso).getDay()) &&
+    !meu12x36 &&
+    temDireitoMesCorrente(parseYMD(selectedDay.iso), {
+      hoje: janelaQuery.data?.hoje ? parseYMD(janelaQuery.data.hoje) : new Date(),
+      semFolgaFdsNoMes: !folgas.some(
+        (f) =>
+          f.colaborador_id === meRef.data?.id &&
+          f.data.slice(0, 7) === selectedDay.iso.slice(0, 7) &&
+          f.extra !== true &&
+          f.status !== "cancelada" &&
+          [0, 6].includes(parseYMD(f.data).getDay()),
+      ),
+    });
+  const pedidoLotadoDoMes = selectedDay
+    ? (pedidoDiaLotadoNoMes(pendentes, meRef.data?.id, selectedDay.iso) as { data_alvo: string } | null)
+    : null;
+
   const showExceptionBtn =
-    selectedDay && !["past", "mine", "fixed", "pending", "swapped"].includes(selectedDay.status);
+    selectedDay &&
+    !["past", "mine", "fixed", "pending", "swapped"].includes(selectedDay.status) &&
+    // No dia lotado com direito o caminho é o pedido da folga do mês (não folga extra).
+    !diaLotadoComDireito;
 
   const moverDia = (delta: number) => {
     if (!selectedDay) return;
@@ -2359,31 +2405,36 @@ export default function DpMeuCalendario() {
                 {selectedDay.status === "taken" && (
                   <p className="text-xs text-muted-foreground">Limite de folgas atingido neste dia.</p>
                 )}
-                {portalLivre &&
-                  selectedDay.status === "taken" &&
-                  dayInfo.isWeekend &&
-                  !meu12x36 &&
-                  temDireitoMesCorrente(parseYMD(selectedDay.iso), {
-                    hoje: janelaQuery.data?.hoje ? parseYMD(janelaQuery.data.hoje) : new Date(),
-                    semFolgaFdsNoMes: !folgas.some(
-                      (f) =>
-                        f.colaborador_id === meRef.data?.id &&
-                        f.data.slice(0, 7) === selectedDay.iso.slice(0, 7) &&
-                        f.extra !== true &&
-                        f.status !== "cancelada" &&
-                        [0, 6].includes(parseYMD(f.data).getDay()),
-                    ),
-                  }) && (
-                    <div className="flex flex-col gap-2 rounded-xl border border-amber-200 bg-amber-500/10 px-3 py-2">
-                      <p className="text-xs font-medium text-amber-700">
-                        Você ainda não tem folga de fim de semana neste mês. Se não houver outro fim de semana com vaga,
-                        a folga é marcada mesmo assim e o gestor é avisado.
+                {portalLivre && diaLotadoComDireito && dayInfo.isWeekend && (
+                  <div className="flex flex-col gap-2 rounded-xl border border-warning/40 bg-warning/10 px-3 py-2">
+                    {pedidoLotadoDoMes ? (
+                      <p className="text-xs font-medium text-foreground">
+                        Você já pediu ao gestor a folga de {diaSemanaBR(pedidoLotadoDoMes.data_alvo)}{" "}
+                        {formatBR(parseYMD(pedidoLotadoDoMes.data_alvo))}. Aguarde a resposta ou cancele aquele pedido
+                        para pedir outro dia.
                       </p>
-                      <Button onClick={() => marcarFolga.mutate(selectedDay.iso)} disabled={marcarFolga.isPending}>
-                        {marcarFolga.isPending ? "Marcando..." : "Marcar folga"}
-                      </Button>
-                    </div>
-                  )}
+                    ) : (
+                      <>
+                        <p className="text-xs font-medium text-foreground">
+                          Este dia já atingiu o limite de pessoas de folga. Como você ainda não tem folga de fim de
+                          semana neste mês, peça ao gestor: a folga só vale depois que ele aprovar.
+                        </p>
+                        <ConfirmarAcaoDialog
+                          titulo="Pedir esta folga ao gestor?"
+                          descricao={`O dia ${formatBR(parseYMD(selectedDay.iso))} está lotado. O gestor avalia a escala e responde pelo portal. Enquanto isso, o dia segue como de trabalho.`}
+                          confirmar="Enviar pedido"
+                          cancelar="Voltar"
+                          onConfirm={() => pedirDiaLotado.mutate(selectedDay.iso)}
+                          disabled={pedirDiaLotado.isPending}
+                        >
+                          <Button className="min-h-10 w-full" disabled={pedirDiaLotado.isPending}>
+                            {pedirDiaLotado.isPending ? "Enviando..." : "Solicitar folga ao gestor"}
+                          </Button>
+                        </ConfirmarAcaoDialog>
+                      </>
+                    )}
+                  </div>
+                )}
                 {portalLivre && selectedDay.status === "quota" && (
                   <p className="rounded-xl border border-sky-200 bg-sky-500/10 px-3 py-2 text-xs font-medium text-sky-700">
                     {folgaParaMover

@@ -1674,6 +1674,13 @@
       "when": 1794541088138,
       "tag": "0238_folga_reavaliacao_conservadora",
       "breakpoints": true
+    },
+    {
+      "idx": 239,
+      "version": "7",
+      "when": 1794544855441,
+      "tag": "0239_folga_dia_lotado_pede_gestor",
+      "breakpoints": true
     }
   ]
 }

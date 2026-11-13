@@ -1,3 +1,4 @@
+import { mensagemPedidoDiaLotado } from "@/lib/dp/folga-dia-lotado";
 import { datasSolicitacao, ehTrocaFolga } from "@/lib/dp/solicitacao-datas";
 import { TIPOS_LICENCA_CURTA, TIPO_AFASTAMENTO_LABEL } from "@/lib/dp/licencas";
 import { abrirNoApp } from "@/lib/visualizadorGlobal";
@@ -262,7 +263,7 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
       setConfirmAdiantamento(null);
       if (vars.status === "aprovada" && vars.extra) setExtraAlvo(vars.extra);
     },
-    onError: (e) => toast.error("Erro", { description: e instanceof Error ? e.message : String(e) }),
+    onError: (e) => toast.error("Erro", { description: mensagemPedidoDiaLotado(e instanceof Error ? e.message : String(e)) ?? (e instanceof Error ? e.message : String(e)) }),
   });
 
   const [anexar, setAnexar] = useState<AtestadoAnexoAlvo | null>(null);
@@ -381,7 +382,7 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
                       ) : (
                         <>
                           <span className="capitalize mr-2">
-                            {ehPedidoDispensaFeriado(s.motivo) ? "Dispensa de Feriado (a pedido)" : s.tipo === "folga" && ehCompensacaoFeriado(s.motivo) ? "Compensação de Feriado" : s.tipo === "folga" && s.fora_da_janela ? "Folga extra (exceção)" : s.tipo}
+                            {ehPedidoDispensaFeriado(s.motivo) ? "Dispensa de Feriado (a pedido)" : s.tipo === "folga" && ehCompensacaoFeriado(s.motivo) ? "Compensação de Feriado" : s.tipo === "folga" && s.excede_limite_dia ? "Folga do mês (dia lotado)" : s.tipo === "folga" && s.fora_da_janela ? "Folga extra (exceção)" : s.tipo}
                           </span>
                           <b>{formatBR(s.data_alvo)}{s.data_fim ? ` → ${formatBR(s.data_fim)}` : ""}</b>
                         </>
@@ -404,6 +405,12 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
                 {s.tipo === "folga" && !s.data_fim && ehCompensacaoFeriado(s.motivo) && (
                   <div className="rounded-lg border border-border bg-muted/40 p-2 text-xs text-muted-foreground">
                     Compensação de feriado trabalhado: folga devida ao colaborador por ter trabalhado no feriado.
+                  </div>
+                )}
+                {s.tipo === "folga" && s.excede_limite_dia && (
+                  <div className="rounded-lg border border-warning/40 bg-warning/10 p-2 text-xs text-foreground">
+                    Folga de fim de semana do mês: o colaborador ainda não tem a deste mês e o dia já está no limite de
+                    pessoas de folga. Se aprovar, a folga entra acima do limite; se recusar, combine outro dia.
                   </div>
                 )}
                 {s.tipo === "folga" && !s.data_fim && s.fora_da_janela && !ehCompensacaoFeriado(s.motivo) && (
@@ -586,7 +593,7 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
                 <div className="min-w-0 flex-1">
                   <div className="font-bold">
                     {formatBR(dataRef(s))}
-                    <span className="ml-2 text-xs font-medium text-muted-foreground">{s.tipo === "folga" && s.data_fim ? "Troca de folga" : s.tipo === "folga" && ehCompensacaoFeriado(s.motivo) ? "Compensação de Feriado" : s.tipo === "folga" && s.fora_da_janela ? "Folga extra (exceção)" : tipoLabel(s.tipo)}</span>
+                    <span className="ml-2 text-xs font-medium text-muted-foreground">{s.tipo === "folga" && s.data_fim ? "Troca de folga" : s.tipo === "folga" && ehCompensacaoFeriado(s.motivo) ? "Compensação de Feriado" : s.tipo === "folga" && s.excede_limite_dia ? "Folga do mês (dia lotado)" : s.tipo === "folga" && s.fora_da_janela ? "Folga extra (exceção)" : tipoLabel(s.tipo)}</span>
                   </div>
                   <div className="truncate text-muted-foreground">{s.dp_colaboradores?.nome ?? "—"}</div>
                   {ehTrocaFolga(s) && <div className="mt-1 text-xs text-muted-foreground">Folga atual: {formatBR(s.data_fim)}<br />Folga desejada: {formatBR(s.data_alvo)}</div>}
@@ -734,7 +741,7 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
         title={detailsRow?.dp_colaboradores?.nome ?? "Solicitação"}
         description={detailsRow ? STATUS_META[detailsRow.status].label : undefined}
         meta={detailsRow ? [
-          { label: "Tipo", value: <span className="capitalize">{detailsRow.tipo === "folga" && detailsRow.data_fim ? "Troca de folga" : detailsRow.tipo === "folga" && ehCompensacaoFeriado(detailsRow.motivo) ? "Compensação de Feriado" : detailsRow.tipo === "folga" && detailsRow.fora_da_janela ? "Folga extra (exceção)" : detailsRow.tipo}</span> },
+          { label: "Tipo", value: <span className="capitalize">{detailsRow.tipo === "folga" && detailsRow.data_fim ? "Troca de folga" : detailsRow.tipo === "folga" && ehCompensacaoFeriado(detailsRow.motivo) ? "Compensação de Feriado" : detailsRow.tipo === "folga" && detailsRow.excede_limite_dia ? "Folga do mês (dia lotado)" : detailsRow.tipo === "folga" && detailsRow.fora_da_janela ? "Folga extra (exceção)" : detailsRow.tipo}</span> },
           ...datasSolicitacao(detailsRow).map((d) => ({ label: d.label, value: formatBR(d.data) })),
           { label: "Criada em", value: new Date(detailsRow.created_at).toLocaleString("pt-BR") },
           ...(prazoCompensacao(detailsRow) ? [{

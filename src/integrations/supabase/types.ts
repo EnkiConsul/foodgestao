@@ -13860,6 +13860,7 @@ export type Database = {
           data_fim: string | null
           devolvido_em: string | null
           devolvido_motivo: string | null
+          excede_limite_dia: boolean
           fora_da_janela: boolean
           id: string
           motivo: string | null
@@ -13890,6 +13891,7 @@ export type Database = {
           data_fim?: string | null
           devolvido_em?: string | null
           devolvido_motivo?: string | null
+          excede_limite_dia?: boolean
           fora_da_janela?: boolean
           id?: string
           motivo?: string | null
@@ -13920,6 +13922,7 @@ export type Database = {
           data_fim?: string | null
           devolvido_em?: string | null
           devolvido_motivo?: string | null
+          excede_limite_dia?: boolean
           fora_da_janela?: boolean
           id?: string
           motivo?: string | null
@@ -21209,6 +21212,10 @@ export type Database = {
       }
       dp_folga_solicitar: {
         Args: { p_data: string; p_fora_da_janela?: boolean; p_motivo?: string }
+        Returns: Json
+      }
+      dp_folga_solicitar_mes_lotado: {
+        Args: { p_data: string; p_motivo?: string }
         Returns: Json
       }
       dp_folga_substituir_pedido: {
