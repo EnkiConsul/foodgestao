@@ -200,7 +200,7 @@ export default function DpMeuHome() {
         />}
       </div>
 
-      {/* Convite para instalar o app, no primeiro acesso pelo celular. */}
+      {/* Balão flutuante para instalar o app (não ocupa espaço na página). */}
       <InstalarAppCard />
 
       {/* Pendências em destaque. */}

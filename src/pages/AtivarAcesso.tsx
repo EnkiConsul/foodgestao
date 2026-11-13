@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ArrowLeft, CheckCircle2, Eye, EyeOff, Lock, Smartphone } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Eye, EyeOff, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -259,14 +259,6 @@ export default function AtivarAcesso() {
           <ArrowLeft className="h-4 w-4" />
           Voltar ao site
         </Link>
-        {instalacao.oferecer && (
-          <div className="flex items-start gap-2 rounded-xl border border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground">
-            <Smartphone className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            <p>
-              Crie sua senha aqui mesmo. Depois de salvar, mostramos como colocar o aplicativo na tela do seu celular.
-            </p>
-          </div>
-        )}
         <Card className="w-full shadow-lg">
           <CardHeader className="space-y-3 text-center">
             <CardTitle className="text-2xl font-bold">{titulo}</CardTitle>

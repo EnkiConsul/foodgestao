@@ -1,4 +1,5 @@
 import { Smartphone } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { GuiaInstalacaoApp } from "./GuiaInstalacaoApp";
 import type { InstalacaoApp } from "./useInstalacaoApp";
@@ -32,6 +33,9 @@ export function InstalacaoAppSheet({ open, onOpenChange, instalacao, urlDestino 
           urlDestino={urlDestino}
           onInstalado={() => onOpenChange(false)}
         />
+        <Button type="button" variant="ghost" className="mt-3 min-h-11 w-full" onClick={() => onOpenChange(false)}>
+          Fechar
+        </Button>
       </SheetContent>
     </Sheet>
   );
