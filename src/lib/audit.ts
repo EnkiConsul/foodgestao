@@ -17,9 +17,9 @@ export async function logAudit(
     await supabase.rpc("insert_audit_log", {
       _action: action,
       _entity_type: entityType,
-      _entity_id: entityId ?? null,
+      _entity_id: entityId ?? undefined,
       _details: (details ?? null) as never,
-      _company_id: companyId ?? null,
+      _company_id: companyId ?? undefined,
     });
   } catch {
     // silencioso por design

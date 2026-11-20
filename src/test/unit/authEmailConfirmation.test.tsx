@@ -179,6 +179,7 @@ describe("tela de cadastro para na confirmação, sem navegar", () => {
 
     await userEvent.type(screen.getByLabelText(/nome completo/i), "PESSOA TESTE");
     await userEvent.type(screen.getByLabelText(/^e-mail$/i), "novo@exemplo.test");
+    await userEvent.type(screen.getByLabelText(/seu whatsapp pessoal/i), "11987654321");
     await userEvent.type(screen.getByLabelText(/^senha$/i), SENHA);
     await userEvent.type(screen.getByLabelText(/confirmar senha/i), SENHA);
     await userEvent.click(screen.getByRole("checkbox"));
@@ -188,7 +189,8 @@ describe("tela de cadastro para na confirmação, sem navegar", () => {
     });
 
     await waitFor(() => expect(supabase.auth.signUp).toHaveBeenCalled());
-    // Etapa de confirmação visível…
+    expect(await screen.findByRole("heading", { name: /confirme pelo whatsapp/i })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /confirmar pelo e-mail/i }));
     await waitFor(() =>
       expect(screen.getAllByText(/confirme seu e-mail/i).length).toBeGreaterThan(0),
     );

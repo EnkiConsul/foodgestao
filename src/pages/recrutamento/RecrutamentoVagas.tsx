@@ -85,8 +85,9 @@ export default function RecrutamentoVagas() {
     mutationFn: async (v: Partial<Vaga>) => {
       const payload: Record<string, unknown> = {};
       for (const k of CAMPOS_EDITAVEIS) payload[k] = (v as any)[k] === "" ? null : (v as any)[k] ?? null;
-      payload.titulo = (v.titulo ?? "").trim();
-      if (payload.titulo.toString().length < 3) throw new Error("Informe a função da vaga (mínimo 3 letras).");
+      const titulo = (v.titulo ?? "").trim();
+      if (titulo.length < 3) throw new Error("Informe a função da vaga (mínimo 3 letras).");
+      payload.titulo = titulo;
       if (v.id) {
         const { error } = await supabase.from("recrutamento_vagas").update(payload as any).eq("id", v.id);
         if (error) throw error;

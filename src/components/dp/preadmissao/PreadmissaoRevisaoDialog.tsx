@@ -1806,7 +1806,7 @@ export function PreadmissaoRevisaoDialog({ preadmissaoId, onOpenChange }: Props)
                       {data.eventos.map((e, i) => (
                         <li key={`${e.created_at}-${i}`}>
                           {new Date(e.created_at).toLocaleString("pt-BR")} — {e.evento.replace(/_/g, " ")}
-                          {e.detalhe && typeof e.detalhe === "object" && "motivo" in e.detalhe && typeof e.detalhe.motivo === "string" && <span className="block text-foreground">{e.detalhe.motivo}</span>}
+                          {e.detalhe !== null && typeof e.detalhe === "object" && "motivo" in e.detalhe && typeof e.detalhe.motivo === "string" && <span className="block text-foreground">{e.detalhe.motivo}</span>}
                         </li>
                       ))}
                     </ul>

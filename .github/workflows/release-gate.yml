@@ -28,7 +28,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: "20"
+  NODE_VERSION: "22"
 
 jobs:
   static:
@@ -81,6 +81,9 @@ jobs:
           cache: "npm"
       - run: npm ci --no-audit --no-fund
       - name: Vitest
+        env:
+          TEST_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+          TEST_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
         run: npm test
 
   tenancy:
@@ -148,13 +151,10 @@ jobs:
           sudo apt-get install -y postgresql-client
 
       - name: Verificar secret do banco
+        id: staging-db
         env:
-          DB: ${{ secrets.STAGING_SUPABASE_DB_URL }}
-        run: |
-          if [ -z "$DB" ]; then
-            echo "::error::STAGING_SUPABASE_DB_URL ausente — gate de segurança não pode rodar."
-            exit 1
-          fi
+          STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+        run: node scripts/check-staging-db-secret.mjs
 
       - name: Security linter (strict)
         env:
@@ -172,7 +172,7 @@ jobs:
         run: node scripts/company-scope-lint.mjs --ci --strict --require-db
 
       - name: Relatórios JSON
-        if: always()
+        if: always() && steps.staging-db.outcome == 'success'
         env:
           SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
         run: |
@@ -193,7 +193,7 @@ jobs:
     timeout-minutes: 30
     services:
       restore:
-        image: postgres:15
+        image: postgres:17
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: restore_drill
@@ -206,29 +206,33 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Instalar client Postgres 15
+      - name: Instalar client Postgres 17
         run: |
           sudo apt-get update
-          sudo apt-get install -y postgresql-client-15 || sudo apt-get install -y postgresql-client
+          sudo apt-get install -y ca-certificates curl
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --silent --show-error -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          . /etc/os-release
+          printf 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt %s-pgdg main\n' "$VERSION_CODENAME" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+          /usr/lib/postgresql/17/bin/pg_dump --version
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
 
       - name: Verificar secret do banco
         env:
-          DB: ${{ secrets.STAGING_SUPABASE_DB_URL }}
-        run: |
-          if [ -z "$DB" ]; then
-            echo "::error::STAGING_SUPABASE_DB_URL ausente — drill de backup não pode rodar."
-            exit 1
-          fi
+          STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+        run: node scripts/check-staging-db-secret.mjs
 
       - name: Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 3.1.0
 
       - name: Migrations em sincronia (dry-run)
         env:
           SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
-        run: node scripts/migrations-check.mjs
+        run: node scripts/migrations-check.mjs --require
 
       - name: Backup/restore drill
         env:

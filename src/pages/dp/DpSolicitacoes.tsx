@@ -141,7 +141,7 @@ export default function DpSolicitacoes({ tipoFixo }: { tipoFixo?: Tipo } = {}) {
   const prazoCompensacao = (s: Row): { dias: number; minimo: number } | null => {
     if (s.tipo !== "folga" || !s.data_alvo || !ehCompensacaoFeriado(s.motivo)) return null;
     const unidadeId = colabs.data?.find((c) => c.id === s.colaborador_id)?.unidade_id ?? null;
-    const minimo = (unidadeId && unidadesPrazo.data?.get(unidadeId)) ?? 2;
+    const minimo = (unidadeId ? unidadesPrazo.data?.get(unidadeId) : undefined) ?? 2;
     const dias = diasDeAntecedencia(s.data_alvo, hojeIsoLocal());
     return dias < minimo ? { dias, minimo } : null;
   };

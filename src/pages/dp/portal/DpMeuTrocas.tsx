@@ -338,7 +338,7 @@ export default function DpMeuTrocas() {
       setOpen(false);
       setAssinarPedido(false);
       setCienteFalta(false);
-      setForm({ destino_id: "", data_original: undefined, data_proposta: undefined, motivo: "" });
+      setForm({ destino_id: "", data_original: "", data_proposta: "", motivo: "" });
     },
     onError: (e: any) => notifyError(e, { surface: "Trocas de folga", action: "concluir a ação", fallback: "Erro" }),
   });

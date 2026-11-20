@@ -6,8 +6,16 @@ REVOKE EXECUTE ON FUNCTION public.validate_transaction_destination_account() FRO
 REVOKE EXECUTE ON FUNCTION public.validate_transaction_payment_method() FROM PUBLIC, anon;
 REVOKE EXECUTE ON FUNCTION public.get_accessible_accounts(public.context_type, uuid, boolean) FROM PUBLIC, anon;
 REVOKE EXECUTE ON FUNCTION public.get_accessible_payment_methods(public.context_type, uuid, boolean) FROM PUBLIC, anon;
-REVOKE EXECUTE ON FUNCTION public.email_queue_dispatch() FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.email_queue_wake() FROM PUBLIC, anon, authenticated;
+-- These legacy email helpers were provisioned separately where needed.
+DO $$
+BEGIN
+  IF to_regprocedure('public.email_queue_dispatch()') IS NOT NULL THEN
+    REVOKE EXECUTE ON FUNCTION public.email_queue_dispatch() FROM PUBLIC, anon, authenticated;
+  END IF;
+  IF to_regprocedure('public.email_queue_wake()') IS NOT NULL THEN
+    REVOKE EXECUTE ON FUNCTION public.email_queue_wake() FROM PUBLIC, anon, authenticated;
+  END IF;
+END $$;
 
 -- Also revoke from trigger-only functions for authenticated (triggers run as table owner regardless).
 REVOKE EXECUTE ON FUNCTION public.apply_tx_balance(public.transactions, integer) FROM authenticated;

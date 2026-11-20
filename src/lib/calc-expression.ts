@@ -81,8 +81,9 @@ function parse(tokens: Token[]): number | null {
   const peek = () => tokens[pos];
 
   function parseExpr(): number | null {
-    let left = parseTerm();
-    if (left === null) return null;
+    const first = parseTerm();
+    if (first === null) return null;
+    let left: number = first;
     while (true) {
       const tk = peek();
       if (tk && tk.t === "op" && (tk.v === "+" || tk.v === "-")) {

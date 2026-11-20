@@ -7,5 +7,3 @@ GRANT USAGE ON SCHEMA extensions TO anon, authenticated, service_role;
 
 ALTER EXTENSION pg_trgm SET SCHEMA extensions;
 ALTER EXTENSION unaccent SET SCHEMA extensions;
-
-ALTER DATABASE postgres SET search_path = public, extensions;

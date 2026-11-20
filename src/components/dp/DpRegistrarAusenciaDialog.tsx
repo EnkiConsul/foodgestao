@@ -409,10 +409,10 @@ export function DpRegistrarAusenciaDialog({ open, onOpenChange, dataInicial, mot
         _colaborador_id: input.colaboradorId,
         _data: input.data,
         _tipo: input.tipo,
-        _justificativa: input.justificativa ?? null,
-        _horario_estimado: input.horarioEstimado ?? null,
-        _horario_real: input.horarioReal ?? null,
-        _marcacao_alvo: input.marcacaoAlvo ?? null,
+        _justificativa: input.justificativa ?? undefined,
+        _horario_estimado: input.horarioEstimado ?? undefined,
+        _horario_real: input.horarioReal ?? undefined,
+        _marcacao_alvo: input.marcacaoAlvo ?? undefined,
       });
       if (error) throw error;
       await decidirAssiduidadeNoCadastro(data as string, input.assiduidade);

@@ -1,0 +1,78 @@
+name: Homologação descartável
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  clean-staging:
+    name: Migrações limpas e dados sintéticos
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      STAGING_WORKDIR: /tmp/aveto-clean-staging
+      STAGING_NETWORK: aveto-clean-staging
+      STAGING_BRIDGE: aveto-ci-br
+      LOCAL_SUPABASE_URL: http://127.0.0.1:54321
+      LOCAL_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 3.1.0
+
+      - name: Aplicar a trilha canônica em Supabase local vazio
+        run: |
+          mkdir -p "$STAGING_WORKDIR"
+          supabase init --workdir "$STAGING_WORKDIR"
+          mkdir -p "$STAGING_WORKDIR/supabase/migrations"
+          cp supabase/migrations/*.sql "$STAGING_WORKDIR/supabase/migrations/"
+          docker network create --driver bridge \
+            --opt "com.docker.network.bridge.name=$STAGING_BRIDGE" "$STAGING_NETWORK"
+          # The CLI connects through a host port. Block new outbound forwarding
+          # from the containers while allowing responses and internal traffic.
+          sudo iptables -I DOCKER-USER -i "$STAGING_BRIDGE" ! -o "$STAGING_BRIDGE" \
+            -m conntrack --ctstate NEW -j DROP
+          supabase start --workdir "$STAGING_WORKDIR" --network-id "$STAGING_NETWORK" \
+            --exclude studio,postgres-meta,imgproxy,edge-runtime,logflare,vector,mailpit
+
+      - name: Criar dados sintéticos e confirmar login
+        run: |
+          if ! command -v psql >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y postgresql-client
+          fi
+          export FIXTURE_PASSWORD="$(openssl rand -hex 24)"
+          echo "::add-mask::$FIXTURE_PASSWORD"
+          psql "$LOCAL_DB_URL" -v ON_ERROR_STOP=1 -v fixture_password="$FIXTURE_PASSWORD" \
+            --file scripts/seed-clean-staging.sql
+          export LOCAL_SUPABASE_ANON_KEY="$(supabase status --workdir "$STAGING_WORKDIR" -o json | jq -er .ANON_KEY)"
+          echo "::add-mask::$LOCAL_SUPABASE_ANON_KEY"
+          node --input-type=module <<'JS'
+          for (const label of ["a", "b", "c", "d"]) {
+            const response = await fetch(process.env.LOCAL_SUPABASE_URL + "/auth/v1/token?grant_type=password", {
+              method: "POST",
+              headers: { apikey: process.env.LOCAL_SUPABASE_ANON_KEY, "Content-Type": "application/json" },
+              body: JSON.stringify({ email: `ci-${label}@example.invalid`, password: process.env.FIXTURE_PASSWORD }),
+              signal: AbortSignal.timeout(10000),
+            });
+            if (!response.ok || !(await response.json()).access_token) {
+              throw new Error(`Login da conta sintética ${label.toUpperCase()} falhou (HTTP ${response.status})`);
+            }
+          }
+          console.log("Login confirmado para as quatro contas sintéticas");
+          JS
+
+      - name: Encerrar ambiente descartável
+        if: always()
+        run: |
+          if [ -f "$STAGING_WORKDIR/supabase/config.toml" ]; then
+            supabase stop --workdir "$STAGING_WORKDIR" --no-backup
+          fi

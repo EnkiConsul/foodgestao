@@ -1,6 +1,6 @@
 
--- 1) Colunas de controle de sincronização em bank_connection_accounts
-ALTER TABLE public.bank_connection_accounts
+-- 1) A tabela legada só existe em instalações com a integração original.
+ALTER TABLE IF EXISTS public.bank_connection_accounts
   ADD COLUMN IF NOT EXISTS last_synced_at timestamptz,
   ADD COLUMN IF NOT EXISTS last_synced_tx_date date;
 
@@ -104,6 +104,20 @@ $function$;
 REVOKE ALL ON FUNCTION public.pluggy_upsert_transaction(uuid, text, text, numeric, date, public.transaction_type) FROM public;
 GRANT EXECUTE ON FUNCTION public.pluggy_upsert_transaction(uuid, text, text, numeric, date, public.transaction_type) TO service_role;
 
--- 5) Realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE public.bank_connections;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.bank_connection_accounts;
+-- 5) Realtime para as instalações que ainda têm as tabelas legadas.
+DO $$
+DECLARE
+  table_name text;
+BEGIN
+  FOREACH table_name IN ARRAY ARRAY['bank_connections', 'bank_connection_accounts']
+  LOOP
+    IF to_regclass(format('public.%I', table_name)) IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM pg_publication_tables
+          WHERE pubname = 'supabase_realtime' AND schemaname = 'public'
+            AND tablename = table_name
+        ) THEN
+      EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I', table_name);
+    END IF;
+  END LOOP;
+END $$;

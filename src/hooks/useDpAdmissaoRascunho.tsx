@@ -66,7 +66,7 @@ export function useDpAdmissaoRascunho(chave: string | null) {
           p_company_id: selectedCompanyId,
           p_chave: chave,
           p_dados: JSON.parse(JSON.stringify(dados)),
-          p_versao: versaoRef.current,
+          p_versao: versaoRef.current ?? undefined,
         });
         if (error) throw error;
         const linha = Array.isArray(data) ? data[0] : data;

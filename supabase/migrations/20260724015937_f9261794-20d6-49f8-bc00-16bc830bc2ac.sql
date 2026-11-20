@@ -318,6 +318,7 @@ CREATE TRIGGER trg_of_txraw_updated_at BEFORE UPDATE ON public.open_finance_tran
 ALTER TABLE public.transactions
   ADD COLUMN IF NOT EXISTS connection_account_id uuid NULL
     REFERENCES public.open_finance_accounts(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS external_id text NULL,
   ADD COLUMN IF NOT EXISTS provider_status text NULL,
   ADD COLUMN IF NOT EXISTS provider_category text NULL,
   ADD COLUMN IF NOT EXISTS counterparty_name text NULL,

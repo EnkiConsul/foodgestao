@@ -13,15 +13,15 @@ export interface CampoPessoal {
   curto?: boolean;
 }
 
-export const DOCUMENTOS_PESSOAIS: CampoPessoal[] = [
+const camposPessoais: Array<Omit<CampoPessoal, "tipo"> & { tipo?: CampoPessoal["tipo"] }> = [
   { campo: "rg_numero", label: "RG" },
   { campo: "rg_orgao", label: "Órgão emissor", curto: true },
   { campo: "rg_uf", label: "UF do RG", curto: true },
-  { campo: "rg_emissao", label: "Emissão do RG", tipo: "date" } as CampoPessoal,
+  { campo: "rg_emissao", label: "Emissão do RG", tipo: "date" },
   { campo: "ctps_numero", label: "CTPS" },
   { campo: "ctps_serie", label: "Série da CTPS", curto: true },
   { campo: "ctps_uf", label: "UF da CTPS", curto: true },
-  { campo: "ctps_expedicao", label: "Expedição da CTPS", tipo: "date" } as CampoPessoal,
+  { campo: "ctps_expedicao", label: "Expedição da CTPS", tipo: "date" },
   { campo: "titulo_eleitor", label: "Título de eleitor" },
   { campo: "titulo_zona", label: "Zona", curto: true },
   { campo: "titulo_secao", label: "Seção", curto: true },
@@ -34,7 +34,12 @@ export const DOCUMENTOS_PESSOAIS: CampoPessoal[] = [
   { campo: "raca_cor", label: "Raça/cor" },
   { campo: "grau_instrucao", label: "Grau de instrução" },
   { campo: "deficiencia", label: "Deficiência" },
-].map((c) => ({ tipo: "text", ...(c as CampoPessoal) }));
+];
+
+export const DOCUMENTOS_PESSOAIS: CampoPessoal[] = camposPessoais.map(({ tipo = "text", ...campo }) => ({
+  ...campo,
+  tipo,
+}));
 
 /** Estado inicial (tudo em branco) para o formulário do colaborador. */
 export const DOCUMENTOS_PESSOAIS_BLANK: Record<string, string> = Object.fromEntries(

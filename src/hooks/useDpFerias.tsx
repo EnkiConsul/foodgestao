@@ -148,7 +148,7 @@ export function useDpFerias(colaboradorFilter: string) {
       const { error } = await supabase.rpc("dp_ferias_informar_faltas", {
         _periodo_id: periodoId,
         _faltas: faltas,
-        _motivo: motivo?.trim() || null,
+        _motivo: motivo?.trim() || undefined,
       });
       if (error) throw error;
     },
@@ -173,8 +173,8 @@ export function useDpFerias(colaboradorFilter: string) {
         _data_fim: input.data_fim,
         _dias_abono: input.dias_abono,
         _adiantar_13: input.adiantar_13,
-        _observacao: input.observacao?.trim() || null,
-        _justificativa: input.justificativa?.trim() || null,
+        _observacao: input.observacao?.trim() || undefined,
+        _justificativa: input.justificativa?.trim() || undefined,
       });
       if (error) throw error;
     },
@@ -201,9 +201,9 @@ export function useDpFerias(colaboradorFilter: string) {
         p_data_fim: input.data_fim,
         p_dias_abono: input.dias_abono ?? 0,
         p_adiantar_13: input.adiantar_13 ?? false,
-        p_aviso_em: input.aviso_em || null,
-        p_observacao: input.observacao?.trim() || null,
-        p_justificativa: input.justificativa?.trim() || null,
+        p_aviso_em: input.aviso_em || undefined,
+        p_observacao: input.observacao?.trim() || undefined,
+        p_justificativa: input.justificativa?.trim() || undefined,
       });
       if (error) throw error;
     },

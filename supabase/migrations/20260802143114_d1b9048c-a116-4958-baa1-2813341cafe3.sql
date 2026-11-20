@@ -3,6 +3,7 @@ DECLARE t text;
 BEGIN
   FOREACH t IN ARRAY ARRAY['audit_logs_2026_08','audit_logs_2026_09','audit_logs_2026_10','audit_logs_2026_11']
   LOOP
+    IF to_regclass(format('public.%I', t)) IS NULL THEN CONTINUE; END IF;
     EXECUTE format('DROP POLICY IF EXISTS "Users can insert own audit logs" ON public.%I', t);
     EXECUTE format('DROP POLICY IF EXISTS "Deny delete on audit logs" ON public.%I', t);
     EXECUTE format('DROP POLICY IF EXISTS "Deny update on audit logs" ON public.%I', t);

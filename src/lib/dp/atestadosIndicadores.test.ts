@@ -1,11 +1,19 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { somarDiasIso, calcularIndicadores, afastadoNoDia } from "./atestadosIndicadores";
+import { somarDiasIso, calcularIndicadores, afastadoNoDia, dataRetorno } from "./atestadosIndicadores";
 import { hojeIsoLocal } from "./dataLocal";
 
 const TZ_ORIG = process.env.TZ;
 afterEach(() => { process.env.TZ = TZ_ORIG; });
 
 describe("Atestados — data de Brasília", () => {
+  it("mantém a pendência sem data fora dos indicadores de afastamento e retorno", () => {
+    const linha = { status: "pendente", data_alvo: null };
+    expect(dataRetorno(linha)).toBeNull();
+    const { foraHoje, retornam, pend } = calcularIndicadores([linha], new Date("2026-10-16T12:00:00Z"));
+    expect(foraHoje).toEqual([]);
+    expect(retornam).toEqual([]);
+    expect(pend).toEqual([linha]);
+  });
   it("1: 20h59 e 21h01 de Brasília continuam no mesmo dia", () => {
     expect(hojeIsoLocal(new Date("2026-10-15T23:59:00Z"))).toBe("2026-10-15");
     expect(hojeIsoLocal(new Date("2026-10-16T00:01:00Z"))).toBe("2026-10-15");

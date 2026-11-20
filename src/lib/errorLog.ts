@@ -178,14 +178,14 @@ export async function reportError(input: ReportErrorInput): Promise<string | nul
     const { data, error } = await supabase.rpc("app_error_log_record", {
       _fingerprint: fingerprint,
       _message: message.slice(0, 2000),
-      _company_id: input.companyId ?? currentCompanyId,
-      _surface: input.surface ?? null,
-      _route: typeof window !== "undefined" ? window.location.pathname : null,
-      _action: input.action ?? null,
+      _company_id: input.companyId ?? currentCompanyId ?? undefined,
+      _surface: input.surface ?? undefined,
+      _route: typeof window !== "undefined" ? window.location.pathname : undefined,
+      _action: input.action ?? undefined,
       _severity: input.severity ?? "error",
       _source: input.source ?? "client",
-      _code: code,
-      _user_message: input.userMessage ?? null,
+      _code: code ?? undefined,
+      _user_message: input.userMessage ?? undefined,
       _details: {
         ...(input.details ?? {}),
         ...(stack ? { stack } : {}),
@@ -220,8 +220,8 @@ export async function createErrorReport(input: {
   const { data, error } = await supabase.rpc("app_error_report_create", {
     _error_log_id: input.errorLogId,
     _description: input.description.trim(),
-    _attempted_action: input.attemptedAction?.trim() || null,
-    _route: typeof window !== "undefined" ? window.location.pathname : null,
+    _attempted_action: input.attemptedAction?.trim() || undefined,
+    _route: typeof window !== "undefined" ? window.location.pathname : undefined,
   });
   if (error) throw error;
   const row = Array.isArray(data) ? data[0] : null;

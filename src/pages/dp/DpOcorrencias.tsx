@@ -536,10 +536,12 @@ export default function DpOcorrencias() {
                   defaultMonth={new Date((filtros.periodo === "todas" ? hojeSaoPaulo() : intervalo.inicio) + "T00:00:00")}
                   onSelect={(r) => {
                     if (!r?.from) return;
+                    const from = r.from;
+                    const to = r.to ?? from;
                     setFiltros((f) => ({
                       ...f, periodo: "personalizado", data: null,
-                      periodoInicio: format(r.from, "yyyy-MM-dd"),
-                      periodoFim: format(r.to ?? r.from, "yyyy-MM-dd"),
+                      periodoInicio: format(from, "yyyy-MM-dd"),
+                      periodoFim: format(to, "yyyy-MM-dd"),
                     }));
                   }}
                   className="pointer-events-auto mx-auto p-0"
@@ -708,12 +710,14 @@ export default function DpOcorrencias() {
                   )}
                   onSelect={(r) => {
                     if (!r?.from) return;
+                    const from = r.from;
+                    const to = r.to ?? from;
                     setFiltros((f) => ({
                       ...f,
                       periodo: "personalizado",
                       data: null,
-                      periodoInicio: format(r.from, "yyyy-MM-dd"),
-                      periodoFim: format(r.to ?? r.from, "yyyy-MM-dd"),
+                      periodoInicio: format(from, "yyyy-MM-dd"),
+                      periodoFim: format(to, "yyyy-MM-dd"),
                     }));
                   }}
                   className={cn("p-3 pointer-events-auto")}

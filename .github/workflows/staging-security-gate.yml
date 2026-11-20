@@ -35,7 +35,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Install psql client
         run: |
@@ -55,6 +55,7 @@ jobs:
           else
             URL="$STAGING_URL"
             NAME="staging"
+            STAGING_SUPABASE_DB_URL="$URL" node scripts/check-staging-db-secret.mjs
           fi
           if [ -z "$URL" ]; then
             echo "::error::Missing ${NAME^^}_SUPABASE_DB_URL secret."
@@ -75,7 +76,7 @@ jobs:
         run: node scripts/policy-sweep.mjs --require
 
       - name: Publish JSON reports
-        if: always()
+        if: always() && steps.dburl.outcome == 'success'
         env:
           SUPABASE_DB_URL: ${{ steps.dburl.outputs.url }}
         run: |

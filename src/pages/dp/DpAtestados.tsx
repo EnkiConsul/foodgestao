@@ -336,7 +336,7 @@ export default function DpAtestados() {
     arr.sort((a, b) => {
       let cmp: number;
       if (sortKey === "data") cmp = (a.data_alvo ?? "").localeCompare(b.data_alvo ?? "");
-      else if (sortKey === "retorno") cmp = dataRetorno(a).localeCompare(dataRetorno(b));
+      else if (sortKey === "retorno") cmp = (dataRetorno(a) ?? "").localeCompare(dataRetorno(b) ?? "");
       else {
         const col = ATEST_COL_ORDER.find((k) => COLS[k].sortKey === sortKey);
         if (!col) return 0;

@@ -48,10 +48,58 @@ CREATE POLICY dp_sol_colab_self_write ON public.dp_solicitacoes
   );
 
 -- 2) Email internal tables: scope policies explicitly to service_role, revoke ambient grants
-REVOKE ALL ON public.email_send_state FROM anon, authenticated;
-REVOKE ALL ON public.email_send_log FROM anon, authenticated;
-REVOKE ALL ON public.suppressed_emails FROM anon, authenticated;
-REVOKE ALL ON public.email_unsubscribe_tokens FROM anon, authenticated;
+-- Older hosted projects already had these tables. Clean installs need the
+-- schema before the access policies can be applied.
+CREATE TABLE IF NOT EXISTS public.email_send_state (
+  id integer PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  retry_after_until timestamptz,
+  batch_size integer NOT NULL DEFAULT 10,
+  send_delay_ms integer NOT NULL DEFAULT 200,
+  auth_email_ttl_minutes integer NOT NULL DEFAULT 15,
+  transactional_email_ttl_minutes integer NOT NULL DEFAULT 60,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.email_send_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  message_id text,
+  template_name text NOT NULL,
+  recipient_email text NOT NULL,
+  status text NOT NULL CHECK (status IN ('pending', 'sent', 'suppressed', 'failed', 'bounced', 'complained', 'dlq')),
+  error_message text,
+  metadata jsonb,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_email_send_log_message ON public.email_send_log (message_id);
+CREATE INDEX IF NOT EXISTS idx_email_send_log_recipient ON public.email_send_log (recipient_email);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_email_send_log_message_sent_unique ON public.email_send_log (message_id) WHERE status = 'sent';
+CREATE INDEX IF NOT EXISTS idx_email_send_log_created ON public.email_send_log (created_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.suppressed_emails (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  email text NOT NULL UNIQUE,
+  reason text NOT NULL CHECK (reason IN ('unsubscribe', 'bounce', 'complaint')),
+  metadata jsonb,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.email_unsubscribe_tokens (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  token text NOT NULL UNIQUE,
+  email text NOT NULL UNIQUE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  used_at timestamptz
+);
+
+ALTER TABLE public.email_send_state ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.email_send_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.suppressed_emails ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.email_unsubscribe_tokens ENABLE ROW LEVEL SECURITY;
+
+REVOKE ALL ON public.email_send_state FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.email_send_log FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.suppressed_emails FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.email_unsubscribe_tokens FROM PUBLIC, anon, authenticated;
 GRANT ALL ON public.email_send_state TO service_role;
 GRANT ALL ON public.email_send_log TO service_role;
 GRANT ALL ON public.suppressed_emails TO service_role;

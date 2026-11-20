@@ -9,16 +9,18 @@ export function somarDiasIso(iso: string, dias: number): string {
   return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
 }
 
-export type LinhaIndicador = { status: string; data_alvo: string; data_fim?: string | null };
+type PeriodoAfastamento = { data_alvo: string | null; data_fim?: string | null };
+export type LinhaIndicador = PeriodoAfastamento & { status: string };
 
 /** Último dia afastado (inclusivo). */
-export function ultimoDia(r: { data_alvo: string; data_fim?: string | null }): string {
+export function ultimoDia(r: PeriodoAfastamento): string | null {
   return r.data_fim ?? r.data_alvo;
 }
 
 /** Data de retorno ao trabalho: dia seguinte ao último dia afastado. */
-export function dataRetorno(r: { data_alvo: string; data_fim?: string | null }): string {
-  return somarDiasIso(ultimoDia(r), 1);
+export function dataRetorno(r: PeriodoAfastamento): string | null {
+  const fim = ultimoDia(r);
+  return fim ? somarDiasIso(fim, 1) : null;
 }
 
 /** Quantidade de dias de afastamento (início e fim contam). */
@@ -32,7 +34,9 @@ export function diasAfastamento(inicio?: string | null, fim?: string | null): nu
 
 /** Selo "Fora hoje": não recusada/cancelada e início ≤ hoje ≤ último dia. */
 export function afastadoNoDia(r: LinhaIndicador, hoje: string): boolean {
-  return r.status !== "recusada" && r.status !== "cancelada" && r.data_alvo <= hoje && ultimoDia(r) >= hoje;
+  const fim = ultimoDia(r);
+  return r.status !== "recusada" && r.status !== "cancelada" &&
+    r.data_alvo !== null && fim !== null && r.data_alvo <= hoje && fim >= hoje;
 }
 
 /** KPIs: ativos = aprovada/pendente; retorno em [hoje, hoje+7] (quem volta hoje conta). */
@@ -43,8 +47,8 @@ export function calcularIndicadores<T extends LinhaIndicador>(linhas: T[], agora
   return {
     hoje,
     em7,
-    foraHoje: ativos.filter((r) => r.data_alvo <= hoje && ultimoDia(r) >= hoje),
-    retornam: ativos.filter((r) => { const v = dataRetorno(r); return v >= hoje && v <= em7; }),
+    foraHoje: ativos.filter((r) => afastadoNoDia(r, hoje)),
+    retornam: ativos.filter((r) => { const v = dataRetorno(r); return v !== null && v >= hoje && v <= em7; }),
     pend: linhas.filter((r) => r.status === "pendente"),
   };
 }

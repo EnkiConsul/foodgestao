@@ -1709,7 +1709,7 @@ export default function DpMeuCalendario() {
       const { data, error } = await supabase.rpc("dp_folga_remarcar", {
         p_data_atual: remarcarOpen,
         p_data_nova: remarcarNova,
-        p_motivo: remarcarMotivo.trim() || null,
+        p_motivo: remarcarMotivo.trim() || undefined,
       });
       if (!error) return Number((data as any)?.pedidos_cancelados ?? 0);
       const raw = error.message ?? "";
@@ -1759,7 +1759,7 @@ export default function DpMeuCalendario() {
       const { error } = await supabase.rpc("dp_folga_remarcar_solicitar", {
         p_data_atual: remarcarOpen,
         p_data_nova: remarcarNova,
-        p_motivo: remarcarMotivo.trim() || null,
+        p_motivo: remarcarMotivo.trim() || undefined,
       });
       if (error) {
         const raw = error.message ?? "";

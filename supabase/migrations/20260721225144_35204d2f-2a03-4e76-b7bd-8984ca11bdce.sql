@@ -2,20 +2,16 @@
 -- 1. audit_logs (parent + all partitions): scope "Super admins can view audit logs" to authenticated
 DO $$
 DECLARE
-  tbl text;
+  tbl regclass;
 BEGIN
-  FOREACH tbl IN ARRAY ARRAY[
-    'audit_logs',
-    'audit_logs_2025_07','audit_logs_2025_08','audit_logs_2025_09','audit_logs_2025_10',
-    'audit_logs_2025_11','audit_logs_2025_12','audit_logs_2026_01','audit_logs_2026_02',
-    'audit_logs_2026_03','audit_logs_2026_04','audit_logs_2026_05','audit_logs_2026_06',
-    'audit_logs_2026_07','audit_logs_2026_08','audit_logs_2026_09','audit_logs_2026_10',
-    'audit_logs_default'
-  ]
+  FOR tbl IN
+    SELECT 'public.audit_logs'::regclass
+    UNION
+    SELECT relid FROM pg_partition_tree('public.audit_logs'::regclass)
   LOOP
-    EXECUTE format('DROP POLICY IF EXISTS "Super admins can view audit logs" ON public.%I;', tbl);
+    EXECUTE format('DROP POLICY IF EXISTS "Super admins can view audit logs" ON %s;', tbl);
     EXECUTE format(
-      'CREATE POLICY "Super admins can view audit logs" ON public.%I FOR SELECT TO authenticated USING (is_super_admin(auth.uid()));',
+      'CREATE POLICY "Super admins can view audit logs" ON %s FOR SELECT TO authenticated USING (public.is_super_admin(auth.uid()));',
       tbl
     );
   END LOOP;

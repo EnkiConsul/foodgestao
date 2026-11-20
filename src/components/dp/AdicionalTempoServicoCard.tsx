@@ -72,7 +72,6 @@ export function AdicionalTempoServicoCard({
     if (aba) {
       toast.info("Cadastro de regras aberto em nova aba. Depois de salvar a regra, volte aqui e salve a ficha.");
     } else {
-      if (onNavegar) { onNavegar("/dp/cadastros/cargos?aba=complementos"); return; }
       onBeforeNavigate?.();
       navigate("/dp/cadastros/cargos?aba=complementos");
     }

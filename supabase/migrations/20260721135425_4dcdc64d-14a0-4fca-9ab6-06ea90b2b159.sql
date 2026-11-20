@@ -1,5 +1,6 @@
 
 -- Ensure pgmq queue exists
+CREATE EXTENSION IF NOT EXISTS pgmq;
 SELECT pgmq.create('ai_categorization') WHERE NOT EXISTS (
   SELECT 1 FROM pgmq.list_queues() WHERE queue_name = 'ai_categorization'
 );

@@ -21,7 +21,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Install psql client
         run: |
@@ -30,14 +30,10 @@ jobs:
 
       - name: Verify database secret
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-        run: |
-          if [ -z "$SUPABASE_DB_URL" ]; then
-            echo "::error::NÃO EXECUTADO — SUPABASE_DB_URL (homologação) ausente."
-            exit 1
-          fi
+          STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+        run: node scripts/check-staging-db-secret.mjs
 
       - name: Run security linter (CI strict)
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
         run: node scripts/security-lint.mjs --ci --strict --require

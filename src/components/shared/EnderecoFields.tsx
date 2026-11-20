@@ -30,9 +30,11 @@ export interface EnderecoValor {
   uf?: string | null;
 }
 
+type EnderecoPatch = Partial<Record<keyof EnderecoValor, string>>;
+
 interface Props {
   valor: EnderecoValor;
-  onChange: (patch: EnderecoValor) => void;
+  onChange: (patch: EnderecoPatch) => void;
   /** Sufixo dos ids, para conviver com mais de um endereço na mesma tela. */
   idPrefix?: string;
   /** Mostra tudo em CAIXA ALTA (cadastros). */
@@ -76,7 +78,7 @@ export function EnderecoFields({
         // Regra: o CEP só preenche o que está vazio. Nada do que a pessoa já
         // digitou (rua, bairro, cidade ou UF) é apagado ou substituído.
         const atual = valorRef.current;
-        const patch: EnderecoValor = {};
+        const patch: EnderecoPatch = {};
         if (!String(atual.logradouro ?? "").trim()) patch.logradouro = caixa(achado.logradouro);
         if (!String(atual.bairro ?? "").trim()) patch.bairro = caixa(achado.bairro);
         if (!String(atual.cidade ?? "").trim()) patch.cidade = caixa(achado.cidade);

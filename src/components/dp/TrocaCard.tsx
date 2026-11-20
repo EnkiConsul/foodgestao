@@ -108,7 +108,9 @@ export function TrocaCard({ troca, onOpen, onAprovar, onRecusar, onCancelar, onM
       )}
 
       {troca.status === "pendente_gestor" && (() => {
-        const motivo = motivoAprovacaoGestor(troca.data_original, troca.data_proposta);
+        const motivo = troca.data_proposta
+          ? motivoAprovacaoGestor(troca.data_original, troca.data_proposta)
+          : null;
         return (
           <div className="flex items-start gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-primary">
             <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />

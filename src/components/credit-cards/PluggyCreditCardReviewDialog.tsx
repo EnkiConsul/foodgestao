@@ -110,8 +110,8 @@ export function PluggyCreditCardReviewDialog({ open, onOpenChange, accounts, onD
     const { error } = await supabase.rpc("pluggy_review_credit_account", {
       _account_id: account.id,
       _status: status,
-      _credit_card_id: creditCardId,
-      _name: cardName.trim() ? cardName.trim() : null,
+      _credit_card_id: creditCardId ?? undefined,
+      _name: cardName.trim() || undefined,
     });
     if (error) throw new Error(error.message);
 

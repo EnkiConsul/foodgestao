@@ -27,7 +27,7 @@ import { useDpPagamentosMarcos } from "@/hooks/useDpPagamentosMarcos";
 import { IconesPagamento } from "@/components/dp/calendario/PagamentosDia";
 
 type ControladorOficial = typeof import("@/pages/dp/DpOperacaoPanorama").default;
-const CalendarioOficial = lazyWithRetry<Parameters<ControladorOficial>[0], ControladorOficial>(() => import("@/pages/dp/DpOperacaoPanorama"));
+const CalendarioOficial = lazyWithRetry<NonNullable<Parameters<ControladorOficial>[0]>, ControladorOficial>(() => import("@/pages/dp/DpOperacaoPanorama"));
 const UNIDADE_KEY = "operacao_unidade";
 const AUSENCIAS_BASE = [
   { label: "Folgas", Icon: BedSingle, cor: "text-calendar-folga bg-calendar-folga/10", valor: (d: DiaPanorama) => d.contagens.folga_padrao + d.contagens.folga_extra },
